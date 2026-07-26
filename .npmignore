@@ -1,0 +1,11 @@
+.vscode/
+.agents/
+.codex/
+src/
+test/
+docs/
+tsconfig.json
+eslint.config.js
+dist/test/
+dist/**/*.map
+*.vsix

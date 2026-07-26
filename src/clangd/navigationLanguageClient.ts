@@ -1,0 +1,39 @@
+import type {
+  DynamicFeature,
+  StaticFeature,
+} from "vscode-languageclient/node";
+import {
+  LanguageClient,
+  type LanguageClientOptions,
+  type ServerOptions,
+} from "vscode-languageclient/node";
+import { shouldRegisterLanguageClientFeature } from "./languageClientFeatureFilter";
+
+/**
+ * C Insight shares a VS Code extension host with other clangd clients.
+ * clangd's execute-command names (for example clangd.applyFix) are global,
+ * so registering them from two clients throws and aborts initialization.
+ *
+ * C Insight does not use those commands for its navigation views, therefore
+ * it deliberately omits only the execute-command feature while retaining
+ * document sync and all language navigation providers.
+ */
+export class NavigationLanguageClient extends LanguageClient {
+  constructor(
+    id: string,
+    name: string,
+    serverOptions: ServerOptions,
+    clientOptions: LanguageClientOptions,
+  ) {
+    super(id, name, serverOptions, clientOptions);
+  }
+
+  override registerFeature(
+    feature: StaticFeature | DynamicFeature<unknown>,
+  ): void {
+    if (!shouldRegisterLanguageClientFeature(feature)) {
+      return;
+    }
+    super.registerFeature(feature);
+  }
+}

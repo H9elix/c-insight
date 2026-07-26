@@ -1,0 +1,647 @@
+{
+  "name": "c-insight",
+  "displayName": "C Insight",
+  "description": "Source Insight-style C/C++ navigation powered by clangd.",
+  "version": "0.8.4",
+  "publisher": "c-insight",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "c",
+    "cpp",
+    "clangd",
+    "references",
+    "call hierarchy"
+  ],
+  "main": "./dist/extension.js",
+  "files": [
+    "dist/extension.js",
+    "media/**/*",
+    "README.md",
+    "CHANGELOG.md",
+    "docs/user-guide.zh-CN.md",
+    "LICENSE"
+  ],
+  "activationEvents": [
+    "onLanguage:c",
+    "onLanguage:cpp",
+    "onLanguage:objective-c",
+    "onLanguage:objective-cpp",
+    "onView:cInsight.context"
+  ],
+  "scripts": {
+    "compile": "tsc -p .",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js",
+    "build": "npm run compile && npm run bundle",
+    "watch": "tsc -p . --watch",
+    "lint": "eslint src test --ext .ts",
+    "test": "npm run compile && node --test dist/test/**/*.test.js",
+    "test:unit": "npm run compile && node --test dist/test/unit/**/*.test.js",
+    "test:integration": "npm run compile && node --test dist/test/integration/**/*.test.js",
+    "test:e2e": "npm run build && node dist/test/e2e/runTest.js",
+    "test:e2e:xvfb": "xvfb-run -a npm run test:e2e",
+    "package": "npm run build && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.28.1",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "cInsight.goToDefinition",
+        "title": "C Insight: Go to Definition"
+      },
+      {
+        "command": "cInsight.findReferences",
+        "title": "C Insight: Find All References"
+      },
+      {
+        "command": "cInsight.showIncomingCalls",
+        "title": "C Insight: Show Incoming Calls"
+      },
+      {
+        "command": "cInsight.showOutgoingCalls",
+        "title": "C Insight: Show Outgoing Calls"
+      },
+      {
+        "command": "cInsight.pinContext",
+        "title": "C Insight: Pin Context",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "cInsight.unpinContext",
+        "title": "C Insight: Unpin Context",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "cInsight.pinReferences",
+        "title": "C Insight: Pin References",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "cInsight.unpinReferences",
+        "title": "C Insight: Unpin References",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "cInsight.pinCallHierarchy",
+        "title": "C Insight: Pin Callers and Callees",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "cInsight.unpinCallHierarchy",
+        "title": "C Insight: Unpin Callers and Callees",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "cInsight.refresh",
+        "title": "C Insight: Refresh"
+      },
+      {
+        "command": "cInsight.restartClangd",
+        "title": "C Insight: Restart clangd"
+      },
+      {
+        "command": "cInsight.diagnostics.refresh",
+        "title": "C Insight: Refresh Project Diagnostics",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cInsight.openProjectDiagnostics",
+        "title": "C Insight: Open Project Diagnostics"
+      },
+      {
+        "command": "cInsight.diagnostics.showClangdLog",
+        "title": "C Insight: Show clangd Log",
+        "icon": "$(output)"
+      },
+      {
+        "command": "cInsight.index.refresh",
+        "title": "C Insight: Restart Background Indexing",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "cInsight.diagnostics.selectCompilationDatabase",
+        "title": "C Insight: Select Compilation Database",
+        "icon": "$(database)"
+      },
+      {
+        "command": "cInsight.diagnostics.clearCompilationDatabase",
+        "title": "C Insight: Use Automatic Compilation Database Detection"
+      },
+      {
+        "command": "cInsight.openLocation",
+        "title": "C Insight: Open Location"
+      },
+      {
+        "command": "cInsight.searchSymbols",
+        "title": "C Insight: Search Workspace Symbols"
+      },
+      {
+        "command": "cInsight.references.search",
+        "title": "C Insight: Filter References",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.references.clearSearch",
+        "title": "C Insight: Clear Reference Filter"
+      },
+      {
+        "command": "cInsight.references.groupBy",
+        "title": "C Insight: Change Reference Grouping",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "cInsight.references.scope",
+        "title": "C Insight: Change Reference Scope",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "cInsight.references.loadMore",
+        "title": "C Insight: Load More References"
+      },
+      {
+        "command": "cInsight.references.showAll",
+        "title": "C Insight: Show All References"
+      },
+      {
+        "command": "cInsight.references.copy",
+        "title": "C Insight: Copy Reference"
+      },
+      {
+        "command": "cInsight.references.copyAll",
+        "title": "C Insight: Copy All References"
+      },
+      {
+        "command": "cInsight.references.exportText",
+        "title": "C Insight: Export References as Text"
+      },
+      {
+        "command": "cInsight.references.exportJson",
+        "title": "C Insight: Export References as JSON"
+      },
+      {
+        "command": "cInsight.references.openList",
+        "title": "C Insight: Open Reference List in Editor"
+      },
+      {
+        "command": "cInsight.references.expandAll",
+        "title": "C Insight: Expand All Reference Groups"
+      },
+      {
+        "command": "cInsight.references.collapseAll",
+        "title": "C Insight: Collapse All Reference Groups"
+      },
+      {
+        "command": "cInsight.callers.expandToDepth",
+        "title": "C Insight: Expand Callers to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.callees.expandToDepth",
+        "title": "C Insight: Expand Callees to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.callHierarchy.stopExpansion",
+        "title": "C Insight: Stop Call Hierarchy Expansion"
+      },
+      {
+        "command": "cInsight.callers.search",
+        "title": "C Insight: Search Loaded Callers",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.callees.search",
+        "title": "C Insight: Search Loaded Callees",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.callers.exportText",
+        "title": "C Insight: Export Callers as Text"
+      },
+      {
+        "command": "cInsight.callers.exportJson",
+        "title": "C Insight: Export Callers as JSON"
+      },
+      {
+        "command": "cInsight.callees.exportText",
+        "title": "C Insight: Export Callees as Text"
+      },
+      {
+        "command": "cInsight.callees.exportJson",
+        "title": "C Insight: Export Callees as JSON"
+      },
+      {
+        "command": "cInsight.callers.findPath",
+        "title": "C Insight: Find Caller Path",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "cInsight.callees.findPath",
+        "title": "C Insight: Find Callee Path",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "cInsight.callers.exportMermaid",
+        "title": "C Insight: Export Callers as Mermaid"
+      },
+      {
+        "command": "cInsight.callees.exportMermaid",
+        "title": "C Insight: Export Callees as Mermaid"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cInsight.goToDefinition",
+        "key": "f12",
+        "when": "editorTextFocus && cInsight.active"
+      },
+      {
+        "command": "cInsight.findReferences",
+        "key": "shift+f12",
+        "when": "editorTextFocus && cInsight.active"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "cInsight.goToDefinition",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.findReferences",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.showIncomingCalls",
+          "when": "resourceLangId == c || resourceLangId == cpp",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.showOutgoingCalls",
+          "when": "resourceLangId == c || resourceLangId == cpp",
+          "group": "navigation@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "cInsight.pinContext",
+          "when": "view == cInsight.context && !cInsight.pinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.unpinContext",
+          "when": "view == cInsight.context && cInsight.pinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.pinReferences",
+          "when": "view == cInsight.references && !cInsight.referencesPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.unpinReferences",
+          "when": "view == cInsight.references && cInsight.referencesPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.pinCallHierarchy",
+          "when": "view == cInsight.callers && !cInsight.callHierarchyPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.unpinCallHierarchy",
+          "when": "view == cInsight.callers && cInsight.callHierarchyPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.pinCallHierarchy",
+          "when": "view == cInsight.callees && !cInsight.callHierarchyPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.unpinCallHierarchy",
+          "when": "view == cInsight.callees && cInsight.callHierarchyPinned",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.refresh",
+          "when": "view =~ /cInsight\\.(context|preview|references|callers|callees|symbols)/",
+          "group": "navigation"
+        },
+        {
+          "command": "cInsight.diagnostics.refresh",
+          "when": "view == cInsight.status",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.diagnostics.showClangdLog",
+          "when": "view == cInsight.status",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.diagnostics.selectCompilationDatabase",
+          "when": "view == cInsight.status",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.index.refresh",
+          "when": "view == cInsight.status",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.references.search",
+          "when": "view == cInsight.references",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.references.groupBy",
+          "when": "view == cInsight.references",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.references.scope",
+          "when": "view == cInsight.references",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.callers.expandToDepth",
+          "when": "view == cInsight.callers",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.callers.search",
+          "when": "view == cInsight.callers",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.callers.findPath",
+          "when": "view == cInsight.callers",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.callees.expandToDepth",
+          "when": "view == cInsight.callees",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.callees.search",
+          "when": "view == cInsight.callees",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.callees.findPath",
+          "when": "view == cInsight.callees",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "cInsight.openLocation",
+          "when": "viewItem == location || viewItem == referenceLocation",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.references.copy",
+          "when": "viewItem == referenceLocation",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cInsight",
+          "title": "C Insight",
+          "icon": "media/c-insight.svg"
+        }
+      ]
+    },
+    "views": {
+      "cInsight": [
+        {
+          "id": "cInsight.context",
+          "name": "Context"
+        },
+        {
+          "id": "cInsight.preview",
+          "name": "Code Preview",
+          "type": "webview"
+        },
+        {
+          "id": "cInsight.references",
+          "name": "References"
+        },
+        {
+          "id": "cInsight.callers",
+          "name": "Callers"
+        },
+        {
+          "id": "cInsight.callees",
+          "name": "Callees"
+        },
+        {
+          "id": "cInsight.symbols",
+          "name": "Document Symbols"
+        },
+        {
+          "id": "cInsight.status",
+          "name": "Project Diagnostics"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "cInsight.context",
+        "contents": "Open a C or C++ file to inspect the symbol under the cursor.\n[Restart clangd](command:cInsight.restartClangd)"
+      },
+      {
+        "view": "cInsight.symbols",
+        "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
+      }
+    ],
+    "configuration": {
+      "title": "C Insight",
+      "properties": {
+        "cInsight.clangd.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the clangd executable. Empty uses PATH."
+        },
+        "cInsight.clangd.arguments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional arguments passed to clangd."
+        },
+        "cInsight.clangd.logLevel": {
+          "type": "string",
+          "enum": [
+            "error",
+            "info",
+            "verbose"
+          ],
+          "default": "info"
+        },
+        "cInsight.compileCommandsDir": {
+          "type": "string",
+          "default": "",
+          "description": "Directory containing compile_commands.json. Empty automatically searches the workspace root and common build directories."
+        },
+        "cInsight.fallbackFlags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "-std=c++17"
+          ]
+        },
+        "cInsight.backgroundIndex": {
+          "type": "boolean",
+          "default": true
+        },
+        "cInsight.followCursor": {
+          "type": "boolean",
+          "default": true
+        },
+        "cInsight.followCursorDelay": {
+          "type": "number",
+          "default": 200,
+          "minimum": 50,
+          "maximum": 2000
+        },
+        "cInsight.followCursorDetailsDelay": {
+          "type": "number",
+          "default": 600,
+          "minimum": 200,
+          "maximum": 5000,
+          "description": "Additional idle delay before loading references and first-level caller/callee counts."
+        },
+        "cInsight.codePreview.linesBefore": {
+          "type": "number",
+          "default": 6,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Number of source lines displayed before the Code Preview target."
+        },
+        "cInsight.codePreview.linesAfter": {
+          "type": "number",
+          "default": 8,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Number of source lines displayed after the Code Preview target."
+        },
+        "cInsight.references.pageSize": {
+          "type": "number",
+          "default": 200,
+          "minimum": 25,
+          "maximum": 5000,
+          "description": "Number of reference results added to the tree per page."
+        },
+        "cInsight.references.groupBy": {
+          "type": "string",
+          "enum": [
+            "file",
+            "directory",
+            "function",
+            "type",
+            "flat"
+          ],
+          "default": "file",
+          "description": "Persisted grouping mode for the References view."
+        },
+        "cInsight.callHierarchy.defaultDepth": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Call hierarchy depth expanded automatically for a new root. Zero keeps roots collapsed."
+        },
+        "cInsight.callHierarchy.maximumDepth": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum depth allowed for manual or automatic call hierarchy expansion."
+        },
+        "cInsight.callHierarchy.maximumNodes": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum number of call hierarchy nodes created for the current root."
+        },
+        "cInsight.callHierarchy.cacheSize": {
+          "type": "number",
+          "default": 500,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Maximum cached Incoming/Outgoing function requests."
+        },
+        "cInsight.callHierarchy.pathSearchMaximumDepth": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum edge depth explored by caller/callee path search."
+        },
+        "cInsight.callHierarchy.pathSearchMaximumPaths": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Maximum matching call paths returned by one search."
+        },
+        "cInsight.callHierarchy.pathSearchMaximumNodes": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum semantic nodes visited by one call path search."
+        },
+        "cInsight.includeDeclarationInReferences": {
+          "type": "boolean",
+          "default": true
+        },
+        "cInsight.includeSystemReferences": {
+          "type": "boolean",
+          "default": false
+        },
+        "cInsight.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "/build/",
+            "/generated/",
+            "/third_party/"
+          ],
+          "description": "Path fragments excluded from C Insight result views."
+        }
+      }
+    }
+  }
+}
