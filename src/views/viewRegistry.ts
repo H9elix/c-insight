@@ -10,6 +10,7 @@ import {
   UnsupportedClangdFeatureError,
 } from "../analysis/analysisService";
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
+import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import {
   CallNode,
@@ -85,6 +86,7 @@ export class ViewRegistry implements vscode.Disposable {
   constructor(
     private readonly analysis: AnalysisService,
     history: NavigationHistoryExplorer,
+    bookmarks: BookmarkExplorer,
   ) {
     const cacheSize = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
@@ -103,6 +105,7 @@ export class ViewRegistry implements vscode.Disposable {
       ["cInsight.callers", this.callers],
       ["cInsight.callees", this.callees],
       ["cInsight.history", history.provider],
+      ["cInsight.bookmarks", bookmarks.provider],
       ["cInsight.symbols", this.symbols],
       ["cInsight.status", this.status],
     ];
@@ -121,7 +124,7 @@ export class ViewRegistry implements vscode.Disposable {
           this.visibilityEmitter.fire(),
         ),
       );
-      if (id !== "cInsight.history") {
+      if (id !== "cInsight.history" && id !== "cInsight.bookmarks") {
         this.disposables.push(provider);
       }
     }

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -34,7 +34,8 @@
     "onLanguage:objective-c",
     "onLanguage:objective-cpp",
     "onView:cInsight.context",
-    "onView:cInsight.history"
+    "onView:cInsight.history",
+    "onView:cInsight.bookmarks"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -163,6 +164,32 @@
         "command": "cInsight.history.clear",
         "title": "C Insight: Clear Navigation History",
         "icon": "$(trash)"
+      },
+      {
+        "command": "cInsight.bookmarks.addCurrent",
+        "title": "C Insight: Bookmark Current Symbol",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "cInsight.bookmarks.add",
+        "title": "C Insight: Add Bookmark"
+      },
+      {
+        "command": "cInsight.bookmarks.rename",
+        "title": "C Insight: Rename Bookmark"
+      },
+      {
+        "command": "cInsight.bookmarks.changeGroup",
+        "title": "C Insight: Change Bookmark Group"
+      },
+      {
+        "command": "cInsight.bookmarks.delete",
+        "title": "C Insight: Delete Bookmark"
+      },
+      {
+        "command": "cInsight.bookmarks.refresh",
+        "title": "C Insight: Refresh Bookmarks",
+        "icon": "$(refresh)"
       },
       {
         "command": "cInsight.references.search",
@@ -311,6 +338,11 @@
           "command": "cInsight.showOutgoingCalls",
           "when": "resourceLangId == c || resourceLangId == cpp",
           "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.bookmarks.addCurrent",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "cInsight@1"
         }
       ],
       "view/title": [
@@ -433,18 +465,48 @@
           "command": "cInsight.history.clear",
           "when": "view == cInsight.history",
           "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.bookmarks.addCurrent",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.bookmarks.refresh",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation",
           "group": "navigation@1"
         },
         {
           "command": "cInsight.references.copy",
           "when": "viewItem == referenceLocation",
           "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.bookmarks.add",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.bookmarks.rename",
+          "when": "viewItem == bookmarkLocation",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.bookmarks.changeGroup",
+          "when": "viewItem == bookmarkLocation",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.bookmarks.delete",
+          "when": "viewItem == bookmarkLocation",
+          "group": "cInsight@3"
         }
       ]
     },
@@ -483,6 +545,10 @@
         {
           "id": "cInsight.history",
           "name": "Navigation History"
+        },
+        {
+          "id": "cInsight.bookmarks",
+          "name": "Bookmarks"
         },
         {
           "id": "cInsight.symbols",

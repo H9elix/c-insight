@@ -1,4 +1,4 @@
-# C Insight 0.9.0 使用手册
+# C Insight 0.9.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -314,7 +314,40 @@ Code Preview 的 Back/Forward 使用同一历史游标。从旧记录返回后�
 
 历史不会跨 VS Code 会话持久化；需要长期保存的位置将在后续书签功能中处理。
 
-### 4.7 Document Symbols
+### 4.7 Bookmarks
+
+Bookmarks 用于长期保存重要符号或源码位置，并按工作区持久化。关闭并重新打开
+VS Code 后，当前工作区的书签仍会恢复。
+
+添加方式：
+
+- 单击 Bookmarks 标题栏的 Bookmark Current Symbol，保存活动编辑器光标下的
+  符号。
+- 在 References、Callers、Callees、Document Symbols、Navigation History
+  等位置节点上右键，选择 Add Bookmark。
+
+添加时会读取目标位置的真实标识符。相同文件和起始位置已经存在书签时，不会
+重复创建，而是更新已有记录。新书签默认进入 `General` 分组。
+
+书签操作：
+
+- 单击：在 Code Preview 中预览，并进入 Navigation History。
+- 右键 Open Location：在主编辑器中打开。
+- Rename Bookmark：只修改显示名称，不修改用于重定位的原始符号。
+- Change Bookmark Group：移动到已有分组，或创建新分组。
+- Delete Bookmark：确认后删除。
+- Refresh Bookmarks：重新检查并尝试定位全部书签。
+
+源码修改后，相关书签会立即显示 `stale`。停止编辑约 500 ms 后，C Insight
+使用添加书签时保存的标识符，在原位置附近寻找最近的完整单词：
+
+- 找到后更新位置并清除 stale。
+- 找不到、文件无法读取或书签没有有效标识符时，保留原位置和 stale。
+
+这种重定位是保守的文本级恢复，并不等同于永久符号 ID。文件中存在多个同名
+符号时，会选择距离旧位置最近的一个。
+
+### 4.8 Document Symbols
 
 Document Symbols 显示活动文件的 clangd Document Symbols：
 
@@ -330,7 +363,7 @@ Document Symbols 显示活动文件的 clangd Document Symbols：
 命令 **Search Workspace Symbols** 不局限于本窗口：它打开输入框查询 clangd
 Workspace Symbols，再通过 Quick Pick 选择并打开位置。
 
-### 4.8 Project Diagnostics
+### 4.9 Project Diagnostics
 
 Project Diagnostics 用于排查“为什么导航结果不准确或不可用”，显示：
 

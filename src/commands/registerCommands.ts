@@ -2,6 +2,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
 import { ClangdManager } from "../clangd/clangdManager";
+import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { readConfiguration } from "../configuration/configuration";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
@@ -22,6 +23,7 @@ export function registerCommands(
   views: ViewRegistry,
   projectDiagnostics: ProjectDiagnostics,
   navigationHistory: NavigationHistoryExplorer,
+  bookmarks: BookmarkExplorer,
 ): void {
   const register = (
     id: string,
@@ -310,6 +312,20 @@ export function registerCommands(
   });
   register("cInsight.history.filter", () => navigationHistory.chooseFilter());
   register("cInsight.history.clear", () => navigationHistory.clear());
+  register("cInsight.bookmarks.addCurrent", () => bookmarks.addCurrent());
+  register("cInsight.bookmarks.add", (value: unknown) =>
+    bookmarks.addNode(value),
+  );
+  register("cInsight.bookmarks.rename", (value: unknown) =>
+    bookmarks.rename(value),
+  );
+  register("cInsight.bookmarks.changeGroup", (value: unknown) =>
+    bookmarks.changeGroup(value),
+  );
+  register("cInsight.bookmarks.delete", (value: unknown) =>
+    bookmarks.remove(value),
+  );
+  register("cInsight.bookmarks.refresh", () => bookmarks.refresh());
 
   register("cInsight.restartClangd", async () => {
     try {
