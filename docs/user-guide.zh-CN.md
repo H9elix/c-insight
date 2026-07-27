@@ -1,4 +1,4 @@
-# C Insight 0.9.1 使用手册
+# C Insight 0.9.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -347,7 +347,27 @@ VS Code 后，当前工作区的书签仍会恢复。
 这种重定位是保守的文本级恢复，并不等同于永久符号 ID。文件中存在多个同名
 符号时，会选择距离旧位置最近的一个。
 
-### 4.8 Document Symbols
+### 4.8 Symbol Search
+
+Symbol Search 用于在整个工作区查找 clangd 已索引的函数、变量、类型、方法、
+枚举、宏等符号。单击标题栏 Search 按钮后，输入内容会以防抖方式发送
+`workspace/symbol` 请求；较旧的请求不会覆盖较新的结果。
+
+搜索选择器关闭后，结果仍保留在 Symbol Search 窗口：
+
+- 单击结果：以 Definition 模式在 Code Preview 中预览，并写入 Navigation
+  History。
+- 右键 Open Location：在主编辑器打开。
+- 右键 Add Bookmark：保存到 Bookmarks。
+- Filter Workspace Symbol Types：临时选择需要显示的符号类型。
+- Group Workspace Symbols：按 Symbol Type、File、Directory 分组或不分组。
+- Refresh：重新执行上一次查询。
+- Clear：清空查询和结果。
+
+结果完整性取决于 clangd 后台索引。索引或工程配置异常只通过统一状态栏提示，
+不会在 Symbol Search 内重复显示可靠性警告。
+
+### 4.9 Document Symbols
 
 Document Symbols 显示活动文件的 clangd Document Symbols：
 
@@ -360,10 +380,9 @@ Document Symbols 显示活动文件的 clangd Document Symbols：
 支持 clangd 的层级结构。选择符号会更新 Code Preview。切换活动文件或修改
 当前文件后会重新查询。
 
-命令 **Search Workspace Symbols** 不局限于本窗口：它打开输入框查询 clangd
-Workspace Symbols，再通过 Quick Pick 选择并打开位置。
+命令 **Search Workspace Symbols** 会打开 Symbol Search 的实时搜索选择器。
 
-### 4.9 Project Diagnostics
+### 4.10 Project Diagnostics
 
 Project Diagnostics 用于排查“为什么导航结果不准确或不可用”，显示：
 
@@ -557,7 +576,18 @@ C Insight 默认管理：
 
 修改后立即调整当前会话中的 History；降低容量会删除最旧的超额记录。
 
-### 9.6 Call Hierarchy
+### 9.6 Symbol Search
+
+| 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.symbolSearch.groupBy` | string | `"type"` | `"type"`、`"file"`、`"directory"`、`"flat"` | Symbol Search 的工作区持久化分组方式 |
+| `cInsight.symbolSearch.maximumResults` | number | `500` | 25–5000 | 每次查询最多显示的结果数 |
+| `cInsight.symbolSearch.debounce` | number | `250` | 100–2000 ms | 停止输入后发送 clangd 查询的延迟 |
+
+符号类型过滤是临时视图状态；分组配置保存在当前工作区。大型工程中可增加
+`debounce` 或降低 `maximumResults`，减少刷新开销。
+
+### 9.7 Call Hierarchy
 
 | 配置 | 类型 | 默认值 | 范围 | 含义 |
 | --- | --- | --- | --- | --- |

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -35,7 +35,8 @@
     "onLanguage:objective-cpp",
     "onView:cInsight.context",
     "onView:cInsight.history",
-    "onView:cInsight.bookmarks"
+    "onView:cInsight.bookmarks",
+    "onView:cInsight.workspaceSymbols"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -153,7 +154,28 @@
       },
       {
         "command": "cInsight.searchSymbols",
-        "title": "C Insight: Search Workspace Symbols"
+        "title": "C Insight: Search Workspace Symbols",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.symbolSearch.refresh",
+        "title": "C Insight: Refresh Workspace Symbol Search",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cInsight.symbolSearch.clear",
+        "title": "C Insight: Clear Workspace Symbol Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "cInsight.symbolSearch.groupBy",
+        "title": "C Insight: Group Workspace Symbols",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "cInsight.symbolSearch.filterKinds",
+        "title": "C Insight: Filter Workspace Symbol Types",
+        "icon": "$(filter)"
       },
       {
         "command": "cInsight.history.filter",
@@ -475,12 +497,37 @@
           "command": "cInsight.bookmarks.refresh",
           "when": "view == cInsight.bookmarks",
           "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.searchSymbols",
+          "when": "view == cInsight.workspaceSymbols",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.symbolSearch.filterKinds",
+          "when": "view == cInsight.workspaceSymbols",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.symbolSearch.groupBy",
+          "when": "view == cInsight.workspaceSymbols",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.symbolSearch.refresh",
+          "when": "view == cInsight.workspaceSymbols",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.symbolSearch.clear",
+          "when": "view == cInsight.workspaceSymbols",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation",
           "group": "navigation@1"
         },
         {
@@ -490,7 +537,7 @@
         },
         {
           "command": "cInsight.bookmarks.add",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation",
           "group": "cInsight@1"
         },
         {
@@ -551,6 +598,10 @@
           "name": "Bookmarks"
         },
         {
+          "id": "cInsight.workspaceSymbols",
+          "name": "Symbol Search"
+        },
+        {
           "id": "cInsight.symbols",
           "name": "Document Symbols"
         },
@@ -567,6 +618,10 @@
       },
       {
         "view": "cInsight.symbols",
+        "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
+      },
+      {
+        "view": "cInsight.workspaceSymbols",
         "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
       }
     ],
@@ -674,6 +729,31 @@
           "type": "boolean",
           "default": true,
           "description": "Merge consecutive navigation entries with the same location, mode, and origin."
+        },
+        "cInsight.symbolSearch.groupBy": {
+          "type": "string",
+          "enum": [
+            "type",
+            "file",
+            "directory",
+            "flat"
+          ],
+          "default": "type",
+          "description": "Persisted grouping mode for the Symbol Search view."
+        },
+        "cInsight.symbolSearch.maximumResults": {
+          "type": "number",
+          "default": 500,
+          "minimum": 25,
+          "maximum": 5000,
+          "description": "Maximum workspace symbol results displayed per query."
+        },
+        "cInsight.symbolSearch.debounce": {
+          "type": "number",
+          "default": 250,
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "Delay in milliseconds before sending a workspace symbol query while typing."
         },
         "cInsight.callHierarchy.defaultDepth": {
           "type": "number",
