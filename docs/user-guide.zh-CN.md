@@ -193,7 +193,7 @@ References 显示当前符号的所有引用，并尝试分类为：
 
 分组选择保存到工作区配置。
 
-### 临时范围过滤
+### 范围过滤
 
 Change Reference Scope 提供：
 
@@ -204,7 +204,9 @@ Change Reference Scope 提供：
 | Current Directory | 只显示活动文件同目录的结果 |
 | Current File | 只显示活动文件中的结果 |
 
-范围选择是当前会话中的临时状态，不写入配置。
+范围选择不写入 VS Code 工作区配置。启用 Workspace Session Restore 时，它会
+保存在 C Insight 工作区浏览快照中，并在重新打开同一工作区后恢复；关闭会话
+恢复时，它只保留到当前扩展运行结束。
 
 ### 搜索、分页和导出
 
@@ -219,6 +221,9 @@ Change Reference Scope 提供：
 
 源码行和部分分类会在节点可见时延迟加载，以降低大型工程开销。搜索和导出
 需要完整文本时会主动解析相关行。
+
+References 搜索文本和当前已显示数量与范围过滤相同：不写入工作区配置，但启用
+Workspace Session Restore 时会随工作区浏览快照恢复。
 
 ### References Pin
 
@@ -323,13 +328,16 @@ Navigation History 记录当前 VS Code 会话中的显式导航：
 - 单击记录：在 Code Preview 中重新预览，不会再次写入历史。
 - 右键选择 Open Location：在主编辑器中打开。
 - Filter Navigation History：按 Definition、Declaration、Reference、
-  Caller、Callee 或 Code Preview 来源临时过滤。
-- Clear Navigation History：清空当前会话历史。
+  Caller、Callee 或 Code Preview 来源过滤；启用会话恢复时保存该过滤条件。
+- Clear Navigation History：清空当前工作区已加载的历史。
 
 Code Preview 的 Back/Forward 使用同一历史游标。从旧记录返回后执行新的显式
 导航，会丢弃原有的 Forward 分支，形成新的导航路径。
 
-历史不会跨 VS Code 会话持久化；需要长期保存的位置将在后续书签功能中处理。
+默认启用 `cInsight.session.persistNavigationHistory` 时，历史记录、当前游标和
+过滤条件会写入工作区浏览快照，并在重新打开同一工作区后恢复。关闭该配置后，
+Navigation History 只保留在当前扩展运行期。需要作为长期工程资料独立保存的
+位置仍建议加入 Bookmarks。
 
 ### 4.7 Bookmarks
 
@@ -400,7 +408,8 @@ Symbol Search 用于在整个工作区查找 clangd 已索引的函数、变量�
   History。
 - 右键 Open Location：在主编辑器打开。
 - 右键 Add Bookmark：保存到 Bookmarks。
-- Filter Workspace Symbol Types：临时选择需要显示的符号类型。
+- Filter Workspace Symbol Types：选择需要显示的符号类型。它不写入工作区
+  配置，但启用 Workspace Session Restore 时会随浏览快照恢复。
 - Group Workspace Symbols：按 Symbol Type、File、Directory 分组或不分组。
 - Refresh：重新执行上一次查询。
 - Clear：清空查询和结果。
@@ -493,6 +502,17 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 
 仅打开一个源码文件且没有打开文件夹时，不具备稳定的工程工作区作用域，不建议
 依赖会话恢复。
+
+### 三类状态保存机制
+
+| 机制 | 示例 | 重启后行为 |
+| --- | --- | --- |
+| VS Code 工作区配置 | References 分组、Symbol Search 分组、书签排序方式、深度和节点限制 | 始终由 VS Code 为该工作区保存 |
+| C Insight Workspace Session 快照 | Navigation History、Code Preview、References 搜索/范围/分页、Symbol Search 查询/类型过滤、调用树根和加载深度 | `cInsight.session.restore` 启用且快照未过期时恢复 |
+| 仅当前扩展运行期 | Bookmarks 当前过滤文本、临时加载缓存、未写入快照的交互状态 | 关闭或重新加载窗口后清除 |
+
+Bookmarks 数据本身使用独立的 `workspaceState` 持久化，不依赖 Workspace
+Session；表中的“Bookmarks 当前过滤文本”仅指过滤输入，不是书签内容。
 
 ### 4.12 Supertypes 与 Subtypes
 
@@ -670,7 +690,8 @@ C Insight 默认管理：
 | `cInsight.history.maximumEntries` | number | `200` | 20–2000 | 当前 VS Code 会话中保留的最大导航记录数；超出后删除最旧记录 |
 | `cInsight.history.mergeConsecutiveDuplicates` | boolean | `true` | `true` / `false` | 是否合并位置、模式和来源完全相同的连续记录 |
 
-修改后立即调整当前会话中的 History；降低容量会删除最旧的超额记录。
+修改后立即调整当前已加载的 History；降低容量会删除最旧的超额记录。是否跨
+重启恢复由 `cInsight.session.persistNavigationHistory` 控制。
 
 ### 9.6 Symbol Search
 
@@ -680,7 +701,8 @@ C Insight 默认管理：
 | `cInsight.symbolSearch.maximumResults` | number | `500` | 25–5000 | 每次查询最多显示的结果数 |
 | `cInsight.symbolSearch.debounce` | number | `250` | 100–2000 ms | 停止输入后发送 clangd 查询的延迟 |
 
-符号类型过滤是临时视图状态；分组配置保存在当前工作区。大型工程中可增加
+符号类型过滤不写入 VS Code 配置，但会在启用 Workspace Session Restore 时随
+工作区浏览快照恢复；分组配置始终保存在当前工作区。大型工程中可增加
 `debounce` 或降低 `maximumResults`，减少刷新开销。
 
 ### 9.7 Bookmarks
