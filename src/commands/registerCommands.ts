@@ -12,6 +12,7 @@ import {
   NavigationSource,
 } from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
+import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 
@@ -24,6 +25,7 @@ export function registerCommands(
   projectDiagnostics: ProjectDiagnostics,
   navigationHistory: NavigationHistoryExplorer,
   bookmarks: BookmarkExplorer,
+  symbolSearch: SymbolSearchExplorer,
 ): void {
   const register = (
     id: string,
@@ -344,33 +346,13 @@ export function registerCommands(
     }
   });
 
-  register("cInsight.searchSymbols", async () => {
-    const query = await vscode.window.showInputBox({
-      title: "C Insight: Search Workspace Symbols",
-      prompt: "Enter a C/C++ symbol name",
-    });
-    if (query === undefined) {
-      return;
-    }
-    const symbols = await analysis.workspaceSymbols(query);
-    const picked = await vscode.window.showQuickPick(
-      symbols.slice(0, 500).map((symbol) => ({
-        label: symbol.name,
-        description: symbol.containerName,
-        detail: vscode.workspace.asRelativePath(
-          vscode.Uri.parse(symbol.location.uri),
-        ),
-        symbol,
-      })),
-      { matchOnDescription: true, matchOnDetail: true },
-    );
-    if (picked) {
-      await vscode.commands.executeCommand(
-        "cInsight.openLocation",
-        analysis.toVsLocation(picked.symbol.location),
-      );
-    }
-  });
+  register("cInsight.searchSymbols", () => symbolSearch.openSearch());
+  register("cInsight.symbolSearch.refresh", () => symbolSearch.refresh());
+  register("cInsight.symbolSearch.clear", () => symbolSearch.clear());
+  register("cInsight.symbolSearch.groupBy", () => symbolSearch.chooseGrouping());
+  register("cInsight.symbolSearch.filterKinds", () =>
+    symbolSearch.chooseKinds(),
+  );
 }
 
 function activePosition():

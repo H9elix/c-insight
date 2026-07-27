@@ -9,6 +9,7 @@ import { ContextController } from "./context/contextController";
 import { ProjectDiagnostics } from "./diagnostics/projectDiagnostics";
 import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
 import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
+import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
@@ -29,7 +30,13 @@ export async function activate(
   const analysis = new AnalysisService(manager, output);
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
-  const views = new ViewRegistry(analysis, navigationHistory, bookmarks);
+  const symbolSearch = new SymbolSearchExplorer(analysis);
+  const views = new ViewRegistry(
+    analysis,
+    navigationHistory,
+    bookmarks,
+    symbolSearch,
+  );
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
   const reliabilityStatusBar = new ReliabilityStatusBar();
@@ -110,6 +117,7 @@ export async function activate(
     views,
     navigationHistory,
     bookmarks,
+    symbolSearch,
     controller,
     projectDiagnostics,
     reliabilityStatusBar,
@@ -125,6 +133,7 @@ export async function activate(
     projectDiagnostics,
     navigationHistory,
     bookmarks,
+    symbolSearch,
   );
   context.subscriptions.push(
     manager.onDidChangeState((state) => {
@@ -196,6 +205,9 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.history")) {
         navigationHistory.configurationChanged();
+      }
+      if (event.affectsConfiguration("cInsight.symbolSearch")) {
+        symbolSearch.configurationChanged();
       }
       if (
         [

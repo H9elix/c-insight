@@ -21,6 +21,11 @@ History view and Code Preview Back/Forward. Bookmarks are intentionally
 separate: they persist in VS Code workspaceState and retain a captured
 identifier for best-effort relocation after document edits.
 
+Symbol Search owns a native tree provider and sends workspace queries through
+`AnalysisService`. A monotonic generation discards late responses from older
+search text. Its result nodes reuse the shared location path for preview,
+history, and bookmarks.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.

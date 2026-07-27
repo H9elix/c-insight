@@ -16,7 +16,8 @@ dedicated activity-bar container.
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
-- Document symbol outline and workspace symbol search
+- Document symbol outline and a Symbol Search view with live clangd workspace
+  queries, type filtering, and configurable grouping
 - Session navigation history with shared Code Preview Back/Forward
 - Workspace-persistent grouped bookmarks with stale relocation
 - `compile_commands.json`, `.clangd`, and fallback flags
@@ -44,12 +45,23 @@ dedicated activity-bar container.
    Pin/Unpin title-bar buttons. The Code Preview lock only prevents editor
    cursor updates and still permits single-click definition browsing inside
    the preview.
+8. Open Symbol Search and use its search button for workspace-wide function,
+   variable, type, and macro lookup. Select a result to preview it, or use Open
+   Location and Add Bookmark from its context menu.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has
 remained stable for `cInsight.followCursorDetailsDelay` milliseconds. Moving
 again cancels the stale clangd work. Requests taking at least one second are
 reported in the C Insight output channel as `Slow clangd request`.
+
+### Symbol Search
+
+Symbol Search sends debounced `workspace/symbol` queries to clangd as you type.
+Results remain in the view after the picker closes. Its title buttons search,
+filter symbol kinds, change grouping, refresh the last query, or clear it.
+Selecting a result updates Code Preview; its context menu opens the editor or
+adds a workspace bookmark.
 
 ### References Explorer
 

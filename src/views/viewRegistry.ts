@@ -12,6 +12,7 @@ import {
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
+import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import {
   CallNode,
   LocationResult,
@@ -87,6 +88,7 @@ export class ViewRegistry implements vscode.Disposable {
     private readonly analysis: AnalysisService,
     history: NavigationHistoryExplorer,
     bookmarks: BookmarkExplorer,
+    symbolSearch: SymbolSearchExplorer,
   ) {
     const cacheSize = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
@@ -106,6 +108,7 @@ export class ViewRegistry implements vscode.Disposable {
       ["cInsight.callees", this.callees],
       ["cInsight.history", history.provider],
       ["cInsight.bookmarks", bookmarks.provider],
+      ["cInsight.workspaceSymbols", symbolSearch.provider],
       ["cInsight.symbols", this.symbols],
       ["cInsight.status", this.status],
     ];
@@ -124,7 +127,11 @@ export class ViewRegistry implements vscode.Disposable {
           this.visibilityEmitter.fire(),
         ),
       );
-      if (id !== "cInsight.history" && id !== "cInsight.bookmarks") {
+      if (
+        id !== "cInsight.history" &&
+        id !== "cInsight.bookmarks" &&
+        id !== "cInsight.workspaceSymbols"
+      ) {
         this.disposables.push(provider);
       }
     }

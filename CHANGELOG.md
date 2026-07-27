@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.2
+
+- Added a dedicated Symbol Search view backed by clangd `workspace/symbol`.
+- Added debounced live search with stale-response suppression and configurable
+  result limits.
+- Added Symbol Type, File, Directory, and flat result grouping.
+- Added temporary multi-select symbol-kind filtering.
+- Integrated symbol results with Code Preview, Open Location, Navigation
+  History, and Bookmarks.
+- Added `cInsight.symbolSearch.groupBy`, `maximumResults`, and `debounce`.
+
 ## 0.9.1
 
 - Added a workspace-persistent Bookmarks view grouped by user-defined names.
