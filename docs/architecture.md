@@ -20,6 +20,10 @@ Navigation History is session-scoped and uses one shared cursor for the
 History view and Code Preview Back/Forward. Bookmarks are intentionally
 separate: they persist in VS Code workspaceState and retain a captured
 identifier for best-effort relocation after document edits.
+Bookmark interchange uses a versioned JSON envelope. Parsing, filtering,
+sorting, duplicate-position merging, and group mutations are kept in the pure
+bookmark model; filesystem selection and missing-file checks remain in the
+VS Code integration.
 
 Symbol Search owns a native tree provider and sends workspace queries through
 `AnalysisService`. A monotonic generation discards late responses from older

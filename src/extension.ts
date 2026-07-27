@@ -206,6 +206,9 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.history")) {
         navigationHistory.configurationChanged();
       }
+      if (event.affectsConfiguration("cInsight.bookmarks")) {
+        bookmarks.configurationChanged();
+      }
       if (event.affectsConfiguration("cInsight.symbolSearch")) {
         symbolSearch.configurationChanged();
       }

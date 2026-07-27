@@ -3,6 +3,9 @@ import { describe, it } from "node:test";
 import {
   BookmarkStore,
   closestSymbolOffset,
+  filterBookmarks,
+  parseBookmarkExport,
+  sortBookmarks,
 } from "../../src/bookmarks/bookmarkModel";
 
 function input(line = 3) {
@@ -68,5 +71,86 @@ describe("bookmark model", () => {
     assert.equal(closestSymbolOffset(text, "calculate", text.length), last);
     assert.equal(closestSymbolOffset(text, "missing", 0), undefined);
     assert.equal(closestSymbolOffset(text, "not valid", 0), undefined);
+  });
+
+  it("filters and sorts bookmarks", () => {
+    const store = new BookmarkStore();
+    store.add(input(8), "later", 20);
+    store.add(
+      {
+        ...input(2),
+        label: "Alpha",
+        group: "API",
+        uri: "file:///workspace/api.cpp",
+      },
+      "earlier",
+      10,
+    );
+    assert.deepEqual(
+      filterBookmarks(store.all, "api").map((bookmark) => bookmark.id),
+      ["earlier"],
+    );
+    assert.deepEqual(
+      sortBookmarks(store.all, "name").map((bookmark) => bookmark.label),
+      ["Alpha", "calculate"],
+    );
+    assert.deepEqual(
+      sortBookmarks(store.all, "created").map((bookmark) => bookmark.id),
+      ["later", "earlier"],
+    );
+  });
+
+  it("renames, merges, and removes groups", () => {
+    const store = new BookmarkStore();
+    store.add({ ...input(1), group: "One" }, "one");
+    store.add({ ...input(2), group: "Two" }, "two");
+    assert.equal(store.renameGroup("One", "Two"), 1);
+    assert.equal(store.all.every((bookmark) => bookmark.group === "Two"), true);
+    assert.equal(store.removeGroup("Two"), 2);
+    assert.equal(store.all.length, 0);
+  });
+
+  it("imports by replacing or merging duplicate positions", () => {
+    const original = new BookmarkStore();
+    original.add(input(), "original", 10);
+    const imported = parseBookmarkExport({
+      format: "c-insight-bookmarks",
+      version: 1,
+      exportedAt: "2026-01-01T00:00:00.000Z",
+      bookmarks: [
+        {
+          ...original.all[0],
+          id: "imported",
+          label: "Imported",
+        },
+      ],
+    });
+    assert.deepEqual(original.import(imported, "append"), {
+      added: 0,
+      updated: 1,
+    });
+    assert.equal(original.all[0].id, "original");
+    assert.equal(original.all[0].label, "Imported");
+    assert.deepEqual(original.import(imported, "replace"), {
+      added: 1,
+      updated: 0,
+    });
+    assert.equal(original.all[0].id, "imported");
+  });
+
+  it("rejects unsupported or malformed import files", () => {
+    assert.throws(
+      () => parseBookmarkExport({ format: "c-insight-bookmarks", version: 2 }),
+      /Unsupported/,
+    );
+    assert.throws(
+      () =>
+        parseBookmarkExport({
+          format: "c-insight-bookmarks",
+          version: 1,
+          bookmarks: [{ label: "broken" }],
+        }),
+      /valid object/,
+    );
   });
 });

@@ -5,8 +5,13 @@ import { LocationResult } from "../models/types";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
 import {
   Bookmark,
+  BookmarkExport,
+  BookmarkSort,
   BookmarkStore,
   closestSymbolOffset,
+  filterBookmarks,
+  parseBookmarkExport,
+  sortBookmarks,
 } from "./bookmarkModel";
 
 const STORAGE_KEY = "cInsight.bookmarks";
@@ -15,6 +20,7 @@ export class BookmarkExplorer implements vscode.Disposable {
   readonly provider = new MutableTreeProvider();
   private readonly store: BookmarkStore;
   private readonly timers = new Map<string, NodeJS.Timeout>();
+  private filterQuery = "";
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.store = new BookmarkStore(
@@ -117,6 +123,206 @@ export class BookmarkExplorer implements vscode.Disposable {
     if (action === "Delete" && this.store.remove(bookmark.id)) {
       await this.persistAndPublish();
     }
+  }
+
+  async search(): Promise<void> {
+    const query = await vscode.window.showInputBox({
+      title: "Filter C Insight Bookmarks",
+      prompt: "Match bookmark name, group, file path, or symbol",
+      value: this.filterQuery,
+    });
+    if (query !== undefined) {
+      this.filterQuery = query.trim();
+      this.publish();
+    }
+  }
+
+  clearSearch(): void {
+    this.filterQuery = "";
+    this.publish();
+  }
+
+  async chooseSort(): Promise<void> {
+    const current = this.sortMode;
+    const selected = await vscode.window.showQuickPick(
+      [
+        { label: "Name", value: "name" },
+        { label: "File Path", value: "path" },
+        { label: "Source Position", value: "position" },
+        { label: "Creation Time", value: "created" },
+        { label: "Last Updated", value: "updated" },
+      ].map((item) => ({
+        ...item,
+        description: item.value === current ? "Current" : undefined,
+      })),
+      { title: "Sort C Insight Bookmarks By" },
+    );
+    if (selected) {
+      await vscode.workspace
+        .getConfiguration("cInsight.bookmarks")
+        .update("sortBy", selected.value, vscode.ConfigurationTarget.Workspace);
+      this.publish();
+    }
+  }
+
+  async exportBookmarks(value?: unknown): Promise<void> {
+    const group = (value as TreeNode | undefined)?.bookmarkGroup;
+    const bookmarks = this.store.all.filter(
+      (bookmark) => !group || bookmark.group === group,
+    );
+    if (bookmarks.length === 0) {
+      void vscode.window.showInformationMessage(
+        "C Insight: There are no bookmarks to export.",
+      );
+      return;
+    }
+    const target = await vscode.window.showSaveDialog({
+      title: group
+        ? `Export Bookmark Group “${group}”`
+        : "Export C Insight Bookmarks",
+      defaultUri: vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders?.[0]?.uri ??
+          vscode.Uri.file(process.cwd()),
+        group ? `${safeFileName(group)}-bookmarks.json` : "c-insight-bookmarks.json",
+      ),
+      filters: { JSON: ["json"] },
+    });
+    if (!target) {
+      return;
+    }
+    const exported: BookmarkExport = {
+      format: "c-insight-bookmarks",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      bookmarks: [...bookmarks],
+    };
+    await vscode.workspace.fs.writeFile(
+      target,
+      Buffer.from(`${JSON.stringify(exported, undefined, 2)}\n`, "utf8"),
+    );
+    void vscode.window.showInformationMessage(
+      `C Insight: Exported ${bookmarks.length} bookmark${bookmarks.length === 1 ? "" : "s"}.`,
+    );
+  }
+
+  async importBookmarks(): Promise<void> {
+    const selected = await vscode.window.showOpenDialog({
+      title: "Import C Insight Bookmarks",
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: { JSON: ["json"] },
+    });
+    if (!selected?.[0]) {
+      return;
+    }
+    try {
+      const content = await vscode.workspace.fs.readFile(selected[0]);
+      const parsed = parseBookmarkExport(
+        JSON.parse(Buffer.from(content).toString("utf8")) as unknown,
+      );
+      const mode = await vscode.window.showQuickPick(
+        [
+          {
+            label: "Append and Update",
+            value: "append" as const,
+            description: "Keep current bookmarks and merge duplicate positions",
+          },
+          {
+            label: "Replace All",
+            value: "replace" as const,
+            description: "Delete current bookmarks before importing",
+          },
+        ],
+        { title: "Import C Insight Bookmarks" },
+      );
+      if (!mode) {
+        return;
+      }
+      if (
+        mode.value === "replace" &&
+        (await vscode.window.showWarningMessage(
+          "Replace all current C Insight bookmarks?",
+          { modal: true },
+          "Replace",
+        )) !== "Replace"
+      ) {
+        return;
+      }
+      const unique = new Map<string, Bookmark>();
+      let skipped = 0;
+      for (const bookmark of parsed) {
+        const key = bookmarkPositionKey(bookmark);
+        if (unique.has(key)) {
+          skipped += 1;
+        }
+        unique.set(key, { ...bookmark, id: randomUUID() });
+      }
+      const imported = [...unique.values()];
+      const result = this.store.import(imported, mode.value);
+      let missing = 0;
+      for (const bookmark of imported) {
+        try {
+          await vscode.workspace.fs.stat(vscode.Uri.parse(bookmark.uri));
+        } catch {
+          bookmark.stale = true;
+          const stored = this.store.all.find(
+            (item) => bookmarkPositionKey(item) === bookmarkPositionKey(bookmark),
+          );
+          if (stored) {
+            stored.stale = true;
+          }
+          missing += 1;
+        }
+      }
+      await this.persistAndPublish();
+      void vscode.window.showInformationMessage(
+        `C Insight import: ${result.added} added, ${result.updated} updated, ${skipped} duplicate${skipped === 1 ? "" : "s"} skipped, ${missing} missing-file location${missing === 1 ? "" : "s"} marked stale.`,
+      );
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        `C Insight could not import bookmarks: ${String(error)}`,
+      );
+    }
+  }
+
+  async renameGroup(value: unknown): Promise<void> {
+    const group = this.groupFrom(value);
+    if (!group) {
+      return;
+    }
+    const target = await vscode.window.showInputBox({
+      title: "Rename or Merge Bookmark Group",
+      value: group,
+      prompt: "An existing name merges both groups",
+      validateInput: (input) =>
+        input.trim() ? undefined : "Group name cannot be empty",
+    });
+    if (target && this.store.renameGroup(group, target) > 0) {
+      await this.persistAndPublish();
+    }
+  }
+
+  async deleteGroup(value: unknown): Promise<void> {
+    const group = this.groupFrom(value);
+    if (!group) {
+      return;
+    }
+    const count = this.store.all.filter(
+      (bookmark) => bookmark.group === group,
+    ).length;
+    const action = await vscode.window.showWarningMessage(
+      `Delete group “${group}” and its ${count} bookmark${count === 1 ? "" : "s"}?`,
+      { modal: true },
+      "Delete Group",
+    );
+    if (action === "Delete Group" && this.store.removeGroup(group) > 0) {
+      await this.persistAndPublish();
+    }
+  }
+
+  configurationChanged(): void {
+    this.publish();
   }
 
   handleDocumentChange(document: vscode.TextDocument): void {
@@ -234,6 +440,10 @@ export class BookmarkExplorer implements vscode.Disposable {
     return node?.bookmarkId ? this.store.find(node.bookmarkId) : undefined;
   }
 
+  private groupFrom(value: unknown): string | undefined {
+    return (value as TreeNode | undefined)?.bookmarkGroup;
+  }
+
   private async persistAndPublish(): Promise<void> {
     await this.context.workspaceState.update(STORAGE_KEY, this.store.all);
     this.publish();
@@ -249,8 +459,18 @@ export class BookmarkExplorer implements vscode.Disposable {
       ]);
       return;
     }
+    const visible = filterBookmarks(this.store.all, this.filterQuery);
+    if (visible.length === 0) {
+      this.provider.setRoots([
+        {
+          label: `No bookmarks match “${this.filterQuery}”`,
+          icon: new vscode.ThemeIcon("info"),
+        },
+      ]);
+      return;
+    }
     const groups = new Map<string, Bookmark[]>();
-    for (const bookmark of this.store.all) {
+    for (const bookmark of visible) {
       const values = groups.get(bookmark.group) ?? [];
       values.push(bookmark);
       groups.set(bookmark.group, values);
@@ -262,9 +482,10 @@ export class BookmarkExplorer implements vscode.Disposable {
           label: group,
           description: `${bookmarks.length}`,
           icon: new vscode.ThemeIcon("folder"),
+          contextValue: "bookmarkGroup",
+          bookmarkGroup: group,
           collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-          children: bookmarks
-            .sort((left, right) => right.updatedAt - left.updatedAt)
+          children: sortBookmarks(bookmarks, this.sortMode)
             .map((bookmark) => this.bookmarkNode(bookmark)),
         })),
     );
@@ -288,6 +509,12 @@ export class BookmarkExplorer implements vscode.Disposable {
       contextValue: "bookmarkLocation",
       bookmarkId: bookmark.id,
     };
+  }
+
+  private get sortMode(): BookmarkSort {
+    return vscode.workspace
+      .getConfiguration("cInsight.bookmarks")
+      .get<BookmarkSort>("sortBy", "updated");
   }
 }
 
@@ -317,4 +544,12 @@ function serializeRange(range: vscode.Range): {
       character: range.end.character,
     },
   };
+}
+
+function bookmarkPositionKey(bookmark: Bookmark): string {
+  return `${bookmark.uri}:${bookmark.range.start.line}:${bookmark.range.start.character}`;
+}
+
+function safeFileName(value: string): string {
+  return value.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "") || "group";
 }
