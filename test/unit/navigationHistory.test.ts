@@ -33,6 +33,24 @@ describe("navigation history", () => {
     assert.equal(merged.timestamp, 20);
   });
 
+  it("restores entries, cursor, and continues with a higher id", () => {
+    const store = new NavigationHistoryStore(20, true);
+    const first = store.add(entry(1), 10);
+    const second = store.add(
+      { ...entry(2), mode: "reference", origin: "reference" },
+      20,
+    );
+    const restored = new NavigationHistoryStore(20, true);
+    restored.restore(store.all, first.id);
+    assert.equal(restored.current?.id, first.id);
+    assert.equal(restored.canForward, true);
+    const next = restored.add(
+      { ...entry(3), mode: "caller", origin: "caller" },
+      30,
+    );
+    assert.ok(next.id > second.id);
+  });
+
   it("retains duplicates when merging is disabled", () => {
     const store = new NavigationHistoryStore(20, false);
     store.add(entry(1));

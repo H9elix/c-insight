@@ -7,6 +7,7 @@ import {
   NavigationSource,
 } from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
+import type { PreviewSessionState } from "../session/workspaceSession";
 import {
   escapeHtml,
   highlightCppLine,
@@ -103,6 +104,45 @@ export class CodePreviewProvider
 
   refresh(): void {
     void this.render();
+  }
+
+  sessionState(): PreviewSessionState | undefined {
+    if (!this.state) {
+      return undefined;
+    }
+    return {
+      uri: this.state.location.uri.toString(),
+      range: serializeRange(this.state.location.range),
+      mode: this.state.mode,
+      title: this.state.title,
+      locked: this.locked,
+    };
+  }
+
+  async restoreSession(state: PreviewSessionState | undefined): Promise<void> {
+    if (!state) {
+      return;
+    }
+    this.locked = state.locked;
+    await vscode.commands.executeCommand(
+      "setContext",
+      "cInsight.previewLocked",
+      this.locked,
+    );
+    this.state = {
+      location: {
+        uri: vscode.Uri.parse(state.uri),
+        range: new vscode.Range(
+          state.range.start.line,
+          state.range.start.character,
+          state.range.end.line,
+          state.range.end.character,
+        ),
+      },
+      mode: state.mode,
+      title: state.title,
+    };
+    await this.render();
   }
 
   dispose(): void {
@@ -324,6 +364,22 @@ export class CodePreviewProvider
       this.view.webview.html = errorHtml(String(error));
     }
   }
+}
+
+function serializeRange(range: vscode.Range): {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+} {
+  return {
+    start: {
+      line: range.start.line,
+      character: range.start.character,
+    },
+    end: {
+      line: range.end.line,
+      character: range.end.character,
+    },
+  };
 }
 
 function highlightPreviewLine(

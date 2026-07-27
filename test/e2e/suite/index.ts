@@ -93,6 +93,8 @@ export async function run(): Promise<void> {
     "cInsight.bookmarks.export",
     "cInsight.bookmarks.renameGroup",
     "cInsight.bookmarks.deleteGroup",
+    "cInsight.session.restore",
+    "cInsight.session.clear",
     "cInsight.searchSymbols",
     "cInsight.symbolSearch.refresh",
     "cInsight.symbolSearch.clear",

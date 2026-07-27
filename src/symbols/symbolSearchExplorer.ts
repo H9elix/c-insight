@@ -8,6 +8,7 @@ import {
   SymbolGrouping,
   WorkspaceSymbolRecord,
 } from "./symbolSearchModel";
+import type { SymbolSearchSessionState } from "../session/workspaceSession";
 
 interface SearchItem extends vscode.QuickPickItem {
   symbol: WorkspaceSymbolRecord;
@@ -131,6 +132,29 @@ export class SymbolSearchExplorer implements vscode.Disposable {
 
   configurationChanged(): void {
     this.publish();
+  }
+
+  sessionState(): SymbolSearchSessionState {
+    return {
+      query: this.query,
+      selectedKinds: [...this.selectedKinds],
+    };
+  }
+
+  async restoreSession(
+    state: SymbolSearchSessionState | undefined,
+  ): Promise<void> {
+    if (!state) {
+      return;
+    }
+    this.selectedKinds = new Set(
+      state.selectedKinds.filter((kind) => Number.isInteger(kind)),
+    );
+    if (state.query.trim()) {
+      await this.search(state.query);
+    } else {
+      this.publish();
+    }
   }
 
   dispose(): void {

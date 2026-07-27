@@ -28,8 +28,9 @@ Document Highlights.
 ## Call hierarchy follow-ups
 
 Version 0.7.1 provides bounded call-path search, Mermaid graph export, and
-explicit indirect-call syntax hints. Cross-session expansion restoration and
-deeper unresolved function-pointer/indirect-call analysis remain deferred.
+explicit indirect-call syntax hints. Version 0.10.0 restores the call root and
+maximum loaded depth by re-querying clangd. Exact per-node expansion identity
+and deeper unresolved function-pointer/indirect-call analysis remain deferred.
 
 ## Engineering diagnostics
 

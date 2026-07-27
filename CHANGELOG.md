@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0
+
+- Added a versioned, workspace-scoped browsing-session snapshot with five-second
+  autosave and graceful-shutdown save.
+- Restores Navigation History and its cursor/filter, Code Preview target and
+  lock, Reference filters/page limit, and Symbol Search query/type filter.
+- Restores Callers/Callees by re-resolving the saved root with clangd and
+  rebuilding the previously loaded maximum depth instead of trusting old
+  semantic results.
+- Added automatic snapshot expiry, optional History and Call Hierarchy
+  persistence, manual Restore Previous Session, and Clear Saved Session.
+- Added `cInsight.session.restore`, `persistNavigationHistory`,
+  `restoreCallHierarchy`, and `maximumAgeDays`.
+
 ## 0.9.3
 
 - Added bookmark filtering across labels, groups, file URIs, and captured

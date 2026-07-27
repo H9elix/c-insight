@@ -21,6 +21,7 @@ import {
 } from "./referenceModel";
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode } from "./treeNode";
+import type { ReferenceSessionState } from "../session/workspaceSession";
 
 type GroupMode = "file" | "directory" | "function" | "type" | "flat";
 type ReferenceScope = "all" | "workspace" | "directory" | "file";
@@ -48,6 +49,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   private groupMode: GroupMode = "file";
   private scope: ReferenceScope = "all";
   private displayedLimit = 200;
+  private restoredDisplayedLimit?: number;
   private generation = 0;
   private treeView?: vscode.TreeView<TreeNode>;
   private loadingStarted?: number;
@@ -103,7 +105,9 @@ export class ReferenceExplorer implements vscode.Disposable {
       this.lastDurationMs = performance.now() - this.loadingStarted;
       this.loadingStarted = undefined;
     }
-    this.displayedLimit = this.pageSize();
+    this.displayedLimit =
+      this.restoredDisplayedLimit ?? this.pageSize();
+    this.restoredDisplayedLimit = undefined;
     const generation = ++this.generation;
     void this.detectMacroSymbol().then((macroSymbol) => {
       if (generation === this.generation) {
@@ -295,6 +299,33 @@ export class ReferenceExplorer implements vscode.Disposable {
   async showAll(): Promise<void> {
     this.displayedLimit = Number.MAX_SAFE_INTEGER;
     await this.publish();
+  }
+
+  sessionState(): ReferenceSessionState {
+    return {
+      query: this.query,
+      scope: this.scope,
+      displayedLimit: this.displayedLimit,
+    };
+  }
+
+  async restoreSession(
+    state: ReferenceSessionState | undefined,
+  ): Promise<void> {
+    if (!state) {
+      return;
+    }
+    this.query = state.query;
+    this.scope = state.scope;
+    this.restoredDisplayedLimit = Math.max(
+      this.pageSize(),
+      state.displayedLimit,
+    );
+    if (this.state === "ready") {
+      this.displayedLimit = this.restoredDisplayedLimit;
+      this.restoredDisplayedLimit = undefined;
+      await this.rebuild();
+    }
   }
 
   async copyReference(value: unknown): Promise<void> {

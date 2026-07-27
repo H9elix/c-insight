@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -244,6 +244,14 @@
       {
         "command": "cInsight.bookmarks.deleteGroup",
         "title": "C Insight: Delete Bookmark Group"
+      },
+      {
+        "command": "cInsight.session.restore",
+        "title": "C Insight: Restore Previous Workspace Session"
+      },
+      {
+        "command": "cInsight.session.clear",
+        "title": "C Insight: Clear Saved Workspace Session"
       },
       {
         "command": "cInsight.references.search",
@@ -824,6 +832,28 @@
           ],
           "default": "updated",
           "description": "Persisted sorting mode for bookmarks within each group."
+        },
+        "cInsight.session.restore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save and restore C Insight browsing state for the current folder or multi-root workspace."
+        },
+        "cInsight.session.persistNavigationHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include Navigation History in the workspace session snapshot."
+        },
+        "cInsight.session.restoreCallHierarchy": {
+          "type": "boolean",
+          "default": true,
+          "description": "Re-query and restore the previous Callers/Callees root and loaded depth."
+        },
+        "cInsight.session.maximumAgeDays": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Ignore saved workspace sessions older than this many days."
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",

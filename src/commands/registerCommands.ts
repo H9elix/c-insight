@@ -13,6 +13,7 @@ import {
 } from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
+import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 
@@ -26,6 +27,8 @@ export function registerCommands(
   navigationHistory: NavigationHistoryExplorer,
   bookmarks: BookmarkExplorer,
   symbolSearch: SymbolSearchExplorer,
+  workspaceSession: WorkspaceSessionManager,
+  restoreWorkspaceSession: () => Promise<boolean>,
 ): void {
   const register = (
     id: string,
@@ -341,6 +344,19 @@ export function registerCommands(
   register("cInsight.bookmarks.deleteGroup", (value: unknown) =>
     bookmarks.deleteGroup(value),
   );
+  register("cInsight.session.restore", async () => {
+    if (!(await restoreWorkspaceSession())) {
+      void vscode.window.showInformationMessage(
+        "C Insight: No saved workspace session is available.",
+      );
+    }
+  });
+  register("cInsight.session.clear", async () => {
+    await workspaceSession.clear();
+    void vscode.window.showInformationMessage(
+      "C Insight: Saved workspace session cleared. Autosave is paused until this window closes.",
+    );
+  });
 
   register("cInsight.restartClangd", async () => {
     try {

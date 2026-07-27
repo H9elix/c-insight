@@ -137,6 +137,23 @@ export class NavigationHistoryStore {
     this.cursor = -1;
   }
 
+  restore(
+    entries: readonly NavigationHistoryEntry[],
+    currentId?: number,
+  ): void {
+    this.entries = entries
+      .filter((entry) => validEntry(entry))
+      .map((entry) => ({ ...entry, range: { ...entry.range } }));
+    this.nextId =
+      this.entries.reduce((maximum, entry) => Math.max(maximum, entry.id), 0) +
+      1;
+    const restored = currentId === undefined
+      ? this.entries.length - 1
+      : this.entries.findIndex((entry) => entry.id === currentId);
+    this.cursor = restored >= 0 ? restored : this.entries.length - 1;
+    this.trim();
+  }
+
   private trim(): void {
     const overflow = Math.max(0, this.entries.length - this.maximumEntries);
     if (overflow === 0) {
@@ -145,6 +162,18 @@ export class NavigationHistoryStore {
     this.entries.splice(0, overflow);
     this.cursor = Math.max(0, this.cursor - overflow);
   }
+}
+
+function validEntry(entry: NavigationHistoryEntry): boolean {
+  return (
+    Number.isInteger(entry.id) &&
+    entry.id > 0 &&
+    typeof entry.uri === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.timestamp === "number" &&
+    Number.isInteger(entry.range?.start?.line) &&
+    Number.isInteger(entry.range?.start?.character)
+  );
 }
 
 export function navigationOrigin(

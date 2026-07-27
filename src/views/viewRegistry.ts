@@ -12,6 +12,10 @@ import {
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
+import type {
+  CallHierarchySessionState,
+  ReferenceSessionState,
+} from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import {
   CallNode,
@@ -340,6 +344,58 @@ export class ViewRegistry implements vscode.Disposable {
   updateReliability(reliability: AnalysisReliability): void {
     this.reliability = reliability;
     this.referenceExplorer.setReliability(reliability);
+  }
+
+  referenceSessionState(): ReferenceSessionState {
+    return this.referenceExplorer.sessionState();
+  }
+
+  async restoreReferenceSession(
+    state: ReferenceSessionState | undefined,
+  ): Promise<void> {
+    await this.referenceExplorer.restoreSession(state);
+  }
+
+  callHierarchySessionState(): CallHierarchySessionState | undefined {
+    const roots = [
+      ...this.callers.getRoots(),
+      ...this.callees.getRoots(),
+    ];
+    const root = roots.find(
+      (node) => node.callNode && node.callDepth === 0 && node.location,
+    );
+    if (!root?.location) {
+      return undefined;
+    }
+    return {
+      uri: root.location.uri.toString(),
+      position: {
+        line: root.location.range.start.line,
+        character: root.location.range.start.character,
+      },
+      incomingDepth: maximumLoadedDepth(this.callers.getRoots()),
+      outgoingDepth: maximumLoadedDepth(this.callees.getRoots()),
+    };
+  }
+
+  async restoreCallHierarchyDepths(
+    state: CallHierarchySessionState | undefined,
+  ): Promise<void> {
+    if (!state) {
+      return;
+    }
+    const maximumDepth = vscode.workspace
+      .getConfiguration("cInsight.callHierarchy")
+      .get<number>("maximumDepth", 10);
+    const incomingDepth = Math.min(maximumDepth, state.incomingDepth);
+    const outgoingDepth = Math.min(maximumDepth, state.outgoingDepth);
+    if (incomingDepth > 0) {
+      await this.expandCallHierarchy("incoming", incomingDepth, false);
+    }
+    if (outgoingDepth > 0) {
+      await this.expandCallHierarchy("outgoing", outgoingDepth, false);
+    }
+    this.markResultsStale("restored from the previous session");
   }
 
   updateStatus(
@@ -1141,6 +1197,13 @@ function flattenLoadedCallNodes(roots: TreeNode[]): TreeNode[] {
   };
   visit(roots);
   return output;
+}
+
+function maximumLoadedDepth(roots: TreeNode[]): number {
+  return flattenLoadedCallNodes(roots).reduce(
+    (maximum, node) => Math.max(maximum, node.callDepth ?? 0),
+    0,
+  );
 }
 
 function callTreeText(node: TreeNode, depth = 0): string {
