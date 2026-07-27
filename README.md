@@ -17,6 +17,7 @@ dedicated activity-bar container.
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
 - Document symbol outline and workspace symbol search
+- Session navigation history with shared Code Preview Back/Forward
 - `compile_commands.json`, `.clangd`, and fallback flags
 - clangd lifecycle, status, logs, restart, and provider-conflict warning
 - Large-workspace request cancellation, staged context loading, in-flight

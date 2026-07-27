@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -33,7 +33,8 @@
     "onLanguage:cpp",
     "onLanguage:objective-c",
     "onLanguage:objective-cpp",
-    "onView:cInsight.context"
+    "onView:cInsight.context",
+    "onView:cInsight.history"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -152,6 +153,16 @@
       {
         "command": "cInsight.searchSymbols",
         "title": "C Insight: Search Workspace Symbols"
+      },
+      {
+        "command": "cInsight.history.filter",
+        "title": "C Insight: Filter Navigation History",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "cInsight.history.clear",
+        "title": "C Insight: Clear Navigation History",
+        "icon": "$(trash)"
       },
       {
         "command": "cInsight.references.search",
@@ -412,12 +423,22 @@
           "command": "cInsight.callees.findPath",
           "when": "view == cInsight.callees",
           "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.history.filter",
+          "when": "view == cInsight.history",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.history.clear",
+          "when": "view == cInsight.history",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation",
           "group": "navigation@1"
         },
         {
@@ -458,6 +479,10 @@
         {
           "id": "cInsight.callees",
           "name": "Callees"
+        },
+        {
+          "id": "cInsight.history",
+          "name": "Navigation History"
         },
         {
           "id": "cInsight.symbols",
@@ -571,6 +596,18 @@
           ],
           "default": "file",
           "description": "Persisted grouping mode for the References view."
+        },
+        "cInsight.history.maximumEntries": {
+          "type": "number",
+          "default": 200,
+          "minimum": 20,
+          "maximum": 2000,
+          "description": "Maximum number of navigation history entries retained for the current VS Code session."
+        },
+        "cInsight.history.mergeConsecutiveDuplicates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Merge consecutive navigation entries with the same location, mode, and origin."
         },
         "cInsight.callHierarchy.defaultDepth": {
           "type": "number",

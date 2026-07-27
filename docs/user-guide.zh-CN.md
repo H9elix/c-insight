@@ -1,4 +1,4 @@
-# C Insight 0.8.4 使用手册
+# C Insight 0.9.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -286,7 +286,35 @@ Pin 后仍允许：
 
 导出不会触发隐藏的自动展开。
 
-### 4.6 Document Symbols
+### 4.6 Navigation History
+
+Navigation History 记录当前 VS Code 会话中的显式导航：
+
+- Definition
+- Declaration
+- Reference
+- Caller
+- Callee
+- 在 Code Preview 内单击符号继续查看 Definition
+
+普通编辑器光标跟随不会写入历史，避免快速移动光标产生大量无意义记录。
+连续相同位置、模式和来源的记录默认合并。
+
+历史按时间倒序显示，最新记录位于顶部。当前共享历史游标会标记为
+`current`。
+
+- 单击记录：在 Code Preview 中重新预览，不会再次写入历史。
+- 右键选择 Open Location：在主编辑器中打开。
+- Filter Navigation History：按 Definition、Declaration、Reference、
+  Caller、Callee 或 Code Preview 来源临时过滤。
+- Clear Navigation History：清空当前会话历史。
+
+Code Preview 的 Back/Forward 使用同一历史游标。从旧记录返回后执行新的显式
+导航，会丢弃原有的 Forward 分支，形成新的导航路径。
+
+历史不会跨 VS Code 会话持久化；需要长期保存的位置将在后续书签功能中处理。
+
+### 4.7 Document Symbols
 
 Document Symbols 显示活动文件的 clangd Document Symbols：
 
@@ -302,7 +330,7 @@ Document Symbols 显示活动文件的 clangd Document Symbols：
 命令 **Search Workspace Symbols** 不局限于本窗口：它打开输入框查询 clangd
 Workspace Symbols，再通过 Quick Pick 选择并打开位置。
 
-### 4.7 Project Diagnostics
+### 4.8 Project Diagnostics
 
 Project Diagnostics 用于排查“为什么导航结果不准确或不可用”，显示：
 
@@ -487,7 +515,16 @@ C Insight 默认管理：
 `exclude` 是简单路径片段匹配，不是 glob。需要 Windows 兼容时，建议使用 `/`
 形式的片段，因为内部会先将反斜杠转换为 `/`。
 
-### 9.5 Call Hierarchy
+### 9.5 Navigation History
+
+| 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.history.maximumEntries` | number | `200` | 20–2000 | 当前 VS Code 会话中保留的最大导航记录数；超出后删除最旧记录 |
+| `cInsight.history.mergeConsecutiveDuplicates` | boolean | `true` | `true` / `false` | 是否合并位置、模式和来源完全相同的连续记录 |
+
+修改后立即调整当前会话中的 History；降低容量会删除最旧的超额记录。
+
+### 9.6 Call Hierarchy
 
 | 配置 | 类型 | 默认值 | 范围 | 含义 |
 | --- | --- | --- | --- | --- |

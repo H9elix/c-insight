@@ -7,6 +7,7 @@ import { isCppDocument } from "./configuration/configuration";
 import { ContextController } from "./context/contextController";
 import { ProjectDiagnostics } from "./diagnostics/projectDiagnostics";
 import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
+import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
@@ -25,7 +26,8 @@ export async function activate(
     new ClangdLogOutputChannel(clangdOutput),
   );
   const analysis = new AnalysisService(manager, output);
-  const views = new ViewRegistry(analysis);
+  const navigationHistory = new NavigationHistoryExplorer();
+  const views = new ViewRegistry(analysis, navigationHistory);
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
   const reliabilityStatusBar = new ReliabilityStatusBar();
@@ -104,6 +106,7 @@ export async function activate(
   context.subscriptions.push(
     manager,
     views,
+    navigationHistory,
     controller,
     projectDiagnostics,
     reliabilityStatusBar,
@@ -117,6 +120,7 @@ export async function activate(
     controller,
     views,
     projectDiagnostics,
+    navigationHistory,
   );
   context.subscriptions.push(
     manager.onDidChangeState((state) => {
@@ -184,6 +188,9 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.callHierarchy")) {
         views.invalidateCallHierarchy();
         controller.refresh();
+      }
+      if (event.affectsConfiguration("cInsight.history")) {
+        navigationHistory.configurationChanged();
       }
       if (
         [

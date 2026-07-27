@@ -10,6 +10,7 @@ import {
   UnsupportedClangdFeatureError,
 } from "../analysis/analysisService";
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
+import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import {
   CallNode,
   LocationResult,
@@ -81,13 +82,16 @@ export class ViewRegistry implements vscode.Disposable {
     ].some((id) => this.treeViews.get(id)?.visible);
   }
 
-  constructor(private readonly analysis: AnalysisService) {
+  constructor(
+    private readonly analysis: AnalysisService,
+    history: NavigationHistoryExplorer,
+  ) {
     const cacheSize = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
       .get<number>("cacheSize", 500);
     this.incomingCache = new LruPromiseCache(cacheSize);
     this.outgoingCache = new LruPromiseCache(cacheSize);
-    this.preview = new CodePreviewProvider(analysis);
+    this.preview = new CodePreviewProvider(analysis, history);
     this.referenceExplorer = new ReferenceExplorer(
       analysis,
       this.sourceLines,
@@ -98,6 +102,7 @@ export class ViewRegistry implements vscode.Disposable {
       ["cInsight.references", this.references],
       ["cInsight.callers", this.callers],
       ["cInsight.callees", this.callees],
+      ["cInsight.history", history.provider],
       ["cInsight.symbols", this.symbols],
       ["cInsight.status", this.status],
     ];
@@ -115,8 +120,10 @@ export class ViewRegistry implements vscode.Disposable {
         treeView.onDidChangeVisibility(() =>
           this.visibilityEmitter.fire(),
         ),
-        provider,
       );
+      if (id !== "cInsight.history") {
+        this.disposables.push(provider);
+      }
     }
     this.disposables.push(
       vscode.window.registerWebviewViewProvider("cInsight.preview", this.preview),
