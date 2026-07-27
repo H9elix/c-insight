@@ -155,10 +155,71 @@ test("clangd 20 returns outgoing calls for a C++ function", async () => {
     `Expected a semantic Read highlight; response=${JSON.stringify(highlights)}`,
   );
 
-  const shutdown = waitForResponse(child.stdout, 5);
+  const header = path.join(
+    process.cwd(),
+    "test/fixtures/basic-cpp/include/calculator.hpp",
+  );
+  const headerUri = pathToFileURL(header).toString();
+  writeMessage(child.stdin, {
+    jsonrpc: "2.0",
+    method: "textDocument/didOpen",
+    params: {
+      textDocument: {
+        uri: headerUri,
+        languageId: "cpp",
+        version: 1,
+        text: await readFile(header, "utf8"),
+      },
+    },
+  });
+  const prepareTypes = waitForResponse(child.stdout, 5);
   writeMessage(child.stdin, {
     jsonrpc: "2.0",
     id: 5,
+    method: "textDocument/prepareTypeHierarchy",
+    params: {
+      textDocument: { uri: headerUri },
+      position: { line: 7, character: 8 },
+    },
+  });
+  const preparedTypes = await prepareTypes;
+  assert.ok(
+    Array.isArray(preparedTypes.result) && preparedTypes.result.length > 0,
+    JSON.stringify(preparedTypes.error) || stderr,
+  );
+  const supertypesResponse = waitForResponse(child.stdout, 6);
+  writeMessage(child.stdin, {
+    jsonrpc: "2.0",
+    id: 6,
+    method: "typeHierarchy/supertypes",
+    params: { item: preparedTypes.result[0] },
+  });
+  const supertypes = await supertypesResponse;
+  assert.ok(
+    supertypes.result.some(
+      (type: { name?: string }) => type.name === "Arithmetic",
+    ),
+    `Expected Arithmetic supertype; response=${JSON.stringify(supertypes)}`,
+  );
+  const subtypesResponse = waitForResponse(child.stdout, 7);
+  writeMessage(child.stdin, {
+    jsonrpc: "2.0",
+    id: 7,
+    method: "typeHierarchy/subtypes",
+    params: { item: preparedTypes.result[0] },
+  });
+  const subtypes = await subtypesResponse;
+  assert.ok(
+    subtypes.result.some(
+      (type: { name?: string }) => type.name === "ScientificCalculator",
+    ),
+    `Expected ScientificCalculator subtype; response=${JSON.stringify(subtypes)}`,
+  );
+
+  const shutdown = waitForResponse(child.stdout, 8);
+  writeMessage(child.stdin, {
+    jsonrpc: "2.0",
+    id: 8,
     method: "shutdown",
     params: null,
   });

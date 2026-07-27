@@ -13,6 +13,7 @@ dedicated activity-bar container.
 - Shared Code Preview with highlighted definition, declaration, reference,
   caller, callee definition, and call-site snippets
 - Incoming and outgoing call trees with lazy loading and recursion detection
+- C++ supertype and subtype trees with lazy expansion, search, and export
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
@@ -53,6 +54,9 @@ dedicated activity-bar container.
    Location and Add Bookmark from its context menu.
 9. Reopen the same folder or `.code-workspace` to restore the previous C
    Insight browsing session. Call hierarchy data is queried again from clangd.
+10. In C++, place the cursor on a class or struct and choose Show Supertypes or
+    Show Subtypes. Select a type to preview it; use the view menu for depth
+    expansion and Text, JSON, or Mermaid export.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has

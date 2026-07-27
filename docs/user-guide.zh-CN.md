@@ -1,4 +1,4 @@
-# C Insight 0.10.0 使用手册
+# C Insight 0.11.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -477,6 +477,32 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 仅打开一个源码文件且没有打开文件夹时，不具备稳定的工程工作区作用域，不建议
 依赖会话恢复。
 
+### 4.12 Supertypes 与 Subtypes
+
+这两个窗口使用 clangd 的标准 Type Hierarchy 协议，主要面向 C++：
+
+- Supertypes：当前类或结构体继承、实现的父类型。
+- Subtypes：继承当前类型的派生类型。
+
+把光标放在类或结构体名称上，通过编辑器右键菜单或命令面板执行 **Show
+Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一个根，随后
+分别按需请求父类型和派生类型。
+
+窗口行为：
+
+- 展开节点：懒加载下一层关系。
+- 单击节点：以 Definition 模式更新 Code Preview，并写入 Navigation History。
+- 右键 Open Location：在主编辑器打开。
+- 右键 Add Bookmark：保存类型位置。
+- Search Loaded Supertypes/Subtypes：只搜索当前已经加载的节点。
+- Expand to Depth：批量加载指定深度。
+- Stop Type Hierarchy Expansion：取消正在进行的批量展开。
+- 窗口 `...` 菜单可导出 Text、JSON 或 Mermaid。
+
+树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd
+重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show
+Supertypes/Subtypes。普通 C 代码没有类继承关系，通常不会返回结果。
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -673,6 +699,16 @@ C Insight 默认管理：
 
 关闭 `restore` 会同时停止自动保存与自动恢复，但仍可使用手动 Restore 命令读取
 已有快照。Bookmarks 使用独立的持久化数据，不受这些配置影响。
+
+### 9.10 Type Hierarchy
+
+| 配置 | 类型 | 默认值 | 范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.typeHierarchy.defaultDepth` | number | `0` | 0–10 | 新类型根自动展开的层数；0 保持折叠 |
+| `cInsight.typeHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
+| `cInsight.typeHierarchy.maximumNodes` | number | `2000` | 100–50000 | 当前类型根允许加载的最大节点数 |
+
+修改上述配置会清除类型层级请求缓存，并将当前结果标记为 stale。
 
 ## 10. 配置示例
 
