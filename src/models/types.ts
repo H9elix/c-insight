@@ -47,9 +47,13 @@ export interface SymbolContext {
   incomingCount?: number;
   outgoingCount?: number;
   detailsPending?: boolean;
+  referencesRequested?: boolean;
+  incomingRequested?: boolean;
+  outgoingRequested?: boolean;
 }
 
 export interface ViewUpdateIntent {
   manualReferences?: boolean;
   manualCallHierarchy?: boolean;
+  manualCallDirection?: "incoming" | "outgoing";
 }

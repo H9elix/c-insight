@@ -124,6 +124,10 @@ export async function activate(
     if (documentSymbolsTimer) {
       clearTimeout(documentSymbolsTimer);
     }
+    if (!views.isViewVisible("cInsight.symbols")) {
+      documentSymbolsTimer = undefined;
+      return;
+    }
     documentSymbolsTimer = setTimeout(() => {
       documentSymbolsTimer = undefined;
       void updateDocumentSymbols(
@@ -227,6 +231,14 @@ export async function activate(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       scheduleDocumentSymbols(editor, 0);
       void projectDiagnostics.refresh(editor);
+    }),
+    views.onDidChangeNavigationVisibility((id) => {
+      if (
+        id === "cInsight.symbols" &&
+        views.isViewVisible("cInsight.symbols")
+      ) {
+        scheduleDocumentSymbols(vscode.window.activeTextEditor, 0);
+      }
     }),
     vscode.languages.onDidChangeDiagnostics(() => {
       void projectDiagnostics.refresh();
@@ -379,6 +391,9 @@ async function updateDocumentSymbols(
   output: vscode.OutputChannel,
   isCurrent: () => boolean = () => true,
 ): Promise<void> {
+  if (!views.isViewVisible("cInsight.symbols")) {
+    return;
+  }
   if (!editor || !isCppDocument(editor.document)) {
     if (isCurrent()) {
       views.symbols.clear();

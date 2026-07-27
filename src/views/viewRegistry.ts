@@ -18,6 +18,7 @@ import type {
 } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
+import type { NavigationVisibility } from "../context/navigationDemand";
 import {
   CallNode,
   LocationResult,
@@ -50,7 +51,7 @@ export class ViewRegistry implements vscode.Disposable {
   readonly symbols = new MutableTreeProvider();
   readonly status = new MutableTreeProvider();
   readonly preview: CodePreviewProvider;
-  private readonly visibilityEmitter = new vscode.EventEmitter<void>();
+  private readonly visibilityEmitter = new vscode.EventEmitter<string>();
   readonly onDidChangeNavigationVisibility = this.visibilityEmitter.event;
 
   private readonly disposables: vscode.Disposable[] = [];
@@ -81,12 +82,21 @@ export class ViewRegistry implements vscode.Disposable {
   private callResultsStaleReason?: string;
 
   get navigationVisible(): boolean {
-    return [
-      "cInsight.context",
-      "cInsight.references",
-      "cInsight.callers",
-      "cInsight.callees",
-    ].some((id) => this.treeViews.get(id)?.visible);
+    return Object.values(this.navigationVisibility).some(Boolean);
+  }
+
+  get navigationVisibility(): NavigationVisibility {
+    return {
+      context: this.isViewVisible("cInsight.context"),
+      preview: this.preview.visible,
+      references: this.isViewVisible("cInsight.references"),
+      callers: this.isViewVisible("cInsight.callers"),
+      callees: this.isViewVisible("cInsight.callees"),
+    };
+  }
+
+  isViewVisible(id: string): boolean {
+    return this.treeViews.get(id)?.visible ?? false;
   }
 
   constructor(
@@ -137,9 +147,19 @@ export class ViewRegistry implements vscode.Disposable {
       }
       this.disposables.push(
         treeView,
-        treeView.onDidChangeVisibility(() =>
-          this.visibilityEmitter.fire(),
-        ),
+        treeView.onDidChangeVisibility(() => {
+          if (
+            [
+              "cInsight.context",
+              "cInsight.references",
+              "cInsight.callers",
+              "cInsight.callees",
+              "cInsight.symbols",
+            ].includes(id)
+          ) {
+            this.visibilityEmitter.fire(id);
+          }
+        }),
       );
       if (
         id !== "cInsight.history" &&
@@ -154,6 +174,9 @@ export class ViewRegistry implements vscode.Disposable {
     this.disposables.push(
       vscode.window.registerWebviewViewProvider("cInsight.preview", this.preview),
       this.preview,
+      this.preview.onDidChangeVisibility(() =>
+        this.visibilityEmitter.fire("cInsight.preview"),
+      ),
       this.sourceLines,
       this.referenceExplorer,
       this.visibilityEmitter,
@@ -228,27 +251,42 @@ export class ViewRegistry implements vscode.Disposable {
       });
     roots.push(
       {
-        label: context.detailsPending
-          ? "References loading…"
-          : `${context.references.length} references`,
+        label: !context.referencesRequested
+          ? "References not queried"
+          : context.detailsPending
+            ? "References loading…"
+            : `${context.references.length} references`,
+        description: !context.referencesRequested
+          ? "open References to query"
+          : undefined,
         icon: new vscode.ThemeIcon("references"),
       },
       {
         label:
-          context.detailsPending
+          !context.incomingRequested
+            ? "Callers not queried"
+            : context.detailsPending
             ? "Callers loading…"
             : context.incomingCount === undefined
             ? "Callers unavailable"
             : `${context.incomingCount} callers`,
+        description: !context.incomingRequested
+          ? "open Callers to query"
+          : undefined,
         icon: new vscode.ThemeIcon("call-incoming"),
       },
       {
         label:
-          context.detailsPending
+          !context.outgoingRequested
+            ? "Callees not queried"
+            : context.detailsPending
             ? "Callees loading…"
             : context.outgoingCount === undefined
             ? "Callees unavailable"
             : `${context.outgoingCount} callees`,
+        description: !context.outgoingRequested
+          ? "open Callees to query"
+          : undefined,
         icon: new vscode.ThemeIcon("call-outgoing"),
       },
       {
@@ -260,17 +298,19 @@ export class ViewRegistry implements vscode.Disposable {
     this.context.setRoots(roots);
 
     const preferred = context.definitions[0] ?? context.declarations[0];
-    if (preferred) {
+    if (preferred && this.preview.visible) {
       void this.preview.showLocation(
         preferred,
         context.definitions.length > 0 ? "definition" : "declaration",
         context.qualifiedName ?? context.name ?? "Symbol",
         "context",
       );
-    } else {
+    } else if (this.preview.visible) {
       this.preview.clear();
     }
     if (
+      (this.isViewVisible("cInsight.references") ||
+        intent.manualReferences) &&
       shouldUpdatePinnedView(
         this.referencesPinned,
         intent.manualReferences,
@@ -292,6 +332,10 @@ export class ViewRegistry implements vscode.Disposable {
     const allowCallUpdate = shouldUpdatePinnedView(
       this.callHierarchyPinned,
       intent.manualCallHierarchy,
+    ) && (
+      this.isViewVisible("cInsight.callers") ||
+      this.isViewVisible("cInsight.callees") ||
+      Boolean(intent.manualCallHierarchy)
     );
     const callRootSignature = context.callRoots.map((root) => root.key).join("|");
     if (

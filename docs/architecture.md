@@ -11,6 +11,12 @@ views use native tree providers; callers and callees request children lazily.
 Raw LSP call hierarchy items are retained because clangd may require their
 opaque `data` field in subsequent requests.
 
+Before each automatic cursor refresh, `ContextController` derives a query
+demand from the live visibility of Context, Code Preview, References, Callers,
+and Callees. All hidden means no cursor request. Individual LSP methods are
+selected from that demand; manual commands bypass this visibility gate.
+Document Symbols uses its own visibility gate.
+
 Code Preview uses a nonce-restricted Webview script. Browser click coordinates
 are converted to UTF-16 source positions and validated again against the
 currently rendered document and line range by the extension host. The Webview

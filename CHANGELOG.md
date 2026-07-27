@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.1
+
+- Added independent automatic-query scheduling for Context, Code Preview,
+  References, Callers, and Callees visibility.
+- Stops automatic semantic cursor queries when every navigation view is
+  hidden.
+- Queries References only while References is visible; queries incoming or
+  outgoing counts only when Context and the corresponding call view are both
+  visible.
+- Code Preview-only following requests Definition without unrelated semantic
+  details.
+- Callers/Callees-only following prepares lazy roots without preloading
+  first-level calls.
+- Document Symbols now queries only while its view is visible.
+- Manual navigation, tree expansion, indexing, diagnostics, bookmarks, and
+  session persistence retain their existing behavior.
+
 ## 0.11.0
 
 - Added Supertypes and Subtypes views using the standard LSP Type Hierarchy

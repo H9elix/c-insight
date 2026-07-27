@@ -28,6 +28,8 @@ dedicated activity-bar container.
 - clangd lifecycle, status, logs, restart, and provider-conflict warning
 - Large-workspace request cancellation, staged context loading, in-flight
   request coalescing, lazy source snippets, and bounded source-line caching
+- Per-view visibility scheduling that pauses cursor semantics when navigation
+  views are hidden and avoids querying unrelated hidden relationships
 
 ## Usage
 

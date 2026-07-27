@@ -6,6 +6,10 @@ import {
 } from "../configuration/configuration";
 import { SymbolContext, ViewUpdateIntent } from "../models/types";
 import { ViewRegistry } from "../views/viewRegistry";
+import {
+  cursorQueryDemand,
+  CursorQueryDemand,
+} from "./navigationDemand";
 
 export class ContextController implements vscode.Disposable {
   private timer?: NodeJS.Timeout;
@@ -38,12 +42,17 @@ export class ContextController implements vscode.Disposable {
           this.schedule(editor.document, editor.selection.active);
         }
       }),
-      this.views.onDidChangeNavigationVisibility(() => {
-        if (this.views.navigationVisible && this.current) {
+      this.views.onDidChangeNavigationVisibility((id) => {
+        if (id === "cInsight.symbols") {
+          return;
+        }
+        if (this.views.navigationVisible) {
           const editor = vscode.window.activeTextEditor;
-          if (editor && editor.document.uri.toString() === this.current.uri.toString()) {
+          if (editor) {
             this.schedule(editor.document, editor.selection.active, true);
           }
+        } else {
+          this.cancelPending();
         }
       }),
     );
@@ -97,6 +106,7 @@ export class ContextController implements vscode.Disposable {
         position,
         generation,
         cancellation.token,
+        manualDemand(intent),
       );
       if (!base || generation !== this.generation) {
         return undefined;
@@ -130,6 +140,9 @@ export class ContextController implements vscode.Disposable {
         incomingCount,
         outgoingCount,
         detailsPending: false,
+        referencesRequested: true,
+        incomingRequested: true,
+        outgoingRequested: true,
       };
       this.current = { uri, position };
       this.views.updateContext(context, intent);
@@ -161,14 +174,25 @@ export class ContextController implements vscode.Disposable {
     position: vscode.Position,
     generation: number,
     token: vscode.CancellationToken,
+    demand: CursorQueryDemand,
   ): Promise<SymbolContext | undefined> {
     const [definitions, declarations, callRoots, hover, symbolInfo] =
       await Promise.all([
-        this.analysis.definition(uri, position, token),
-        this.analysis.declaration(uri, position, token),
-        this.analysis.prepareCallHierarchy(uri, position, token).catch(() => []),
-        this.analysis.hover(uri, position, token).catch(() => undefined),
-        this.analysis.symbolInfo(uri, position, token).catch(() => undefined),
+        demand.definitions
+          ? this.analysis.definition(uri, position, token)
+          : [],
+        demand.declarations
+          ? this.analysis.declaration(uri, position, token)
+          : [],
+        demand.callRoots
+          ? this.analysis.prepareCallHierarchy(uri, position, token).catch(() => [])
+          : [],
+        demand.hover
+          ? this.analysis.hover(uri, position, token).catch(() => undefined)
+          : undefined,
+        demand.symbolInfo
+          ? this.analysis.symbolInfo(uri, position, token).catch(() => undefined)
+          : undefined,
       ]);
     if (generation !== this.generation || token.isCancellationRequested) {
       return undefined;
@@ -191,6 +215,9 @@ export class ContextController implements vscode.Disposable {
       qualifiedName,
       symbolId: symbolInfo?.id,
       detailsPending: true,
+      referencesRequested: demand.references,
+      incomingRequested: demand.incomingCount,
+      outgoingRequested: demand.outgoingCount,
     };
   }
 
@@ -202,28 +229,43 @@ export class ContextController implements vscode.Disposable {
   ): Promise<void> {
     const cancellation = new vscode.CancellationTokenSource();
     this.cancellation = cancellation;
+    const demand = cursorQueryDemand(this.views.navigationVisibility);
+    if (!demand.active) {
+      cancellation.dispose();
+      this.cancellation = undefined;
+      return;
+    }
     try {
       const base = await this.resolveBase(
         uri,
         position,
         generation,
         cancellation.token,
+        demand,
       );
       if (!base) {
         return;
       }
       this.current = { uri, position };
-      this.views.updateContext(base, intent);
-      if (!this.views.navigationVisible) {
+      if (
+        !demand.references &&
+        !demand.incomingCount &&
+        !demand.outgoingCount
+      ) {
+        this.views.updateContext(
+          { ...base, detailsPending: false },
+          intent,
+        );
         if (this.cancellation === cancellation) {
           this.cancellation = undefined;
         }
         cancellation.dispose();
         return;
       }
+      this.views.updateContext(base, intent);
       const detailDelay = readConfiguration().followCursorDetailsDelay;
       this.detailsTimer = setTimeout(() => {
-        void this.resolveDetails(base, cancellation, intent);
+        void this.resolveDetails(base, cancellation, intent, demand);
       }, detailDelay);
     } catch (error) {
       if (
@@ -243,23 +285,26 @@ export class ContextController implements vscode.Disposable {
     base: SymbolContext,
     cancellation: vscode.CancellationTokenSource,
     intent: ViewUpdateIntent,
+    demand: CursorQueryDemand,
   ): Promise<void> {
     const config = readConfiguration();
     try {
       const [references, incomingCount, outgoingCount] = await Promise.all([
-        this.analysis.references(
-          base.uri,
-          base.position,
-          config.includeDeclarationInReferences,
-          cancellation.token,
-        ),
-        base.callRoots[0]
+        demand.references
+          ? this.analysis.references(
+              base.uri,
+              base.position,
+              config.includeDeclarationInReferences,
+              cancellation.token,
+            )
+          : [],
+        demand.incomingCount && base.callRoots[0]
           ? this.analysis
               .incomingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
-        base.callRoots[0]
+        demand.outgoingCount && base.callRoots[0]
           ? this.analysis
               .outgoingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
@@ -326,6 +371,10 @@ export class ContextController implements vscode.Disposable {
     ) {
       return;
     }
+    if (!manual && !this.views.navigationVisible) {
+      this.cancelPending();
+      return;
+    }
     if (!isCppDocument(document) || document.uri.scheme !== "file") {
       this.cancelPending();
       this.generation += 1;
@@ -340,4 +389,35 @@ export class ContextController implements vscode.Disposable {
       void this.resolveCursor(document.uri, position, generation, intent);
     }, delay);
   }
+}
+
+function fullDemand(): CursorQueryDemand {
+  return {
+    active: true,
+    definitions: true,
+    declarations: true,
+    callRoots: true,
+    hover: true,
+    symbolInfo: true,
+    references: true,
+    incomingCount: true,
+    outgoingCount: true,
+  };
+}
+
+function manualDemand(intent: ViewUpdateIntent): CursorQueryDemand {
+  if (!intent.manualCallDirection) {
+    return fullDemand();
+  }
+  return {
+    active: true,
+    definitions: true,
+    declarations: false,
+    callRoots: true,
+    hover: false,
+    symbolInfo: false,
+    references: false,
+    incomingCount: intent.manualCallDirection === "incoming",
+    outgoingCount: intent.manualCallDirection === "outgoing",
+  };
 }

@@ -1,4 +1,4 @@
-# C Insight 0.11.0 使用手册
+# C Insight 0.11.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -53,13 +53,30 @@ C Insight 有两类查询。
 当 `cInsight.followCursor` 为 `true` 时，光标停在 C/C++ 符号上会触发：
 
 1. 等待 `cInsight.followCursorDelay`。
-2. 查询符号身份、定义、声明、类型/签名和调用树根。
-3. 立即更新 Context，并将定义或声明放入 Code Preview。
-4. 再等待 `cInsight.followCursorDetailsDelay`。
-5. 查询 References 和第一层 Caller/Callee 数量。
+2. 根据当前实际可见的窗口计算需要的请求。
+3. 只查询这些窗口显示内容所需的基础信息。
+4. 如果 References 或 Context 与调用窗口需要详情，再等待
+   `cInsight.followCursorDetailsDelay` 后查询。
 
-移动光标会取消尚未完成的旧查询，避免慢查询覆盖新结果。只有 C Insight
-导航窗口可见时，才会继续加载代价较高的详情。
+移动光标会取消尚未完成的旧查询，避免慢查询覆盖新结果。Context、Code
+Preview、References、Callers 和 Callees 全部隐藏时，不执行自动光标语义查询。
+
+窗口独立调度规则：
+
+| 可见窗口 | 自动查询 |
+| --- | --- |
+| 仅 Context | Definition、Declaration、Call Root、Hover、Symbol Info；关系数量显示为未查询 |
+| 仅 Code Preview | Definition |
+| References | Definition、Declaration、Call Root、References |
+| Callers | Call Root；展开节点时才查询 Incoming Calls |
+| Callees | Call Root；展开节点时才查询 Outgoing Calls |
+| Context + Callers | 额外查询第一层 Caller 数量 |
+| Context + Callees | 额外查询第一层 Callee 数量 |
+| 全部隐藏 | 不执行自动光标语义请求 |
+
+Document Symbols 也使用独立可见性：窗口隐藏时不查询；打开窗口时立即查询当前
+活动文件。clangd 后台索引、Project Diagnostics、书签文本重定位、会话自动
+保存和用户主动执行的命令不受窗口隐藏影响。
 
 ### 3.2 显式查询
 
