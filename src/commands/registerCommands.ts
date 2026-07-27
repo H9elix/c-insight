@@ -196,6 +196,7 @@ export function registerCommands(
     if (target) {
       await controller.resolveNow(target.uri, target.position, {
         manualCallHierarchy: true,
+        manualCallDirection: "incoming",
       });
       await vscode.commands.executeCommand("cInsight.callers.focus");
     }
@@ -206,6 +207,7 @@ export function registerCommands(
     if (target) {
       await controller.resolveNow(target.uri, target.position, {
         manualCallHierarchy: true,
+        manualCallDirection: "outgoing",
       });
       await vscode.commands.executeCommand("cInsight.callees.focus");
     }

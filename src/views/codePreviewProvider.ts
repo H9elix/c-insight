@@ -44,6 +44,12 @@ export class CodePreviewProvider
   private definitionGeneration = 0;
   private definitionCancellation?: vscode.CancellationTokenSource;
   private readonly disposables: vscode.Disposable[] = [];
+  private readonly visibilityEmitter = new vscode.EventEmitter<void>();
+  readonly onDidChangeVisibility = this.visibilityEmitter.event;
+
+  get visible(): boolean {
+    return this.view?.visible ?? false;
+  }
 
   constructor(
     private readonly analysis: AnalysisService,
@@ -65,9 +71,12 @@ export class CodePreviewProvider
         if (this.view === view) {
           this.view = undefined;
           this.rendered = undefined;
+          this.visibilityEmitter.fire();
         }
       }),
+      view.onDidChangeVisibility(() => this.visibilityEmitter.fire()),
     );
+    this.visibilityEmitter.fire();
     void this.render();
   }
 
@@ -148,6 +157,7 @@ export class CodePreviewProvider
   dispose(): void {
     this.cancelDefinition();
     this.disposables.forEach((item) => item.dispose());
+    this.visibilityEmitter.dispose();
     this.view = undefined;
   }
 
