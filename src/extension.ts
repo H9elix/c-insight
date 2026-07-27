@@ -10,9 +10,14 @@ import { ProjectDiagnostics } from "./diagnostics/projectDiagnostics";
 import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
 import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
 import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
+import {
+  WorkspaceSessionManager,
+  WorkspaceSessionSnapshot,
+} from "./session/workspaceSession";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
+let workspaceSession: WorkspaceSessionManager | undefined;
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -39,6 +44,62 @@ export async function activate(
   );
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
+  workspaceSession = new WorkspaceSessionManager(context, {
+    capture: () => ({
+      history: vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("persistNavigationHistory", true)
+        ? navigationHistory.sessionState()
+        : undefined,
+      preview: views.preview.sessionState(),
+      references: views.referenceSessionState(),
+      symbolSearch: symbolSearch.sessionState(),
+      callHierarchy: vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("restoreCallHierarchy", true)
+        ? views.callHierarchySessionState()
+        : undefined,
+    }),
+  });
+  const restoreSnapshot = async (
+    snapshot: WorkspaceSessionSnapshot | undefined = workspaceSession?.load(true),
+  ): Promise<boolean> => {
+    if (!snapshot) {
+      return false;
+    }
+    if (
+      vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("persistNavigationHistory", true)
+    ) {
+      navigationHistory.restoreSession(snapshot.history);
+    }
+    await views.restoreReferenceSession(snapshot.references);
+    await symbolSearch.restoreSession(snapshot.symbolSearch);
+    if (
+      snapshot.callHierarchy &&
+      vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("restoreCallHierarchy", true)
+    ) {
+      const call = snapshot.callHierarchy;
+      try {
+        await controller.resolveNow(
+          vscode.Uri.parse(call.uri),
+          new vscode.Position(call.position.line, call.position.character),
+          { manualCallHierarchy: true, manualReferences: true },
+        );
+        await views.restoreCallHierarchyDepths(call);
+      } catch (error) {
+        output.appendLine(
+          `Workspace call hierarchy restore failed: ${String(error)}`,
+        );
+      }
+    }
+    await views.preview.restoreSession(snapshot.preview);
+    return true;
+  };
+  const initialSession = workspaceSession.load();
   const reliabilityStatusBar = new ReliabilityStatusBar();
   reliabilityStatusBar.update(
     projectDiagnostics.currentReliability,
@@ -118,6 +179,7 @@ export async function activate(
     navigationHistory,
     bookmarks,
     symbolSearch,
+    workspaceSession,
     controller,
     projectDiagnostics,
     reliabilityStatusBar,
@@ -134,6 +196,8 @@ export async function activate(
     navigationHistory,
     bookmarks,
     symbolSearch,
+    workspaceSession,
+    () => restoreSnapshot(),
   );
   context.subscriptions.push(
     manager.onDidChangeState((state) => {
@@ -212,6 +276,9 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.symbolSearch")) {
         symbolSearch.configurationChanged();
       }
+      if (event.affectsConfiguration("cInsight.session")) {
+        workspaceSession?.startAutosave();
+      }
       if (
         [
           "cInsight.clangd.path",
@@ -256,6 +323,15 @@ export async function activate(
     await manager.start();
     await projectDiagnostics.refresh();
     controller.start();
+    if (initialSession) {
+      void restoreSnapshot(initialSession)
+        .catch((error: unknown) => {
+          output.appendLine(`Workspace session restore failed: ${String(error)}`);
+        })
+        .finally(() => workspaceSession?.startAutosave());
+    } else {
+      workspaceSession.startAutosave();
+    }
     await updateDocumentSymbols(
       vscode.window.activeTextEditor,
       analysis,
@@ -280,6 +356,7 @@ export async function activate(
 }
 
 export async function deactivate(): Promise<void> {
+  await workspaceSession?.save();
   await manager?.stop();
 }
 

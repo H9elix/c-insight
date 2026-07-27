@@ -30,6 +30,13 @@ Symbol Search owns a native tree provider and sends workspace queries through
 search text. Its result nodes reuse the shared location path for preview,
 history, and bookmarks.
 
+Workspace session persistence uses one versioned snapshot in VS Code
+`workspaceState`, so a directly opened folder and a multi-root workspace each
+receive isolated state. Lightweight UI state is restored directly. Call
+hierarchy snapshots retain only a root source position and loaded depths;
+clangd re-resolves the root and rebuilds those depths after startup. Autosave
+runs every five seconds and shutdown performs a final save.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.

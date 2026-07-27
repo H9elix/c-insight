@@ -1,4 +1,4 @@
-# C Insight 0.9.3 使用手册
+# C Insight 0.10.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -448,6 +448,35 @@ Project Diagnostics 用于排查“为什么导航结果不准确或不可用”
 选中的目录会通过 `--compile-commands-dir` 传给 clangd。数据库变化后，C
 Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编译命令。
 
+### 4.11 Workspace Session Restore
+
+直接通过 **Open Folder** 打开的 FFmpeg 等目录就是 VS Code 单文件夹工作区，
+不需要 `.code-workspace` 文件。C Insight 使用 VS Code `workspaceState` 为每个
+文件夹或多根工作区隔离保存浏览快照。
+
+默认每五秒自动保存，并在正常关闭时再次保存：
+
+- Navigation History 的记录、当前游标和过滤条件。
+- Code Preview 当前目标及 Lock 状态。
+- References 的搜索、范围和已显示数量；分组本来就由工作区配置保存。
+- Symbol Search 最近查询和符号类型过滤。
+- Callers/Callees 的根位置，以及两个窗口分别已经加载的最大深度。
+
+重新打开相同工作区后，轻量状态直接恢复。调用关系不会直接信任旧节点，而是用
+保存的位置重新请求 clangd，再展开到上次加载深度，并标记为从上一会话恢复。
+因此源码或编译数据库变化后不会把旧调用结果伪装成最新结果。当前实现恢复最大
+深度，不保证逐个节点的折叠状态完全相同。
+
+命令面板提供：
+
+- **Restore Previous Workspace Session**：手动再次应用已保存快照；即使关闭
+  自动恢复也可以使用。
+- **Clear Saved Workspace Session**：删除快照，并暂停当前窗口的自动保存，
+  下次打开工作区时从空状态开始。
+
+仅打开一个源码文件且没有打开文件夹时，不具备稳定的工程工作区作用域，不建议
+依赖会话恢复。
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -632,6 +661,18 @@ C Insight 默认管理：
 | `cInsight.callHierarchy.pathSearchMaximumNodes` | number | `2000` | 100–50000 | 单次路径搜索最多访问的语义节点数 |
 
 修改 Call Hierarchy 配置会清除调用请求缓存，并触发刷新。
+
+### 9.9 Workspace Session
+
+| 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.session.restore` | boolean | `true` | `true` / `false` | 是否自动保存并恢复当前工作区浏览快照 |
+| `cInsight.session.persistNavigationHistory` | boolean | `true` | `true` / `false` | 是否在快照中保存 Navigation History |
+| `cInsight.session.restoreCallHierarchy` | boolean | `true` | `true` / `false` | 是否重新查询并恢复 Callers/Callees 根和加载深度 |
+| `cInsight.session.maximumAgeDays` | number | `30` | 1–365 | 超过此天数的快照自动忽略 |
+
+关闭 `restore` 会同时停止自动保存与自动恢复，但仍可使用手动 Restore 命令读取
+已有快照。Bookmarks 使用独立的持久化数据，不受这些配置影响。
 
 ## 10. 配置示例
 

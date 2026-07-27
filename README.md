@@ -21,6 +21,8 @@ dedicated activity-bar container.
 - Session navigation history with shared Code Preview Back/Forward
 - Workspace-persistent grouped bookmarks with filtering, sorting, JSON
   import/export, group management, and stale relocation
+- Workspace-scoped browsing-session restore for history, preview, reference
+  filters, symbol search, and revalidated call-hierarchy depth
 - `compile_commands.json`, `.clangd`, and fallback flags
 - clangd lifecycle, status, logs, restart, and provider-conflict warning
 - Large-workspace request cancellation, staged context loading, in-flight
@@ -49,6 +51,8 @@ dedicated activity-bar container.
 8. Open Symbol Search and use its search button for workspace-wide function,
    variable, type, and macro lookup. Select a result to preview it, or use Open
    Location and Add Bookmark from its context menu.
+9. Reopen the same folder or `.code-workspace` to restore the previous C
+   Insight browsing session. Call hierarchy data is queried again from clangd.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has

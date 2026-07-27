@@ -9,6 +9,7 @@ import {
   NavigationSource,
   navigationOrigin,
 } from "./navigationHistoryModel";
+import type { HistorySessionState } from "../session/workspaceSession";
 
 type HistoryFilter = "all" | NavigationOrigin;
 
@@ -122,6 +123,35 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
       config.get<number>("maximumEntries", 200),
       config.get<boolean>("mergeConsecutiveDuplicates", true),
     );
+    this.publish();
+  }
+
+  sessionState(): HistorySessionState {
+    return {
+      entries: [...this.store.all],
+      currentId: this.store.current?.id,
+      filter: this.filter,
+    };
+  }
+
+  restoreSession(state: HistorySessionState | undefined): void {
+    if (!state) {
+      return;
+    }
+    this.store.restore(state.entries, state.currentId);
+    if (
+      [
+        "all",
+        "definition",
+        "declaration",
+        "reference",
+        "caller",
+        "callee",
+        "code-preview",
+      ].includes(state.filter)
+    ) {
+      this.filter = state.filter as HistoryFilter;
+    }
     this.publish();
   }
 
