@@ -16,6 +16,11 @@ are converted to UTF-16 source positions and validated again against the
 currently rendered document and line range by the extension host. The Webview
 never reads local files or sends LSP requests directly.
 
+Navigation History is session-scoped and uses one shared cursor for the
+History view and Code Preview Back/Forward. Bookmarks are intentionally
+separate: they persist in VS Code workspaceState and retain a captured
+identifier for best-effort relocation after document edits.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.

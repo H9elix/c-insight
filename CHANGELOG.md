@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1
+
+- Added a workspace-persistent Bookmarks view grouped by user-defined names.
+- Added Bookmark Current Symbol and Add Bookmark actions for editor and C
+  Insight location nodes.
+- Added bookmark rename, group move, delete confirmation, refresh, Code Preview
+  selection, and Open Location integration.
+- Deduplicates bookmarks at the same file position while retaining stable IDs
+  and user labels.
+- Marks bookmarks stale after document edits, then uses the captured identifier
+  to relocate to the closest whole-symbol occurrence after a debounce.
+- Persists bookmark labels, groups, semantic preview modes, locations, symbols,
+  and stale state in VS Code workspaceState.
+
 ## 0.9.0
 
 - Added a session-scoped Navigation History view for Definition, Declaration,

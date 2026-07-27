@@ -21,6 +21,7 @@ export interface TreeNode {
   callDepth?: number;
   callNode?: CallNode;
   parent?: TreeNode;
+  bookmarkId?: string;
 }
 
 export class MutableTreeProvider

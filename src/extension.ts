@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { AnalysisService } from "./analysis/analysisService";
 import { ClangdManager } from "./clangd/clangdManager";
 import { ClangdLogOutputChannel } from "./clangd/clangdLog";
+import { BookmarkExplorer } from "./bookmarks/bookmarkExplorer";
 import { registerCommands } from "./commands/registerCommands";
 import { isCppDocument } from "./configuration/configuration";
 import { ContextController } from "./context/contextController";
@@ -27,7 +28,8 @@ export async function activate(
   );
   const analysis = new AnalysisService(manager, output);
   const navigationHistory = new NavigationHistoryExplorer();
-  const views = new ViewRegistry(analysis, navigationHistory);
+  const bookmarks = new BookmarkExplorer(context);
+  const views = new ViewRegistry(analysis, navigationHistory, bookmarks);
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
   const reliabilityStatusBar = new ReliabilityStatusBar();
@@ -107,6 +109,7 @@ export async function activate(
     manager,
     views,
     navigationHistory,
+    bookmarks,
     controller,
     projectDiagnostics,
     reliabilityStatusBar,
@@ -121,6 +124,7 @@ export async function activate(
     views,
     projectDiagnostics,
     navigationHistory,
+    bookmarks,
   );
   context.subscriptions.push(
     manager.onDidChangeState((state) => {
@@ -166,6 +170,7 @@ export async function activate(
       scheduleCompilationDatabaseRefresh(uri, "deleted"),
     ),
     vscode.workspace.onDidChangeTextDocument((event) => {
+      bookmarks.handleDocumentChange(event.document);
       const editor = vscode.window.activeTextEditor;
       if (editor?.document === event.document) {
         views.markPinnedViewsStale();
