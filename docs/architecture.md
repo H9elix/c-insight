@@ -37,6 +37,11 @@ hierarchy snapshots retain only a root source position and loaded depths;
 clangd re-resolves the root and rebuilds those depths after startup. Autosave
 runs every five seconds and shutdown performs a final save.
 
+Type Hierarchy uses the standard prepare/supertypes/subtypes LSP requests.
+Opaque `TypeHierarchyItem.data` values remain attached to each lazy node.
+Supertypes and Subtypes have separate request caches and duplicate sets, while
+both share one cancellation source and global node budget for the active root.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.

@@ -14,6 +14,10 @@ import {
 import { LocationResult } from "../models/types";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
+import {
+  TypeHierarchyDirection,
+  TypeHierarchyExplorer,
+} from "../typeHierarchy/typeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 
@@ -27,6 +31,7 @@ export function registerCommands(
   navigationHistory: NavigationHistoryExplorer,
   bookmarks: BookmarkExplorer,
   symbolSearch: SymbolSearchExplorer,
+  typeHierarchy: TypeHierarchyExplorer,
   workspaceSession: WorkspaceSessionManager,
   restoreWorkspaceSession: () => Promise<boolean>,
 ): void {
@@ -357,6 +362,42 @@ export function registerCommands(
       "C Insight: Saved workspace session cleared. Autosave is paused until this window closes.",
     );
   });
+  const showTypeHierarchy = async (
+    direction: TypeHierarchyDirection,
+  ): Promise<void> => {
+    const target = activePosition();
+    if (target) {
+      await typeHierarchy.show(direction, target.uri, target.position);
+    }
+  };
+  register("cInsight.typeHierarchy.showSupertypes", () =>
+    showTypeHierarchy("supertypes"),
+  );
+  register("cInsight.typeHierarchy.showSubtypes", () =>
+    showTypeHierarchy("subtypes"),
+  );
+  register("cInsight.supertypes.expandToDepth", () =>
+    typeHierarchy.promptExpand("supertypes"),
+  );
+  register("cInsight.subtypes.expandToDepth", () =>
+    typeHierarchy.promptExpand("subtypes"),
+  );
+  register("cInsight.typeHierarchy.stopExpansion", () =>
+    typeHierarchy.stopExpansion(),
+  );
+  register("cInsight.supertypes.search", () =>
+    typeHierarchy.search("supertypes"),
+  );
+  register("cInsight.subtypes.search", () =>
+    typeHierarchy.search("subtypes"),
+  );
+  for (const direction of ["supertypes", "subtypes"] as const) {
+    for (const format of ["text", "json", "mermaid"] as const) {
+      register(`cInsight.${direction}.export${capitalize(format)}`, () =>
+        typeHierarchy.export(direction, format),
+      );
+    }
+  }
 
   register("cInsight.restartClangd", async () => {
     try {
@@ -406,4 +447,8 @@ function activeWord(): string | undefined {
     editor.selection.active,
   );
   return range ? editor.document.getText(range) : undefined;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

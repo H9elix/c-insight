@@ -17,6 +17,7 @@ import type {
   ReferenceSessionState,
 } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
+import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import {
   CallNode,
   LocationResult,
@@ -93,6 +94,7 @@ export class ViewRegistry implements vscode.Disposable {
     history: NavigationHistoryExplorer,
     bookmarks: BookmarkExplorer,
     symbolSearch: SymbolSearchExplorer,
+    typeHierarchy: TypeHierarchyExplorer,
   ) {
     const cacheSize = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
@@ -113,6 +115,8 @@ export class ViewRegistry implements vscode.Disposable {
       ["cInsight.history", history.provider],
       ["cInsight.bookmarks", bookmarks.provider],
       ["cInsight.workspaceSymbols", symbolSearch.provider],
+      ["cInsight.supertypes", typeHierarchy.supertypes],
+      ["cInsight.subtypes", typeHierarchy.subtypes],
       ["cInsight.symbols", this.symbols],
       ["cInsight.status", this.status],
     ];
@@ -125,6 +129,12 @@ export class ViewRegistry implements vscode.Disposable {
       if (id === "cInsight.references") {
         this.referenceExplorer.attachTreeView(treeView);
       }
+      if (id === "cInsight.supertypes") {
+        typeHierarchy.attachTreeView("supertypes", treeView);
+      }
+      if (id === "cInsight.subtypes") {
+        typeHierarchy.attachTreeView("subtypes", treeView);
+      }
       this.disposables.push(
         treeView,
         treeView.onDidChangeVisibility(() =>
@@ -134,7 +144,9 @@ export class ViewRegistry implements vscode.Disposable {
       if (
         id !== "cInsight.history" &&
         id !== "cInsight.bookmarks" &&
-        id !== "cInsight.workspaceSymbols"
+        id !== "cInsight.workspaceSymbols" &&
+        id !== "cInsight.supertypes" &&
+        id !== "cInsight.subtypes"
       ) {
         this.disposables.push(provider);
       }

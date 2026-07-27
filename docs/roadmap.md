@@ -37,3 +37,18 @@ and deeper unresolved function-pointer/indirect-call analysis remain deferred.
 Compilation database discovery, clangd project diagnostics, background index
 progress, reliability reporting, and stale-result markers were implemented in
 the 0.8.x series.
+
+## Deferred 0.10.1 session stabilization
+
+Version 0.10.0 restored correctly in initial FFmpeg testing, so the planned
+stabilization release was deferred. Reconsider it if real usage exposes slow
+large-tree restoration, startup cursor-follow races, Remote SSH reconnect
+failures, oversized snapshots, stale locations after project changes, or a
+need for restore progress/cancellation and finer partial-failure reporting.
+
+## Type hierarchy
+
+Version 0.11.0 added clangd-backed Supertypes and Subtypes trees, bounded lazy
+expansion, search, and export. Exact cross-session expansion restoration is
+deferred until real-world usage justifies adding Type Hierarchy to the unified
+workspace snapshot.

@@ -14,6 +14,7 @@ import {
   WorkspaceSessionManager,
   WorkspaceSessionSnapshot,
 } from "./session/workspaceSession";
+import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
@@ -36,11 +37,13 @@ export async function activate(
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
+  const typeHierarchy = new TypeHierarchyExplorer(analysis);
   const views = new ViewRegistry(
     analysis,
     navigationHistory,
     bookmarks,
     symbolSearch,
+    typeHierarchy,
   );
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
@@ -179,6 +182,7 @@ export async function activate(
     navigationHistory,
     bookmarks,
     symbolSearch,
+    typeHierarchy,
     workspaceSession,
     controller,
     projectDiagnostics,
@@ -196,6 +200,7 @@ export async function activate(
     navigationHistory,
     bookmarks,
     symbolSearch,
+    typeHierarchy,
     workspaceSession,
     () => restoreSnapshot(),
   );
@@ -205,6 +210,7 @@ export async function activate(
       if (state === "restarting" || state === "starting") {
         views.markResultsStale("clangd restarted");
         views.invalidateCallHierarchy();
+        typeHierarchy.invalidate();
       }
     }),
     manager.onDidChangeIndexProgress((progress) => {
@@ -244,6 +250,9 @@ export async function activate(
     ),
     vscode.workspace.onDidChangeTextDocument((event) => {
       bookmarks.handleDocumentChange(event.document);
+      if (isCppDocument(event.document)) {
+        typeHierarchy.invalidate();
+      }
       const editor = vscode.window.activeTextEditor;
       if (editor?.document === event.document) {
         views.markPinnedViewsStale();
@@ -266,6 +275,9 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.callHierarchy")) {
         views.invalidateCallHierarchy();
         controller.refresh();
+      }
+      if (event.affectsConfiguration("cInsight.typeHierarchy")) {
+        typeHierarchy.invalidate();
       }
       if (event.affectsConfiguration("cInsight.history")) {
         navigationHistory.configurationChanged();

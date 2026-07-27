@@ -11,6 +11,7 @@ import {
   Position,
   Range,
   SymbolInformation,
+  TypeHierarchyItem,
 } from "vscode-languageclient/node";
 import { ClangdManager } from "../clangd/clangdManager";
 import { CallNode, LocationResult, LspSymbol } from "../models/types";
@@ -192,6 +193,46 @@ export class AnalysisService {
       (await this.request<SymbolInformation[] | null>("workspace/symbol", {
         query,
       })) ?? []
+    );
+  }
+
+  async prepareTypeHierarchy(
+    uri: vscode.Uri,
+    position: vscode.Position,
+    token?: vscode.CancellationToken,
+  ): Promise<TypeHierarchyItem[]> {
+    return (
+      (await this.request<TypeHierarchyItem[] | null>(
+        "textDocument/prepareTypeHierarchy",
+        this.positionParams(uri, position),
+        token,
+      )) ?? []
+    );
+  }
+
+  async typeSupertypes(
+    item: TypeHierarchyItem,
+    token?: vscode.CancellationToken,
+  ): Promise<TypeHierarchyItem[]> {
+    return (
+      (await this.request<TypeHierarchyItem[] | null>(
+        "typeHierarchy/supertypes",
+        { item },
+        token,
+      )) ?? []
+    );
+  }
+
+  async typeSubtypes(
+    item: TypeHierarchyItem,
+    token?: vscode.CancellationToken,
+  ): Promise<TypeHierarchyItem[]> {
+    return (
+      (await this.request<TypeHierarchyItem[] | null>(
+        "typeHierarchy/subtypes",
+        { item },
+        token,
+      )) ?? []
     );
   }
 

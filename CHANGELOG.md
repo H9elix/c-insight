@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.0
+
+- Added Supertypes and Subtypes views using the standard LSP Type Hierarchy
+  protocol supported by clangd 20.
+- Added lazy multi-level expansion with recursion, duplicate, maximum-depth,
+  and maximum-node protection.
+- Added loaded-node search, explicit depth expansion, cancellation, and Text,
+  JSON, or Mermaid export.
+- Integrated type nodes with Code Preview, Open Location, Navigation History,
+  and Bookmarks.
+- Marks loaded type hierarchies stale after source changes, clangd restarts, or
+  type-hierarchy configuration changes.
+- Added `cInsight.typeHierarchy.defaultDepth`, `maximumDepth`, and
+  `maximumNodes`.
+
 ## 0.10.0
 
 - Added a versioned, workspace-scoped browsing-session snapshot with five-second

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -36,7 +36,9 @@
     "onView:cInsight.context",
     "onView:cInsight.history",
     "onView:cInsight.bookmarks",
-    "onView:cInsight.workspaceSymbols"
+    "onView:cInsight.workspaceSymbols",
+    "onView:cInsight.supertypes",
+    "onView:cInsight.subtypes"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -365,6 +367,65 @@
       {
         "command": "cInsight.callees.exportMermaid",
         "title": "C Insight: Export Callees as Mermaid"
+      },
+      {
+        "command": "cInsight.typeHierarchy.showSupertypes",
+        "title": "C Insight: Show Supertypes",
+        "icon": "$(type-hierarchy-super)"
+      },
+      {
+        "command": "cInsight.typeHierarchy.showSubtypes",
+        "title": "C Insight: Show Subtypes",
+        "icon": "$(type-hierarchy-sub)"
+      },
+      {
+        "command": "cInsight.supertypes.expandToDepth",
+        "title": "C Insight: Expand Supertypes to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.subtypes.expandToDepth",
+        "title": "C Insight: Expand Subtypes to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.typeHierarchy.stopExpansion",
+        "title": "C Insight: Stop Type Hierarchy Expansion",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "cInsight.supertypes.search",
+        "title": "C Insight: Search Loaded Supertypes",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.subtypes.search",
+        "title": "C Insight: Search Loaded Subtypes",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.supertypes.exportText",
+        "title": "C Insight: Export Supertypes as Text"
+      },
+      {
+        "command": "cInsight.supertypes.exportJson",
+        "title": "C Insight: Export Supertypes as JSON"
+      },
+      {
+        "command": "cInsight.supertypes.exportMermaid",
+        "title": "C Insight: Export Supertypes as Mermaid"
+      },
+      {
+        "command": "cInsight.subtypes.exportText",
+        "title": "C Insight: Export Subtypes as Text"
+      },
+      {
+        "command": "cInsight.subtypes.exportJson",
+        "title": "C Insight: Export Subtypes as JSON"
+      },
+      {
+        "command": "cInsight.subtypes.exportMermaid",
+        "title": "C Insight: Export Subtypes as Mermaid"
       }
     ],
     "keybindings": [
@@ -400,6 +461,16 @@
           "command": "cInsight.showOutgoingCalls",
           "when": "resourceLangId == c || resourceLangId == cpp",
           "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.typeHierarchy.showSupertypes",
+          "when": "resourceLangId == cpp || resourceLangId == objective-cpp",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cInsight.typeHierarchy.showSubtypes",
+          "when": "resourceLangId == cpp || resourceLangId == objective-cpp",
+          "group": "navigation@6"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",
@@ -587,12 +658,67 @@
           "command": "cInsight.symbolSearch.clear",
           "when": "view == cInsight.workspaceSymbols",
           "group": "navigation@5"
+        },
+        {
+          "command": "cInsight.supertypes.expandToDepth",
+          "when": "view == cInsight.supertypes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.supertypes.search",
+          "when": "view == cInsight.supertypes",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.typeHierarchy.stopExpansion",
+          "when": "view == cInsight.supertypes || view == cInsight.subtypes",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.supertypes.exportText",
+          "when": "view == cInsight.supertypes",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.supertypes.exportJson",
+          "when": "view == cInsight.supertypes",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.supertypes.exportMermaid",
+          "when": "view == cInsight.supertypes",
+          "group": "cInsight@3"
+        },
+        {
+          "command": "cInsight.subtypes.expandToDepth",
+          "when": "view == cInsight.subtypes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.subtypes.search",
+          "when": "view == cInsight.subtypes",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.subtypes.exportText",
+          "when": "view == cInsight.subtypes",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.subtypes.exportJson",
+          "when": "view == cInsight.subtypes",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.subtypes.exportMermaid",
+          "when": "view == cInsight.subtypes",
+          "group": "cInsight@3"
         }
       ],
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation",
           "group": "navigation@1"
         },
         {
@@ -602,7 +728,7 @@
         },
         {
           "command": "cInsight.bookmarks.add",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation",
           "group": "cInsight@1"
         },
         {
@@ -668,6 +794,14 @@
         {
           "id": "cInsight.callees",
           "name": "Callees"
+        },
+        {
+          "id": "cInsight.supertypes",
+          "name": "Supertypes"
+        },
+        {
+          "id": "cInsight.subtypes",
+          "name": "Subtypes"
         },
         {
           "id": "cInsight.history",
@@ -854,6 +988,27 @@
           "minimum": 1,
           "maximum": 365,
           "description": "Ignore saved workspace sessions older than this many days."
+        },
+        "cInsight.typeHierarchy.defaultDepth": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Type hierarchy depth loaded automatically for a new root. Zero keeps roots collapsed."
+        },
+        "cInsight.typeHierarchy.maximumDepth": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum depth allowed for type hierarchy expansion."
+        },
+        "cInsight.typeHierarchy.maximumNodes": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum number of type hierarchy nodes loaded for the current root."
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",
