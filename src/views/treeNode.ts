@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { CallNode, LocationResult } from "../models/types";
-import type { PreviewMode } from "./codePreviewProvider";
+import type { NavigationMode } from "../history/navigationHistoryModel";
 
 export interface TreeNode {
   id?: string;
@@ -11,7 +11,7 @@ export interface TreeNode {
   collapsibleState?: vscode.TreeItemCollapsibleState;
   children?: TreeNode[];
   location?: LocationResult;
-  previewMode?: PreviewMode;
+  previewMode?: NavigationMode;
   previewTitle?: string;
   contextValue?: string;
   loadChildren?: () => Promise<TreeNode[]>;
@@ -63,7 +63,9 @@ export class MutableTreeProvider
     item.tooltip = node.tooltip;
     item.iconPath = node.icon;
     item.contextValue = node.contextValue;
-    if (node.location) {
+    if (node.command) {
+      item.command = node.command;
+    } else if (node.location) {
       item.command = {
         command: "cInsight.previewLocation",
         title: "Preview",
@@ -74,8 +76,6 @@ export class MutableTreeProvider
         ],
       };
       item.contextValue = node.contextValue ?? "location";
-    } else if (node.command) {
-      item.command = node.command;
     }
     if (node.resolveVisible) {
       const resolve = node.resolveVisible;

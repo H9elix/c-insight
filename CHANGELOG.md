@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.0
+
+- Added a session-scoped Navigation History view for Definition, Declaration,
+  Reference, Caller, Callee, and Code Preview navigation.
+- Integrated Code Preview Back/Forward with the shared history cursor,
+  including forward-branch truncation after new navigation.
+- Added consecutive duplicate merging and bounded history retention.
+- Added history filtering by navigation origin and a Clear History action.
+- History selection previews without creating duplicate entries; Open Location
+  remains available from the item context menu.
+- Added `cInsight.history.maximumEntries` and
+  `cInsight.history.mergeConsecutiveDuplicates`.
+
 ## 0.8.4
 
 - Consolidated global analysis reliability into one persistent VS Code status

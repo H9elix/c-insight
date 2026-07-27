@@ -1,23 +1,18 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
+import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
+import {
+  NavigationMode,
+  NavigationSource,
+} from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
 import {
   escapeHtml,
   highlightCppLine,
   highlightTarget,
 } from "./sourceHighlight";
-import { PreviewHistory } from "./previewHistory";
-
-export type PreviewMode =
-  | "definition"
-  | "declaration"
-  | "reference"
-  | "caller"
-  | "callee-definition"
-  | "callee-call-site";
-
-type PreviewSource = "context" | "selection" | "interaction";
+export type PreviewMode = NavigationMode;
 
 interface PreviewState {
   mode: PreviewMode;
@@ -45,12 +40,14 @@ export class CodePreviewProvider
   private state?: PreviewState;
   private rendered?: RenderedDocument;
   private locked = false;
-  private readonly history = new PreviewHistory<PreviewState>(sameState, 100);
   private definitionGeneration = 0;
   private definitionCancellation?: vscode.CancellationTokenSource;
   private readonly disposables: vscode.Disposable[] = [];
 
-  constructor(private readonly analysis: AnalysisService) {}
+  constructor(
+    private readonly analysis: AnalysisService,
+    private readonly navigationHistory: NavigationHistoryExplorer,
+  ) {}
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
@@ -77,7 +74,7 @@ export class CodePreviewProvider
     location: LocationResult,
     mode: PreviewMode,
     title?: string,
-    source: PreviewSource = "selection",
+    source: NavigationSource = "selection",
   ): Promise<void> {
     if (source === "context" && this.locked) {
       return;
@@ -87,11 +84,7 @@ export class CodePreviewProvider
       mode,
       title: title ?? previewModeLabel(mode),
     };
-    if (source === "context") {
-      this.history.reset(next);
-    } else {
-      this.history.push(next);
-    }
+    this.navigationHistory.record(location, mode, next.title, source);
     this.state = next;
     await this.render();
   }
@@ -103,7 +96,6 @@ export class CodePreviewProvider
     this.cancelDefinition();
     this.state = undefined;
     this.rendered = undefined;
-    this.history.clear();
     if (this.view) {
       this.view.webview.html = emptyHtml();
     }
@@ -250,12 +242,19 @@ export class CodePreviewProvider
   }
 
   private async moveHistory(delta: -1 | 1): Promise<void> {
-    const next = this.history.move(delta);
-    if (!next) {
+    const entry =
+      delta < 0
+        ? this.navigationHistory.back()
+        : this.navigationHistory.forward();
+    if (!entry) {
       return;
     }
     this.cancelDefinition();
-    this.state = next;
+    this.state = {
+      location: this.navigationHistory.entryLocation(entry),
+      mode: entry.mode,
+      title: entry.title,
+    };
     await this.render();
   }
 
@@ -315,8 +314,8 @@ export class CodePreviewProvider
         lines.join(""),
         nonce,
         {
-          back: this.history.canBack,
-          forward: this.history.canForward,
+          back: this.navigationHistory.canBack,
+          forward: this.navigationHistory.canForward,
           locked: this.locked,
         },
       );
@@ -338,14 +337,6 @@ function highlightPreviewLine(
   const start = line === range.start.line ? range.start.character : 0;
   const end = line === range.end.line ? range.end.character : source.length;
   return highlightTarget(source, start, end);
-}
-
-function sameState(left: PreviewState, right: PreviewState): boolean {
-  return (
-    left.location.uri.toString() === right.location.uri.toString() &&
-    left.location.range.isEqual(right.location.range) &&
-    left.mode === right.mode
-  );
 }
 
 async function openEditor(

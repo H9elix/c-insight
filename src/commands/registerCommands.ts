@@ -5,6 +5,11 @@ import { ClangdManager } from "../clangd/clangdManager";
 import { readConfiguration } from "../configuration/configuration";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
+import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
+import {
+  NavigationHistoryEntry,
+  NavigationSource,
+} from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
@@ -16,6 +21,7 @@ export function registerCommands(
   controller: ContextController,
   views: ViewRegistry,
   projectDiagnostics: ProjectDiagnostics,
+  navigationHistory: NavigationHistoryExplorer,
 ): void {
   const register = (
     id: string,
@@ -25,15 +31,27 @@ export function registerCommands(
   };
 
   register("cInsight.openLocation", async (value: unknown) => {
-    const candidate = value as
-      | LocationResult
-      | { location?: LocationResult };
+    const candidate = value as LocationResult & {
+      location?: LocationResult;
+      previewMode?: PreviewMode;
+      previewTitle?: string;
+      label?: string;
+      contextValue?: string;
+    };
     const location =
       "location" in candidate && candidate.location
         ? candidate.location
         : (candidate as LocationResult);
     if (!location?.uri || !location.range) {
       return;
+    }
+    if (candidate.contextValue !== "historyLocation") {
+      navigationHistory.record(
+        location,
+        candidate.previewMode ?? "reference",
+        candidate.previewTitle ?? candidate.label ?? "Location",
+        "selection",
+      );
     }
     const document = await vscode.workspace.openTextDocument(location.uri);
     const editor = await vscode.window.showTextDocument(document, {
@@ -49,12 +67,18 @@ export function registerCommands(
 
   register(
     "cInsight.previewLocation",
-    async (value: unknown, mode: unknown, title: unknown) => {
+    async (
+      value: unknown,
+      mode: unknown,
+      title: unknown,
+      source: unknown,
+    ) => {
       const location = value as LocationResult;
       await views.preview.showLocation(
         location,
         (mode as PreviewMode) ?? "reference",
         typeof title === "string" ? title : undefined,
+        (source as NavigationSource) ?? "selection",
       );
     },
   );
@@ -69,9 +93,18 @@ export function registerCommands(
       void vscode.window.showInformationMessage("C Insight: No definition found.");
       return;
     }
+    navigationHistory.record(
+      locations[0],
+      "definition",
+      activeWord() ?? "Definition",
+      "selection",
+    );
     await vscode.commands.executeCommand(
       "cInsight.openLocation",
-      locations[0],
+      {
+        location: locations[0],
+        contextValue: "historyLocation",
+      },
     );
   });
 
@@ -262,6 +295,21 @@ export function registerCommands(
         vscode.ConfigurationTarget.Workspace,
       );
   });
+  register("cInsight.history.preview", async (value: unknown) => {
+    const entry = value as NavigationHistoryEntry;
+    const selected = navigationHistory.select(entry.id);
+    if (!selected) {
+      return;
+    }
+    await views.preview.showLocation(
+      navigationHistory.entryLocation(selected),
+      selected.mode,
+      selected.title,
+      "history",
+    );
+  });
+  register("cInsight.history.filter", () => navigationHistory.chooseFilter());
+  register("cInsight.history.clear", () => navigationHistory.clear());
 
   register("cInsight.restartClangd", async () => {
     try {
@@ -320,4 +368,15 @@ function activePosition():
     uri: editor.document.uri,
     position: editor.selection.active,
   };
+}
+
+function activeWord(): string | undefined {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return undefined;
+  }
+  const range = editor.document.getWordRangeAtPosition(
+    editor.selection.active,
+  );
+  return range ? editor.document.getText(range) : undefined;
 }
