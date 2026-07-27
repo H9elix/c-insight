@@ -19,7 +19,8 @@ dedicated activity-bar container.
 - Document symbol outline and a Symbol Search view with live clangd workspace
   queries, type filtering, and configurable grouping
 - Session navigation history with shared Code Preview Back/Forward
-- Workspace-persistent grouped bookmarks with stale relocation
+- Workspace-persistent grouped bookmarks with filtering, sorting, JSON
+  import/export, group management, and stale relocation
 - `compile_commands.json`, `.clangd`, and fallback flags
 - clangd lifecycle, status, logs, restart, and provider-conflict warning
 - Large-workspace request cancellation, staged context loading, in-flight
@@ -62,6 +63,14 @@ Results remain in the view after the picker closes. Its title buttons search,
 filter symbol kinds, change grouping, refresh the last query, or clear it.
 Selecting a result updates Code Preview; its context menu opens the editor or
 adds a workspace bookmark.
+
+### Bookmarks
+
+Bookmarks persist per workspace and can be filtered by label, group, path, or
+symbol. Sort each group by name, path, source position, creation time, or last
+update. The title bar imports or exports a versioned JSON file; imports can
+merge duplicate positions or replace the current collection. Group context
+menus rename or merge, export, and delete complete groups.
 
 ### References Explorer
 

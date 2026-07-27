@@ -328,6 +328,19 @@ export function registerCommands(
     bookmarks.remove(value),
   );
   register("cInsight.bookmarks.refresh", () => bookmarks.refresh());
+  register("cInsight.bookmarks.search", () => bookmarks.search());
+  register("cInsight.bookmarks.clearSearch", () => bookmarks.clearSearch());
+  register("cInsight.bookmarks.sort", () => bookmarks.chooseSort());
+  register("cInsight.bookmarks.import", () => bookmarks.importBookmarks());
+  register("cInsight.bookmarks.export", (value: unknown) =>
+    bookmarks.exportBookmarks(value),
+  );
+  register("cInsight.bookmarks.renameGroup", (value: unknown) =>
+    bookmarks.renameGroup(value),
+  );
+  register("cInsight.bookmarks.deleteGroup", (value: unknown) =>
+    bookmarks.deleteGroup(value),
+  );
 
   register("cInsight.restartClangd", async () => {
     try {

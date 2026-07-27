@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -212,6 +212,38 @@
         "command": "cInsight.bookmarks.refresh",
         "title": "C Insight: Refresh Bookmarks",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "cInsight.bookmarks.search",
+        "title": "C Insight: Filter Bookmarks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.bookmarks.clearSearch",
+        "title": "C Insight: Clear Bookmark Filter"
+      },
+      {
+        "command": "cInsight.bookmarks.sort",
+        "title": "C Insight: Sort Bookmarks",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "cInsight.bookmarks.import",
+        "title": "C Insight: Import Bookmarks",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "cInsight.bookmarks.export",
+        "title": "C Insight: Export Bookmarks",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "cInsight.bookmarks.renameGroup",
+        "title": "C Insight: Rename or Merge Bookmark Group"
+      },
+      {
+        "command": "cInsight.bookmarks.deleteGroup",
+        "title": "C Insight: Delete Bookmark Group"
       },
       {
         "command": "cInsight.references.search",
@@ -496,7 +528,32 @@
         {
           "command": "cInsight.bookmarks.refresh",
           "when": "view == cInsight.bookmarks",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cInsight.bookmarks.search",
+          "when": "view == cInsight.bookmarks",
           "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.bookmarks.clearSearch",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.bookmarks.sort",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.bookmarks.import",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cInsight.bookmarks.export",
+          "when": "view == cInsight.bookmarks",
+          "group": "navigation@6"
         },
         {
           "command": "cInsight.searchSymbols",
@@ -553,6 +610,21 @@
         {
           "command": "cInsight.bookmarks.delete",
           "when": "viewItem == bookmarkLocation",
+          "group": "cInsight@3"
+        },
+        {
+          "command": "cInsight.bookmarks.renameGroup",
+          "when": "viewItem == bookmarkGroup",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.bookmarks.export",
+          "when": "viewItem == bookmarkGroup",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.bookmarks.deleteGroup",
+          "when": "viewItem == bookmarkGroup",
           "group": "cInsight@3"
         }
       ]
@@ -740,6 +812,18 @@
           ],
           "default": "type",
           "description": "Persisted grouping mode for the Symbol Search view."
+        },
+        "cInsight.bookmarks.sortBy": {
+          "type": "string",
+          "enum": [
+            "name",
+            "path",
+            "position",
+            "created",
+            "updated"
+          ],
+          "default": "updated",
+          "description": "Persisted sorting mode for bookmarks within each group."
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",

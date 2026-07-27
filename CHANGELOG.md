@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.3
+
+- Added bookmark filtering across labels, groups, file URIs, and captured
+  symbols.
+- Added workspace-persistent Name, File Path, Source Position, Creation Time,
+  and Last Updated sorting.
+- Added versioned JSON import and export, with append/update and confirmed
+  replace modes.
+- Added duplicate-position merging, import validation, and missing-file stale
+  markers.
+- Added bookmark-group rename/merge, group export, and confirmed group delete.
+- Added `cInsight.bookmarks.sortBy`.
+
 ## 0.9.2
 
 - Added a dedicated Symbol Search view backed by clangd `workspace/symbol`.

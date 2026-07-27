@@ -1,4 +1,4 @@
-# C Insight 0.9.2 使用手册
+# C Insight 0.9.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -337,6 +337,30 @@ VS Code 后，当前工作区的书签仍会恢复。
 - Change Bookmark Group：移动到已有分组，或创建新分组。
 - Delete Bookmark：确认后删除。
 - Refresh Bookmarks：重新检查并尝试定位全部书签。
+- Filter Bookmarks：按名称、分组、文件路径或原始符号筛选；Clear Bookmark
+  Filter 恢复全部结果。
+- Sort Bookmarks：按名称、文件路径、源码位置、创建时间或最近更新时间排序。
+  排序方式按工作区保存。
+
+### 导入、导出和分组管理
+
+Export Bookmarks 将全部书签保存为带格式名和版本号的 JSON。分组节点右键选择
+Export Bookmarks 时只导出该分组。
+
+Import Bookmarks 校验 JSON 格式后提供两种方式：
+
+- Append and Update：保留当前数据；文件和起始位置相同的记录更新已有书签。
+- Replace All：确认后删除当前全部书签，再载入文件。
+
+导入文件内部的重复位置只保留最后一项，并在结果消息中报告。目标文件不存在的
+书签会保留但标记为 stale。格式不支持、字段错误或 JSON 损坏时不会修改现有
+书签。
+
+分组节点右键操作：
+
+- Rename or Merge Bookmark Group：输入新名称；名称已存在时合并两个分组。
+- Export Bookmarks：仅导出该分组。
+- Delete Bookmark Group：确认后删除分组及其全部书签。
 
 源码修改后，相关书签会立即显示 `stale`。停止编辑约 500 ms 后，C Insight
 使用添加书签时保存的标识符，在原位置附近寻找最近的完整单词：
@@ -587,7 +611,15 @@ C Insight 默认管理：
 符号类型过滤是临时视图状态；分组配置保存在当前工作区。大型工程中可增加
 `debounce` 或降低 `maximumResults`，减少刷新开销。
 
-### 9.7 Call Hierarchy
+### 9.7 Bookmarks
+
+| 配置 | 类型 | 默认值 | 可用值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.bookmarks.sortBy` | string | `"updated"` | `"name"`、`"path"`、`"position"`、`"created"`、`"updated"` | 每个书签分组内的持久化排序方式 |
+
+书签过滤条件是临时视图状态，不会写入工作区配置，也不会修改或删除书签。
+
+### 9.8 Call Hierarchy
 
 | 配置 | 类型 | 默认值 | 范围 | 含义 |
 | --- | --- | --- | --- | --- |

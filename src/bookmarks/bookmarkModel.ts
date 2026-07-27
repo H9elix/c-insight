@@ -22,6 +22,25 @@ export interface BookmarkInput {
   symbol?: string;
 }
 
+export type BookmarkSort =
+  | "name"
+  | "path"
+  | "position"
+  | "created"
+  | "updated";
+
+export interface BookmarkExport {
+  format: "c-insight-bookmarks";
+  version: 1;
+  exportedAt: string;
+  bookmarks: Bookmark[];
+}
+
+export interface BookmarkImportResult {
+  added: number;
+  updated: number;
+}
+
 export class BookmarkStore {
   private bookmarks: Bookmark[];
 
@@ -93,6 +112,58 @@ export class BookmarkStore {
     return true;
   }
 
+  renameGroup(group: string, target: string, timestamp = Date.now()): number {
+    const name = target.trim();
+    if (!name) {
+      return 0;
+    }
+    let changed = 0;
+    for (const bookmark of this.bookmarks) {
+      if (bookmark.group === group && bookmark.group !== name) {
+        bookmark.group = name;
+        bookmark.updatedAt = timestamp;
+        changed += 1;
+      }
+    }
+    return changed;
+  }
+
+  removeGroup(group: string): number {
+    const before = this.bookmarks.length;
+    this.bookmarks = this.bookmarks.filter(
+      (bookmark) => bookmark.group !== group,
+    );
+    return before - this.bookmarks.length;
+  }
+
+  import(
+    bookmarks: Bookmark[],
+    mode: "append" | "replace",
+  ): BookmarkImportResult {
+    if (mode === "replace") {
+      this.bookmarks = bookmarks.map((bookmark) => ({ ...bookmark }));
+      return { added: bookmarks.length, updated: 0 };
+    }
+    let added = 0;
+    let updated = 0;
+    for (const incoming of bookmarks) {
+      const existing = this.bookmarks.find(
+        (bookmark) =>
+          bookmark.uri === incoming.uri &&
+          bookmark.range.start.line === incoming.range.start.line &&
+          bookmark.range.start.character === incoming.range.start.character,
+      );
+      if (existing) {
+        Object.assign(existing, incoming, { id: existing.id });
+        updated += 1;
+      } else {
+        this.bookmarks.push({ ...incoming });
+        added += 1;
+      }
+    }
+    return { added, updated };
+  }
+
   markUriStale(uri: string, timestamp = Date.now()): boolean {
     let changed = false;
     for (const bookmark of this.bookmarks) {
@@ -126,6 +197,62 @@ export class BookmarkStore {
   }
 }
 
+export function filterBookmarks(
+  bookmarks: readonly Bookmark[],
+  query: string,
+): Bookmark[] {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) {
+    return [...bookmarks];
+  }
+  return bookmarks.filter((bookmark) =>
+    [bookmark.label, bookmark.group, bookmark.uri, bookmark.symbol]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => value.toLocaleLowerCase().includes(needle)),
+  );
+}
+
+export function sortBookmarks(
+  bookmarks: readonly Bookmark[],
+  sort: BookmarkSort,
+): Bookmark[] {
+  const values = [...bookmarks];
+  values.sort((left, right) => {
+    switch (sort) {
+      case "name":
+        return left.label.localeCompare(right.label);
+      case "path":
+        return (
+          left.uri.localeCompare(right.uri) ||
+          comparePosition(left, right)
+        );
+      case "position":
+        return comparePosition(left, right);
+      case "created":
+        return right.createdAt - left.createdAt;
+      case "updated":
+        return right.updatedAt - left.updatedAt;
+    }
+  });
+  return values;
+}
+
+export function parseBookmarkExport(value: unknown): Bookmark[] {
+  if (!isRecord(value)) {
+    throw new Error("The import file must contain a JSON object.");
+  }
+  if (
+    value.format !== "c-insight-bookmarks" ||
+    value.version !== 1 ||
+    !Array.isArray(value.bookmarks)
+  ) {
+    throw new Error("Unsupported C Insight bookmark format or version.");
+  }
+  return value.bookmarks.map((bookmark, index) =>
+    parseBookmark(bookmark, index),
+  );
+}
+
 export function closestSymbolOffset(
   text: string,
   symbol: string,
@@ -149,6 +276,78 @@ export function closestSymbolOffset(
     }
   }
   return best;
+}
+
+function parseBookmark(value: unknown, index: number): Bookmark {
+  if (!isRecord(value) || !isRecord(value.range)) {
+    throw new Error(`Bookmark ${index + 1} is not a valid object.`);
+  }
+  const start = parsePosition(value.range.start, index);
+  const end = parsePosition(value.range.end, index);
+  const modes: NavigationMode[] = [
+    "definition",
+    "declaration",
+    "reference",
+    "caller",
+    "callee-definition",
+    "callee-call-site",
+  ];
+  if (
+    typeof value.id !== "string" ||
+    typeof value.label !== "string" ||
+    !value.label.trim() ||
+    typeof value.group !== "string" ||
+    !value.group.trim() ||
+    typeof value.uri !== "string" ||
+    !value.uri ||
+    !modes.includes(value.mode as NavigationMode)
+  ) {
+    throw new Error(`Bookmark ${index + 1} has invalid required fields.`);
+  }
+  return {
+    id: value.id,
+    label: value.label.trim(),
+    group: value.group.trim(),
+    uri: value.uri,
+    range: { start, end },
+    mode: value.mode as NavigationMode,
+    symbol: typeof value.symbol === "string" ? value.symbol : undefined,
+    stale: typeof value.stale === "boolean" ? value.stale : true,
+    createdAt:
+      typeof value.createdAt === "number" ? value.createdAt : Date.now(),
+    updatedAt:
+      typeof value.updatedAt === "number" ? value.updatedAt : Date.now(),
+  };
+}
+
+function parsePosition(
+  value: unknown,
+  index: number,
+): { line: number; character: number } {
+  if (
+    !isRecord(value) ||
+    typeof value.line !== "number" ||
+    !Number.isInteger(value.line) ||
+    value.line < 0 ||
+    typeof value.character !== "number" ||
+    !Number.isInteger(value.character) ||
+    value.character < 0
+  ) {
+    throw new Error(`Bookmark ${index + 1} has an invalid source range.`);
+  }
+  return { line: value.line, character: value.character };
+}
+
+function comparePosition(left: Bookmark, right: Bookmark): number {
+  return (
+    left.range.start.line - right.range.start.line ||
+    left.range.start.character - right.range.start.character ||
+    left.label.localeCompare(right.label)
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function escapeRegExp(value: string): string {
