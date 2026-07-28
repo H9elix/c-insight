@@ -1,4 +1,4 @@
-# C Insight 0.11.8 使用手册
+# C Insight 0.11.9 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -102,6 +102,14 @@ Path。
 会显示状态行，并指出需要调整的配置。取消不会清除已经加载的节点。位于绝对
 深度上限的终端节点会附加 `max depth`，用于区别“没有下级关系”和“因安全上限
 不再查询”。
+
+六个层级窗口共用同一套 Text、JSON 和 Mermaid 导出格式，导出只读取已经加载
+的节点，不触发隐藏查询。JSON 顶层包含 `schemaVersion`、`relation`、
+`direction`、`edgeDirection` 和 `roots`；节点统一包含 `name`、
+`description`、`uri`、可选的 `sourceUri`/`line`、`states` 和 `children`。
+`states` 会规范化记录 duplicate、cycle、recursion、maximum-depth、
+maximum-nodes、cancelled 和 possible-indirect-call 等状态。Mermaid 箭头始终
+表示真实语义方向，而不是窗口树的视觉父子方向。
 
 ### 4.1 Context
 

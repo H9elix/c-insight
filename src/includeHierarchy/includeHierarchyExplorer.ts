@@ -16,7 +16,11 @@ import {
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
 import { HierarchyTreeState } from "../utils/hierarchyTreeState";
-import { typeHierarchyMermaidEdge } from "../utils/typeHierarchy";
+import {
+  HierarchyExportNode,
+  hierarchyNodeStates,
+  renderHierarchyExport,
+} from "../utils/hierarchyExport";
 
 export type IncludeHierarchyDirection = "includes" | "includedBy";
 
@@ -177,12 +181,16 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     if (!target) {
       return;
     }
-    const content =
-      format === "json"
-        ? JSON.stringify(roots.map(treeJson), undefined, 2)
-        : format === "mermaid"
-          ? mermaid(roots, direction)
-          : roots.map((root) => treeText(root)).join("\n");
+    const content = renderHierarchyExport(
+      roots.map(includeExportNode),
+      {
+        relation: "include",
+        direction,
+        edgeDirection:
+          direction === "includes" ? "parent-to-child" : "child-to-parent",
+      },
+      format,
+    );
     const rendered =
       format === "mermaid" && target.path.toLowerCase().endsWith(".md")
         ? `\`\`\`mermaid\n${content}\n\`\`\`\n`
@@ -621,53 +629,14 @@ function errorNode(error: unknown): TreeNode {
   };
 }
 
-function treeText(node: TreeNode, depth = 0): string {
-  const line = `${"  ".repeat(depth)}${node.label}${
-    node.includeFileUri
-      ? ` — ${vscode.workspace.asRelativePath(node.includeFileUri)}`
-      : ""
-  }`;
-  return node.children?.length
-    ? `${line}\n${node.children.map((child) => treeText(child, depth + 1)).join("\n")}`
-    : line;
-}
-
-function treeJson(node: TreeNode): unknown {
+function includeExportNode(node: TreeNode): HierarchyExportNode {
   return {
     name: node.label,
     uri: node.includeFileUri?.toString(),
-    source: node.location?.uri.toString(),
+    sourceUri: node.location?.uri.toString(),
     line: node.location ? node.location.range.start.line + 1 : undefined,
-    classification: node.description,
-    children: node.children?.map(treeJson) ?? [],
+    description: node.description,
+    states: hierarchyNodeStates(node.label, node.description),
+    children: node.children?.map(includeExportNode) ?? [],
   };
-}
-
-function mermaid(
-  roots: TreeNode[],
-  direction: IncludeHierarchyDirection,
-): string {
-  const nodes = flatten(roots).filter((node) => node.includeFileUri);
-  const ids = new Map<TreeNode, string>(
-    nodes.map((node, index) => [node, `n${index}`]),
-  );
-  const lines = ["flowchart TD"];
-  for (const node of nodes) {
-    lines.push(`  ${ids.get(node)}["${escapeLabel(node.label)}"]`);
-    for (const child of node.children ?? []) {
-      if (!ids.has(child)) {
-        continue;
-      }
-      const including = direction === "includes" ? node : child;
-      const included = direction === "includes" ? child : node;
-      lines.push(
-        `  ${typeHierarchyMermaidEdge(ids.get(including)!, ids.get(included)!)}`,
-      );
-    }
-  }
-  return lines.join("\n");
-}
-
-function escapeLabel(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"");
 }

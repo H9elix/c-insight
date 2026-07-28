@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.9
+
+- Added one shared Text, JSON, and Mermaid renderer for Call, Type, and Include
+  Hierarchy.
+- Standardized JSON exports with `schemaVersion`, `relation`, `direction`,
+  `edgeDirection`, and `roots` metadata.
+- Standardized node fields as `name`, `description`, `uri`, optional
+  `sourceUri`/`line`, `states`, and `children`.
+- Normalizes duplicate, cycle, recursion, maximum-depth, maximum-node,
+  cancellation, and possible-indirect-call states in exports.
+- Preserves semantic arrow direction for all six relationship views and still
+  exports loaded nodes only.
+
 ## 0.11.8
 
 - Added a shared hierarchy-tree state model for node counts, duplicate
