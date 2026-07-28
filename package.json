@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.5",
+  "version": "0.11.6",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -80,11 +80,13 @@
       },
       {
         "command": "cInsight.showIncomingCalls",
-        "title": "C Insight: Show Incoming Calls"
+        "title": "C Insight: Show Incoming Calls",
+        "icon": "$(references)"
       },
       {
         "command": "cInsight.showOutgoingCalls",
-        "title": "C Insight: Show Outgoing Calls"
+        "title": "C Insight: Show Outgoing Calls",
+        "icon": "$(references)"
       },
       {
         "command": "cInsight.pinContext",
@@ -324,7 +326,8 @@
       },
       {
         "command": "cInsight.callHierarchy.stopExpansion",
-        "title": "C Insight: Stop Call Hierarchy Expansion"
+        "title": "C Insight: Stop Call Hierarchy Expansion",
+        "icon": "$(debug-stop)"
       },
       {
         "command": "cInsight.callers.search",
@@ -588,22 +591,22 @@
         {
           "command": "cInsight.pinCallHierarchy",
           "when": "view == cInsight.callers && !cInsight.callHierarchyPinned",
-          "group": "navigation@4"
+          "group": "navigation@5"
         },
         {
           "command": "cInsight.unpinCallHierarchy",
           "when": "view == cInsight.callers && cInsight.callHierarchyPinned",
-          "group": "navigation@4"
+          "group": "navigation@5"
         },
         {
           "command": "cInsight.pinCallHierarchy",
           "when": "view == cInsight.callees && !cInsight.callHierarchyPinned",
-          "group": "navigation@4"
+          "group": "navigation@5"
         },
         {
           "command": "cInsight.unpinCallHierarchy",
           "when": "view == cInsight.callees && cInsight.callHierarchyPinned",
-          "group": "navigation@4"
+          "group": "navigation@5"
         },
         {
           "command": "cInsight.refresh",
@@ -646,6 +649,11 @@
           "group": "navigation@3"
         },
         {
+          "command": "cInsight.showIncomingCalls",
+          "when": "view == cInsight.callers",
+          "group": "navigation@0"
+        },
+        {
           "command": "cInsight.callers.expandToDepth",
           "when": "view == cInsight.callers",
           "group": "navigation@1"
@@ -658,7 +666,32 @@
         {
           "command": "cInsight.callers.findPath",
           "when": "view == cInsight.callers",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.callHierarchy.stopExpansion",
+          "when": "view == cInsight.callers",
           "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.callers.exportText",
+          "when": "view == cInsight.callers",
+          "group": "cInsight.export@1"
+        },
+        {
+          "command": "cInsight.callers.exportJson",
+          "when": "view == cInsight.callers",
+          "group": "cInsight.export@2"
+        },
+        {
+          "command": "cInsight.callers.exportMermaid",
+          "when": "view == cInsight.callers",
+          "group": "cInsight.export@3"
+        },
+        {
+          "command": "cInsight.showOutgoingCalls",
+          "when": "view == cInsight.callees",
+          "group": "navigation@0"
         },
         {
           "command": "cInsight.callees.expandToDepth",
@@ -673,7 +706,27 @@
         {
           "command": "cInsight.callees.findPath",
           "when": "view == cInsight.callees",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.callHierarchy.stopExpansion",
+          "when": "view == cInsight.callees",
           "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.callees.exportText",
+          "when": "view == cInsight.callees",
+          "group": "cInsight.export@1"
+        },
+        {
+          "command": "cInsight.callees.exportJson",
+          "when": "view == cInsight.callees",
+          "group": "cInsight.export@2"
+        },
+        {
+          "command": "cInsight.callees.exportMermaid",
+          "when": "view == cInsight.callees",
+          "group": "cInsight.export@3"
         },
         {
           "command": "cInsight.history.filter",
@@ -746,6 +799,11 @@
           "group": "navigation@5"
         },
         {
+          "command": "cInsight.typeHierarchy.showSupertypes",
+          "when": "view == cInsight.supertypes",
+          "group": "navigation@0"
+        },
+        {
           "command": "cInsight.supertypes.expandToDepth",
           "when": "view == cInsight.supertypes",
           "group": "navigation@1"
@@ -763,17 +821,22 @@
         {
           "command": "cInsight.supertypes.exportText",
           "when": "view == cInsight.supertypes",
-          "group": "cInsight@1"
+          "group": "cInsight.export@1"
         },
         {
           "command": "cInsight.supertypes.exportJson",
           "when": "view == cInsight.supertypes",
-          "group": "cInsight@2"
+          "group": "cInsight.export@2"
         },
         {
           "command": "cInsight.supertypes.exportMermaid",
           "when": "view == cInsight.supertypes",
-          "group": "cInsight@3"
+          "group": "cInsight.export@3"
+        },
+        {
+          "command": "cInsight.typeHierarchy.showSubtypes",
+          "when": "view == cInsight.subtypes",
+          "group": "navigation@0"
         },
         {
           "command": "cInsight.subtypes.expandToDepth",
@@ -788,17 +851,17 @@
         {
           "command": "cInsight.subtypes.exportText",
           "when": "view == cInsight.subtypes",
-          "group": "cInsight@1"
+          "group": "cInsight.export@1"
         },
         {
           "command": "cInsight.subtypes.exportJson",
           "when": "view == cInsight.subtypes",
-          "group": "cInsight@2"
+          "group": "cInsight.export@2"
         },
         {
           "command": "cInsight.subtypes.exportMermaid",
           "when": "view == cInsight.subtypes",
-          "group": "cInsight@3"
+          "group": "cInsight.export@3"
         },
         {
           "command": "cInsight.includes.expandToDepth",
@@ -833,32 +896,32 @@
         {
           "command": "cInsight.includes.exportText",
           "when": "view == cInsight.includes",
-          "group": "cInsight@1"
+          "group": "cInsight.export@1"
         },
         {
           "command": "cInsight.includes.exportJson",
           "when": "view == cInsight.includes",
-          "group": "cInsight@2"
+          "group": "cInsight.export@2"
         },
         {
           "command": "cInsight.includes.exportMermaid",
           "when": "view == cInsight.includes",
-          "group": "cInsight@3"
+          "group": "cInsight.export@3"
         },
         {
           "command": "cInsight.includedBy.exportText",
           "when": "view == cInsight.includedBy",
-          "group": "cInsight@1"
+          "group": "cInsight.export@1"
         },
         {
           "command": "cInsight.includedBy.exportJson",
           "when": "view == cInsight.includedBy",
-          "group": "cInsight@2"
+          "group": "cInsight.export@2"
         },
         {
           "command": "cInsight.includedBy.exportMermaid",
           "when": "view == cInsight.includedBy",
-          "group": "cInsight@3"
+          "group": "cInsight.export@3"
         }
       ],
       "view/item/context": [

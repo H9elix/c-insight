@@ -1,4 +1,4 @@
-# C Insight 0.11.5 使用手册
+# C Insight 0.11.6 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -91,6 +91,12 @@ Document Symbols 也使用独立可见性：窗口隐藏时不查询；打开窗
 Pin 的主要作用是阻止普通光标移动替换结果，而不是完全禁止更新。
 
 ## 4. 各窗口说明
+
+Callers、Callees、Supertypes、Subtypes、Includes 和 Included By 的标题栏
+采用统一顺序：Show、Expand to Depth、Search Loaded、Stop Expansion，再
+显示该关系特有的操作。Text、JSON、Mermaid 导出统一位于 `...` 溢出菜单。
+某个窗口不支持的关系特有功能不会显示，例如只有 Callers/Callees 提供 Find
+Path。
 
 ### 4.1 Context
 
