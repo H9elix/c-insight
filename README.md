@@ -49,6 +49,11 @@ Each hierarchy direction has an independent `maximumNodes` budget: loading
 Callers does not reduce the Callees budget, and loading Supertypes does not
 reduce the Subtypes budget.
 
+Hierarchy JSON exports use one versioned envelope with relation and semantic
+edge-direction metadata plus normalized node states. Text and Mermaid use the
+same loaded-node model, so all formats agree on duplicates, cycles, recursion,
+and safety-limit markers.
+
 1. Open a C or C++ workspace, then select the C Insight icon in the Activity
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow

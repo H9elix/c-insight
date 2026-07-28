@@ -37,11 +37,12 @@ import {
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
 import { HierarchyTreeState } from "../utils/hierarchyTreeState";
-import { LruPromiseCache } from "../utils/lruPromiseCache";
 import {
-  escapeMermaidLabel,
-  mermaidCallEdge,
-} from "../utils/mermaid";
+  HierarchyExportNode,
+  hierarchyNodeStates,
+  renderHierarchyExport,
+} from "../utils/hierarchyExport";
+import { LruPromiseCache } from "../utils/lruPromiseCache";
 import { shouldUpdatePinnedView } from "../utils/viewPin";
 import { CodePreviewProvider, PreviewMode } from "./codePreviewProvider";
 import { ReferenceExplorer } from "./referenceExplorer";
@@ -792,18 +793,21 @@ export class ViewRegistry implements vscode.Disposable {
     if (!uri) {
       return;
     }
-    const mermaid =
-      format === "mermaid"
-        ? callTreeMermaid(roots, direction)
-        : undefined;
+    const rendered = renderHierarchyExport(
+      roots.map(callExportNode),
+      {
+        relation: "call",
+        direction: direction === "incoming" ? "callers" : "callees",
+        edgeDirection:
+          direction === "incoming" ? "child-to-parent" : "parent-to-child",
+      },
+      format,
+    );
     const content =
-      format === "json"
-        ? JSON.stringify(roots.map(callTreeJson), null, 2)
-        : format === "mermaid"
-          ? uri.path.toLocaleLowerCase().endsWith(".md")
-            ? `\`\`\`mermaid\n${mermaid}\n\`\`\`\n`
-            : mermaid!
-          : roots.map((root) => callTreeText(root)).join("\n");
+      format === "mermaid" &&
+      uri.path.toLocaleLowerCase().endsWith(".md")
+        ? `\`\`\`mermaid\n${rendered}\n\`\`\`\n`
+        : rendered;
     await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
   }
 
@@ -1325,75 +1329,13 @@ function maximumLoadedDepth(roots: TreeNode[]): number {
   );
 }
 
-function callTreeText(node: TreeNode, depth = 0): string {
-  const location = node.location
-    ? ` — ${vscode.workspace.asRelativePath(node.location.uri)}:${node.location.range.start.line + 1}`
-    : "";
-  const current = `${"  ".repeat(depth)}${node.label}${location}`;
-  const children = node.children?.map((child) =>
-    callTreeText(child, depth + 1),
-  );
-  return children?.length ? `${current}\n${children.join("\n")}` : current;
-}
-
-function callTreeJson(node: TreeNode): unknown {
+function callExportNode(node: TreeNode): HierarchyExportNode {
   return {
     name: node.label,
     description: node.description,
     uri: node.location?.uri.toString(),
-    line:
-      node.location === undefined
-        ? undefined
-        : node.location.range.start.line + 1,
-    depth: node.callDepth,
-    children: node.children?.map(callTreeJson) ?? [],
+    line: node.location ? node.location.range.start.line + 1 : undefined,
+    states: hierarchyNodeStates(node.label, node.description),
+    children: node.children?.map(callExportNode) ?? [],
   };
-}
-
-function callTreeMermaid(
-  roots: TreeNode[],
-  direction: "incoming" | "outgoing",
-): string {
-  const nodes = flattenLoadedCallNodes(roots);
-  const ids = new Map<string, string>();
-  for (const node of nodes) {
-    if (node.callKey && !ids.has(node.callKey)) {
-      ids.set(node.callKey, `n${ids.size}`);
-    }
-  }
-  const lines = [
-    "flowchart TD",
-    `  %% C Insight ${direction === "incoming" ? "Callers" : "Callees"} — loaded nodes only`,
-  ];
-  for (const node of nodes) {
-    if (!node.callKey) {
-      continue;
-    }
-    const id = ids.get(node.callKey)!;
-    const location = node.location
-      ? `${vscode.workspace.asRelativePath(node.location.uri)}:${node.location.range.start.line + 1}`
-      : "";
-    lines.push(
-      `  ${id}["${escapeMermaidLabel(`${node.label}\\n${location}`)}"]`,
-    );
-  }
-  const edges = new Set<string>();
-  const visit = (node: TreeNode): void => {
-    if (!node.callKey) {
-      return;
-    }
-    const from = ids.get(node.callKey);
-    for (const child of node.children ?? []) {
-      if (child.callKey) {
-        const to = ids.get(child.callKey);
-        if (from && to) {
-          edges.add(`  ${mermaidCallEdge(from, to, direction)}`);
-        }
-        visit(child);
-      }
-    }
-  };
-  roots.forEach(visit);
-  lines.push(...edges);
-  return lines.join("\n");
 }

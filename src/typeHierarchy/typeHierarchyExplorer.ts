@@ -12,8 +12,12 @@ import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import {
   isTypeHierarchyRecursion,
   typeHierarchyKey,
-  typeHierarchyMermaidEdge,
 } from "../utils/typeHierarchy";
+import {
+  HierarchyExportNode,
+  hierarchyNodeStates,
+  renderHierarchyExport,
+} from "../utils/hierarchyExport";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
 
 export type TypeHierarchyDirection = "supertypes" | "subtypes";
@@ -167,12 +171,16 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     if (!target) {
       return;
     }
-    const content =
-      format === "json"
-        ? JSON.stringify(roots.map(treeJson), undefined, 2)
-        : format === "mermaid"
-          ? mermaid(roots, direction)
-          : roots.map((root) => treeText(root)).join("\n");
+    const content = renderHierarchyExport(
+      roots.map(typeExportNode),
+      {
+        relation: "type",
+        direction,
+        edgeDirection:
+          direction === "supertypes" ? "child-to-parent" : "parent-to-child",
+      },
+      format,
+    );
     await vscode.workspace.fs.writeFile(
       target,
       new TextEncoder().encode(
@@ -487,54 +495,13 @@ function statusNode(label: string, description: string): TreeNode {
   };
 }
 
-function treeText(node: TreeNode, depth = 0): string {
-  const line = `${"  ".repeat(depth)}${node.label}${
-    node.location
-      ? ` — ${vscode.workspace.asRelativePath(node.location.uri)}:${node.location.range.start.line + 1}`
-      : ""
-  }`;
-  return node.children?.length
-    ? `${line}\n${node.children.map((child) => treeText(child, depth + 1)).join("\n")}`
-    : line;
-}
-
-function treeJson(node: TreeNode): unknown {
+function typeExportNode(node: TreeNode): HierarchyExportNode {
   return {
     name: node.label,
-    detail: node.description,
+    description: node.description,
     uri: node.location?.uri.toString(),
     line: node.location ? node.location.range.start.line + 1 : undefined,
-    children: node.children?.map(treeJson) ?? [],
+    states: hierarchyNodeStates(node.label, node.description),
+    children: node.children?.map(typeExportNode) ?? [],
   };
-}
-
-function mermaid(
-  roots: TreeNode[],
-  direction: TypeHierarchyDirection,
-): string {
-  const nodes = flatten(roots).filter((node) => node.location);
-  const ids = new Map<TreeNode, string>(
-    nodes.map((node, index) => [node, `n${index}`]),
-  );
-  const lines = ["flowchart TD"];
-  for (const node of nodes) {
-    lines.push(`  ${ids.get(node)}["${escapeLabel(node.label)}"]`);
-    for (const child of node.children ?? []) {
-      if (!ids.has(child)) {
-        continue;
-      }
-      const supertype =
-        direction === "supertypes" ? child : node;
-      const subtype =
-        direction === "supertypes" ? node : child;
-      lines.push(
-        `  ${typeHierarchyMermaidEdge(ids.get(supertype)!, ids.get(subtype)!)}`,
-      );
-    }
-  }
-  return lines.join("\n");
-}
-
-function escapeLabel(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"");
 }

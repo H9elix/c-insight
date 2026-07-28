@@ -53,6 +53,11 @@ Call, Type, and Include Hierarchy use one common direction-state model for
 loaded-node counts, duplicate tracking, resets, and budget calculations.
 Direction state remains isolated even where semantic request caches are shared.
 
+The same hierarchy families map their loaded `TreeNode` data into a versioned
+common export model. Text, JSON, and Mermaid rendering is shared; each caller
+supplies only relation metadata and whether semantic edges follow or reverse
+the visual parent-child direction.
+
 Include Hierarchy is local and does not require a non-standard clangd method.
 The forward tree parses directives lazily and resolves them with the active
 compilation database's `-iquote`, `-I`, and `-isystem` paths. The reverse tree
