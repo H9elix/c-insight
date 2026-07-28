@@ -29,10 +29,14 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     includedBy: new Set<string>(),
   };
   private readonly disposables: vscode.Disposable[] = [];
-  private cancellation?: vscode.CancellationTokenSource;
-  private root?: vscode.Uri;
-  private loadedNodes = 0;
-  private stale = false;
+  private readonly cancellation: Partial<
+    Record<IncludeHierarchyDirection, vscode.CancellationTokenSource>
+  > = {};
+  private readonly roots: Partial<
+    Record<IncludeHierarchyDirection, vscode.Uri>
+  > = {};
+  private readonly loadedNodes = { includes: 0, includedBy: 0 };
+  private readonly stale = { includes: false, includedBy: false };
 
   constructor() {
     this.publishEmpty();
@@ -61,26 +65,21 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     direction: IncludeHierarchyDirection,
     uri: vscode.Uri,
   ): Promise<void> {
-    this.stopExpansion();
-    this.root = uri;
-    this.loadedNodes = 0;
-    this.stale = false;
-    this.seen.includes.clear();
-    this.seen.includedBy.clear();
-    for (const current of ["includes", "includedBy"] as const) {
-      this.provider(current).setRoots([
-        this.fileNode(uri, current, [], 0, undefined),
-      ]);
-    }
+    this.stopExpansion(direction);
+    this.roots[direction] = uri;
+    this.loadedNodes[direction] = 0;
+    this.stale[direction] = false;
+    this.seen[direction].clear();
+    this.provider(direction).setRoots([
+      this.fileNode(uri, direction, [], 0, undefined),
+    ]);
     await vscode.commands.executeCommand(
       direction === "includes"
         ? "cInsight.includes.focus"
         : "cInsight.includedBy.focus",
     );
     if (this.defaultDepth > 0) {
-      void this.expand("includes", this.defaultDepth).then(() =>
-        this.expand("includedBy", this.defaultDepth),
-      );
+      void this.expand(direction, this.defaultDepth);
     }
   }
 
@@ -127,10 +126,15 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     }
   }
 
-  stopExpansion(): void {
-    this.cancellation?.cancel();
-    this.cancellation?.dispose();
-    this.cancellation = undefined;
+  stopExpansion(direction?: IncludeHierarchyDirection): void {
+    const directions = direction
+      ? [direction]
+      : (["includes", "includedBy"] as const);
+    for (const current of directions) {
+      this.cancellation[current]?.cancel();
+      this.cancellation[current]?.dispose();
+      delete this.cancellation[current];
+    }
   }
 
   handleDocumentChange(document: vscode.TextDocument): void {
@@ -138,9 +142,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       return;
     }
     void this.reverse.update(document.uri, document.getText());
-    if (this.root) {
-      this.markStale();
-    }
+    this.markStale();
   }
 
   invalidate(): void {
@@ -205,12 +207,12 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     const recursive = ancestors.includes(key);
     const duplicate = !recursive && this.seen[direction].has(key);
     this.seen[direction].add(key);
-    this.loadedNodes += 1;
+    this.loadedNodes[direction] += 1;
     const directive = relation?.directive;
     const source =
       relation && "source" in relation
         ? relation.source
-        : relationSource ?? this.root ?? uri;
+        : relationSource ?? this.roots[direction] ?? uri;
     const previewLocation = directive
       ? directiveLocation(directive)
       : new vscode.Range(0, 0, 0, 0);
@@ -252,7 +254,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     ancestors: string[],
     depth: number,
   ): Promise<TreeNode[]> {
-    if (this.loadedNodes >= this.maximumNodes) {
+    if (this.loadedNodes.includes >= this.maximumNodes) {
       return [limitNode()];
     }
     try {
@@ -289,13 +291,13 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     ancestors: string[],
     depth: number,
   ): Promise<TreeNode[]> {
-    if (this.loadedNodes >= this.maximumNodes) {
+    if (this.loadedNodes.includedBy >= this.maximumNodes) {
       return [limitNode()];
     }
     try {
       const incoming = await this.reverse.incoming(
         uri,
-        this.cancellation?.token,
+        this.cancellation.includedBy?.token,
       );
       return incoming.map((edge) =>
         this.fileNode(
@@ -316,14 +318,14 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     direction: IncludeHierarchyDirection,
     depth: number,
   ): Promise<void> {
-    this.stopExpansion();
+    this.stopExpansion(direction);
     const cancellation = new vscode.CancellationTokenSource();
-    this.cancellation = cancellation;
+    this.cancellation[direction] = cancellation;
     const visit = async (nodes: TreeNode[], current: number): Promise<void> => {
       if (
         current >= depth ||
         cancellation.token.isCancellationRequested ||
-        this.loadedNodes >= this.maximumNodes
+        this.loadedNodes[direction] >= this.maximumNodes
       ) {
         return;
       }
@@ -344,26 +346,29 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     try {
       await visit(this.dataRoots(direction), 0);
     } finally {
-      if (this.cancellation === cancellation) {
-        this.cancellation = undefined;
+      if (this.cancellation[direction] === cancellation) {
+        delete this.cancellation[direction];
       }
       cancellation.dispose();
     }
   }
 
-  private markStale(): void {
-    if (!this.root || this.stale) {
-      return;
-    }
-    this.stale = true;
-    for (const direction of ["includes", "includedBy"] as const) {
-      this.provider(direction).setRoots([
+  private markStale(direction?: IncludeHierarchyDirection): void {
+    const directions = direction
+      ? [direction]
+      : (["includes", "includedBy"] as const);
+    for (const current of directions) {
+      if (!this.roots[current] || this.stale[current]) {
+        continue;
+      }
+      this.stale[current] = true;
+      this.provider(current).setRoots([
         {
           label: "Include hierarchy is stale",
-          description: "run Show Includes or Show Included By again",
+          description: `run Show ${directionLabel(current)} again`,
           icon: new vscode.ThemeIcon("history"),
         },
-        ...this.provider(direction).getRoots(),
+        ...this.provider(current).getRoots(),
       ]);
     }
   }
@@ -373,9 +378,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       const content = await vscode.workspace.fs.readFile(uri);
       await this.reverse.update(uri, Buffer.from(content).toString("utf8"));
     } finally {
-      if (this.root) {
-        this.markStale();
-      }
+      this.markStale();
     }
   }
 

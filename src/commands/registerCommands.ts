@@ -444,8 +444,11 @@ export function registerCommands(
   register("cInsight.includedBy.expandToDepth", () =>
     includeHierarchy.promptExpand("includedBy"),
   );
-  register("cInsight.includeHierarchy.stopExpansion", () =>
-    includeHierarchy.stopExpansion(),
+  register("cInsight.includes.stopExpansion", () =>
+    includeHierarchy.stopExpansion("includes"),
+  );
+  register("cInsight.includedBy.stopExpansion", () =>
+    includeHierarchy.stopExpansion("includedBy"),
   );
   register("cInsight.includes.search", () =>
     includeHierarchy.search("includes"),

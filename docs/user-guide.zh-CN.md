@@ -1,4 +1,4 @@
-# C Insight 0.11.3 使用手册
+# C Insight 0.11.4 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -548,8 +548,9 @@ Supertypes/Subtypes。普通 C 代码没有类继承关系，通常不会返回�
 - Included By：工作区内哪些文件直接或间接包含当前文件。
 
 把当前编辑器置于 C/C++ 源文件或头文件，通过编辑器右键菜单或命令面板执行
-**Show Includes** 或 **Show Included By**。两个窗口共用同一个根文件，但各自
-维护已经展开的树。
+**Show Includes** 或 **Show Included By**。Show Includes 只更新 Includes，
+Show Included By 只更新 Included By；两个窗口可保留不同根文件和不同的已
+展开树。
 
 两个窗口的标题栏都有常显查询按钮；尚未查询时，也可以直接单击窗口内的提示
 行。若当前活动编辑器不是本地 C/C++ 文件，命令会显示明确警告。
@@ -570,7 +571,8 @@ Included By 需要反向查找，因此首次展开时才扫描工作区 C/C++ �
 - 右键 Open Location：打开被包含文件；未解析节点打开 include 所在源码行。
 - 右键 Add Bookmark：保存已解析文件。
 - Search Loaded Includes/Included By：只搜索已加载节点。
-- Expand to Depth：在限制范围内批量展开，可用 Stop Expansion 取消。
+- Expand to Depth：在限制范围内批量展开，可用各窗口自己的 Stop Expansion
+  取消；不会停止另一个方向的展开。
 - `...` 菜单可导出 Text、JSON 或 Mermaid；Mermaid 箭头始终表示
   “包含者 → 被包含者”。
 
@@ -794,7 +796,7 @@ C Insight 默认管理：
 | --- | --- | --- | --- | --- |
 | `cInsight.includeHierarchy.defaultDepth` | number | `0` | 0–10 | 新文件根自动展开层数；0 保持折叠 |
 | `cInsight.includeHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
-| `cInsight.includeHierarchy.maximumNodes` | number | `5000` | 100–50000 | 当前两棵包含树允许加载的节点上限 |
+| `cInsight.includeHierarchy.maximumNodes` | number | `5000` | 100–50000 | 每棵包含树各自允许加载的节点上限 |
 | `cInsight.includeHierarchy.includeSystemHeaders` | boolean | `false` | `true` / `false` | 是否显示并继续展开系统头文件 |
 | `cInsight.includeHierarchy.workspaceFileLimit` | number | `20000` | 100–200000 | Included By 首次建索引最多扫描的源码/头文件数 |
 

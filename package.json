@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -450,8 +450,13 @@
         "icon": "$(expand-all)"
       },
       {
-        "command": "cInsight.includeHierarchy.stopExpansion",
-        "title": "C Insight: Stop Include Hierarchy Expansion",
+        "command": "cInsight.includes.stopExpansion",
+        "title": "C Insight: Stop Includes Expansion",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "cInsight.includedBy.stopExpansion",
+        "title": "C Insight: Stop Included By Expansion",
         "icon": "$(debug-stop)"
       },
       {
@@ -816,8 +821,13 @@
           "group": "navigation@2"
         },
         {
-          "command": "cInsight.includeHierarchy.stopExpansion",
-          "when": "view == cInsight.includes || view == cInsight.includedBy",
+          "command": "cInsight.includes.stopExpansion",
+          "when": "view == cInsight.includes",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.includedBy.stopExpansion",
+          "when": "view == cInsight.includedBy",
           "group": "navigation@3"
         },
         {
