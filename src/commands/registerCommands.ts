@@ -18,6 +18,10 @@ import {
   TypeHierarchyDirection,
   TypeHierarchyExplorer,
 } from "../typeHierarchy/typeHierarchyExplorer";
+import {
+  IncludeHierarchyDirection,
+  IncludeHierarchyExplorer,
+} from "../includeHierarchy/includeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 
@@ -32,6 +36,7 @@ export function registerCommands(
   bookmarks: BookmarkExplorer,
   symbolSearch: SymbolSearchExplorer,
   typeHierarchy: TypeHierarchyExplorer,
+  includeHierarchy: IncludeHierarchyExplorer,
   workspaceSession: WorkspaceSessionManager,
   restoreWorkspaceSession: () => Promise<boolean>,
 ): void {
@@ -49,8 +54,16 @@ export function registerCommands(
       previewTitle?: string;
       label?: string;
       contextValue?: string;
+      includeFileUri?: vscode.Uri;
     };
     const location =
+      candidate.contextValue === "includeHierarchyLocation" &&
+      candidate.includeFileUri
+        ? {
+            uri: candidate.includeFileUri,
+            range: new vscode.Range(0, 0, 0, 0),
+          }
+        :
       "location" in candidate && candidate.location
         ? candidate.location
         : (candidate as LocationResult);
@@ -397,6 +410,42 @@ export function registerCommands(
     for (const format of ["text", "json", "mermaid"] as const) {
       register(`cInsight.${direction}.export${capitalize(format)}`, () =>
         typeHierarchy.export(direction, format),
+      );
+    }
+  }
+  const showIncludeHierarchy = async (
+    direction: IncludeHierarchyDirection,
+  ): Promise<void> => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      await includeHierarchy.show(direction, editor.document.uri);
+    }
+  };
+  register("cInsight.includeHierarchy.showIncludes", () =>
+    showIncludeHierarchy("includes"),
+  );
+  register("cInsight.includeHierarchy.showIncludedBy", () =>
+    showIncludeHierarchy("includedBy"),
+  );
+  register("cInsight.includes.expandToDepth", () =>
+    includeHierarchy.promptExpand("includes"),
+  );
+  register("cInsight.includedBy.expandToDepth", () =>
+    includeHierarchy.promptExpand("includedBy"),
+  );
+  register("cInsight.includeHierarchy.stopExpansion", () =>
+    includeHierarchy.stopExpansion(),
+  );
+  register("cInsight.includes.search", () =>
+    includeHierarchy.search("includes"),
+  );
+  register("cInsight.includedBy.search", () =>
+    includeHierarchy.search("includedBy"),
+  );
+  for (const direction of ["includes", "includedBy"] as const) {
+    for (const format of ["text", "json", "mermaid"] as const) {
+      register(`cInsight.${direction}.export${capitalize(format)}`, () =>
+        includeHierarchy.export(direction, format),
       );
     }
   }

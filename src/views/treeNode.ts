@@ -23,6 +23,7 @@ export interface TreeNode {
   parent?: TreeNode;
   bookmarkId?: string;
   bookmarkGroup?: string;
+  includeFileUri?: vscode.Uri;
 }
 
 export class MutableTreeProvider

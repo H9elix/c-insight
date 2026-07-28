@@ -52,3 +52,15 @@ Version 0.11.0 added clangd-backed Supertypes and Subtypes trees, bounded lazy
 expansion, search, and export. Exact cross-session expansion restoration is
 deferred until real-world usage justifies adding Type Hierarchy to the unified
 workspace snapshot.
+
+## Include hierarchy
+
+Version 0.11.2 added compile-command-aware Includes and an on-demand reverse
+Included By index, with lazy expansion, bounded search/export, classification,
+and cycle/duplicate handling. Exact compiler builtin include-path discovery,
+conditional-preprocessor evaluation, and cross-session tree restoration remain
+deferred.
+
+The next relationship-navigation iteration should consolidate common
+interaction patterns across Call, Type, and Include Hierarchy before a larger
+graph view is considered.

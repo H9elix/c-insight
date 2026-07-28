@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.2
+
+- Added Includes and Included By views for C/C++ files.
+- Resolves includes using source-relative, compilation-database
+  `-iquote`/`-I`/`-isystem`, workspace, and common system paths.
+- Builds the reverse Included By workspace index only when first needed, then
+  updates it as files change.
+- Added lazy bounded expansion, cycle/duplicate detection, loaded-node search,
+  cancellation, classification, and Text/JSON/Mermaid export.
+- Integrated include nodes with Code Preview, editor navigation, and
+  bookmarks.
+
 ## 0.11.1
 
 - Added independent automatic-query scheduling for Context, Code Preview,

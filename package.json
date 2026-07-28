@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -38,7 +38,9 @@
     "onView:cInsight.bookmarks",
     "onView:cInsight.workspaceSymbols",
     "onView:cInsight.supertypes",
-    "onView:cInsight.subtypes"
+    "onView:cInsight.subtypes",
+    "onView:cInsight.includes",
+    "onView:cInsight.includedBy"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -426,6 +428,65 @@
       {
         "command": "cInsight.subtypes.exportMermaid",
         "title": "C Insight: Export Subtypes as Mermaid"
+      },
+      {
+        "command": "cInsight.includeHierarchy.showIncludes",
+        "title": "C Insight: Show Includes",
+        "icon": "$(references)"
+      },
+      {
+        "command": "cInsight.includeHierarchy.showIncludedBy",
+        "title": "C Insight: Show Included By",
+        "icon": "$(references)"
+      },
+      {
+        "command": "cInsight.includes.expandToDepth",
+        "title": "C Insight: Expand Includes to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.includedBy.expandToDepth",
+        "title": "C Insight: Expand Included By to Depth",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "cInsight.includeHierarchy.stopExpansion",
+        "title": "C Insight: Stop Include Hierarchy Expansion",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "cInsight.includes.search",
+        "title": "C Insight: Search Loaded Includes",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.includedBy.search",
+        "title": "C Insight: Search Loaded Included By",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.includes.exportText",
+        "title": "C Insight: Export Includes as Text"
+      },
+      {
+        "command": "cInsight.includes.exportJson",
+        "title": "C Insight: Export Includes as JSON"
+      },
+      {
+        "command": "cInsight.includes.exportMermaid",
+        "title": "C Insight: Export Includes as Mermaid"
+      },
+      {
+        "command": "cInsight.includedBy.exportText",
+        "title": "C Insight: Export Included By as Text"
+      },
+      {
+        "command": "cInsight.includedBy.exportJson",
+        "title": "C Insight: Export Included By as JSON"
+      },
+      {
+        "command": "cInsight.includedBy.exportMermaid",
+        "title": "C Insight: Export Included By as Mermaid"
       }
     ],
     "keybindings": [
@@ -471,6 +532,16 @@
           "command": "cInsight.typeHierarchy.showSubtypes",
           "when": "resourceLangId == cpp || resourceLangId == objective-cpp",
           "group": "navigation@6"
+        },
+        {
+          "command": "cInsight.includeHierarchy.showIncludes",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@7"
+        },
+        {
+          "command": "cInsight.includeHierarchy.showIncludedBy",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@8"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",
@@ -713,12 +784,67 @@
           "command": "cInsight.subtypes.exportMermaid",
           "when": "view == cInsight.subtypes",
           "group": "cInsight@3"
+        },
+        {
+          "command": "cInsight.includes.expandToDepth",
+          "when": "view == cInsight.includes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.includes.search",
+          "when": "view == cInsight.includes",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.includedBy.expandToDepth",
+          "when": "view == cInsight.includedBy",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.includedBy.search",
+          "when": "view == cInsight.includedBy",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cInsight.includeHierarchy.stopExpansion",
+          "when": "view == cInsight.includes || view == cInsight.includedBy",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.includes.exportText",
+          "when": "view == cInsight.includes",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.includes.exportJson",
+          "when": "view == cInsight.includes",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.includes.exportMermaid",
+          "when": "view == cInsight.includes",
+          "group": "cInsight@3"
+        },
+        {
+          "command": "cInsight.includedBy.exportText",
+          "when": "view == cInsight.includedBy",
+          "group": "cInsight@1"
+        },
+        {
+          "command": "cInsight.includedBy.exportJson",
+          "when": "view == cInsight.includedBy",
+          "group": "cInsight@2"
+        },
+        {
+          "command": "cInsight.includedBy.exportMermaid",
+          "when": "view == cInsight.includedBy",
+          "group": "cInsight@3"
         }
       ],
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation || viewItem == unresolvedIncludeLocation",
           "group": "navigation@1"
         },
         {
@@ -728,7 +854,7 @@
         },
         {
           "command": "cInsight.bookmarks.add",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation",
           "group": "cInsight@1"
         },
         {
@@ -804,6 +930,14 @@
           "name": "Subtypes"
         },
         {
+          "id": "cInsight.includes",
+          "name": "Includes"
+        },
+        {
+          "id": "cInsight.includedBy",
+          "name": "Included By"
+        },
+        {
           "id": "cInsight.history",
           "name": "Navigation History"
         },
@@ -837,6 +971,14 @@
       {
         "view": "cInsight.workspaceSymbols",
         "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
+      },
+      {
+        "view": "cInsight.includes",
+        "contents": "Place the cursor in a C/C++ file, then [show its include hierarchy](command:cInsight.includeHierarchy.showIncludes)."
+      },
+      {
+        "view": "cInsight.includedBy",
+        "contents": "Place the cursor in a C/C++ file, then [find files that include it](command:cInsight.includeHierarchy.showIncludedBy)."
       }
     ],
     "configuration": {
@@ -1009,6 +1151,39 @@
           "minimum": 100,
           "maximum": 50000,
           "description": "Maximum number of type hierarchy nodes loaded for the current root."
+        },
+        "cInsight.includeHierarchy.defaultDepth": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Include hierarchy depth loaded automatically for a new root. Zero keeps roots collapsed."
+        },
+        "cInsight.includeHierarchy.maximumDepth": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum depth allowed for include hierarchy expansion."
+        },
+        "cInsight.includeHierarchy.maximumNodes": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum number of include hierarchy nodes loaded for the current root."
+        },
+        "cInsight.includeHierarchy.includeSystemHeaders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Resolve and expand system headers in include hierarchies. Disabled by default to avoid very large trees."
+        },
+        "cInsight.includeHierarchy.workspaceFileLimit": {
+          "type": "number",
+          "default": 20000,
+          "minimum": 100,
+          "maximum": 200000,
+          "description": "Maximum workspace source/header files scanned when building the on-demand Included By index."
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",

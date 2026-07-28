@@ -53,8 +53,14 @@ export class BookmarkExplorer implements vscode.Disposable {
     if (!node?.location) {
       return;
     }
+    const location = node.includeFileUri
+      ? {
+          uri: node.includeFileUri,
+          range: new vscode.Range(0, 0, 0, 0),
+        }
+      : node.location;
     await this.addLocation(
-      node.location,
+      location,
       node.previewTitle ?? node.label,
       node.previewMode ?? "reference",
     );
