@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -550,6 +550,16 @@
         }
       ],
       "view/title": [
+        {
+          "command": "cInsight.includeHierarchy.showIncludes",
+          "when": "view == cInsight.includes",
+          "group": "navigation@0"
+        },
+        {
+          "command": "cInsight.includeHierarchy.showIncludedBy",
+          "when": "view == cInsight.includedBy",
+          "group": "navigation@0"
+        },
         {
           "command": "cInsight.pinContext",
           "when": "view == cInsight.context && !cInsight.pinned",

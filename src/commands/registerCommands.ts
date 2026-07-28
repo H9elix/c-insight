@@ -3,7 +3,10 @@ import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
 import { ClangdManager } from "../clangd/clangdManager";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
-import { readConfiguration } from "../configuration/configuration";
+import {
+  isCppDocument,
+  readConfiguration,
+} from "../configuration/configuration";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
@@ -417,9 +420,17 @@ export function registerCommands(
     direction: IncludeHierarchyDirection,
   ): Promise<void> => {
     const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      await includeHierarchy.show(direction, editor.document.uri);
+    if (
+      !editor ||
+      editor.document.uri.scheme !== "file" ||
+      !isCppDocument(editor.document)
+    ) {
+      void vscode.window.showWarningMessage(
+        "C Insight: Open and activate a local C/C++ source or header file first.",
+      );
+      return;
     }
+    await includeHierarchy.show(direction, editor.document.uri);
   };
   register("cInsight.includeHierarchy.showIncludes", () =>
     showIncludeHierarchy("includes"),

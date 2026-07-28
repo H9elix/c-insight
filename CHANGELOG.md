@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.3
+
+- Added always-visible Show Includes and Show Included By view-title buttons.
+- Made each empty-state prompt directly execute its corresponding query.
+- Reports a clear warning when no local C/C++ file is active.
+
 ## 0.11.2
 
 - Added Includes and Included By views for C/C++ files.
