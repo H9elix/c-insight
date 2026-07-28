@@ -15,6 +15,7 @@ import {
   WorkspaceSessionSnapshot,
 } from "./session/workspaceSession";
 import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
+import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExplorer";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
@@ -38,12 +39,14 @@ export async function activate(
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
   const typeHierarchy = new TypeHierarchyExplorer(analysis);
+  const includeHierarchy = new IncludeHierarchyExplorer();
   const views = new ViewRegistry(
     analysis,
     navigationHistory,
     bookmarks,
     symbolSearch,
     typeHierarchy,
+    includeHierarchy,
   );
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
@@ -151,6 +154,7 @@ export async function activate(
       void (async () => {
         const wasActive = projectDiagnostics.usesCompilationDatabase(uri);
         projectDiagnostics.invalidateCompilationDatabase();
+        includeHierarchy.invalidate();
         await projectDiagnostics.refresh();
         const isActive = projectDiagnostics.usesCompilationDatabase(uri);
         if (!wasActive && !isActive) {
@@ -187,6 +191,7 @@ export async function activate(
     bookmarks,
     symbolSearch,
     typeHierarchy,
+    includeHierarchy,
     workspaceSession,
     controller,
     projectDiagnostics,
@@ -205,6 +210,7 @@ export async function activate(
     bookmarks,
     symbolSearch,
     typeHierarchy,
+    includeHierarchy,
     workspaceSession,
     () => restoreSnapshot(),
   );
@@ -215,6 +221,7 @@ export async function activate(
         views.markResultsStale("clangd restarted");
         views.invalidateCallHierarchy();
         typeHierarchy.invalidate();
+        includeHierarchy.invalidate();
       }
     }),
     manager.onDidChangeIndexProgress((progress) => {
@@ -262,6 +269,7 @@ export async function activate(
     ),
     vscode.workspace.onDidChangeTextDocument((event) => {
       bookmarks.handleDocumentChange(event.document);
+      includeHierarchy.handleDocumentChange(event.document);
       if (isCppDocument(event.document)) {
         typeHierarchy.invalidate();
       }
@@ -291,6 +299,9 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.typeHierarchy")) {
         typeHierarchy.invalidate();
       }
+      if (event.affectsConfiguration("cInsight.includeHierarchy")) {
+        includeHierarchy.invalidate();
+      }
       if (event.affectsConfiguration("cInsight.history")) {
         navigationHistory.configurationChanged();
       }
@@ -315,6 +326,7 @@ export async function activate(
       ) {
         views.markResultsStale("the analysis configuration changed");
         projectDiagnostics.invalidateCompilationDatabase();
+        includeHierarchy.invalidate();
         await manager?.restart().catch((error: unknown) => {
           output.appendLine(`Configuration restart failed: ${String(error)}`);
         });

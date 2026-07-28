@@ -14,6 +14,8 @@ dedicated activity-bar container.
   caller, callee definition, and call-site snippets
 - Incoming and outgoing call trees with lazy loading and recursion detection
 - C++ supertype and subtype trees with lazy expansion, search, and export
+- Forward Includes and reverse Included By trees with compile-command-aware
+  header resolution, lazy expansion, search, cycle detection, and export
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
@@ -59,6 +61,9 @@ dedicated activity-bar container.
 10. In C++, place the cursor on a class or struct and choose Show Supertypes or
     Show Subtypes. Select a type to preview it; use the view menu for depth
     expansion and Text, JSON, or Mermaid export.
+11. In a C/C++ file, choose Show Includes to follow its include directives, or
+    Show Included By to find workspace files that include it. Included By
+    builds its reverse workspace index only when first expanded.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has
@@ -180,6 +185,20 @@ member-function-pointer calls are labelled `possible indirect call`; clangd
 cannot provide targets for unresolved indirect calls, so C Insight does not
 invent missing nodes.
 
+### Include Hierarchy
+
+Includes resolves each `#include` from the source directory and the
+`-iquote`, `-I`, and `-isystem` paths in `compile_commands.json`. Included By
+scans workspace C/C++ files on demand and then maintains that reverse index as
+files change. Both views load deeper relations only when expanded, detect
+cycles and duplicates, and support loaded-node search, bounded depth
+expansion, cancellation, and Text, JSON, or Mermaid export.
+
+Single-clicking an include row previews its directive. **Open Location** opens
+the resolved included file. Unresolved directives remain visible with a
+reason. System headers are hidden by default and can be enabled with
+`cInsight.includeHierarchy.includeSystemHeaders`.
+
 ## Requirements
 
 - VS Code 1.95 or newer
@@ -236,6 +255,14 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.callHierarchy.pathSearchMaximumDepth`
 - `cInsight.callHierarchy.pathSearchMaximumPaths`
 - `cInsight.callHierarchy.pathSearchMaximumNodes`
+- `cInsight.typeHierarchy.defaultDepth`
+- `cInsight.typeHierarchy.maximumDepth`
+- `cInsight.typeHierarchy.maximumNodes`
+- `cInsight.includeHierarchy.defaultDepth`
+- `cInsight.includeHierarchy.maximumDepth`
+- `cInsight.includeHierarchy.maximumNodes`
+- `cInsight.includeHierarchy.includeSystemHeaders`
+- `cInsight.includeHierarchy.workspaceFileLimit`
 - `cInsight.exclude`
 
 ## Known limitations

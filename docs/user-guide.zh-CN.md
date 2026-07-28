@@ -1,4 +1,4 @@
-# C Insight 0.11.1 使用手册
+# C Insight 0.11.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -540,6 +540,42 @@ Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一�
 重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show
 Supertypes/Subtypes。普通 C 代码没有类继承关系，通常不会返回结果。
 
+### 4.13 Includes 与 Included By
+
+这两个窗口显示文件级包含关系：
+
+- Includes：当前文件直接或间接包含了哪些文件。
+- Included By：工作区内哪些文件直接或间接包含当前文件。
+
+把当前编辑器置于 C/C++ 源文件或头文件，通过编辑器右键菜单或命令面板执行
+**Show Includes** 或 **Show Included By**。两个窗口共用同一个根文件，但各自
+维护已经展开的树。
+
+Includes 只在展开节点时读取文件，解析 `#include "..."` 和
+`#include <...>`。解析顺序综合当前文件目录、`compile_commands.json` 中的
+`-iquote`、`-I`、`-isystem`、工作区根目录及常见系统目录。无法解析的 include
+仍以 `unresolved` 显示，并在悬停中说明搜索失败。
+
+Included By 需要反向查找，因此首次展开时才扫描工作区 C/C++ 文件并建立内存
+索引；仅打开或折叠窗口、未执行查询时不会扫描。索引建立后，文件创建、修改和
+删除会增量更新；编译数据库或相关配置变化会使结果 stale。
+
+窗口行为：
+
+- 展开节点：懒加载下一层，不预先加载整棵树。
+- 单击节点：在 Code Preview 显示产生关系的 `#include` 源码行。
+- 右键 Open Location：打开被包含文件；未解析节点打开 include 所在源码行。
+- 右键 Add Bookmark：保存已解析文件。
+- Search Loaded Includes/Included By：只搜索已加载节点。
+- Expand to Depth：在限制范围内批量展开，可用 Stop Expansion 取消。
+- `...` 菜单可导出 Text、JSON 或 Mermaid；Mermaid 箭头始终表示
+  “包含者 → 被包含者”。
+
+节点会标记 workspace header、workspace source、system、external、
+unresolved，并检测 cycle 和 duplicate。系统头默认不显示，以避免树过大；
+可通过配置启用。条件编译分支按文本解析，C Insight 不运行预处理器，因此结果
+代表源码中可见的 include 指令，不保证某个具体构建配置一定启用。
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -749,6 +785,19 @@ C Insight 默认管理：
 
 修改上述配置会清除类型层级请求缓存，并将当前结果标记为 stale。
 
+### 9.11 Include Hierarchy
+
+| 配置 | 类型 | 默认值 | 范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.includeHierarchy.defaultDepth` | number | `0` | 0–10 | 新文件根自动展开层数；0 保持折叠 |
+| `cInsight.includeHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
+| `cInsight.includeHierarchy.maximumNodes` | number | `5000` | 100–50000 | 当前两棵包含树允许加载的节点上限 |
+| `cInsight.includeHierarchy.includeSystemHeaders` | boolean | `false` | `true` / `false` | 是否显示并继续展开系统头文件 |
+| `cInsight.includeHierarchy.workspaceFileLimit` | number | `20000` | 100–200000 | Included By 首次建索引最多扫描的源码/头文件数 |
+
+修改这些配置会清除 include 解析及反向索引缓存，并将当前结果标记为 stale。
+`workspaceFileLimit` 是安全上限；达到上限时 Included By 结果可能不完整。
+
 ## 10. 配置示例
 
 ### 常规 CMake 工程
@@ -840,3 +889,5 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 - 静态调用树无法完整解析运行时多态、所有函数指针、宏生成调用和动态分派。
 - References Read/Write 分类对复杂指针副作用、模板和重载运算符保持保守。
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。
+- Include Hierarchy 不执行编译器或预处理器；编译器隐式平台头路径、宏生成的
+  include 和条件编译的真实启用状态可能无法完整还原。

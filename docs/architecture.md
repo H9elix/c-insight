@@ -48,6 +48,14 @@ Opaque `TypeHierarchyItem.data` values remain attached to each lazy node.
 Supertypes and Subtypes have separate request caches and duplicate sets, while
 both share one cancellation source and global node budget for the active root.
 
+Include Hierarchy is local and does not require a non-standard clangd method.
+The forward tree parses directives lazily and resolves them with the active
+compilation database's `-iquote`, `-I`, and `-isystem` paths. The reverse tree
+builds a bounded workspace index only on first expansion, then incrementally
+updates it for file changes. Both directions share compile-database
+invalidation, cycle/duplicate protection, and export semantics in which edges
+always point from the including file to the included file.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.

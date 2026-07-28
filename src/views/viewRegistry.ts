@@ -19,6 +19,7 @@ import type {
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import type { NavigationVisibility } from "../context/navigationDemand";
+import { IncludeHierarchyExplorer } from "../includeHierarchy/includeHierarchyExplorer";
 import {
   CallNode,
   LocationResult,
@@ -105,6 +106,7 @@ export class ViewRegistry implements vscode.Disposable {
     bookmarks: BookmarkExplorer,
     symbolSearch: SymbolSearchExplorer,
     typeHierarchy: TypeHierarchyExplorer,
+    includeHierarchy: IncludeHierarchyExplorer,
   ) {
     const cacheSize = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
@@ -127,6 +129,8 @@ export class ViewRegistry implements vscode.Disposable {
       ["cInsight.workspaceSymbols", symbolSearch.provider],
       ["cInsight.supertypes", typeHierarchy.supertypes],
       ["cInsight.subtypes", typeHierarchy.subtypes],
+      ["cInsight.includes", includeHierarchy.includes],
+      ["cInsight.includedBy", includeHierarchy.includedBy],
       ["cInsight.symbols", this.symbols],
       ["cInsight.status", this.status],
     ];
@@ -144,6 +148,12 @@ export class ViewRegistry implements vscode.Disposable {
       }
       if (id === "cInsight.subtypes") {
         typeHierarchy.attachTreeView("subtypes", treeView);
+      }
+      if (id === "cInsight.includes") {
+        includeHierarchy.attachTreeView("includes", treeView);
+      }
+      if (id === "cInsight.includedBy") {
+        includeHierarchy.attachTreeView("includedBy", treeView);
       }
       this.disposables.push(
         treeView,
@@ -166,7 +176,9 @@ export class ViewRegistry implements vscode.Disposable {
         id !== "cInsight.bookmarks" &&
         id !== "cInsight.workspaceSymbols" &&
         id !== "cInsight.supertypes" &&
-        id !== "cInsight.subtypes"
+        id !== "cInsight.subtypes" &&
+        id !== "cInsight.includes" &&
+        id !== "cInsight.includedBy"
       ) {
         this.disposables.push(provider);
       }
