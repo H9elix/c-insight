@@ -194,6 +194,11 @@ files change. Both views load deeper relations only when expanded, detect
 cycles and duplicates, and support loaded-node search, bounded depth
 expansion, cancellation, and Text, JSON, or Mermaid export.
 
+The two views keep independent roots, loaded trees, node budgets, stale state,
+and expansion cancellation. They share only resolution caches and the reverse
+workspace index, so showing one direction never refreshes or automatically
+expands the other.
+
 Single-clicking an include row previews its directive. **Open Location** opens
 the resolved included file. Unresolved directives remain visible with a
 reason. System headers are hidden by default and can be enabled with

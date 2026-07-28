@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.4
+
+- Made Show Includes and Show Included By update only their corresponding
+  views.
+- Separated roots, node budgets, duplicate tracking, stale state, automatic
+  expansion, and cancellation between the two directions.
+- Kept the resolver and reverse workspace index shared so repeated reverse
+  queries can reuse prior scanning without coupling view state.
+
 ## 0.11.3
 
 - Added always-visible Show Includes and Show Included By view-title buttons.
