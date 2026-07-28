@@ -80,3 +80,11 @@ an unexpected reverse-index scan.
 Reconsider this work only if real usage shows that repeatedly rebuilding these
 trees is disruptive, or after the planned relationship graph defines a common
 session model that can restore all hierarchy types consistently.
+
+## Relationship Graph 0.12.0
+
+The implementation plan is documented in
+`docs/relationship-graph-plan.zh-CN.md`. The first release will use an explicit,
+lazy, bounded editor-area graph for Call, Type, and Include relationships.
+References edges, automatic cursor following, and workspace restoration are
+out of scope for 0.12.0.
