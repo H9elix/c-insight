@@ -1,4 +1,4 @@
-# C Insight 0.11.6 使用手册
+# C Insight 0.11.7 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -97,6 +97,11 @@ Callers、Callees、Supertypes、Subtypes、Includes 和 Included By 的标题�
 显示该关系特有的操作。Text、JSON、Mermaid 导出统一位于 `...` 溢出菜单。
 某个窗口不支持的关系特有功能不会显示，例如只有 Callers/Callees 提供 Find
 Path。
+
+批量展开被取消、达到 `maximumDepth` 或达到 `maximumNodes` 后，对应窗口顶部
+会显示状态行，并指出需要调整的配置。取消不会清除已经加载的节点。位于绝对
+深度上限的终端节点会附加 `max depth`，用于区别“没有下级关系”和“因安全上限
+不再查询”。
 
 ### 4.1 Context
 

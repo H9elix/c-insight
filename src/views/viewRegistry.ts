@@ -32,6 +32,10 @@ import {
   recursionKind,
 } from "../utils/callHierarchy";
 import { findCallPaths } from "../utils/callPath";
+import {
+  hierarchyExpansionMessage,
+  hierarchyExpansionStopReason,
+} from "../utils/hierarchyExpansion";
 import { LruPromiseCache } from "../utils/lruPromiseCache";
 import {
   escapeMermaidLabel,
@@ -870,10 +874,16 @@ export class ViewRegistry implements vscode.Disposable {
         void vscode.window.showInformationMessage(
           `C Insight: Loaded ${this.callNodesLoaded} call nodes; cache ${cache.hits} hits / ${cache.misses} misses.`,
         );
+        this.publishCallExpansionStatus(direction, depth, false);
+      } else if (announce) {
+        this.publishCallExpansionStatus(direction, depth, true);
       }
     } catch (error) {
       if (!cancellation.token.isCancellationRequested) {
         throw error;
+      }
+      if (announce) {
+        this.publishCallExpansionStatus(direction, depth, true);
       }
     } finally {
       if (this.callExpansion === cancellation) {
@@ -881,6 +891,46 @@ export class ViewRegistry implements vscode.Disposable {
       }
       cancellation.dispose();
     }
+  }
+
+  private publishCallExpansionStatus(
+    direction: "incoming" | "outgoing",
+    requestedDepth: number,
+    cancelled: boolean,
+  ): void {
+    const configuration = vscode.workspace.getConfiguration(
+      "cInsight.callHierarchy",
+    );
+    const maximumDepth = configuration.get<number>("maximumDepth", 10);
+    const maximumNodes = this.maximumCallNodes();
+    const reason = hierarchyExpansionStopReason({
+      cancelled,
+      loadedNodes: this.callNodesLoaded,
+      maximumNodes,
+      requestedDepth,
+      maximumDepth,
+    });
+    if (!reason) {
+      return;
+    }
+    const message = hierarchyExpansionMessage(
+      reason,
+      maximumDepth,
+      maximumNodes,
+    );
+    const provider =
+      direction === "incoming" ? this.callers : this.callees;
+    provider.setRoots([
+      {
+        label: message.label,
+        description: message.description,
+        icon: new vscode.ThemeIcon("info"),
+        contextValue: "hierarchyExpansionStatus",
+      },
+      ...provider
+        .getRoots()
+        .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
+    ]);
   }
 
   private async expandDirection(
@@ -969,7 +1019,8 @@ export class ViewRegistry implements vscode.Disposable {
       .filter(
         (node) =>
           node.contextValue !== "callHierarchyPinStatus" &&
-          node.contextValue !== "analysisStaleStatus",
+          node.contextValue !== "analysisStaleStatus" &&
+          node.contextValue !== "hierarchyExpansionStatus",
       );
   }
 
@@ -1012,13 +1063,15 @@ export class ViewRegistry implements vscode.Disposable {
     return {
       id: `${direction}:${ancestors.join(">")}:${node.key}`,
       label: node.raw.name,
-      description: recursive
-        ? recursion === "direct"
-          ? "direct recursion"
-          : "indirect recursion"
-        : duplicate
-          ? `duplicate · ${node.raw.detail || vscode.workspace.asRelativePath(location.uri)}`
-          : `${node.raw.detail || vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`,
+      description: `${
+        recursive
+          ? recursion === "direct"
+            ? "direct recursion"
+            : "indirect recursion"
+          : duplicate
+            ? `duplicate · ${node.raw.detail || vscode.workspace.asRelativePath(location.uri)}`
+            : `${node.raw.detail || vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`
+      }${atDepthLimit ? " · max depth" : ""}`,
       tooltip: node.raw.detail,
       location,
       callKey: node.key,

@@ -5,6 +5,10 @@ import {
 } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
 import {
+  hierarchyExpansionMessage,
+  hierarchyExpansionStopReason,
+} from "../utils/hierarchyExpansion";
+import {
   isTypeHierarchyRecursion,
   typeHierarchyKey,
   typeHierarchyMermaidEdge,
@@ -130,7 +134,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       },
     });
     if (value !== undefined) {
-      await this.expand(direction, Number(value));
+      await this.expand(direction, Number(value), true);
     }
   }
 
@@ -227,14 +231,15 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     const uri = vscode.Uri.parse(item.uri);
     const range = this.analysis.toVsRange(item.selectionRange);
     this.loadedNodes += 1;
+    const atDepthLimit = depth >= this.maximumDepth;
+    const detail = duplicate
+      ? `duplicate · ${item.detail ?? vscode.workspace.asRelativePath(uri)}`
+      : item.detail ??
+        `${vscode.workspace.asRelativePath(uri)}:${range.start.line + 1}`;
     return {
       id: `type:${direction}:${ancestors.join(">")}:${key}`,
       label: item.name,
-      description:
-        duplicate
-          ? `duplicate · ${item.detail ?? vscode.workspace.asRelativePath(uri)}`
-          : item.detail ??
-            `${vscode.workspace.asRelativePath(uri)}:${range.start.line + 1}`,
+      description: atDepthLimit ? `${detail} · max depth` : detail,
       tooltip: `${item.detail ?? typeKindLabel(item.kind)}\n${uri.fsPath}:${range.start.line + 1}`,
       icon: new vscode.ThemeIcon(typeIcon(item.kind)),
       location: { uri, range },
@@ -242,11 +247,11 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       previewTitle: item.name,
       contextValue: "typeHierarchyLocation",
       collapsibleState:
-        recursive || duplicate || depth >= this.maximumDepth
+        recursive || duplicate || atDepthLimit
           ? vscode.TreeItemCollapsibleState.None
           : vscode.TreeItemCollapsibleState.Collapsed,
       loadChildren:
-        recursive || duplicate || depth >= this.maximumDepth
+        recursive || duplicate || atDepthLimit
           ? undefined
           : async () => {
               if (this.loadedNodes >= this.maximumNodes) {
@@ -288,6 +293,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   private async expand(
     direction: TypeHierarchyDirection,
     depth: number,
+    announce = false,
   ): Promise<void> {
     this.stopExpansion();
     const cancellation = new vscode.CancellationTokenSource();
@@ -319,9 +325,15 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         }
       };
       await visit(this.dataRoots(direction), 0);
+      if (announce) {
+        this.publishExpansionStatus(direction, depth, false);
+      }
     } catch (error) {
       if (!cancellation.token.isCancellationRequested) {
         throw error;
+      }
+      if (announce) {
+        this.publishExpansionStatus(direction, depth, true);
       }
     } finally {
       if (this.cancellation === cancellation) {
@@ -329,6 +341,35 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       }
       cancellation.dispose();
     }
+  }
+
+  private publishExpansionStatus(
+    direction: TypeHierarchyDirection,
+    requestedDepth: number,
+    cancelled: boolean,
+  ): void {
+    const reason = hierarchyExpansionStopReason({
+      cancelled,
+      loadedNodes: this.loadedNodes,
+      maximumNodes: this.maximumNodes,
+      requestedDepth,
+      maximumDepth: this.maximumDepth,
+    });
+    if (!reason) {
+      return;
+    }
+    const message = hierarchyExpansionMessage(
+      reason,
+      this.maximumDepth,
+      this.maximumNodes,
+    );
+    const provider = this.provider(direction);
+    provider.setRoots([
+      statusNode(message.label, message.description),
+      ...provider
+        .getRoots()
+        .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
+    ]);
   }
 
   private markStale(): void {
@@ -433,6 +474,15 @@ function limitNode(): TreeNode {
   return {
     label: "Type hierarchy node limit reached",
     icon: new vscode.ThemeIcon("warning"),
+  };
+}
+
+function statusNode(label: string, description: string): TreeNode {
+  return {
+    label,
+    description,
+    icon: new vscode.ThemeIcon("info"),
+    contextValue: "hierarchyExpansionStatus",
   };
 }
 
