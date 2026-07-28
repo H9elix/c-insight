@@ -194,6 +194,10 @@ files change. Both views load deeper relations only when expanded, detect
 cycles and duplicates, and support loaded-node search, bounded depth
 expansion, cancellation, and Text, JSON, or Mermaid export.
 
+The first Included By expansion shows cancellable file-count progress. If
+workspace discovery reaches `workspaceFileLimit`, C Insight warns that reverse
+results may be incomplete. A completed index is reused without rescanning.
+
 The two views keep independent roots, loaded trees, node budgets, stale state,
 and expansion cancellation. They share only resolution caches and the reverse
 workspace index, so showing one direction never refreshes or automatically

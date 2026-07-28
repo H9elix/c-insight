@@ -37,6 +37,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   > = {};
   private readonly loadedNodes = { includes: 0, includedBy: 0 };
   private readonly stale = { includes: false, includedBy: false };
+  private reportedTruncatedIndex = false;
 
   constructor() {
     this.publishEmpty();
@@ -149,6 +150,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     this.stopExpansion();
     this.resolver.invalidate();
     this.reverse.invalidate();
+    this.reportedTruncatedIndex = false;
     this.markStale();
   }
 
@@ -295,10 +297,19 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       return [limitNode()];
     }
     try {
-      const incoming = await this.reverse.incoming(
-        uri,
-        this.cancellation.includedBy?.token,
-      );
+      const incoming = this.reverse.isBuilt
+        ? await this.reverse.incoming(uri)
+        : await this.buildReverseIndex(uri);
+      if (
+        this.reverse.isBuilt &&
+        this.reverse.wasTruncated &&
+        !this.reportedTruncatedIndex
+      ) {
+        this.reportedTruncatedIndex = true;
+        void vscode.window.showWarningMessage(
+          `C Insight: Included By scanned the configured limit of ${this.workspaceFileLimit} files. Results may be incomplete.`,
+        );
+      }
       return incoming.map((edge) =>
         this.fileNode(
           edge.source,
@@ -312,6 +323,45 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     } catch (error) {
       return [errorNode(error)];
     }
+  }
+
+  private async buildReverseIndex(
+    uri: vscode.Uri,
+  ): Promise<ReverseIncludeEdge[]> {
+    const expansionToken = this.cancellation.includedBy?.token;
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "C Insight: Building Included By index",
+        cancellable: true,
+      },
+      async (progress, progressToken) => {
+        const linked = new vscode.CancellationTokenSource();
+        const subscriptions = [
+          expansionToken?.onCancellationRequested(() => linked.cancel()),
+          progressToken.onCancellationRequested(() => linked.cancel()),
+        ].filter((item): item is vscode.Disposable => item !== undefined);
+        let percentage = 0;
+        try {
+          return await this.reverse.incoming(
+            uri,
+            linked.token,
+            (completed, total) => {
+              const next =
+                total === 0 ? 100 : Math.floor((completed / total) * 100);
+              progress.report({
+                increment: Math.max(0, next - percentage),
+                message: `${completed}/${total} files`,
+              });
+              percentage = next;
+            },
+          );
+        } finally {
+          subscriptions.forEach((item) => item.dispose());
+          linked.dispose();
+        }
+      },
+    );
   }
 
   private async expand(
@@ -427,6 +477,12 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     return vscode.workspace
       .getConfiguration("cInsight.includeHierarchy")
       .get<boolean>("includeSystemHeaders", false);
+  }
+
+  private get workspaceFileLimit(): number {
+    return vscode.workspace
+      .getConfiguration("cInsight.includeHierarchy")
+      .get<number>("workspaceFileLimit", 20_000);
   }
 }
 

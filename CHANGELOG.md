@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.5
+
+- Added a cancellable progress notification while Included By builds its
+  reverse workspace index for the first time.
+- Reports indexed and total file counts during the scan.
+- Detects when `workspaceFileLimit` truncates discovery and warns that Included
+  By results may be incomplete.
+- Reuses a completed index without displaying progress or rescanning.
+
 ## 0.11.4
 
 - Made Show Includes and Show Included By update only their corresponding
