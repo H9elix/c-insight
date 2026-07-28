@@ -35,6 +35,11 @@ dedicated activity-bar container.
 
 ## Usage
 
+All hierarchy views use the same title-action order: Show, Expand to Depth,
+Search Loaded, Stop Expansion, then relationship-specific actions. Text, JSON,
+and Mermaid exports are consistently available from each hierarchy view's
+overflow menu.
+
 1. Open a C or C++ workspace, then select the C Insight icon in the Activity
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow

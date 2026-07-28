@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.6
+
+- Standardized hierarchy view-title actions as Show, Expand to Depth, Search
+  Loaded, Stop Expansion, followed by relationship-specific actions.
+- Added always-visible Show and Stop buttons to Callers/Callees and
+  Supertypes/Subtypes where they were previously missing.
+- Added Callers/Callees Text, JSON, and Mermaid exports to the same overflow
+  menu layout used by Type and Include Hierarchy.
+- Standardized hierarchy export menu grouping and added the missing Call
+  Hierarchy stop icon.
+
 ## 0.11.5
 
 - Added a cancellable progress notification while Included By builds its
