@@ -36,6 +36,7 @@ import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
+import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import { LruPromiseCache } from "../utils/lruPromiseCache";
 import {
   escapeMermaidLabel,
@@ -68,13 +69,12 @@ export class ViewRegistry implements vscode.Disposable {
   private readonly outgoingCache: LruPromiseCache<
     CallHierarchyOutgoingCall[]
   >;
-  private readonly callSeen = {
-    incoming: new Set<string>(),
-    outgoing: new Set<string>(),
+  private readonly callTreeState = {
+    incoming: new HierarchyTreeState(),
+    outgoing: new HierarchyTreeState(),
   };
   private callRootSignature = "";
   private callExpansion?: vscode.CancellationTokenSource;
-  private callNodesLoaded = 0;
   private referencesPinned = false;
   private callHierarchyPinned = false;
   private callHierarchyPinnedSymbol?: string;
@@ -364,9 +364,8 @@ export class ViewRegistry implements vscode.Disposable {
         this.callHierarchyPinnedSymbol = this.currentSymbolName;
         this.callHierarchyPinnedStale = false;
       }
-      this.callSeen.incoming.clear();
-      this.callSeen.outgoing.clear();
-      this.callNodesLoaded = 0;
+      this.callTreeState.incoming.reset();
+      this.callTreeState.outgoing.reset();
       const callerRoots = context.callRoots.map((root) =>
         this.callTreeNode(root, "incoming", [], 0),
       );
@@ -872,7 +871,7 @@ export class ViewRegistry implements vscode.Disposable {
             ? this.incomingCache
             : this.outgoingCache;
         void vscode.window.showInformationMessage(
-          `C Insight: Loaded ${this.callNodesLoaded} call nodes; cache ${cache.hits} hits / ${cache.misses} misses.`,
+          `C Insight: Loaded ${this.callTreeState[direction].loadedNodes} ${direction === "incoming" ? "caller" : "callee"} nodes; cache ${cache.hits} hits / ${cache.misses} misses.`,
         );
         this.publishCallExpansionStatus(direction, depth, false);
       } else if (announce) {
@@ -905,7 +904,7 @@ export class ViewRegistry implements vscode.Disposable {
     const maximumNodes = this.maximumCallNodes();
     const reason = hierarchyExpansionStopReason({
       cancelled,
-      loadedNodes: this.callNodesLoaded,
+      loadedNodes: this.callTreeState[direction].loadedNodes,
       maximumNodes,
       requestedDepth,
       maximumDepth,
@@ -951,7 +950,7 @@ export class ViewRegistry implements vscode.Disposable {
       if (
         node.callKey === undefined ||
         (node.callDepth ?? 0) >= depth ||
-        this.callNodesLoaded >= this.maximumCallNodes()
+        this.callTreeState[direction].atLimit(this.maximumCallNodes())
       ) {
         continue;
       }
@@ -1053,9 +1052,10 @@ export class ViewRegistry implements vscode.Disposable {
     };
     const recursion = recursionKind(node.key, ancestors);
     const recursive = recursion !== undefined;
-    const duplicate = !recursive && this.callSeen[direction].has(node.key);
-    this.callSeen[direction].add(node.key);
-    this.callNodesLoaded += 1;
+    const { duplicate } = this.callTreeState[direction].record(
+      node.key,
+      recursive,
+    );
     const maximumDepth = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
       .get<number>("maximumDepth", 10);
@@ -1086,7 +1086,7 @@ export class ViewRegistry implements vscode.Disposable {
       loadChildren: recursive || atDepthLimit
         ? undefined
         : async () => {
-            if (this.callNodesLoaded >= this.maximumCallNodes()) {
+            if (this.callTreeState[direction].atLimit(this.maximumCallNodes())) {
               return [limitNode("Call hierarchy node limit reached")];
             }
             const lineage = [...ancestors, node.key];
@@ -1099,9 +1099,8 @@ export class ViewRegistry implements vscode.Disposable {
                     this.callExpansion?.token,
                   ),
               );
-              const remaining = Math.max(
-                0,
-                this.maximumCallNodes() - this.callNodesLoaded,
+              const remaining = this.callTreeState[direction].remaining(
+                this.maximumCallNodes(),
               );
               const children = calls.slice(0, remaining).map((call) =>
                 this.incomingNode(call, lineage, direction, depth + 1),
@@ -1122,9 +1121,8 @@ export class ViewRegistry implements vscode.Disposable {
                     this.callExpansion?.token,
                   ),
               );
-              const remaining = Math.max(
-                0,
-                this.maximumCallNodes() - this.callNodesLoaded,
+              const remaining = this.callTreeState[direction].remaining(
+                this.maximumCallNodes(),
               );
               const children = calls.slice(0, remaining).map((call) =>
                 this.outgoingNode(

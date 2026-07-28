@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.7",
+  "version": "0.11.8",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1233,7 +1233,7 @@
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum number of type hierarchy nodes loaded for the current root."
+          "description": "Maximum number of nodes loaded independently in each Supertypes or Subtypes tree."
         },
         "cInsight.includeHierarchy.defaultDepth": {
           "type": "number",
@@ -1301,7 +1301,7 @@
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum number of call hierarchy nodes created for the current root."
+          "description": "Maximum number of nodes created independently in each Callers or Callees tree."
         },
         "cInsight.callHierarchy.cacheSize": {
           "type": "number",

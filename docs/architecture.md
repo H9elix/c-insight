@@ -46,7 +46,12 @@ runs every five seconds and shutdown performs a final save.
 Type Hierarchy uses the standard prepare/supertypes/subtypes LSP requests.
 Opaque `TypeHierarchyItem.data` values remain attached to each lazy node.
 Supertypes and Subtypes have separate request caches and duplicate sets, while
-both share one cancellation source and global node budget for the active root.
+both share one cancellation source. Each direction has an independent node
+budget.
+
+Call, Type, and Include Hierarchy use one common direction-state model for
+loaded-node counts, duplicate tracking, resets, and budget calculations.
+Direction state remains isolated even where semantic request caches are shared.
 
 Include Hierarchy is local and does not require a non-standard clangd method.
 The forward tree parses directives lazily and resolves them with the active

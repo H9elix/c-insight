@@ -45,6 +45,10 @@ After bounded expansion is cancelled or reaches `maximumDepth` or
 status row naming the relevant setting. Terminal nodes at the configured depth
 boundary are labelled `max depth`.
 
+Each hierarchy direction has an independent `maximumNodes` budget: loading
+Callers does not reduce the Callees budget, and loading Supertypes does not
+reduce the Subtypes budget.
+
 1. Open a C or C++ workspace, then select the C Insight icon in the Activity
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow

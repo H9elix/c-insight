@@ -8,6 +8,7 @@ import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
+import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import {
   isTypeHierarchyRecursion,
   typeHierarchyKey,
@@ -28,13 +29,12 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     supertypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
     subtypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
   };
-  private readonly seen = {
-    supertypes: new Set<string>(),
-    subtypes: new Set<string>(),
+  private readonly treeState = {
+    supertypes: new HierarchyTreeState(),
+    subtypes: new HierarchyTreeState(),
   };
   private cancellation?: vscode.CancellationTokenSource;
   private rootName?: string;
-  private loadedNodes = 0;
   private stale = false;
 
   constructor(private readonly analysis: AnalysisService) {
@@ -187,8 +187,8 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     this.stopExpansion();
     this.caches.supertypes.clear();
     this.caches.subtypes.clear();
-    this.seen.supertypes.clear();
-    this.seen.subtypes.clear();
+    this.treeState.supertypes.clearSeen();
+    this.treeState.subtypes.clearSeen();
     if (this.rootName) {
       this.markStale();
     }
@@ -203,10 +203,10 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   private setRoots(items: TypeHierarchyItem[]): void {
     this.caches.supertypes.clear();
     this.caches.subtypes.clear();
-    this.loadedNodes = 0;
     this.stale = false;
     this.rootName = items[0]?.name;
     for (const direction of ["supertypes", "subtypes"] as const) {
+      this.treeState[direction].reset();
       this.provider(direction).setRoots(
         items.map((item) => this.node(item, direction, [], 0)),
       );
@@ -226,11 +226,9 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   ): TreeNode {
     const key = typeHierarchyKey(item);
     const recursive = isTypeHierarchyRecursion(item, ancestors);
-    const duplicate = !recursive && this.seen[direction].has(key);
-    this.seen[direction].add(key);
+    const { duplicate } = this.treeState[direction].record(key, recursive);
     const uri = vscode.Uri.parse(item.uri);
     const range = this.analysis.toVsRange(item.selectionRange);
-    this.loadedNodes += 1;
     const atDepthLimit = depth >= this.maximumDepth;
     const detail = duplicate
       ? `duplicate · ${item.detail ?? vscode.workspace.asRelativePath(uri)}`
@@ -254,14 +252,17 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         recursive || duplicate || atDepthLimit
           ? undefined
           : async () => {
-              if (this.loadedNodes >= this.maximumNodes) {
+              if (this.treeState[direction].atLimit(this.maximumNodes)) {
                 return [limitNode()];
               }
               const children = await this.children(item, direction);
               return children.length === 0
                 ? [emptyNode(direction)]
                 : children
-                    .slice(0, this.maximumNodes - this.loadedNodes)
+                    .slice(
+                      0,
+                      this.treeState[direction].remaining(this.maximumNodes),
+                    )
                     .map((child) =>
                       this.node(child, direction, [...ancestors, key], depth + 1),
                     );
@@ -303,7 +304,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         if (
           current >= depth ||
           cancellation.token.isCancellationRequested ||
-          this.loadedNodes >= this.maximumNodes
+          this.treeState[direction].atLimit(this.maximumNodes)
         ) {
           return;
         }
@@ -350,7 +351,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   ): void {
     const reason = hierarchyExpansionStopReason({
       cancelled,
-      loadedNodes: this.loadedNodes,
+      loadedNodes: this.treeState[direction].loadedNodes,
       maximumNodes: this.maximumNodes,
       requestedDepth,
       maximumDepth: this.maximumDepth,

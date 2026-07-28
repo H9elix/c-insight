@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.8
+
+- Added a shared hierarchy-tree state model for node counts, duplicate
+  detection, reset, limit checks, and remaining budgets.
+- Migrated Call, Type, and Include Hierarchy to the common state model.
+- Made `maximumNodes` apply independently to Callers and Callees.
+- Made `maximumNodes` apply independently to Supertypes and Subtypes.
+- Added unit tests proving that direction state and budgets remain isolated.
+
 ## 0.11.7
 
 - Added consistent in-tree status rows after a hierarchy batch expansion is
