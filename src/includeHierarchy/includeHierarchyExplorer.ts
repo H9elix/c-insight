@@ -15,6 +15,7 @@ import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
+import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import { typeHierarchyMermaidEdge } from "../utils/typeHierarchy";
 
 export type IncludeHierarchyDirection = "includes" | "includedBy";
@@ -28,9 +29,9 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     IncludeHierarchyDirection,
     vscode.TreeView<TreeNode>
   >();
-  private readonly seen = {
-    includes: new Set<string>(),
-    includedBy: new Set<string>(),
+  private readonly treeState = {
+    includes: new HierarchyTreeState(),
+    includedBy: new HierarchyTreeState(),
   };
   private readonly disposables: vscode.Disposable[] = [];
   private readonly cancellation: Partial<
@@ -39,7 +40,6 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   private readonly roots: Partial<
     Record<IncludeHierarchyDirection, vscode.Uri>
   > = {};
-  private readonly loadedNodes = { includes: 0, includedBy: 0 };
   private readonly stale = { includes: false, includedBy: false };
   private reportedTruncatedIndex = false;
 
@@ -72,9 +72,8 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   ): Promise<void> {
     this.stopExpansion(direction);
     this.roots[direction] = uri;
-    this.loadedNodes[direction] = 0;
+    this.treeState[direction].reset();
     this.stale[direction] = false;
-    this.seen[direction].clear();
     this.provider(direction).setRoots([
       this.fileNode(uri, direction, [], 0, undefined),
     ]);
@@ -211,9 +210,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   ): TreeNode {
     const key = uri.toString();
     const recursive = ancestors.includes(key);
-    const duplicate = !recursive && this.seen[direction].has(key);
-    this.seen[direction].add(key);
-    this.loadedNodes[direction] += 1;
+    const { duplicate } = this.treeState[direction].record(key, recursive);
     const directive = relation?.directive;
     const source =
       relation && "source" in relation
@@ -262,7 +259,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     ancestors: string[],
     depth: number,
   ): Promise<TreeNode[]> {
-    if (this.loadedNodes.includes >= this.maximumNodes) {
+    if (this.treeState.includes.atLimit(this.maximumNodes)) {
       return [limitNode()];
     }
     try {
@@ -299,7 +296,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     ancestors: string[],
     depth: number,
   ): Promise<TreeNode[]> {
-    if (this.loadedNodes.includedBy >= this.maximumNodes) {
+    if (this.treeState.includedBy.atLimit(this.maximumNodes)) {
       return [limitNode()];
     }
     try {
@@ -382,7 +379,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       if (
         current >= depth ||
         cancellation.token.isCancellationRequested ||
-        this.loadedNodes[direction] >= this.maximumNodes
+        this.treeState[direction].atLimit(this.maximumNodes)
       ) {
         return;
       }
@@ -423,7 +420,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   ): void {
     const reason = hierarchyExpansionStopReason({
       cancelled,
-      loadedNodes: this.loadedNodes[direction],
+      loadedNodes: this.treeState[direction].loadedNodes,
       maximumNodes: this.maximumNodes,
       requestedDepth,
       maximumDepth: this.maximumDepth,

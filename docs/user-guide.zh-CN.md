@@ -1,4 +1,4 @@
-# C Insight 0.11.7 使用手册
+# C Insight 0.11.8 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -776,7 +776,7 @@ C Insight 默认管理：
 | --- | --- | --- | --- | --- |
 | `cInsight.callHierarchy.defaultDepth` | number | `0` | 0–10 | 新根节点自动展开深度；0 表示保持折叠 |
 | `cInsight.callHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
-| `cInsight.callHierarchy.maximumNodes` | number | `2000` | 100–50000 | 当前调用树允许创建的最大节点数 |
+| `cInsight.callHierarchy.maximumNodes` | number | `2000` | 100–50000 | Callers 与 Callees 每棵树各自允许创建的最大节点数 |
 | `cInsight.callHierarchy.cacheSize` | number | `500` | 10–10000 | Incoming 和 Outgoing 各自缓存的函数请求上限 |
 | `cInsight.callHierarchy.pathSearchMaximumDepth` | number | `8` | 1–50 | Caller/Callee Path 最大边深度 |
 | `cInsight.callHierarchy.pathSearchMaximumPaths` | number | `20` | 1–500 | 单次路径搜索最多返回的匹配路径数 |
@@ -802,7 +802,7 @@ C Insight 默认管理：
 | --- | --- | --- | --- | --- |
 | `cInsight.typeHierarchy.defaultDepth` | number | `0` | 0–10 | 新类型根自动展开的层数；0 保持折叠 |
 | `cInsight.typeHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
-| `cInsight.typeHierarchy.maximumNodes` | number | `2000` | 100–50000 | 当前类型根允许加载的最大节点数 |
+| `cInsight.typeHierarchy.maximumNodes` | number | `2000` | 100–50000 | Supertypes 与 Subtypes 每棵树各自允许加载的最大节点数 |
 
 修改上述配置会清除类型层级请求缓存，并将当前结果标记为 stale。
 
