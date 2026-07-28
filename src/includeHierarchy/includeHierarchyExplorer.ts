@@ -11,6 +11,10 @@ import {
   ReverseIncludeIndex,
 } from "./reverseIncludeIndex";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import {
+  hierarchyExpansionMessage,
+  hierarchyExpansionStopReason,
+} from "../utils/hierarchyExpansion";
 import { typeHierarchyMermaidEdge } from "../utils/typeHierarchy";
 
 export type IncludeHierarchyDirection = "includes" | "includedBy";
@@ -123,7 +127,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       },
     });
     if (value !== undefined) {
-      await this.expand(direction, Number(value));
+      await this.expand(direction, Number(value), true);
     }
   }
 
@@ -220,6 +224,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       : new vscode.Range(0, 0, 0, 0);
     const locationUri = directive ? source : uri;
     const kind = relation?.kind;
+    const atDepthLimit = depth >= this.maximumDepth;
     return {
       id: `include:${direction}:${ancestors.join(">")}:${key}`,
       label: path.basename(uri.fsPath),
@@ -227,6 +232,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
         kindLabel(kind),
         duplicate ? "duplicate" : undefined,
         recursive ? "cycle" : undefined,
+        atDepthLimit ? "max depth" : undefined,
       ].filter(Boolean).join(" · "),
       tooltip:
         `${uri.fsPath}` +
@@ -238,11 +244,11 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       previewTitle: directive?.text ?? path.basename(uri.fsPath),
       contextValue: "includeHierarchyLocation",
       collapsibleState:
-        recursive || duplicate || depth >= this.maximumDepth
+        recursive || duplicate || atDepthLimit
           ? vscode.TreeItemCollapsibleState.None
           : vscode.TreeItemCollapsibleState.Collapsed,
       loadChildren:
-        recursive || duplicate || depth >= this.maximumDepth
+        recursive || duplicate || atDepthLimit
           ? undefined
           : () =>
               direction === "includes"
@@ -367,6 +373,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   private async expand(
     direction: IncludeHierarchyDirection,
     depth: number,
+    announce = false,
   ): Promise<void> {
     this.stopExpansion(direction);
     const cancellation = new vscode.CancellationTokenSource();
@@ -395,12 +402,47 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     };
     try {
       await visit(this.dataRoots(direction), 0);
+      if (announce) {
+        this.publishExpansionStatus(direction, depth, false);
+      }
     } finally {
+      if (announce && cancellation.token.isCancellationRequested) {
+        this.publishExpansionStatus(direction, depth, true);
+      }
       if (this.cancellation[direction] === cancellation) {
         delete this.cancellation[direction];
       }
       cancellation.dispose();
     }
+  }
+
+  private publishExpansionStatus(
+    direction: IncludeHierarchyDirection,
+    requestedDepth: number,
+    cancelled: boolean,
+  ): void {
+    const reason = hierarchyExpansionStopReason({
+      cancelled,
+      loadedNodes: this.loadedNodes[direction],
+      maximumNodes: this.maximumNodes,
+      requestedDepth,
+      maximumDepth: this.maximumDepth,
+    });
+    if (!reason) {
+      return;
+    }
+    const message = hierarchyExpansionMessage(
+      reason,
+      this.maximumDepth,
+      this.maximumNodes,
+    );
+    const provider = this.provider(direction);
+    provider.setRoots([
+      statusNode(message.label, message.description),
+      ...provider
+        .getRoots()
+        .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
+    ]);
   }
 
   private markStale(direction?: IncludeHierarchyDirection): void {
@@ -563,6 +605,15 @@ function limitNode(): TreeNode {
   return {
     label: "Include hierarchy node limit reached",
     icon: new vscode.ThemeIcon("warning"),
+  };
+}
+
+function statusNode(label: string, description: string): TreeNode {
+  return {
+    label,
+    description,
+    icon: new vscode.ThemeIcon("info"),
+    contextValue: "hierarchyExpansionStatus",
   };
 }
 

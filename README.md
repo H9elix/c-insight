@@ -40,6 +40,11 @@ Search Loaded, Stop Expansion, then relationship-specific actions. Text, JSON,
 and Mermaid exports are consistently available from each hierarchy view's
 overflow menu.
 
+After bounded expansion is cancelled or reaches `maximumDepth` or
+`maximumNodes`, the affected view keeps its loaded nodes and shows an in-tree
+status row naming the relevant setting. Terminal nodes at the configured depth
+boundary are labelled `max depth`.
+
 1. Open a C or C++ workspace, then select the C Insight icon in the Activity
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow

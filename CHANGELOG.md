@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.7
+
+- Added consistent in-tree status rows after a hierarchy batch expansion is
+  cancelled or reaches its configured depth or node limit.
+- Status rows name the relevant `maximumDepth` or `maximumNodes` setting and
+  preserve all nodes loaded before stopping.
+- Labels terminal Call, Type, and Include Hierarchy nodes with `max depth`.
+- Added a shared, tested expansion-outcome model used by all hierarchy views.
+
 ## 0.11.6
 
 - Standardized hierarchy view-title actions as Show, Expand to Depth, Search
