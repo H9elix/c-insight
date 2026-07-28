@@ -507,6 +507,11 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 - Symbol Search 最近查询和符号类型过滤。
 - Callers/Callees 的根位置，以及两个窗口分别已经加载的最大深度。
 
+当前快照不保存 Supertypes/Subtypes 或 Includes/Included By 的根、已加载深度
+和展开状态。关闭或重新加载窗口后，需要显式重新执行对应的 Show 命令；此项已
+列入备忘录，暂不实现，以避免打开大型工程时因 Included By 恢复而意外启动
+反向索引扫描。
+
 重新打开相同工作区后，轻量状态直接恢复。调用关系不会直接信任旧节点，而是用
 保存的位置重新请求 clangd，再展开到上次加载深度，并标记为从上一会话恢复。
 因此源码或编译数据库变化后不会把旧调用结果伪装成最新结果。当前实现恢复最大
@@ -528,7 +533,7 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 | --- | --- | --- |
 | VS Code 工作区配置 | References 分组、Symbol Search 分组、书签排序方式、深度和节点限制 | 始终由 VS Code 为该工作区保存 |
 | C Insight Workspace Session 快照 | Navigation History、Code Preview、References 搜索/范围/分页、Symbol Search 查询/类型过滤、调用树根和加载深度 | `cInsight.session.restore` 启用且快照未过期时恢复 |
-| 仅当前扩展运行期 | Bookmarks 当前过滤文本、临时加载缓存、未写入快照的交互状态 | 关闭或重新加载窗口后清除 |
+| 仅当前扩展运行期 | Type/Include Hierarchy 树、Bookmarks 当前过滤文本、临时加载缓存、未写入快照的交互状态 | 关闭或重新加载窗口后清除 |
 
 Bookmarks 数据本身使用独立的 `workspaceState` 持久化，不依赖 Workspace
 Session；表中的“Bookmarks 当前过滤文本”仅指过滤输入，不是书签内容。
@@ -557,7 +562,8 @@ Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一�
 
 树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd
 重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show
-Supertypes/Subtypes。普通 C 代码没有类继承关系，通常不会返回结果。
+Supertypes/Subtypes。当前树不写入 Workspace Session，重开工作区后需要重新
+查询。普通 C 代码没有类继承关系，通常不会返回结果。
 
 ### 4.13 Includes 与 Included By
 
@@ -604,6 +610,9 @@ Included By 结果可能不完整。
 unresolved，并检测 cycle 和 duplicate。系统头默认不显示，以避免树过大；
 可通过配置启用。条件编译分支按文本解析，C Insight 不运行预处理器，因此结果
 代表源码中可见的 include 指令，不保证某个具体构建配置一定启用。
+
+Includes/Included By 当前不写入 Workspace Session，重开工作区后需要重新
+查询；因此不会仅因会话恢复就在后台建立 Included By 反向索引。
 
 ## 5. 底部可靠性状态栏
 
