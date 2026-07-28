@@ -380,9 +380,17 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   }
 
   private publishEmpty(): void {
-    this.includes.setRoots([infoNode("Show Includes for the active C/C++ file")]);
+    this.includes.setRoots([
+      commandNode(
+        "Show Includes for the active C/C++ file",
+        "cInsight.includeHierarchy.showIncludes",
+      ),
+    ]);
     this.includedBy.setRoots([
-      infoNode("Show Included By for the active C/C++ file"),
+      commandNode(
+        "Show Included By for the active C/C++ file",
+        "cInsight.includeHierarchy.showIncludedBy",
+      ),
     ]);
   }
 
@@ -484,8 +492,12 @@ function kindIcon(kind: IncludeTargetKind | undefined): string {
       : "file-code";
 }
 
-function infoNode(label: string): TreeNode {
-  return { label, icon: new vscode.ThemeIcon("info") };
+function commandNode(label: string, command: string): TreeNode {
+  return {
+    label,
+    icon: new vscode.ThemeIcon("play"),
+    command: { command, title: label },
+  };
 }
 
 function limitNode(): TreeNode {
