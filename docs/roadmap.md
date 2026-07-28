@@ -64,3 +64,19 @@ deferred.
 The next relationship-navigation iteration should consolidate common
 interaction patterns across Call, Type, and Include Hierarchy before a larger
 graph view is considered.
+
+## Deferred Type/Include workspace restoration
+
+Do not implement Type Hierarchy or Include Hierarchy workspace-session
+restoration in the current 0.11.x plan. Their roots, loaded depths, and
+per-node expansion state remain runtime-only.
+
+If revisited, restoration should save stable root file/position identities and
+loaded maximum depths, then re-query relationships after startup rather than
+serializing clangd's opaque temporary data. Included By restoration must be
+delayed, visible, and cancellable so reopening a large workspace never starts
+an unexpected reverse-index scan.
+
+Reconsider this work only if real usage shows that repeatedly rebuilding these
+trees is disruptive, or after the planned relationship graph defines a common
+session model that can restore all hierarchy types consistently.
