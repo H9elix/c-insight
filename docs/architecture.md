@@ -66,6 +66,11 @@ updates it for file changes. Both directions share compile-database
 invalidation, cycle/duplicate protection, and export semantics in which edges
 always point from the including file to the included file.
 
+Reverse-index builds use isolated maps and a generation token. File events
+arriving during a scan are queued into the candidate index; invalidation
+cancels the active generation. Only a complete current generation is
+atomically published, so consumers never observe partial or superseded maps.
+
 The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.
