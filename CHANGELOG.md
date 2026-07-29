@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.1
+
+- Made current-file diagnostics clickable and opened their exact editor range.
+- Added direct open actions for the active compilation database and inferred
+  header candidate source.
+- Added contextual actions to select a missing database, edit fallback flags,
+  and restart background indexing.
+- Added configurable report redaction for filesystem paths and, optionally,
+  macro definitions and fallback flags.
+- Applied redaction consistently to copied text and exported text/JSON without
+  mutating the live diagnostic report.
+
 ## 0.13.0
 
 - Expanded Project Diagnostics with compiler, language, standard, user/system/

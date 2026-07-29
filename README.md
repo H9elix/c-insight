@@ -300,6 +300,7 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.compileCommandsDir`
 - `cInsight.fallbackFlags`
 - `cInsight.backgroundIndex`
+- `cInsight.diagnostics.reportRedaction`
 - `cInsight.followCursor`
 - `cInsight.followCursorDelay`
 - `cInsight.followCursorDetailsDelay`

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1167,6 +1167,16 @@
         "cInsight.backgroundIndex": {
           "type": "boolean",
           "default": true
+        },
+        "cInsight.diagnostics.reportRedaction": {
+          "type": "string",
+          "enum": [
+            "none",
+            "paths",
+            "paths-and-defines"
+          ],
+          "default": "none",
+          "description": "Redact filesystem paths, or paths plus macro definitions/fallback flags, from copied and exported Project Diagnostics reports."
         },
         "cInsight.followCursor": {
           "type": "boolean",

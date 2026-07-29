@@ -4,6 +4,7 @@ import {
   analyzeCompileCommand,
   compilationCommand,
   isMissingInclude,
+  redactProjectDiagnosticsReport,
   renderProjectDiagnosticsText,
 } from "../../src/diagnostics/projectDiagnosticsModel";
 
@@ -111,5 +112,63 @@ describe("project diagnostics model", () => {
     assert.match(text, /Command source: inferred-candidate/);
     assert.match(text, /Candidate inferred from: \/workspace\/src\/api.c/);
     assert.match(text, /Line 3 \[error\]: 'config.h' file not found/);
+  });
+
+  it("redacts paths and optionally definitions in exported reports", () => {
+    const report = {
+      schemaVersion: 1 as const,
+      generatedAt: "2026-07-30T00:00:00.000Z",
+      workspaceTrusted: true,
+      clangd: {
+        state: "ready",
+        executable: "/usr/bin/clangd-20",
+        indexStatus: "idle",
+      },
+      compilationDatabase: { path: "/private/build/compile_commands.json" },
+      currentFile: {
+        path: "/private/src/main.c",
+        kind: "source" as const,
+        commandSource: "direct" as const,
+        workingDirectory: "/private/build",
+        compileCommand: "clang -I/private/include -DAPI_TOKEN=secret",
+        fallbackFlags: ["-I/private/include", "-DAPI_TOKEN=secret"],
+        command: {
+          compiler: "/usr/bin/clang",
+          includePaths: ["/private/include"],
+          systemIncludePaths: [],
+          quoteIncludePaths: [],
+          defines: ["API_TOKEN=secret"],
+          forcedIncludes: ["/private/config.h"],
+          responseFiles: ["/private/flags.rsp"],
+        },
+      },
+      diagnostics: {
+        errors: 0,
+        warnings: 0,
+        information: 0,
+        hints: 0,
+        missingIncludes: 0,
+        currentFileMessages: [],
+      },
+    };
+    const paths = redactProjectDiagnosticsReport(report, "paths");
+    assert.equal(paths.currentFile?.path, "<redacted-path>");
+    assert.equal(
+      paths.currentFile?.command?.includePaths[0],
+      "<redacted-path>",
+    );
+    assert.deepEqual(paths.currentFile?.command?.defines, ["API_TOKEN=secret"]);
+    const strict = redactProjectDiagnosticsReport(
+      report,
+      "paths-and-defines",
+    );
+    assert.deepEqual(strict.currentFile?.command?.defines, [
+      "<redacted-define-1>",
+    ]);
+    assert.deepEqual(strict.currentFile?.fallbackFlags, [
+      "<redacted-flag>",
+      "<redacted-flag>",
+    ]);
+    assert.equal(report.currentFile.path, "/private/src/main.c");
   });
 });
