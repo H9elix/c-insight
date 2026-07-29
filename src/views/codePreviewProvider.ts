@@ -675,6 +675,7 @@ function htmlDocument(
     .sem-operator {
       color: var(--vscode-symbolIcon-operatorForeground, var(--vscode-editor-foreground));
     }
+    .sem-navigable { cursor: pointer; }
     .sem-mod-deprecated { text-decoration: line-through; }
     .sem-mod-readonly { font-style: italic; }
     .empty, .error { color: var(--vscode-descriptionForeground); }

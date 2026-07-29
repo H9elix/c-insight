@@ -96,16 +96,40 @@ describe("code preview highlighting", () => {
     assert.equal(html.includes('<span class="kw">const</span>'), true);
     assert.equal(
       html.includes(
-        '<span class="sem sem-variable sem-mod-readonly">result</span>',
+        '<span class="sem sem-variable sem-navigable sem-mod-readonly">result</span>',
       ),
       true,
     );
     assert.equal(
       html.includes(
-        '<mark class="target-symbol"><span class="sem sem-function">add</span></mark>',
+        '<mark class="target-symbol"><span class="sem sem-function sem-navigable">add</span></mark>',
       ),
       true,
     );
+  });
+
+  it("marks symbols as navigable without marking syntax tokens", () => {
+    const html = highlightSemanticLine("value + 1", [
+      {
+        line: 0,
+        start: 0,
+        length: 5,
+        type: "variable",
+        modifiers: [],
+      },
+      {
+        line: 0,
+        start: 6,
+        length: 1,
+        type: "operator",
+        modifiers: [],
+      },
+    ]);
+    assert.equal(
+      html.includes("sem sem-variable sem-navigable"),
+      true,
+    );
+    assert.equal(html.includes("sem-operator sem-navigable"), false);
   });
 
   it("escapes semantic token text", () => {
