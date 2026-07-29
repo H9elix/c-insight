@@ -10,6 +10,26 @@ export interface PreviewRangeExpansion extends PreviewLineRange {
   addedEndLine: number;
 }
 
+export function restorePreviewRange(
+  saved: PreviewLineRange,
+  lastLine: number,
+  maximumLoadedLines: number,
+): PreviewLineRange | undefined {
+  if (
+    !Number.isInteger(saved.startLine) ||
+    !Number.isInteger(saved.endLine) ||
+    saved.startLine < 0 ||
+    saved.startLine > saved.endLine ||
+    lastLine < 0
+  ) {
+    return undefined;
+  }
+  const startLine = Math.min(saved.startLine, lastLine);
+  const maximum = Math.max(1, Math.floor(maximumLoadedLines));
+  const endLine = Math.min(lastLine, saved.endLine, startLine + maximum - 1);
+  return { startLine, endLine };
+}
+
 export function expandPreviewRange(
   current: PreviewLineRange,
   direction: PreviewLoadDirection,

@@ -308,9 +308,12 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.codePreview.linesAfter`
 - `cInsight.codePreview.semanticHighlighting`
 - `cInsight.codePreview.semanticTokenCacheSize`
+- `cInsight.codePreview.semanticTokenCacheMaximumMegabytes`
 - `cInsight.codePreview.incrementalLoading`
 - `cInsight.codePreview.loadBatchLines`
 - `cInsight.codePreview.maximumLoadedLines`
+- `cInsight.codePreview.restoreScrollPositions`
+- `cInsight.codePreview.maximumScrollPositions`
 - `cInsight.references.pageSize`
 - `cInsight.references.groupBy`
 - `cInsight.callHierarchy.defaultDepth`

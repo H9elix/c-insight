@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1221,6 +1221,13 @@
           "maximum": 256,
           "description": "Maximum number of document-version semantic-token results retained in memory."
         },
+        "cInsight.codePreview.semanticTokenCacheMaximumMegabytes": {
+          "type": "number",
+          "default": 16,
+          "minimum": 1,
+          "maximum": 256,
+          "description": "Approximate maximum total memory in MiB retained by completed Code Preview semantic-token cache entries."
+        },
         "cInsight.codePreview.incrementalLoading": {
           "type": "boolean",
           "default": true,
@@ -1239,6 +1246,18 @@
           "minimum": 50,
           "maximum": 10000,
           "description": "Maximum source lines retained in the Code Preview DOM; distant lines are trimmed and can be loaded again."
+        },
+        "cInsight.codePreview.restoreScrollPositions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Restore loaded context and vertical/horizontal scroll position when returning to a previous Code Preview target."
+        },
+        "cInsight.codePreview.maximumScrollPositions": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum Code Preview target scroll positions retained for the current extension session."
         },
         "cInsight.references.pageSize": {
           "type": "number",

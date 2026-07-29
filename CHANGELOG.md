@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.2
+
+- Added a Code Preview status line for loaded ranges, loading direction, total
+  file lines, errors, and start/end-of-file boundaries.
+- Coalesced rapid scroll demand to one active batch plus the latest queued
+  direction.
+- Restored loaded context, vertical line anchor, and horizontal position when
+  returning to a previous preview target.
+- Bounded retained scroll targets and invalidated them after source edits.
+- Converted semantic-token caching to LRU and added a total completed-token
+  byte budget in addition to the existing entry-count limit.
+
 ## 0.13.1
 
 - Made current-file diagnostics clickable and opened their exact editor range.

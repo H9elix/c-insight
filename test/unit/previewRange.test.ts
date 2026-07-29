@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { expandPreviewRange } from "../../src/views/previewRange";
+import {
+  expandPreviewRange,
+  restorePreviewRange,
+} from "../../src/views/previewRange";
 
 describe("code preview incremental range", () => {
   it("loads batches in both directions and clamps to the document", () => {
@@ -87,6 +90,33 @@ describe("code preview incremental range", () => {
         50,
         100,
         99,
+      ),
+      undefined,
+    );
+  });
+
+  it("restores a saved range within current file and memory limits", () => {
+    assert.deepEqual(
+      restorePreviewRange(
+        { startLine: 200, endLine: 499 },
+        999,
+        100,
+      ),
+      { startLine: 200, endLine: 299 },
+    );
+    assert.deepEqual(
+      restorePreviewRange(
+        { startLine: 950, endLine: 1200 },
+        999,
+        100,
+      ),
+      { startLine: 950, endLine: 999 },
+    );
+    assert.equal(
+      restorePreviewRange(
+        { startLine: -1, endLine: 20 },
+        999,
+        100,
       ),
       undefined,
     );
