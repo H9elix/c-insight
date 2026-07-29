@@ -158,6 +158,14 @@ The language client also registers clangd's standard language capabilities
 with VS Code. C Insight commands query `AnalysisService` directly so their
 results cannot accidentally come from another extension.
 
+Project Diagnostics builds one structured, schema-versioned report before
+mapping it into the native tree. Compile-command analysis is pure and accepts
+both `command` and `arguments` database entries; it separates language,
+standard, include-path classes, defines, forced includes, and response files.
+Header entries are explicitly labelled as local inference candidates because
+clangd's actual HeaderIncluderCache selection is not exposed through LSP. Text
+and JSON exports serialize the same report used by the view.
+
 ## Trust boundary
 
 C Insight does not start clangd in an untrusted workspace. It launches the

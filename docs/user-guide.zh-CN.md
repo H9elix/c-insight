@@ -1,4 +1,4 @@
-# C Insight 0.12.12 使用手册
+# C Insight 0.13.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -477,6 +477,9 @@ Project Diagnostics 用于排查“为什么导航结果不准确或不可用”
 - `compile_commands.json` 路径、来源和条目数
 - 当前文件的编译命令
 - 当前文件的编译工作目录
+- 编译器、显式语言和 `-std` 标准
+- `-I`、`-isystem` 和 `-iquote` Include 路径
+- `-D` 宏、`-include` 强制包含和 `@response` 文件
 - clangd 错误和警告数量
 - 缺失头文件数量
 - 当前文件的具体 diagnostics
@@ -487,6 +490,20 @@ Project Diagnostics 用于排查“为什么导航结果不准确或不可用”
 - Show clangd Log
 - Select Compilation Database
 - Restart Background Indexing
+- Copy Project Diagnostics Report
+- Export Project Diagnostics as JSON
+
+命令面板还可执行 **Export Project Diagnostics as Text**。复制和导出报告包含
+clangd 状态/版本、索引状态、编译数据库、当前文件命令拆解、Fallback Flags
+以及当前文件 diagnostics。JSON 使用带 `schemaVersion` 的结构化格式，适合
+脚本处理或提交问题；文本格式适合直接粘贴。
+
+对于源文件，`compile_commands.json` 中路径完全匹配的条目标记为 `direct`。
+头文件通常没有独立条目，clangd 会根据其内部 HeaderIncluderCache 等信息推断
+命令；C Insight 会优先查找同目录同名源文件，再选择同目录源文件作为
+`inferred-candidate`。这个候选项用于诊断 Include 路径和宏，不代表 C Insight
+能够确认 clangd 最终选择了它。没有直接条目或候选条目时标记为 `fallback`，
+并显示 `cInsight.fallbackFlags`。
 
 命令面板还提供 **Use Automatic Compilation Database Detection**，用于清除
 手动选择并恢复自动发现。

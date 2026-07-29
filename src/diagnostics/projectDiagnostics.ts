@@ -14,9 +14,12 @@ import {
 import { TreeNode } from "../views/treeNode";
 import {
   CompilationDatabaseEntry,
+  ProjectDiagnosticsReport,
+  analyzeCompileCommand,
   compilationCommand,
   emptyDiagnosticCounts,
   isMissingInclude,
+  renderProjectDiagnosticsText,
 } from "./projectDiagnosticsModel";
 import {
   AnalysisReliability,
@@ -40,6 +43,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
     level: "unavailable",
     issues: [],
   };
+  private report?: ProjectDiagnosticsReport;
 
   readonly onDidRefresh = this.emitter.event;
   readonly onDidChangeReliability = this.reliabilityEmitter.event;
@@ -53,6 +57,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
     const result = await this.build(editor);
     if (generation === this.generation) {
       this.reliability = result.reliability;
+      this.report = result.report;
       this.emitter.fire(result.roots);
       this.reliabilityEmitter.fire(result.reliability);
     }
@@ -74,6 +79,45 @@ export class ProjectDiagnostics implements vscode.Disposable {
     return this.reliability;
   }
 
+  async copyReport(format: "text" | "json"): Promise<void> {
+    const report = await this.latestReport();
+    await vscode.env.clipboard.writeText(
+      format === "json"
+        ? `${JSON.stringify(report, undefined, 2)}\n`
+        : renderProjectDiagnosticsText(report),
+    );
+    void vscode.window.showInformationMessage(
+      "C Insight: Project diagnostics report copied.",
+    );
+  }
+
+  async exportReport(format: "text" | "json"): Promise<void> {
+    const report = await this.latestReport();
+    const uri = await vscode.window.showSaveDialog({
+      title: `Export C Insight Project Diagnostics (${format.toUpperCase()})`,
+      defaultUri: vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders?.[0]?.uri ??
+          vscode.Uri.file(process.cwd()),
+        `c-insight-project-diagnostics.${format === "json" ? "json" : "txt"}`,
+      ),
+      filters:
+        format === "json"
+          ? { JSON: ["json"] }
+          : { Text: ["txt"] },
+    });
+    if (!uri) {
+      return;
+    }
+    const content =
+      format === "json"
+        ? `${JSON.stringify(report, undefined, 2)}\n`
+        : renderProjectDiagnosticsText(report);
+    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+    void vscode.window.showInformationMessage(
+      `C Insight: Project diagnostics exported to ${uri.fsPath}`,
+    );
+  }
+
   dispose(): void {
     this.emitter.dispose();
     this.reliabilityEmitter.dispose();
@@ -81,30 +125,45 @@ export class ProjectDiagnostics implements vscode.Disposable {
 
   private async build(
     editor: vscode.TextEditor | undefined,
-  ): Promise<{ roots: TreeNode[]; reliability: AnalysisReliability }> {
+  ): Promise<{
+    roots: TreeNode[];
+    reliability: AnalysisReliability;
+    report: ProjectDiagnosticsReport;
+  }> {
     const installation = this.manager.clangdInstallation;
     const state = this.manager.currentState;
     const config = readConfiguration();
     const databaseSelection = await resolveCompilationDatabase();
     this.databaseSelection = databaseSelection;
     const databasePath = databaseSelection?.path;
-    const database = databasePath
-      ? await this.loadDatabase(databasePath).catch(() => undefined)
-      : undefined;
+    let database: CachedDatabase | undefined;
+    let databaseError: string | undefined;
+    if (databasePath) {
+      try {
+        database = await this.loadDatabase(databasePath);
+      } catch (error) {
+        databaseError = String(error);
+      }
+    }
     const document =
       editor && isCppDocument(editor.document) ? editor.document : undefined;
     const entry = document
       ? database?.entries.get(normalizeFile(document.uri.fsPath))
       : undefined;
+    const currentIsSource = Boolean(
+      document && /\.(?:c|cc|cpp|cxx|m|mm)$/i.test(document.uri.fsPath),
+    );
+    const inferredEntry =
+      document && !currentIsSource && !entry
+        ? inferHeaderEntry(database, document.uri.fsPath)
+        : undefined;
+    const inspectedEntry = entry ?? inferredEntry?.entry;
     const diagnostics = diagnosticNodes(document);
     const currentMissingIncludes = document
       ? vscode.languages
           .getDiagnostics(document.uri)
           .filter((item) => isMissingInclude(item.message)).length
       : 0;
-    const currentIsSource = Boolean(
-      document && /\.(?:c|cc|cpp|cxx|m|mm)$/i.test(document.uri.fsPath),
-    );
     const reliability = evaluateReliability({
       clangdState: state,
       indexStatus: this.manager.currentIndexProgress.status,
@@ -156,7 +215,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
             ? [
                 detail(
                   "Read error",
-                  "compile_commands.json could not be parsed",
+                  databaseError ?? "compile_commands.json could not be parsed",
                   "error",
                 ),
               ]
@@ -186,8 +245,13 @@ export class ProjectDiagnostics implements vscode.Disposable {
     ];
 
     if (document) {
-      const command = entry ? compilationCommand(entry) : undefined;
+      const command = inspectedEntry
+        ? compilationCommand(inspectedEntry)
+        : undefined;
       const isSource = /\.(?:c|cc|cpp|cxx|m|mm)$/i.test(document.uri.fsPath);
+      const commandSummary = inspectedEntry
+        ? analyzeCompileCommand(inspectedEntry)
+        : undefined;
       roots.push(
         group(
           `Current file: ${path.basename(document.uri.fsPath)}`,
@@ -212,10 +276,36 @@ export class ProjectDiagnostics implements vscode.Disposable {
                     "Compile command",
                     isSource
                       ? "No entry for this source file; clangd is using fallback flags"
-                      : "Header commands are inferred by clangd from a related source file",
+                      : inferredEntry
+                        ? "Header command is inferred by clangd; the candidate below is diagnostic guidance, not a confirmed clangd choice"
+                        : "Header commands are inferred by clangd from a related source file",
                     isSource ? "warning" : "info",
                   ),
+                  detail(
+                    "Fallback flags",
+                    config.fallbackFlags.join(" ") || "None",
+                    "settings-gear",
+                  ),
+                  ...(inferredEntry
+                    ? [
+                        detail(
+                          "Candidate source",
+                          vscode.workspace.asRelativePath(
+                            inferredEntry.file,
+                          ),
+                          "file-code",
+                        ),
+                        detail(
+                          "Candidate command",
+                          command ?? "Entry has no command or arguments",
+                          command ? "terminal" : "warning",
+                        ),
+                      ]
+                    : []),
                 ]),
+            ...(commandSummary
+              ? [compileCommandGroup(commandSummary)]
+              : []),
           ],
         ),
       );
@@ -231,8 +321,69 @@ export class ProjectDiagnostics implements vscode.Disposable {
       );
     }
 
-    roots.push(...diagnostics);
-    return { roots, reliability };
+    roots.push(...diagnostics.nodes);
+    const progress = this.manager.currentIndexProgress;
+    const report: ProjectDiagnosticsReport = {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      workspaceTrusted: vscode.workspace.isTrusted,
+      clangd: {
+        state,
+        executable:
+          installation?.command || config.clangdPath || "Auto-detect",
+        version: installation?.version,
+        indexStatus: progress.status,
+        indexProgress:
+          progress.completed !== undefined && progress.total !== undefined
+            ? `${progress.completed} / ${progress.total} files`
+            : progress.message,
+      },
+      compilationDatabase: {
+        path: databasePath,
+        source: databaseSelection?.source,
+        entries: database?.entries.size,
+        error: databaseError,
+      },
+      currentFile: document
+        ? {
+            path: document.uri.fsPath,
+            kind: currentIsSource ? "source" : "header",
+            commandSource: entry
+              ? "direct"
+              : inferredEntry
+                ? "inferred-candidate"
+                : "fallback",
+            workingDirectory: inspectedEntry?.directory,
+            compileCommand: inspectedEntry
+              ? compilationCommand(inspectedEntry)
+              : undefined,
+            command: inspectedEntry
+              ? analyzeCompileCommand(inspectedEntry)
+              : undefined,
+            inferredFrom: inferredEntry?.file,
+            fallbackFlags: entry || inferredEntry
+              ? undefined
+              : [...config.fallbackFlags],
+          }
+        : undefined,
+      diagnostics: {
+        ...diagnostics.counts,
+        currentFileMessages: diagnostics.current.map((diagnostic) => ({
+          line: diagnostic.range.start.line + 1,
+          severity: diagnosticSeverityLabel(diagnostic.severity),
+          message: diagnostic.message,
+        })),
+      },
+    };
+    return { roots, reliability, report };
+  }
+
+  private async latestReport(): Promise<ProjectDiagnosticsReport> {
+    await this.refresh();
+    if (!this.report) {
+      throw new Error("Project diagnostics are not available.");
+    }
+    return this.report;
   }
 
   private async loadDatabase(
@@ -298,7 +449,11 @@ function indexProgressNode(
   );
 }
 
-function diagnosticNodes(document?: vscode.TextDocument): TreeNode[] {
+function diagnosticNodes(document?: vscode.TextDocument): {
+  nodes: TreeNode[];
+  counts: ReturnType<typeof emptyDiagnosticCounts>;
+  current: vscode.Diagnostic[];
+} {
   const counts = emptyDiagnosticCounts();
   const current: vscode.Diagnostic[] = [];
   for (const [uri, diagnostics] of vscode.languages.getDiagnostics()) {
@@ -333,8 +488,8 @@ function diagnosticNodes(document?: vscode.TextDocument): TreeNode[] {
   }
   const problemCount =
     counts.errors + counts.warnings + counts.information + counts.hints;
-  return [
-    group(
+  return {
+    nodes: [group(
       problemCount === 0
         ? "clangd diagnostics: no problems"
         : `clangd diagnostics: ${counts.errors} errors, ${counts.warnings} warnings`,
@@ -365,15 +520,109 @@ function diagnosticNodes(document?: vscode.TextDocument): TreeNode[] {
               ),
             ]),
       ],
-    ),
-  ];
+    )],
+    counts,
+    current,
+  };
 }
 
-function group(label: string, icon: string, children: TreeNode[]): TreeNode {
+function compileCommandGroup(
+  summary: ReturnType<typeof analyzeCompileCommand>,
+): TreeNode {
+  const allIncludePaths = [
+    ...summary.quoteIncludePaths.map((value) => `quote: ${value}`),
+    ...summary.includePaths.map((value) => `user: ${value}`),
+    ...summary.systemIncludePaths.map((value) => `system: ${value}`),
+  ];
+  return group("Compile command breakdown", "list-tree", [
+    detail("Compiler", summary.compiler ?? "Unknown", "terminal"),
+    detail("Language", summary.language ?? "Compiler default", "symbol-key"),
+    detail("Standard", summary.standard ?? "Compiler default", "symbol-enum"),
+    group(
+      `Include paths: ${allIncludePaths.length}`,
+      "folder-library",
+      allIncludePaths.length > 0
+        ? allIncludePaths.map((value) => detail("Path", value, "folder"))
+        : [detail("Paths", "None explicitly configured", "info")],
+      vscode.TreeItemCollapsibleState.Collapsed,
+    ),
+    group(
+      `Defines: ${summary.defines.length}`,
+      "symbol-constant",
+      summary.defines.length > 0
+        ? summary.defines.map((value) => detail("Define", value, "symbol-constant"))
+        : [detail("Defines", "None", "info")],
+      vscode.TreeItemCollapsibleState.Collapsed,
+    ),
+    group(
+      `Forced includes: ${summary.forcedIncludes.length}`,
+      "files",
+      summary.forcedIncludes.length > 0
+        ? summary.forcedIncludes.map((value) =>
+            detail("Include", value, "file-code"),
+          )
+        : [detail("Forced includes", "None", "info")],
+      vscode.TreeItemCollapsibleState.Collapsed,
+    ),
+    group(
+      `Response files: ${summary.responseFiles.length}`,
+      "file",
+      summary.responseFiles.length > 0
+        ? summary.responseFiles.map((value) =>
+            detail("Response file", value, "file"),
+          )
+        : [detail("Response files", "None", "info")],
+      vscode.TreeItemCollapsibleState.Collapsed,
+    ),
+  ], vscode.TreeItemCollapsibleState.Collapsed);
+}
+
+function inferHeaderEntry(
+  database: CachedDatabase | undefined,
+  header: string,
+): { file: string; entry: CompilationDatabaseEntry } | undefined {
+  if (!database) {
+    return undefined;
+  }
+  const directory = path.dirname(normalizeFile(header));
+  const stem = path.basename(header, path.extname(header)).toLowerCase();
+  const candidates = [...database.entries.entries()].filter(([file]) =>
+    file.startsWith(`${directory}${path.sep}`),
+  );
+  const candidate =
+    candidates.find(
+      ([file]) =>
+        path.basename(file, path.extname(file)).toLowerCase() === stem,
+    ) ??
+    candidates[0];
+  return candidate ? { file: candidate[0], entry: candidate[1] } : undefined;
+}
+
+function diagnosticSeverityLabel(
+  severity: vscode.DiagnosticSeverity,
+): string {
+  switch (severity) {
+    case vscode.DiagnosticSeverity.Error:
+      return "error";
+    case vscode.DiagnosticSeverity.Warning:
+      return "warning";
+    case vscode.DiagnosticSeverity.Information:
+      return "information";
+    case vscode.DiagnosticSeverity.Hint:
+      return "hint";
+  }
+}
+
+function group(
+  label: string,
+  icon: string,
+  children: TreeNode[],
+  collapsibleState = vscode.TreeItemCollapsibleState.Expanded,
+): TreeNode {
   return {
     label,
     icon: new vscode.ThemeIcon(icon),
-    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    collapsibleState,
     children,
   };
 }
