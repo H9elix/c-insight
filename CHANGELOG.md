@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.4
+
+- Added a complete feature/view capability matrix covering data sources,
+  automatic work, pin/lock, search, expansion, export, and Code Preview links.
+- Added state persistence and configuration-application matrices.
+- Added an automatically generated reference for all contributed commands,
+  including exact IDs, view/menu locations, and default keybindings.
+- Added a reusable command-reference generator driven directly by
+  `package.json`.
+- Added documentation completeness tests covering every configuration and its
+  default, every command ID, and every contributed view.
+
 ## 0.13.3
 
 - Serialized workspace-session writes so older autosaves cannot overwrite a
