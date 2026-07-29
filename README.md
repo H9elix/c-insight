@@ -298,6 +298,8 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.followCursorDetailsDelay`
 - `cInsight.codePreview.linesBefore`
 - `cInsight.codePreview.linesAfter`
+- `cInsight.codePreview.semanticHighlighting`
+- `cInsight.codePreview.semanticTokenCacheSize`
 - `cInsight.references.pageSize`
 - `cInsight.references.groupBy`
 - `cInsight.callHierarchy.defaultDepth`

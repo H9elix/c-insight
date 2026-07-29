@@ -1,9 +1,8 @@
 # Architecture
 
 The TypeScript extension is both the VS Code integration and the LSP client.
-`ClangdManager` owns one clangd process. `AnalysisService` is the only module
-that sends semantic requests, keeping UI code independent from the concrete
-backend.
+`ClangdManager` owns one clangd process. Navigation queries go through
+`AnalysisService`, keeping tree UI code independent from the concrete backend.
 
 `ContextController` debounces cursor movement and assigns each refresh a
 monotonic generation. Results from an older generation are discarded. The
@@ -20,7 +19,15 @@ Document Symbols uses its own visibility gate.
 Code Preview uses a nonce-restricted Webview script. Browser click coordinates
 are converted to UTF-16 source positions and validated again against the
 currently rendered document and line range by the extension host. The Webview
-never reads local files or sends LSP requests directly.
+never reads local files or sends LSP requests directly. The extension host
+requests Document Semantic Tokens through VS Code's registered provider,
+decodes only the visible preview range, and layers those symbol classes over
+the existing lexical fallback. Provider results are bounded and keyed by URI
+and document version, so moving within the same version only repeats the cheap
+range decode; edits and relevant configuration changes invalidate them. Theme
+changes rerender the visible preview. The Webview maps semantic
+classes to public VS Code theme variables because it cannot reuse the editor
+renderer or inspect every final semantic-token color rule.
 
 Navigation History is session-scoped and uses one shared cursor for the
 History view and Code Preview Back/Forward. Bookmarks are intentionally
