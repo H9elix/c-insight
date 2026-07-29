@@ -140,6 +140,30 @@ describe("relationship graph model", () => {
     );
   });
 
+  it("exports definition ownership from container to symbol", () => {
+    const file = {
+      ...node("owner.cpp"),
+      id: graphNodeId("source", "file:///owner.cpp", 1, "owner.cpp"),
+      kind: "source" as const,
+      capabilities: ["includes" as const],
+    };
+    const symbol = node("owned");
+    const graph = new RelationshipGraphModel(10, 10);
+    graph.replaceRoot(symbol);
+    graph.addNode(file);
+    graph.addEdge({
+      id: graphEdgeId("defines", file.id, symbol.id),
+      from: file.id,
+      to: symbol.id,
+      relation: "defines",
+      states: [],
+    });
+    assert.match(
+      renderGraphMermaid(graph.snapshot()),
+      /n1 -->\|defines\| n0/,
+    );
+  });
+
   it("builds and snapshots a large bounded graph without quadratic growth", () => {
     const started = performance.now();
     const graph = new RelationshipGraphModel(5_100, 5_100);

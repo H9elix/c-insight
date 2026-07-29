@@ -2,7 +2,9 @@ import { randomBytes } from "node:crypto";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
+  DocumentSymbol,
   SymbolKind,
+  SymbolInformation,
   TypeHierarchyItem,
 } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
@@ -11,7 +13,7 @@ import {
   CallDirection,
   CallHierarchyRepository,
 } from "../callHierarchy/callHierarchyRepository";
-import { CallNode } from "../models/types";
+import { CallNode, LspSymbol } from "../models/types";
 import {
   IncludeHierarchyDirection,
   IncludeHierarchyRepository,
@@ -1187,6 +1189,245 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     );
   }
 
+  private addDefiningFile(nodeId: string): void {
+    const node = this.model.node(nodeId);
+    if (!node?.uri || !this.canExpand(nodeId)) {
+      return;
+    }
+    const uri = vscode.Uri.parse(node.uri);
+    if (uri.scheme !== "file") {
+      return;
+    }
+    const file = fileNode(uri);
+    if (!this.model.addNode(file)) {
+      this.operationStatus = this.limitStatus();
+      return;
+    }
+    this.includeFiles.set(file.id, uri);
+    this.recordNeighborDepth(nodeId, file.id);
+    this.addDefinitionRelation(file.id, nodeId, uri, node.line);
+    this.model.addNodeState(nodeId, "linked-file");
+    this.operationStatus = this.limitStatus() ?? {
+      kind: "info",
+      message: `Added defining file for ${node.name}.`,
+    };
+  }
+
+  private async addTypeMembers(nodeId: string): Promise<void> {
+    const type = this.typeNodes.get(nodeId);
+    if (!type || !this.canExpand(nodeId)) {
+      return;
+    }
+    if (this.model.node(nodeId)?.states.includes("expanded-members")) {
+      this.operationStatus = {
+        kind: "info",
+        message: `Members for ${type.name} are already loaded.`,
+      };
+      await this.publish();
+      return;
+    }
+    this.stopExpansion();
+    const cancellation = new vscode.CancellationTokenSource();
+    this.expansion = cancellation;
+    const uri = vscode.Uri.parse(type.uri);
+    this.operationStatus = {
+      kind: "info",
+      message: `Loading members for ${type.name}…`,
+    };
+    await this.publish();
+    try {
+      const symbols = await this.analysis.documentSymbols(uri);
+      const members = findTypeMembers(
+        symbols,
+        type.name,
+        type.selectionRange.start.line,
+      );
+      let added = 0;
+      for (const member of members) {
+        if (
+          cancellation.token.isCancellationRequested ||
+          this.model.snapshot().limitedBy
+        ) {
+          break;
+        }
+        const roots = await this.callRepository.prepare(
+          uri,
+          new vscode.Position(
+            member.position.line,
+            member.position.character,
+          ),
+          cancellation.token,
+        );
+        const callNode = roots[0];
+        if (!callNode) {
+          continue;
+        }
+        const graphNode = this.callGraphNode(callNode);
+        if (!this.model.addNode(graphNode)) {
+          break;
+        }
+        this.callNodes.set(graphNode.id, callNode);
+        this.recordNeighborDepth(nodeId, graphNode.id);
+        this.addDefinitionRelation(
+          nodeId,
+          graphNode.id,
+          uri,
+          member.position.line + 1,
+        );
+        added += 1;
+      }
+      if (cancellation.token.isCancellationRequested) {
+        this.operationStatus = {
+          kind: "warning",
+          message: "Member loading cancelled; loaded nodes remain available.",
+        };
+      } else {
+        this.model.addNodeState(nodeId, "expanded-members");
+        this.operationStatus = this.limitStatus() ?? {
+          kind: "info",
+          message:
+            added > 0
+              ? `Added ${added} callable members for ${type.name}.`
+              : `No callable members were found for ${type.name}.`,
+        };
+      }
+    } catch (error) {
+      this.operationStatus = {
+        kind: "error",
+        message: `Loading type members failed: ${String(error)}`,
+      };
+    }
+    if (this.expansion === cancellation) {
+      this.expansion = undefined;
+    }
+    cancellation.dispose();
+    await this.publish();
+  }
+
+  private async addContainingType(nodeId: string): Promise<void> {
+    const call = this.callNodes.get(nodeId);
+    if (!call || !this.canExpand(nodeId)) {
+      return;
+    }
+    if (
+      this.model
+        .snapshot()
+        .edges.some(
+          (edge) =>
+            edge.relation === "defines" &&
+            edge.to === nodeId &&
+            this.typeNodes.has(edge.from),
+        )
+    ) {
+      this.operationStatus = {
+        kind: "info",
+        message: `The containing type for ${call.raw.name} is already loaded.`,
+      };
+      await this.publish();
+      return;
+    }
+    const uri = vscode.Uri.parse(call.raw.uri);
+    try {
+      const symbols = await this.analysis.documentSymbols(uri);
+      const typeSymbol = findContainingType(
+        symbols,
+        call.raw.selectionRange.start.line,
+      );
+      const typePosition =
+        typeSymbol?.position ??
+        (await this.containingTypePositionFromSource(uri, call));
+      if (!typePosition) {
+        this.operationStatus = {
+          kind: "info",
+          message: `No containing type was found for ${call.raw.name}.`,
+        };
+        await this.publish();
+        return;
+      }
+      const roots = await this.typeRepository.prepare(
+        uri,
+        new vscode.Position(
+          typePosition.line,
+          typePosition.character,
+        ),
+      );
+      const type = roots[0];
+      if (!type) {
+        this.operationStatus = {
+          kind: "info",
+          message: `clangd did not provide a containing type for ${call.raw.name}.`,
+        };
+        await this.publish();
+        return;
+      }
+      const graphNode = this.typeGraphNode(type);
+      if (this.model.addNode(graphNode)) {
+        this.typeNodes.set(graphNode.id, type);
+        this.recordNeighborDepth(nodeId, graphNode.id);
+        this.addDefinitionRelation(
+          graphNode.id,
+          nodeId,
+          uri,
+          call.raw.selectionRange.start.line + 1,
+        );
+      }
+      this.operationStatus = this.limitStatus() ?? {
+        kind: "info",
+        message: `Added containing type ${type.name}.`,
+      };
+    } catch (error) {
+      this.operationStatus = {
+        kind: "error",
+        message: `Loading containing type failed: ${String(error)}`,
+      };
+    }
+    await this.publish();
+  }
+
+  private async containingTypePositionFromSource(
+    uri: vscode.Uri,
+    call: CallNode,
+  ): Promise<{ line: number; character: number } | undefined> {
+    const document = await vscode.workspace.openTextDocument(uri);
+    const first = Math.max(0, call.raw.range.start.line);
+    const last = Math.min(
+      document.lineCount - 1,
+      call.raw.selectionRange.start.line,
+    );
+    for (let line = first; line <= last; line += 1) {
+      const text = document.lineAt(line).text;
+      const matches = [...text.matchAll(/([A-Za-z_]\w*)::/g)];
+      const match = matches.at(-1);
+      if (match?.index !== undefined) {
+        return { line, character: match.index };
+      }
+    }
+    return undefined;
+  }
+
+  private addDefinitionRelation(
+    containerId: string,
+    symbolId: string,
+    source: vscode.Uri,
+    line = 1,
+  ): void {
+    this.model.addEdge({
+      id: graphEdgeId(
+        "defines",
+        containerId,
+        symbolId,
+        source.toString(),
+        line,
+      ),
+      from: containerId,
+      to: symbolId,
+      relation: "defines",
+      sourceUri: source.toString(),
+      line,
+      states: [],
+    });
+  }
+
   private async searchLoadedNodes(): Promise<void> {
     const picked = await vscode.window.showQuickPick(
       this.model.snapshot().nodes.map((node) => ({
@@ -1246,6 +1487,30 @@ export class RelationshipGraphPanel implements vscode.Disposable {
               },
             ]
           : []),
+        ...(!includeNode && node.kind !== "unresolved"
+          ? [
+              {
+                label: "$(file-code) Add Defining File",
+                value: "definingFile",
+              },
+            ]
+          : []),
+        ...(typeNode
+          ? [
+              {
+                label: "$(symbol-method) Add Type Members",
+                value: "members",
+              },
+            ]
+          : []),
+        ...(this.callNodes.has(nodeId)
+          ? [
+              {
+                label: "$(symbol-class) Add Containing Type",
+                value: "containingType",
+              },
+            ]
+          : []),
         { label: "$(bookmark) Add Bookmark", value: "bookmark" },
         { label: "$(go-to-file) Open Location", value: "open" },
         { label: "$(target) Focus Node", value: "focus" },
@@ -1271,6 +1536,13 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       }
     } else if (action.value === "depth") {
       await this.expandToDepth(nodeId);
+    } else if (action.value === "definingFile") {
+      this.addDefiningFile(nodeId);
+      await this.publish();
+    } else if (action.value === "members") {
+      await this.addTypeMembers(nodeId);
+    } else if (action.value === "containingType") {
+      await this.addContainingType(nodeId);
     } else if (action.value === "bookmark") {
       const location = nodeLocation(node);
       if (location) {
@@ -1434,6 +1706,115 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 }
 
+interface SymbolPosition {
+  position: { line: number; character: number };
+}
+
+function findTypeMembers(
+  symbols: LspSymbol[],
+  typeName: string,
+  typeLine: number,
+): SymbolPosition[] {
+  const members: SymbolPosition[] = [];
+  const visit = (items: LspSymbol[]): void => {
+    for (const symbol of items) {
+      if ("location" in symbol) {
+        const info = symbol as SymbolInformation;
+        if (
+          isCallableSymbolKind(info.kind) &&
+          info.containerName?.split("::").at(-1) === typeName
+        ) {
+          members.push({ position: info.location.range.start });
+        }
+        continue;
+      }
+      const document = symbol as DocumentSymbol;
+      if (
+        isTypeSymbolKind(document.kind) &&
+        document.name === typeName &&
+        document.range.start.line <= typeLine &&
+        document.range.end.line >= typeLine
+      ) {
+        for (const child of document.children ?? []) {
+          if (isCallableSymbolKind(child.kind)) {
+            members.push({ position: child.selectionRange.start });
+          }
+        }
+      } else if (document.children) {
+        visit(document.children);
+      }
+    }
+  };
+  visit(symbols);
+  return uniqueSymbolPositions(members);
+}
+
+function findContainingType(
+  symbols: LspSymbol[],
+  line: number,
+): SymbolPosition | undefined {
+  let best: { position: SymbolPosition["position"]; span: number } | undefined;
+  const visit = (items: LspSymbol[]): void => {
+    for (const symbol of items) {
+      const range =
+        "location" in symbol
+          ? (symbol as SymbolInformation).location.range
+          : (symbol as DocumentSymbol).range;
+      if (
+        isTypeSymbolKind(symbol.kind) &&
+        range.start.line <= line &&
+        range.end.line >= line
+      ) {
+        const span = range.end.line - range.start.line;
+        if (!best || span < best.span) {
+          best = {
+            position:
+              "location" in symbol
+                ? (symbol as SymbolInformation).location.range.start
+                : (symbol as DocumentSymbol).selectionRange.start,
+            span,
+          };
+        }
+      }
+      if (!("location" in symbol) && symbol.children) {
+        visit(symbol.children);
+      }
+    }
+  };
+  visit(symbols);
+  return best ? { position: best.position } : undefined;
+}
+
+function uniqueSymbolPositions(
+  values: SymbolPosition[],
+): SymbolPosition[] {
+  const seen = new Set<string>();
+  return values.filter(({ position }) => {
+    const key = `${position.line}:${position.character}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function isCallableSymbolKind(kind: number): boolean {
+  return ([
+    SymbolKind.Function,
+    SymbolKind.Method,
+    SymbolKind.Constructor,
+  ] as number[]).includes(kind);
+}
+
+function isTypeSymbolKind(kind: number): boolean {
+  return ([
+    SymbolKind.Class,
+    SymbolKind.Struct,
+    SymbolKind.Interface,
+  ] as number[]).includes(kind);
+}
+
 function nodeLocation(
   node: GraphNode | undefined,
 ): vscode.Location | undefined {
@@ -1549,12 +1930,14 @@ function graphHtml(): string {
     .legend-call { color: var(--vscode-charts-blue); }
     .legend-inherits { color: var(--vscode-charts-purple); border-top-style: dashed; }
     .legend-includes { color: var(--vscode-charts-green); border-top-style: dotted; }
+    .legend-defines { color: var(--vscode-charts-orange); border-top-style: double; }
     #canvas { width: 100%; height: calc(100% - 36px); touch-action: none; cursor: grab; }
     #canvas.dragging { cursor: grabbing; }
     .edge { stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
     .edge.calls { stroke: var(--vscode-charts-blue); }
     .edge.inherits { stroke: var(--vscode-charts-purple); stroke-dasharray: 8 4; }
     .edge.includes { stroke: var(--vscode-charts-green); stroke-dasharray: 2 4; }
+    .edge.defines { stroke: var(--vscode-charts-orange); stroke-dasharray: 10 3 2 3; }
     .edge.recursive { stroke: var(--vscode-errorForeground); stroke-width: 2.6; }
     .node rect { fill: var(--vscode-editorWidget-background); stroke: var(--vscode-focusBorder); stroke-width: 1.5; rx: 6; }
     .node.root rect { stroke-width: 2.5; }
@@ -1582,7 +1965,8 @@ function graphHtml(): string {
     <button class="relation active" data-relation="calls">Call</button>
     <button class="relation active" data-relation="inherits">Inheritance</button>
     <button class="relation active" data-relation="includes">Include</button>
-    <span id="legend"><span><i class="legend-line legend-call"></i>Call</span><span><i class="legend-line legend-inherits"></i>Inheritance</span><span><i class="legend-line legend-includes"></i>Include</span></span>
+    <button class="relation active" data-relation="defines">Definition</button>
+    <span id="legend"><span><i class="legend-line legend-call"></i>Call</span><span><i class="legend-line legend-inherits"></i>Inheritance</span><span><i class="legend-line legend-includes"></i>Include</span><span><i class="legend-line legend-defines"></i>Definition</span></span>
     <span id="status" role="status" aria-live="polite">Waiting for graph…</span>
   </div>
   <svg id="canvas" role="application" aria-label="C Insight Relationship Graph">
@@ -1611,7 +1995,7 @@ function graphHtml(): string {
     let lastSlowRender = 0;
     const nodeElements = new Map();
     const edgeElements = new Map();
-    const enabled = new Set(['calls', 'inherits', 'includes']);
+    const enabled = new Set(['calls', 'inherits', 'includes', 'defines']);
     const resizeObserver = new ResizeObserver(() => render());
     resizeObserver.observe(svg);
     const applyTransform = () => viewport.setAttribute('transform', 'translate(' + tx + ' ' + ty + ') scale(' + scale + ')');

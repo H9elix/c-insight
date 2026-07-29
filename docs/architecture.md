@@ -86,6 +86,16 @@ host with a throttled, validated telemetry-free message and written only to
 the local C Insight output channel. Closing the panel cancels active work and
 releases both host graph maps and Webview render/layout caches.
 
+Mixed graphs use an explicit `defines` relation directed from the owning
+container to the defined entity: File → Symbol and Type → Member. Cross-domain
+actions are available only from the validated host-side node context menu.
+They attach normal file, type, or call nodes to the same bounded model, so each
+new node reuses its existing repository and expansion capabilities. Adding
+type members uses document symbols plus cancellable Call Hierarchy prepare
+requests; adding a containing type uses document nesting or a qualified
+out-of-class definition fallback. No cross-domain action runs on selection,
+render, filter, search, or export.
+
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing
 caches and the opaque clangd call items needed by follow-up requests. The graph

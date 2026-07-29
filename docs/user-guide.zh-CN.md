@@ -1,4 +1,4 @@
-# C Insight 0.12.6 使用手册
+# C Insight 0.12.7 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -623,7 +623,7 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.6 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
+0.12.7 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
 struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者都不可用时
 退回活动文件根，可继续展开 Includes 或 Included By。
 
@@ -638,9 +638,10 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - Collapse Branch：隐藏当前节点向远离根方向延伸的已加载分支；只改变画布
   可见性，不删除节点、关系或查询缓存。
 - Expand Branch：重新显示当前节点已折叠的分支，不会重新查询 clangd 或文件。
-- Call、Inheritance、Include：过滤对应边，三类 Adapter 均已接入。Call 使用
+- Call、Inheritance、Include、Definition：过滤对应边。Call 使用
   蓝色实线、Inheritance 使用紫色虚线、Include 使用绿色
-  点线；循环或递归关系使用错误色强调，工具栏中始终显示图例。
+  点线、Definition 使用橙色点划线；循环或递归关系使用错误色强调，工具栏中
+  始终显示图例。
 - Expand Callers：为当前选中函数加载直接调用者。
 - Expand Callees：为当前选中函数加载直接被调用函数。
 - 当根或选中节点为类型时，上述两个按钮自动显示为 Expand Supertypes 和
@@ -669,6 +670,24 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - `cycle`：节点参与当前已发现的递归或循环关系。
 - `unresolved`：Include 目标未能解析，不能继续展开。
 - `collapsed`：分支仅在画布中隐藏，数据仍然保留。
+
+综合关系操作位于节点右键菜单，且都需要用户明确执行：
+
+- `Add Defining File`：函数或类型节点添加其定义所在源码/头文件，生成
+  `File → Symbol` Definition 边。新增文件节点可继续 Expand Includes 或
+  Expand Included By。
+- `Add Type Members`：类型节点读取已知文档符号，并通过 clangd 为可调用成员
+  准备 Call Hierarchy 节点，生成 `Type → Member` Definition 边。新增成员可
+  继续 Expand Callers/Callees；可用 Stop 取消，已经加入的成员继续保留。
+- `Add Containing Type`：函数/方法节点添加包含它的 C++ 类型，生成
+  `Type → Member` Definition 边。对于类外实现，会尝试从 `Type::method`
+  限定名定位类型。
+
+由此可在一张图中从函数连接到文件、从文件展开 Include、从方法连接到类型、
+再从类型展开继承或其他成员。跨关系操作不会随节点选择、普通展开、搜索或导出
+自动执行，并统一受 `maximumDepth`、`maximumNodes` 和 `maximumEdges` 限制。
+Definition 过滤只隐藏归属边，不删除其两端节点；折叠、搜索、统计和导出继续
+适用于混合图，导出格式使用 `defines` 作为该关系的稳定名称。
 
 状态栏以“可见数/已加载总数”显示节点与边。例如 `12/20 nodes · 9/16
 edges` 表示当前因关系过滤或分支折叠只显示部分内容。关系过滤不会删除数据，

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.7
+
+- Added explicit Definition ownership edges so one graph can connect source
+  files, C++ types, and callable symbols.
+- Added Add Defining File for function/type nodes; the resulting file node can
+  immediately expand Includes and Included By.
+- Added cancellable Add Type Members; loaded callable members can immediately
+  expand Callers and Callees.
+- Added Add Containing Type for callable nodes, including a qualified
+  out-of-class definition fallback.
+- Added a Definition filter, orange dash-dot edge style, legend entry, and
+  export support.
+- Kept all cross-relation growth explicit and bounded by the existing graph
+  node, edge, and depth limits.
+
 ## 0.12.6
 
 - Coalesced graph mutations, pan/zoom, and resize work to one render per

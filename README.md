@@ -17,7 +17,8 @@ dedicated activity-bar container.
 - Forward Includes and reverse Included By trees with compile-command-aware
   header resolution, lazy expansion, search, cycle detection, and export
 - Editor-area Call, C++ Type, and File Include Relationship Graph with bounded
-  multi-level expansion, semantic layered layout, search, bookmarks, export,
+  multi-level and explicit cross-relation expansion, semantic layered layout,
+  search, bookmarks, export,
   stable pan/zoom, filtering, branch collapse, state labels, keyboard access,
   viewport-virtualized SVG rendering, preview, and editor navigation
 - Cursor-following context with symbol identity, type/signature, definition,
@@ -101,6 +102,10 @@ and safety-limit markers.
     file root. Expand Includes or Included By from any resolved file node.
     Opening the graph and forward-only expansion do not build the reverse
     workspace index.
+15. In any Relationship Graph, right-click a function/type to add its defining
+    file, a type to add callable members, or a callable to add its containing
+    type. Definition edges connect the domains; the new nodes retain their
+    normal Call, Inheritance, or Include expansion actions.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has
