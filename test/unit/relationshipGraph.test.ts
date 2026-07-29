@@ -76,4 +76,33 @@ describe("relationship graph model", () => {
     assert.match(text, /Root: caller/);
     assert.match(text, /caller.*--calls--> callee/);
   });
+
+  it("keeps inheritance directed from supertype to subtype", () => {
+    const base = {
+      ...node("Base"),
+      id: graphNodeId("type", "file:///types.hpp", 1, "Base"),
+      kind: "type" as const,
+      capabilities: ["inherits" as const],
+    };
+    const derived = {
+      ...node("Derived"),
+      id: graphNodeId("type", "file:///types.hpp", 5, "Derived"),
+      kind: "type" as const,
+      capabilities: ["inherits" as const],
+    };
+    const graph = new RelationshipGraphModel(10, 10);
+    graph.replaceRoot(derived);
+    graph.addNode(base);
+    graph.addEdge({
+      id: graphEdgeId("inherits", base.id, derived.id),
+      from: base.id,
+      to: derived.id,
+      relation: "inherits",
+      states: [],
+    });
+    assert.match(
+      renderGraphMermaid(graph.snapshot()),
+      /n1 -->\|inherits\| n0/,
+    );
+  });
 });

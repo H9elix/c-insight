@@ -154,6 +154,33 @@ export async function run(): Promise<void> {
     "Relationship Graph did not open with Calculator::add as its call root",
   );
 
+  const headerUri = vscode.Uri.joinPath(
+    vscode.workspace.workspaceFolders![0].uri,
+    "include",
+    "calculator.hpp",
+  );
+  const header = await vscode.workspace.openTextDocument(headerUri);
+  const headerEditor = await vscode.window.showTextDocument(header);
+  const calculatorLine = header.lineAt(7).text;
+  const calculatorColumn = calculatorLine.indexOf("Calculator");
+  assert.ok(calculatorColumn >= 0, "Could not find Calculator type");
+  const typePosition = new vscode.Position(7, calculatorColumn + 1);
+  headerEditor.selection = new vscode.Selection(typePosition, typePosition);
+  await vscode.commands.executeCommand("cInsight.relationshipGraph.show");
+  await waitFor(
+    async () =>
+      vscode.window.tabGroups.all
+        .flatMap((group) => group.tabs)
+        .some(
+          (tab) =>
+            tab.label.startsWith("Relationship Graph") &&
+            tab.label.includes("Calculator"),
+        )
+        ? true
+        : undefined,
+    "Relationship Graph did not open with Calculator as its type root",
+  );
+
   const firstDefinition = definitions[0];
   const definitionLocation =
     firstDefinition instanceof vscode.Location

@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
-import {
-  SymbolKind,
-  TypeHierarchyItem,
-} from "vscode-languageclient/node";
+import { SymbolKind, TypeHierarchyItem } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
+import {
+  TypeHierarchyDirection,
+  TypeHierarchyRepository,
+} from "./typeHierarchyRepository";
 import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
@@ -20,7 +21,7 @@ import {
 } from "../utils/hierarchyExport";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
 
-export type TypeHierarchyDirection = "supertypes" | "subtypes";
+export type { TypeHierarchyDirection } from "./typeHierarchyRepository";
 
 export class TypeHierarchyExplorer implements vscode.Disposable {
   readonly supertypes = new MutableTreeProvider();
@@ -29,10 +30,6 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     TypeHierarchyDirection,
     vscode.TreeView<TreeNode>
   >();
-  private readonly caches = {
-    supertypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
-    subtypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
-  };
   private readonly treeState = {
     supertypes: new HierarchyTreeState(),
     subtypes: new HierarchyTreeState(),
@@ -41,7 +38,10 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   private rootName?: string;
   private stale = false;
 
-  constructor(private readonly analysis: AnalysisService) {
+  constructor(
+    private readonly analysis: AnalysisService,
+    private readonly repository: TypeHierarchyRepository,
+  ) {
     this.publishEmpty();
   }
 
@@ -65,7 +65,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       },
     ]);
     try {
-      const roots = await this.analysis.prepareTypeHierarchy(uri, position);
+      const roots = await this.repository.prepare(uri, position);
       if (roots.length === 0) {
         this.provider(direction).setRoots([
           {
@@ -193,8 +193,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
 
   invalidate(): void {
     this.stopExpansion();
-    this.caches.supertypes.clear();
-    this.caches.subtypes.clear();
+    this.repository.invalidate();
     this.treeState.supertypes.clearSeen();
     this.treeState.subtypes.clearSeen();
     if (this.rootName) {
@@ -209,8 +208,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   }
 
   private setRoots(items: TypeHierarchyItem[]): void {
-    this.caches.supertypes.clear();
-    this.caches.subtypes.clear();
+    this.repository.invalidate();
     this.stale = false;
     this.rootName = items[0]?.name;
     for (const direction of ["supertypes", "subtypes"] as const) {
@@ -282,21 +280,11 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     item: TypeHierarchyItem,
     direction: TypeHierarchyDirection,
   ): Promise<TypeHierarchyItem[]> {
-    const key = typeHierarchyKey(item);
-    let request = this.caches[direction].get(key);
-    if (!request) {
-      request =
-        direction === "supertypes"
-          ? this.analysis.typeSupertypes(item, this.cancellation?.token)
-          : this.analysis.typeSubtypes(item, this.cancellation?.token);
-      request.catch(() => {
-        if (this.caches[direction].get(key) === request) {
-          this.caches[direction].delete(key);
-        }
-      });
-      this.caches[direction].set(key, request);
-    }
-    return request;
+    return this.repository.related(
+      item,
+      direction,
+      this.cancellation?.token,
+    );
   }
 
   private async expand(

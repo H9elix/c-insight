@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.3
+
+- Added C++ Type Graph roots with on-demand Supertypes and Subtypes expansion.
+- Added a shared Type Hierarchy repository so tree views and the graph reuse
+  identical cached clangd requests.
+- Added multi-level Type Graph expansion, search, bookmarks, navigation, and
+  Text/JSON/Mermaid export through the existing graph interactions.
+- Standardized inheritance edges as Supertype → Subtype and verified both
+  function and type roots in the VS Code end-to-end suite.
+
 ## 0.12.2
 
 - Added cancellable multi-level Call Graph expansion from any selected node,

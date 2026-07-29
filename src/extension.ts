@@ -16,6 +16,7 @@ import {
   WorkspaceSessionSnapshot,
 } from "./session/workspaceSession";
 import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
+import { TypeHierarchyRepository } from "./typeHierarchy/typeHierarchyRepository";
 import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExplorer";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
@@ -41,11 +42,13 @@ export async function activate(
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
-  const typeHierarchy = new TypeHierarchyExplorer(analysis);
+  const typeRepository = new TypeHierarchyRepository(analysis);
+  const typeHierarchy = new TypeHierarchyExplorer(analysis, typeRepository);
   const includeHierarchy = new IncludeHierarchyExplorer();
   const relationshipGraph = new RelationshipGraphPanel(
     analysis,
     callRepository,
+    typeRepository,
     bookmarks,
   );
   const views = new ViewRegistry(
@@ -346,6 +349,7 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.typeHierarchy")) {
         typeHierarchy.invalidate();
+        relationshipGraph.markStale("type hierarchy configuration changed");
       }
       if (event.affectsConfiguration("cInsight.includeHierarchy")) {
         includeHierarchy.invalidate();
