@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.0
+
+- Added the Relationship Graph foundation as an editor-area WebviewPanel.
+- Added a pure, bounded graph model with stable semantic node/edge IDs,
+  duplicate merging, revisions, stale state, node/edge budgets, and
+  JSON/Mermaid export primitives.
+- Added a strict nonce-based CSP and validated Webview-to-host message
+  protocol; the Webview renders data but never reads files or calls clangd.
+- Added native SVG rendering with pan, zoom, Fit, Reset Layout, relationship
+  filters, selection, and double-click editor navigation.
+- Added **Show Relationship Graph** for the active local C/C++ file. This
+  foundation release creates a file root only and deliberately performs no
+  Call, Type, Include, or Included By queries yet.
+- Added `cInsight.relationshipGraph.defaultDepth`, `maximumDepth`,
+  `maximumNodes`, `maximumEdges`, `layout`, and `includeSystemHeaders`.
+
 ## 0.11.10
 
 - Builds the Included By reverse index in isolated temporary maps and publishes

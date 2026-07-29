@@ -122,6 +122,7 @@ export async function run(): Promise<void> {
     "cInsight.includedBy.exportText",
     "cInsight.includedBy.exportJson",
     "cInsight.includedBy.exportMermaid",
+    "cInsight.relationshipGraph.show",
     "cInsight.searchSymbols",
     "cInsight.symbolSearch.refresh",
     "cInsight.symbolSearch.clear",
@@ -134,6 +135,17 @@ export async function run(): Promise<void> {
   ]) {
     assert.ok(commands.includes(command), `${command} was not registered`);
   }
+
+  await vscode.commands.executeCommand("cInsight.relationshipGraph.show");
+  await waitFor(
+    async () =>
+      vscode.window.tabGroups.all
+        .flatMap((group) => group.tabs)
+        .some((tab) => tab.label.startsWith("Relationship Graph"))
+        ? true
+        : undefined,
+    "Relationship Graph panel did not open",
+  );
 
   const firstDefinition = definitions[0];
   const definitionLocation =

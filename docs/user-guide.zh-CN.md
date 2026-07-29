@@ -1,4 +1,4 @@
-# C Insight 0.11.10 使用手册
+# C Insight 0.12.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -619,6 +619,27 @@ unresolved，并检测 cycle 和 duplicate。系统头默认不显示，以避�
 Includes/Included By 当前不写入 Workspace Session，重开工作区后需要重新
 查询；因此不会仅因会话恢复就在后台建立 Included By 反向索引。
 
+### 4.14 Relationship Graph
+
+在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
+Graph**，会在编辑器区域旁边打开综合关系图标签页。0.12.0 是图模型与安全画布
+基础版本：当前只把活动文件建立为根节点，尚不查询 Call、Type、Include 或
+Included By 关系。
+
+当前可用操作：
+
+- 鼠标滚轮缩放，拖动画布平移。
+- Fit：把当前图适配到可视区域。
+- Reset Layout：恢复默认缩放和位置。
+- Call、Inheritance、Include：过滤对应边；基础版本尚无关系边。
+- 单击节点：更新 Code Preview。
+- 双击节点：在主编辑器打开文件。
+- 源码、clangd、编译数据库或图配置变化后显示 stale。
+
+图使用有严格 CSP 的 SVG Webview。文件读取、位置验证和导航都在扩展宿主中
+执行；Webview 不读取本地文件，也不直接请求 clangd。隐藏或未打开图时不会
+产生关系查询，打开基础图也不会触发 Included By 反向索引扫描。
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -840,6 +861,21 @@ C Insight 默认管理：
 
 修改这些配置会清除 include 解析及反向索引缓存，并将当前结果标记为 stale。
 `workspaceFileLimit` 是安全上限；达到上限时 Included By 结果可能不完整。
+
+### 9.12 Relationship Graph
+
+| 配置 | 类型 | 默认值 | 范围/可用值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.relationshipGraph.defaultDepth` | number | `1` | 0–5 | 新图根计划加载的初始关系层数；基础版本尚不执行关系查询 |
+| `cInsight.relationshipGraph.maximumDepth` | number | `10` | 1–50 | 图中单条关系路径允许的最大深度 |
+| `cInsight.relationshipGraph.maximumNodes` | number | `500` | 50–10000 | 当前图保留的最大语义节点数 |
+| `cInsight.relationshipGraph.maximumEdges` | number | `1000` | 100–50000 | 当前图保留的最大语义边数 |
+| `cInsight.relationshipGraph.layout` | string | `"layered"` | `"layered"` | 图布局策略；基础版本仅提供分层布局 |
+| `cInsight.relationshipGraph.includeSystemHeaders` | boolean | `false` | `true` / `false` | Include Adapter 接入后是否允许系统头进入图 |
+
+这些配置已经建立资源边界，但 `defaultDepth`、`maximumDepth` 和系统头开关要到
+后续关系 Adapter 接入后才参与查询。`maximumNodes` 和 `maximumEdges` 已由当前
+图模型强制执行。
 
 ## 10. 配置示例
 

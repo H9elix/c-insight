@@ -58,6 +58,17 @@ common export model. Text, JSON, and Mermaid rendering is shared; each caller
 supplies only relation metadata and whether semantic edges follow or reverse
 the visual parent-child direction.
 
+Relationship Graph has a separate bounded semantic model keyed by stable
+content-derived node and edge IDs. The extension host owns this model and all
+file/navigation authority. Its editor-area WebviewPanel receives immutable
+snapshots and renders native SVG under a nonce-restricted CSP. Incoming
+messages contain only a discriminated action and node ID; the host validates
+the ID against its current model before previewing or opening a file.
+
+The 0.12.0 foundation creates only an active-file root. It does not yet call
+Call/Type Hierarchy or Include adapters, and opening it cannot build the
+Included By reverse index.
+
 Include Hierarchy is local and does not require a non-standard clangd method.
 The forward tree parses directives lazily and resolves them with the active
 compilation database's `-iquote`, `-I`, and `-isystem` paths. The reverse tree

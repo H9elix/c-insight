@@ -16,6 +16,7 @@ import {
 } from "./session/workspaceSession";
 import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
 import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExplorer";
+import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
 
 let manager: ClangdManager | undefined;
@@ -40,6 +41,7 @@ export async function activate(
   const symbolSearch = new SymbolSearchExplorer(analysis);
   const typeHierarchy = new TypeHierarchyExplorer(analysis);
   const includeHierarchy = new IncludeHierarchyExplorer();
+  const relationshipGraph = new RelationshipGraphPanel();
   const views = new ViewRegistry(
     analysis,
     navigationHistory,
@@ -155,6 +157,7 @@ export async function activate(
         const wasActive = projectDiagnostics.usesCompilationDatabase(uri);
         projectDiagnostics.invalidateCompilationDatabase();
         includeHierarchy.invalidate();
+        relationshipGraph.markStale("compilation database changed");
         await projectDiagnostics.refresh();
         const isActive = projectDiagnostics.usesCompilationDatabase(uri);
         if (!wasActive && !isActive) {
@@ -192,6 +195,7 @@ export async function activate(
     symbolSearch,
     typeHierarchy,
     includeHierarchy,
+    relationshipGraph,
     workspaceSession,
     controller,
     projectDiagnostics,
@@ -215,6 +219,25 @@ export async function activate(
     () => restoreSnapshot(),
   );
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cInsight.relationshipGraph.show",
+      () => {
+        const editor = vscode.window.activeTextEditor;
+        if (
+          !editor ||
+          editor.document.uri.scheme !== "file" ||
+          !isCppDocument(editor.document)
+        ) {
+          void vscode.window.showWarningMessage(
+            "C Insight: Open and activate a local C/C++ source or header file first.",
+          );
+          return;
+        }
+        relationshipGraph.showFile(editor.document.uri);
+      },
+    ),
+  );
+  context.subscriptions.push(
     manager.onDidChangeState((state) => {
       void projectDiagnostics.refresh();
       if (state === "restarting" || state === "starting") {
@@ -222,6 +245,7 @@ export async function activate(
         views.invalidateCallHierarchy();
         typeHierarchy.invalidate();
         includeHierarchy.invalidate();
+        relationshipGraph.markStale("clangd restarted");
       }
     }),
     manager.onDidChangeIndexProgress((progress) => {
@@ -270,6 +294,7 @@ export async function activate(
     vscode.workspace.onDidChangeTextDocument((event) => {
       bookmarks.handleDocumentChange(event.document);
       includeHierarchy.handleDocumentChange(event.document);
+      relationshipGraph.markStale("source changed");
       if (isCppDocument(event.document)) {
         typeHierarchy.invalidate();
       }
@@ -301,6 +326,9 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.includeHierarchy")) {
         includeHierarchy.invalidate();
+      }
+      if (event.affectsConfiguration("cInsight.relationshipGraph")) {
+        relationshipGraph.markStale("relationship graph configuration changed");
       }
       if (event.affectsConfiguration("cInsight.history")) {
         navigationHistory.configurationChanged();
