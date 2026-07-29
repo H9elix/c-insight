@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.7",
+  "version": "0.12.8",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1243,6 +1243,18 @@
           "type": "boolean",
           "default": true,
           "description": "Re-query and restore the previous Callers/Callees root and loaded depth."
+        },
+        "cInsight.session.restoreRelationshipGraph": {
+          "type": "boolean",
+          "default": true,
+          "description": "Restore the previous Relationship Graph as a static snapshot without issuing semantic or include queries."
+        },
+        "cInsight.session.relationshipGraphMaximumSnapshotNodes": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 50,
+          "maximum": 2000,
+          "description": "Maximum Relationship Graph nodes stored in a workspace session; larger graphs degrade to a root-only snapshot."
         },
         "cInsight.session.maximumAgeDays": {
           "type": "number",

@@ -190,4 +190,20 @@ describe("relationship graph model", () => {
       "Large graph construction exceeded the 2 second regression budget",
     );
   });
+
+  it("restores a static snapshot without retaining stale state", () => {
+    const root = node("restored");
+    const graph = new RelationshipGraphModel(10, 10);
+    graph.restore({
+      schemaVersion: 1,
+      rootId: root.id,
+      revision: 7,
+      staleReason: "old process",
+      nodes: [root],
+      edges: [],
+    });
+    assert.equal(graph.snapshot().rootId, root.id);
+    assert.equal(graph.snapshot().revision, 7);
+    assert.equal(graph.snapshot().staleReason, undefined);
+  });
 });

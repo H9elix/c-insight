@@ -30,7 +30,8 @@ dedicated activity-bar container.
 - Workspace-persistent grouped bookmarks with filtering, sorting, JSON
   import/export, group management, and stale relocation
 - Workspace-scoped browsing-session restore for history, preview, reference
-  filters, symbol search, and revalidated call-hierarchy depth
+  filters, symbol search, revalidated call-hierarchy depth, and static
+  Relationship Graph snapshots
 - `compile_commands.json`, `.clangd`, and fallback flags
 - clangd lifecycle, status, logs, restart, and provider-conflict warning
 - Large-workspace request cancellation, staged context loading, in-flight

@@ -96,6 +96,16 @@ requests; adding a containing type uses document nesting or a qualified
 out-of-class definition fallback. No cross-domain action runs on selection,
 render, filter, search, or export.
 
+Workspace Session stores Relationship Graph in an optional schema-versioned
+section capped independently from the live graph. The host snapshot contains
+semantic nodes/edges; the Webview reports selection, enabled relations,
+collapsed IDs, and viewport through a validated, debounced message. Restore
+checks the root URI and reconstructs only the static model and canvas. Opaque
+Call/Type hierarchy items are intentionally excluded and prepared lazily on
+the first explicit expansion of a restored node. Oversized snapshots degrade
+to the root, while malformed graph sections are discarded independently from
+the enclosing workspace session.
+
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing
 caches and the opaque clangd call items needed by follow-up requests. The graph
