@@ -1,4 +1,4 @@
-# C Insight 0.12.4 使用手册
+# C Insight 0.12.5 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -623,7 +623,7 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.4 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
+0.12.5 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
 struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者都不可用时
 退回活动文件根，可继续展开 Includes 或 Included By。
 
@@ -635,8 +635,12 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - 鼠标滚轮缩放，拖动画布平移。
 - Fit：把当前图适配到可视区域。
 - Reset Layout：恢复默认缩放和位置。
-- Call、Inheritance、Include：过滤对应边；当前已有 Call 边，另外两类 Adapter
-  尚未接入。
+- Collapse Branch：隐藏当前节点向远离根方向延伸的已加载分支；只改变画布
+  可见性，不删除节点、关系或查询缓存。
+- Expand Branch：重新显示当前节点已折叠的分支，不会重新查询 clangd 或文件。
+- Call、Inheritance、Include：过滤对应边，三类 Adapter 均已接入。Call 使用
+  蓝色实线、Inheritance 使用紫色虚线、Include 使用绿色
+  点线；循环或递归关系使用错误色强调，工具栏中始终显示图例。
 - Expand Callers：为当前选中函数加载直接调用者。
 - Expand Callees：为当前选中函数加载直接被调用函数。
 - 当根或选中节点为类型时，上述两个按钮自动显示为 Expand Supertypes 和
@@ -656,6 +660,19 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - 右键节点：可展开 Callers/Callees、展开到指定深度、加入 Bookmarks、打开位置
   或把节点居中。
 - 源码、clangd、编译数据库或图配置变化后显示 stale。
+
+节点底部状态：
+
+- `expandable`：可以继续查询关系。
+- `expanded`：至少一个方向已经查询；再次展开会使用已加载结果或共享缓存。
+- `duplicate`：相同语义实体从其他路径再次到达并合并到该节点。
+- `cycle`：节点参与当前已发现的递归或循环关系。
+- `unresolved`：Include 目标未能解析，不能继续展开。
+- `collapsed`：分支仅在画布中隐藏，数据仍然保留。
+
+状态栏以“可见数/已加载总数”显示节点与边。例如 `12/20 nodes · 9/16
+edges` 表示当前因关系过滤或分支折叠只显示部分内容。关系过滤不会删除数据，
+导出仍针对完整的已加载图。
 
 图使用有严格 CSP 的 SVG Webview。文件读取、位置验证和导航都在扩展宿主中
 执行；Webview 不读取本地文件，也不直接请求 clangd。隐藏或未打开图时不会
@@ -679,6 +696,19 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 打开文件图、展开 Includes、搜索、过滤和导出都不会建立 Included By 反向索引；
 只有明确执行 Expand Included By，或从文件节点明确执行双向 Expand to Depth，
 才会扫描工作区。取消扫描不会发布不完整索引。
+
+键盘操作：
+
+- `Tab`：依次进入工具栏按钮和图节点。
+- 方向键：从当前节点移动到空间上最近的对应方向节点。
+- `Enter`：在 Code Preview 预览当前节点。
+- `Shift+Enter`：在主编辑器打开当前节点。
+- `Space`：折叠或展开当前节点的已加载分支。
+- `Shift+F10`：打开节点操作菜单。
+- 画布聚焦时按 `F`：Fit；`+` / `-`：缩放。
+
+建立新图根时会自动执行一次 Fit。后续展开不会自动改变缩放和平移，已有节点
+位置也尽量保持不变；需要重新查看全图时手动执行 Fit。
 
 ## 5. 底部可靠性状态栏
 

@@ -107,6 +107,22 @@ export class RelationshipGraphModel {
     return this.nodes.get(id);
   }
 
+  addNodeState(id: string, state: string): boolean {
+    const node = this.nodes.get(id);
+    if (!node) {
+      return false;
+    }
+    if (node.states.includes(state)) {
+      return true;
+    }
+    this.nodes.set(id, {
+      ...node,
+      states: [...node.states, state],
+    });
+    this.revision += 1;
+    return true;
+  }
+
   hasPath(from: string, to: string): boolean {
     const queue = [from];
     const visited = new Set<string>();

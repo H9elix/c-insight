@@ -18,7 +18,8 @@ dedicated activity-bar container.
   header resolution, lazy expansion, search, cycle detection, and export
 - Editor-area Call, C++ Type, and File Include Relationship Graph with bounded
   multi-level expansion, semantic layered layout, search, bookmarks, export,
-  pan/zoom, filtering, preview, and editor navigation
+  stable pan/zoom, filtering, branch collapse, state labels, keyboard access,
+  preview, and editor navigation
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows

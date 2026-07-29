@@ -498,6 +498,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (!token.isCancellationRequested) {
       this.expandedCalls.add(key);
+      this.model.addNodeState(nodeId, `expanded-${direction}`);
     }
     return neighbors;
   }
@@ -619,6 +620,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (!token.isCancellationRequested) {
       this.expandedTypes.add(key);
+      this.model.addNodeState(nodeId, `expanded-${direction}`);
     }
     return neighbors;
   }
@@ -797,6 +799,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (!token.isCancellationRequested) {
       this.expandedIncludes.add(key);
+      this.model.addNodeState(nodeId, `expanded-${direction}`);
     }
     return neighbors;
   }
@@ -969,6 +972,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     const line = zeroBasedLine === undefined ? undefined : zeroBasedLine + 1;
     const cycle = this.model.hasPath(toGraph.id, fromGraph.id);
     const direct = fromGraph.id === toGraph.id;
+    if (direct || cycle) {
+      this.model.addNodeState(
+        neighborId,
+        direct ? "direct-recursion" : "indirect-recursion",
+      );
+    }
     this.model.addEdge({
       id: graphEdgeId(
         "calls",
@@ -1021,6 +1030,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     );
     const cycle = this.model.hasPath(subGraph.id, superGraph.id);
     const direct = superGraph.id === subGraph.id;
+    if (direct || cycle) {
+      this.model.addNodeState(
+        neighborId,
+        direct ? "direct-recursion" : "indirect-recursion",
+      );
+    }
     this.model.addEdge({
       id: graphEdgeId("inherits", superGraph.id, subGraph.id),
       from: superGraph.id,
@@ -1063,6 +1078,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     const line = zeroBasedLine + 1;
     const cycle = this.model.hasPath(targetGraph.id, sourceGraph.id);
     const direct = sourceGraph.id === targetGraph.id;
+    if (direct || cycle) {
+      this.model.addNodeState(
+        neighborId,
+        direct ? "direct-cycle" : "indirect-cycle",
+      );
+    }
     this.model.addEdge({
       id: graphEdgeId(
         "includes",
@@ -1481,21 +1502,34 @@ function graphHtml(): string {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
   <style nonce="${nonce}">
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; color: var(--vscode-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
-    #toolbar { height: 36px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); overflow-x: auto; }
+    #toolbar { min-height: 36px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); overflow-x: auto; }
     #toolbar button { white-space: nowrap; }
     button { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); border: 0; padding: 4px 9px; cursor: pointer; }
     button:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    button:disabled { opacity: .45; cursor: default; }
     .relation { opacity: .65; }
     .relation.active { opacity: 1; outline: 1px solid var(--vscode-focusBorder); }
     #status { margin-left: auto; color: var(--vscode-descriptionForeground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #legend { display: flex; gap: 8px; align-items: center; white-space: nowrap; font-size: 11px; color: var(--vscode-descriptionForeground); }
+    .legend-line { display: inline-block; width: 22px; border-top: 2px solid; margin-right: 3px; vertical-align: middle; }
+    .legend-call { color: var(--vscode-charts-blue); }
+    .legend-inherits { color: var(--vscode-charts-purple); border-top-style: dashed; }
+    .legend-includes { color: var(--vscode-charts-green); border-top-style: dotted; }
     #canvas { width: 100%; height: calc(100% - 36px); touch-action: none; cursor: grab; }
     #canvas.dragging { cursor: grabbing; }
-    .edge { stroke: var(--vscode-descriptionForeground); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .edge { stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+    .edge.calls { stroke: var(--vscode-charts-blue); }
+    .edge.inherits { stroke: var(--vscode-charts-purple); stroke-dasharray: 8 4; }
+    .edge.includes { stroke: var(--vscode-charts-green); stroke-dasharray: 2 4; }
+    .edge.recursive { stroke: var(--vscode-errorForeground); stroke-width: 2.6; }
     .node rect { fill: var(--vscode-editorWidget-background); stroke: var(--vscode-focusBorder); stroke-width: 1.5; rx: 6; }
     .node.root rect { stroke-width: 2.5; }
     .node.selected rect { fill: var(--vscode-list-activeSelectionBackground); }
     .node text { fill: var(--vscode-editorWidget-foreground); pointer-events: none; font-size: 13px; }
     .node .detail { fill: var(--vscode-descriptionForeground); font-size: 11px; }
+    .node .state { fill: var(--vscode-charts-yellow); font-size: 10px; }
+    .node.unresolved rect { stroke: var(--vscode-errorForeground); stroke-dasharray: 4 3; }
+    .node.duplicate rect { stroke-dasharray: 5 3; }
     #empty { position: absolute; inset: 36px 0 0 0; display: grid; place-items: center; color: var(--vscode-descriptionForeground); pointer-events: none; }
   </style>
 </head>
@@ -1509,10 +1543,13 @@ function graphHtml(): string {
     <button id="export">Export</button>
     <button id="fit">Fit</button>
     <button id="reset">Reset Layout</button>
+    <button id="collapse">Collapse Branch</button>
+    <button id="uncollapse">Expand Branch</button>
     <button class="relation active" data-relation="calls">Call</button>
     <button class="relation active" data-relation="inherits">Inheritance</button>
     <button class="relation active" data-relation="includes">Include</button>
-    <span id="status">Waiting for graph…</span>
+    <span id="legend"><span><i class="legend-line legend-call"></i>Call</span><span><i class="legend-line legend-inherits"></i>Inheritance</span><span><i class="legend-line legend-includes"></i>Include</span></span>
+    <span id="status" role="status" aria-live="polite">Waiting for graph…</span>
   </div>
   <svg id="canvas" role="application" aria-label="C Insight Relationship Graph">
     <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="context-stroke"/></marker></defs>
@@ -1532,27 +1569,39 @@ function graphHtml(): string {
     let scale = 1, tx = 80, ty = 80, dragging = false, lastX = 0, lastY = 0;
     let selected;
     let positions = new Map();
+    let positionCache = new Map();
+    let collapsed = new Set();
+    let currentRoot;
     const enabled = new Set(['calls', 'inherits', 'includes']);
     const applyTransform = () => viewport.setAttribute('transform', 'translate(' + tx + ' ' + ty + ') scale(' + scale + ')');
     const element = (name, attrs = {}) => { const value = document.createElementNS('http://www.w3.org/2000/svg', name); for (const [key, item] of Object.entries(attrs)) value.setAttribute(key, item); return value; };
     function render() {
       edgeLayer.replaceChildren(); nodeLayer.replaceChildren();
-      empty.style.display = graph.nodes.length ? 'none' : 'grid';
-      positions = layeredPositions(graph);
-      graph.edges.filter(edge => enabled.has(edge.relation)).forEach(edge => {
+      const visible = visibleGraph();
+      empty.style.display = visible.nodes.length ? 'none' : 'grid';
+      positions = layeredPositions(visible);
+      const visibleEdges = visible.edges.filter(edge => enabled.has(edge.relation));
+      visibleEdges.forEach(edge => {
         const from = positions.get(edge.from), to = positions.get(edge.to);
         if (!from || !to) return;
-        edgeLayer.append(element('path', { class: 'edge', d: 'M' + (from.x + 170) + ',' + (from.y + 34) + ' L' + to.x + ',' + (to.y + 34) }));
+        const recursive = edge.states?.some(state => state.includes('recursion') || state.includes('cycle'));
+        const path = element('path', { class: 'edge ' + edge.relation + (recursive ? ' recursive' : ''), d: 'M' + (from.x + 190) + ',' + (from.y + 40) + ' L' + to.x + ',' + (to.y + 40) });
+        const tooltip = element('title'); tooltip.textContent = edge.relation + (edge.states?.length ? ' · ' + edge.states.join(' · ') : ''); path.append(tooltip);
+        edgeLayer.append(path);
       });
-      graph.nodes.forEach(node => {
+      visible.nodes.forEach(node => {
         const point = positions.get(node.id);
-        const group = element('g', { class: 'node' + (node.id === graph.rootId ? ' root' : '') + (node.id === selected ? ' selected' : ''), transform: 'translate(' + point.x + ' ' + point.y + ')', tabindex: '0' });
-        group.append(element('rect', { width: '170', height: '68' }));
+        const classes = ['node', node.id === graph.rootId ? 'root' : '', node.id === selected ? 'selected' : '', node.states?.includes('duplicate') ? 'duplicate' : '', node.kind === 'unresolved' ? 'unresolved' : ''].filter(Boolean).join(' ');
+        const group = element('g', { class: classes, transform: 'translate(' + point.x + ' ' + point.y + ')', tabindex: '0', role: 'button', 'data-node-id': node.id, 'aria-label': node.name + ', ' + node.kind + (node.states?.length ? ', ' + node.states.join(', ') : '') });
+        group.append(element('rect', { width: '190', height: '80' }));
         const title = element('text', { x: '10', y: '27' }); title.textContent = node.name; group.append(title);
         const detail = element('text', { class: 'detail', x: '10', y: '49' }); detail.textContent = node.detail || node.kind; group.append(detail);
+        const state = element('text', { class: 'state', x: '10', y: '68' }); state.textContent = nodeStateLabel(node); group.append(state);
         group.addEventListener('click', event => { event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'selectNode', nodeId: node.id }); });
         group.addEventListener('dblclick', event => { event.stopPropagation(); vscode.postMessage({ type: 'openNode', nodeId: node.id }); });
         group.addEventListener('contextmenu', event => { event.preventDefault(); event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'nodeContext', nodeId: node.id }); });
+        group.addEventListener('focus', () => { selected = node.id; });
+        group.addEventListener('keydown', event => handleNodeKey(event, node.id));
         nodeLayer.append(group);
       });
       const selectedNode = graph.nodes.find(node => node.id === selected);
@@ -1563,25 +1612,73 @@ function graphHtml(): string {
       document.getElementById('callers').disabled = !selectedNode?.capabilities?.length;
       document.getElementById('callees').disabled = !selectedNode?.capabilities?.length;
       document.getElementById('depth').disabled = !selectedNode?.capabilities?.length;
-      status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : operationStatus?.message || graph.nodes.length + ' nodes · ' + graph.edges.length + ' edges' + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
+      document.getElementById('collapse').disabled = !selected || collapsed.has(selected);
+      document.getElementById('uncollapse').disabled = !selected || !collapsed.has(selected);
+      const statistics = visible.nodes.length + '/' + graph.nodes.length + ' nodes · ' + visibleEdges.length + '/' + graph.edges.length + ' edges' + (collapsed.size ? ' · ' + collapsed.size + ' collapsed' : '');
+      status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : operationStatus?.message ? operationStatus.message + ' · ' + statistics : statistics + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
       status.style.color = operationStatus?.kind === 'error' ? 'var(--vscode-errorForeground)' : operationStatus?.kind === 'warning' ? 'var(--vscode-editorWarning-foreground)' : 'var(--vscode-descriptionForeground)';
       applyTransform();
     }
-    function layeredPositions(value) {
+    function nodeStateLabel(node) {
+      const values = [];
+      if (collapsed.has(node.id)) values.push('collapsed');
+      if (node.states?.some(state => state.startsWith('expanded-'))) values.push('expanded');
+      if (node.states?.includes('duplicate')) values.push('duplicate');
+      if (node.states?.includes('unresolved')) values.push('unresolved');
+      if (node.states?.some(state => state.includes('recursion') || state.includes('cycle'))) values.push('cycle');
+      if (!values.length && node.capabilities?.length) values.push('expandable');
+      return values.join(' · ');
+    }
+    function graphRanks(value = graph) {
       const ranks = new Map();
       if (value.rootId) ranks.set(value.rootId, 0);
       let changed = true;
       for (let pass = 0; pass < value.nodes.length && changed; pass++) {
         changed = false;
-        value.edges.filter(edge => edge.relation === 'calls' || edge.relation === 'inherits' || edge.relation === 'includes').forEach(edge => {
+        value.edges.forEach(edge => {
           if (ranks.has(edge.from) && !ranks.has(edge.to)) { ranks.set(edge.to, ranks.get(edge.from) + 1); changed = true; }
           else if (!ranks.has(edge.from) && ranks.has(edge.to)) { ranks.set(edge.from, ranks.get(edge.to) - 1); changed = true; }
         });
       }
+      return ranks;
+    }
+    function visibleGraph() {
+      const hidden = new Set();
+      const ranks = graphRanks();
+      for (const start of collapsed) {
+        const startRank = ranks.get(start) ?? 0;
+        const queue = [start];
+        const visited = new Set([start]);
+        while (queue.length) {
+          const current = queue.shift();
+          const currentRank = ranks.get(current) ?? 0;
+          for (const edge of graph.edges) {
+            let next;
+            if (startRank >= 0 && edge.from === current && (ranks.get(edge.to) ?? 0) > currentRank) next = edge.to;
+            if (startRank <= 0 && edge.to === current && (ranks.get(edge.from) ?? 0) < currentRank) next = edge.from;
+            if (next && !visited.has(next)) { visited.add(next); hidden.add(next); queue.push(next); }
+          }
+        }
+      }
+      return { ...graph, nodes: graph.nodes.filter(node => !hidden.has(node.id)), edges: graph.edges.filter(edge => !hidden.has(edge.from) && !hidden.has(edge.to)) };
+    }
+    function layeredPositions(value) {
+      const ranks = graphRanks(value);
       const columns = new Map();
       value.nodes.forEach(node => { const rank = ranks.get(node.id) ?? 0; const list = columns.get(rank) || []; list.push(node); columns.set(rank, list); });
       const result = new Map();
-      [...columns.entries()].sort((a, b) => a[0] - b[0]).forEach(([rank, nodes]) => nodes.forEach((node, index) => result.set(node.id, { x: rank * 260, y: (index - (nodes.length - 1) / 2) * 110 })));
+      [...columns.entries()].sort((a, b) => a[0] - b[0]).forEach(([rank, nodes]) => {
+        const occupied = new Set([...positionCache.values()].filter(point => point.rank === rank).map(point => point.y));
+        nodes.forEach((node, index) => {
+          let point = positionCache.get(node.id);
+          if (!point) {
+            let y = (index - (nodes.length - 1) / 2) * 120;
+            while (occupied.has(y)) y += 120;
+            point = { x: rank * 280, y, rank }; positionCache.set(node.id, point); occupied.add(y);
+          }
+          result.set(node.id, point);
+        });
+      });
       return result;
     }
     function fit() {
@@ -1589,7 +1686,7 @@ function graphHtml(): string {
       const points = [...positions.values()];
       const minX = Math.min(...points.map(point => point.x)), maxX = Math.max(...points.map(point => point.x));
       const minY = Math.min(...points.map(point => point.y)), maxY = Math.max(...points.map(point => point.y));
-      const width = maxX - minX + 170, height = maxY - minY + 68;
+      const width = maxX - minX + 190, height = maxY - minY + 80;
       scale = Math.min(1.5, Math.max(.2, Math.min(svg.clientWidth / (width + 120), svg.clientHeight / (height + 120))));
       tx = (svg.clientWidth - width * scale) / 2 - minX * scale; ty = (svg.clientHeight - height * scale) / 2 - minY * scale; applyTransform();
     }
@@ -1597,9 +1694,40 @@ function graphHtml(): string {
       const point = positions.get(nodeId);
       if (!point) return;
       selected = nodeId;
-      tx = svg.clientWidth / 2 - (point.x + 85) * scale;
-      ty = svg.clientHeight / 2 - (point.y + 34) * scale;
+      tx = svg.clientWidth / 2 - (point.x + 95) * scale;
+      ty = svg.clientHeight / 2 - (point.y + 40) * scale;
       render();
+    }
+    function focusRendered(nodeId) {
+      const target = [...nodeLayer.querySelectorAll('.node')].find(node => node.dataset.nodeId === nodeId);
+      target?.focus();
+    }
+    function handleNodeKey(event, nodeId) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        vscode.postMessage({ type: event.shiftKey ? 'openNode' : 'selectNode', nodeId });
+        return;
+      }
+      if (event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        collapsed.has(nodeId) ? collapsed.delete(nodeId) : collapsed.add(nodeId);
+        render(); focusRendered(nodeId); return;
+      }
+      if (event.key === 'F10' && event.shiftKey) {
+        event.preventDefault(); vscode.postMessage({ type: 'nodeContext', nodeId }); return;
+      }
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const current = positions.get(nodeId);
+      if (!current) return;
+      const candidates = [...positions.entries()].filter(([id, point]) => id !== nodeId &&
+        (event.key === 'ArrowLeft' ? point.x < current.x : event.key === 'ArrowRight' ? point.x > current.x : event.key === 'ArrowUp' ? point.y < current.y : point.y > current.y));
+      candidates.sort((a, b) => {
+        const da = Math.abs(a[1].x - current.x) + Math.abs(a[1].y - current.y);
+        const db = Math.abs(b[1].x - current.x) + Math.abs(b[1].y - current.y);
+        return da - db;
+      });
+      if (candidates[0]) { selected = candidates[0][0]; render(); focusRendered(selected); }
     }
     svg.addEventListener('wheel', event => { event.preventDefault(); const next = Math.min(3, Math.max(.2, scale * (event.deltaY < 0 ? 1.1 : .9))); scale = next; applyTransform(); }, { passive: false });
     svg.addEventListener('pointerdown', event => { dragging = true; lastX = event.clientX; lastY = event.clientY; svg.classList.add('dragging'); svg.setPointerCapture(event.pointerId); });
@@ -1607,6 +1735,8 @@ function graphHtml(): string {
     svg.addEventListener('pointerup', () => { dragging = false; svg.classList.remove('dragging'); });
     document.getElementById('fit').addEventListener('click', fit);
     document.getElementById('reset').addEventListener('click', () => { scale = 1; tx = 80; ty = 80; applyTransform(); });
+    document.getElementById('collapse').addEventListener('click', () => { if (selected) { collapsed.add(selected); render(); } });
+    document.getElementById('uncollapse').addEventListener('click', () => { if (selected) { collapsed.delete(selected); render(); } });
     function expandSelected(incoming) {
       const node = graph.nodes.find(item => item.id === selected);
       if (!node) return;
@@ -1621,8 +1751,21 @@ function graphHtml(): string {
     document.getElementById('search').addEventListener('click', () => vscode.postMessage({ type: 'search' }));
     document.getElementById('export').addEventListener('click', () => vscode.postMessage({ type: 'export' }));
     document.querySelectorAll('.relation').forEach(button => button.addEventListener('click', () => { const relation = button.dataset.relation; enabled.has(relation) ? enabled.delete(relation) : enabled.add(relation); button.classList.toggle('active', enabled.has(relation)); render(); }));
+    svg.addEventListener('keydown', event => {
+      if (event.target?.classList?.contains('node')) return;
+      if (event.key.toLowerCase() === 'f') { event.preventDefault(); fit(); }
+      else if (event.key === '+' || event.key === '=') { event.preventDefault(); scale = Math.min(3, scale * 1.1); applyTransform(); }
+      else if (event.key === '-') { event.preventDefault(); scale = Math.max(.2, scale * .9); applyTransform(); }
+    });
     window.addEventListener('message', event => {
-      if (event.data?.type === 'graphSnapshot') { graph = event.data.graph; operationStatus = event.data.operationStatus; if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId; render(); fit(); }
+      if (event.data?.type === 'graphSnapshot') {
+        const rootChanged = currentRoot !== event.data.graph.rootId;
+        graph = event.data.graph; operationStatus = event.data.operationStatus;
+        if (rootChanged) { currentRoot = graph.rootId; selected = graph.rootId; collapsed.clear(); positionCache.clear(); }
+        else if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId;
+        render();
+        if (rootChanged) fit();
+      }
       else if (event.data?.type === 'focusNode') focusNode(event.data.nodeId);
     });
     vscode.postMessage({ type: 'ready' });
