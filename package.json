@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.13.3",
+  "version": "0.13.4",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -53,6 +53,7 @@
     "build": "npm run compile && npm run bundle",
     "watch": "tsc -p . --watch",
     "lint": "eslint src test --ext .ts",
+    "docs:commands": "node scripts/generate-command-reference.mjs",
     "test": "npm run compile && node --test dist/test/**/*.test.js",
     "test:unit": "npm run compile && node --test dist/test/unit/**/*.test.js",
     "test:integration": "npm run compile && node --test dist/test/integration/**/*.test.js",
