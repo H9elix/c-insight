@@ -70,6 +70,13 @@ and leaves partial results intact. Search and export operate only on the
 current immutable snapshot; node context actions delegate bookmarks and
 navigation back to extension-host services.
 
+Canvas-only state (relation filters, collapsed branches, stable positions,
+selection, pan, and zoom) remains inside the Webview and never mutates or
+deletes the host semantic model. Snapshot revisions add or merge semantic
+data, while the viewport is fitted only when the root identity changes.
+Collapse derives the outward branch from semantic ranks and hides it locally,
+so expanding it again cannot trigger a language or file-system request.
+
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing
 caches and the opaque clangd call items needed by follow-up requests. The graph

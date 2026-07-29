@@ -34,6 +34,11 @@ describe("relationship graph model", () => {
     graph.addNode({ ...root, states: ["duplicate"] });
     assert.equal(graph.snapshot().nodes.length, 1);
     assert.deepEqual(graph.snapshot().nodes[0].states, ["duplicate"]);
+    assert.equal(graph.addNodeState(root.id, "expanded-outgoing"), true);
+    assert.deepEqual(graph.snapshot().nodes[0].states, [
+      "duplicate",
+      "expanded-outgoing",
+    ]);
   });
 
   it("enforces independent node and edge budgets", () => {

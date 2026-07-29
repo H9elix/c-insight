@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.5
+
+- Added distinct Call, Inheritance, and Include edge colors/line styles plus an
+  always-visible graph legend; recursive and cyclic edges are emphasized.
+- Added node state labels for expandable, expanded, duplicate, cycle,
+  unresolved, and locally collapsed nodes.
+- Added Collapse Branch and Expand Branch without deleting host graph data or
+  semantic request caches.
+- Preserved pan, zoom, and existing node positions across graph expansion;
+  automatic Fit now occurs only for a new root.
+- Added visible/loaded node and edge statistics, filter-aware edge counts,
+  keyboard node navigation, keyboard preview/open, and accessible labels.
+
 ## 0.12.4
 
 - Added File Relationship Graph roots through the explicit Show File
