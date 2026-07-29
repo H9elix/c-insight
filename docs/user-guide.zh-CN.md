@@ -1,4 +1,4 @@
-# C Insight 0.12.7 使用手册
+# C Insight 0.12.8 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -506,8 +506,10 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 - References 的搜索、范围和已显示数量；分组本来就由工作区配置保存。
 - Symbol Search 最近查询和符号类型过滤。
 - Callers/Callees 的根位置，以及两个窗口分别已经加载的最大深度。
+- Relationship Graph 的版本化静态图快照、当前选择、关系过滤、折叠节点和
+  缩放/平移位置。
 
-当前快照不保存 Supertypes/Subtypes 或 Includes/Included By 的根、已加载深度
+当前快照仍不保存 Supertypes/Subtypes 或 Includes/Included By 树的根、已加载深度
 和展开状态。关闭或重新加载窗口后，需要显式重新执行对应的 Show 命令；此项已
 列入备忘录，暂不实现，以避免打开大型工程时因 Included By 恢复而意外启动
 反向索引扫描。
@@ -516,6 +518,17 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 保存的位置重新请求 clangd，再展开到上次加载深度，并标记为从上一会话恢复。
 因此源码或编译数据库变化后不会把旧调用结果伪装成最新结果。当前实现恢复最大
 深度，不保证逐个节点的折叠状态完全相同。
+
+Relationship Graph 恢复采用不同策略：直接显示上次保存的静态节点和边，不在
+恢复阶段请求 clangd、解析 Include 或建立 Included By 索引。恢复的函数和类型
+节点不保存 clangd opaque item；用户明确继续展开时，C Insight 才按保存的位置
+重新执行 prepare，并给节点加入 `revalidated` 状态。文件节点同样只有在明确
+展开时才读取关系。
+
+恢复前会检查根文件是否仍然存在；根文件缺失时跳过整张图。其他文件若之后删除，
+会在用户预览或打开时标记 `missing` 并显示警告。关系图快照具有独立 schema
+版本和严格大小限制；格式不兼容或内容损坏时只丢弃关系图部分，不影响其他会话
+状态。节点或边过多时保存为仅含根节点的降级快照，避免 workspaceState 过大。
 
 命令面板提供：
 
@@ -532,7 +545,7 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 | 机制 | 示例 | 重启后行为 |
 | --- | --- | --- |
 | VS Code 工作区配置 | References 分组、Symbol Search 分组、书签排序方式、深度和节点限制 | 始终由 VS Code 为该工作区保存 |
-| C Insight Workspace Session 快照 | Navigation History、Code Preview、References 搜索/范围/分页、Symbol Search 查询/类型过滤、调用树根和加载深度 | `cInsight.session.restore` 启用且快照未过期时恢复 |
+| C Insight Workspace Session 快照 | Navigation History、Code Preview、References 搜索/范围/分页、Symbol Search 查询/类型过滤、调用树根和加载深度、Relationship Graph 静态快照与画布状态 | `cInsight.session.restore` 启用且快照未过期时恢复 |
 | 仅当前扩展运行期 | Type/Include Hierarchy 树、Bookmarks 当前过滤文本、临时加载缓存、未写入快照的交互状态 | 关闭或重新加载窗口后清除 |
 
 Bookmarks 数据本身使用独立的 `workspaceState` 持久化，不依赖 Workspace
@@ -623,7 +636,7 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.7 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
+0.12.8 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
 struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者都不可用时
 退回活动文件根，可继续展开 Includes 或 Included By。
 
@@ -670,6 +683,8 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - `cycle`：节点参与当前已发现的递归或循环关系。
 - `unresolved`：Include 目标未能解析，不能继续展开。
 - `collapsed`：分支仅在画布中隐藏，数据仍然保留。
+- `revalidated`：从静态会话恢复后，已按当前位置重新取得 clangd 节点。
+- `missing`：保存的位置对应文件已经不存在，不能预览或继续导航。
 
 综合关系操作位于节点右键菜单，且都需要用户明确执行：
 
@@ -933,6 +948,8 @@ C Insight 默认管理：
 | `cInsight.session.restore` | boolean | `true` | `true` / `false` | 是否自动保存并恢复当前工作区浏览快照 |
 | `cInsight.session.persistNavigationHistory` | boolean | `true` | `true` / `false` | 是否在快照中保存 Navigation History |
 | `cInsight.session.restoreCallHierarchy` | boolean | `true` | `true` / `false` | 是否重新查询并恢复 Callers/Callees 根和加载深度 |
+| `cInsight.session.restoreRelationshipGraph` | boolean | `true` | `true` / `false` | 是否无查询地恢复上次 Relationship Graph 静态快照 |
+| `cInsight.session.relationshipGraphMaximumSnapshotNodes` | number | `1000` | 50–2000 | 会话最多保存的关系图节点数；超过时降级为仅保存根节点 |
 | `cInsight.session.maximumAgeDays` | number | `30` | 1–365 | 超过此天数的快照自动忽略 |
 
 关闭 `restore` 会同时停止自动保存与自动恢复，但仍可使用手动 Restore 命令读取

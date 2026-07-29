@@ -21,6 +21,7 @@ export interface GraphNode {
   detail?: string;
   uri?: string;
   line?: number;
+  character?: number;
   states: string[];
   capabilities: GraphRelation[];
 }
@@ -66,6 +67,29 @@ export class RelationshipGraphModel {
     this.limitedBy = undefined;
     this.nodes.set(root.id, normalizeNode(root));
     this.revision += 1;
+  }
+
+  restore(snapshot: RelationshipGraphSnapshot): void {
+    this.nodes.clear();
+    this.edges.clear();
+    this.rootId = snapshot.rootId;
+    this.staleReason = undefined;
+    this.limitedBy = snapshot.limitedBy;
+    for (const node of snapshot.nodes.slice(0, this.maximumNodes)) {
+      this.nodes.set(node.id, normalizeNode(node));
+    }
+    for (const edge of snapshot.edges.slice(0, this.maximumEdges)) {
+      if (this.nodes.has(edge.from) && this.nodes.has(edge.to)) {
+        this.edges.set(edge.id, {
+          ...edge,
+          states: unique(edge.states),
+        });
+      }
+    }
+    if (this.rootId && !this.nodes.has(this.rootId)) {
+      this.rootId = this.nodes.keys().next().value;
+    }
+    this.revision = Math.max(1, snapshot.revision);
   }
 
   addNode(node: GraphNode): boolean {

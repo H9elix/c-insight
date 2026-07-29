@@ -9,6 +9,7 @@ export type {
   HistorySessionState,
   PreviewSessionState,
   ReferenceSessionState,
+  RelationshipGraphSessionState,
   SymbolSearchSessionState,
   WorkspaceSessionSnapshot,
 } from "./workspaceSessionModel";

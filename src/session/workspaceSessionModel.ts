@@ -3,6 +3,10 @@ import type {
   NavigationMode,
   SerializedRange,
 } from "../history/navigationHistoryModel";
+import type {
+  GraphRelation,
+  RelationshipGraphSnapshot,
+} from "../relationshipGraph/graphModel";
 
 export const WORKSPACE_SESSION_VERSION = 1;
 
@@ -38,6 +42,19 @@ export interface CallHierarchySessionState {
   outgoingDepth: number;
 }
 
+export interface RelationshipGraphSessionState {
+  schemaVersion: 1;
+  graph: RelationshipGraphSnapshot;
+  selectedId?: string;
+  enabledRelations: GraphRelation[];
+  collapsedIds: string[];
+  viewport: {
+    scale: number;
+    tx: number;
+    ty: number;
+  };
+}
+
 export interface WorkspaceSessionSnapshot {
   format: "c-insight-workspace-session";
   version: 1;
@@ -47,6 +64,7 @@ export interface WorkspaceSessionSnapshot {
   references?: ReferenceSessionState;
   symbolSearch?: SymbolSearchSessionState;
   callHierarchy?: CallHierarchySessionState;
+  relationshipGraph?: RelationshipGraphSessionState;
 }
 
 export function parseWorkspaceSession(
@@ -117,7 +135,138 @@ export function parseWorkspaceSession(
     snapshot.callHierarchy =
       value.callHierarchy as unknown as CallHierarchySessionState;
   }
+  const relationshipGraph = parseRelationshipGraph(value.relationshipGraph);
+  if (relationshipGraph) {
+    snapshot.relationshipGraph = relationshipGraph;
+  }
   return snapshot;
+}
+
+function parseRelationshipGraph(
+  value: unknown,
+): RelationshipGraphSessionState | undefined {
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    !isRecord(value.graph) ||
+    value.graph.schemaVersion !== 1 ||
+    !Array.isArray(value.graph.nodes) ||
+    !Array.isArray(value.graph.edges) ||
+    value.graph.nodes.length === 0 ||
+    value.graph.nodes.length > 2_000 ||
+    value.graph.edges.length > 5_000 ||
+    !Array.isArray(value.enabledRelations) ||
+    !Array.isArray(value.collapsedIds) ||
+    !isRecord(value.viewport) ||
+    !isFiniteNumber(value.viewport.scale) ||
+    value.viewport.scale < 0.1 ||
+    value.viewport.scale > 5 ||
+    !isFiniteNumber(value.viewport.tx) ||
+    !isFiniteNumber(value.viewport.ty)
+  ) {
+    return undefined;
+  }
+  const nodes = value.graph.nodes.filter(isGraphNode);
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  if (nodes.length !== value.graph.nodes.length) {
+    return undefined;
+  }
+  const edges = value.graph.edges.filter(
+    (edge) =>
+      isGraphEdge(edge) &&
+      nodeIds.has(edge.from as string) &&
+      nodeIds.has(edge.to as string),
+  );
+  if (edges.length !== value.graph.edges.length) {
+    return undefined;
+  }
+  const rootId =
+    typeof value.graph.rootId === "string" &&
+    nodeIds.has(value.graph.rootId)
+      ? value.graph.rootId
+      : nodes[0]?.id;
+  const relations = value.enabledRelations.filter(isGraphRelation);
+  return {
+    schemaVersion: 1,
+    graph: {
+      schemaVersion: 1,
+      rootId,
+      revision:
+        typeof value.graph.revision === "number"
+          ? value.graph.revision
+          : 1,
+      staleReason:
+        typeof value.graph.staleReason === "string"
+          ? value.graph.staleReason
+          : undefined,
+      limitedBy:
+        value.graph.limitedBy === "maximumNodes" ||
+        value.graph.limitedBy === "maximumEdges"
+          ? value.graph.limitedBy
+          : undefined,
+      nodes,
+      edges,
+    },
+    selectedId:
+      typeof value.selectedId === "string" &&
+      nodeIds.has(value.selectedId)
+        ? value.selectedId
+        : rootId,
+    enabledRelations: relations,
+    collapsedIds: value.collapsedIds.filter(
+      (id): id is string => typeof id === "string" && nodeIds.has(id),
+    ),
+    viewport: {
+      scale: value.viewport.scale,
+      tx: value.viewport.tx,
+      ty: value.viewport.ty,
+    },
+  };
+}
+
+function isGraphNode(value: unknown): value is RelationshipGraphSnapshot["nodes"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    value.id.length <= 256 &&
+    typeof value.kind === "string" &&
+    typeof value.name === "string" &&
+    value.name.length <= 1_024 &&
+    Array.isArray(value.states) &&
+    value.states.every((state) => typeof state === "string") &&
+    Array.isArray(value.capabilities) &&
+    value.capabilities.every(isGraphRelation) &&
+    (value.uri === undefined ||
+      (typeof value.uri === "string" && value.uri.length <= 8_192)) &&
+    (value.line === undefined ||
+      (Number.isInteger(value.line) && (value.line as number) > 0)) &&
+    (value.character === undefined ||
+      (Number.isInteger(value.character) &&
+        (value.character as number) >= 0))
+  );
+}
+
+function isGraphEdge(value: unknown): value is RelationshipGraphSnapshot["edges"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    value.id.length <= 256 &&
+    typeof value.from === "string" &&
+    typeof value.to === "string" &&
+    isGraphRelation(value.relation) &&
+    Array.isArray(value.states) &&
+    value.states.every((state) => typeof state === "string")
+  );
+}
+
+function isGraphRelation(value: unknown): value is GraphRelation {
+  return ["calls", "inherits", "includes", "defines"].includes(
+    String(value),
+  );
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

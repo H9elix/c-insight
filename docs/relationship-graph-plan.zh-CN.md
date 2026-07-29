@@ -245,6 +245,8 @@ Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成，Type Adapter 已�
 慢渲染诊断、关闭释放和大型合成图回归测试。
 0.12.7 已通过显式 Definition 归属边接通 File、Type 与 Callable 节点，
 支持从新增节点继续使用原有 Include、Inheritance 和 Call 展开能力。
+0.12.8 已接入版本化、有界的 Workspace Session 静态恢复；画布状态随快照保存，
+语义节点只在用户继续展开时重新验证，恢复本身不触发 clangd 或 Include 查询。
 
 ## 13. 验收标准
 

@@ -81,6 +81,11 @@ export async function activate(
         .get<boolean>("restoreCallHierarchy", true)
         ? views.callHierarchySessionState()
         : undefined,
+      relationshipGraph: vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("restoreRelationshipGraph", true)
+        ? relationshipGraph.sessionState()
+        : undefined,
     }),
   });
   const restoreSnapshot = async (
@@ -98,6 +103,14 @@ export async function activate(
     }
     await views.restoreReferenceSession(snapshot.references);
     await symbolSearch.restoreSession(snapshot.symbolSearch);
+    if (
+      snapshot.relationshipGraph &&
+      vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<boolean>("restoreRelationshipGraph", true)
+    ) {
+      await relationshipGraph.restoreSession(snapshot.relationshipGraph);
+    }
     if (
       snapshot.callHierarchy &&
       vscode.workspace

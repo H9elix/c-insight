@@ -14,6 +14,7 @@ import {
   CallHierarchyRepository,
 } from "../callHierarchy/callHierarchyRepository";
 import { CallNode, LspSymbol } from "../models/types";
+import type { RelationshipGraphSessionState } from "../session/workspaceSession";
 import {
   IncludeHierarchyDirection,
   IncludeHierarchyRepository,
@@ -48,6 +49,13 @@ type GraphMessage =
       edges: number;
     }
   | {
+      type: "canvasState";
+      selectedId?: string;
+      enabledRelations: string[];
+      collapsedIds: string[];
+      viewport: { scale: number; tx: number; ty: number };
+    }
+  | {
       type: "expandCall";
       nodeId: string;
       direction: CallDirection;
@@ -79,6 +87,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     kind: "info" | "warning" | "error";
     message: string;
   };
+  private canvasState: Omit<
+    RelationshipGraphSessionState,
+    "schemaVersion" | "graph"
+  > = defaultCanvasState();
+  private pendingCanvasRestore?: typeof this.canvasState;
+  private retainedSession?: RelationshipGraphSessionState;
   private generation = 0;
   private readonly disposables: vscode.Disposable[] = [];
 
@@ -92,6 +106,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   ) {}
 
   async showAt(uri: vscode.Uri, position: vscode.Position): Promise<void> {
+    this.retainedSession = undefined;
+    this.canvasState = defaultCanvasState();
     this.stopExpansion();
     const generation = ++this.generation;
     const cancellation = new vscode.CancellationTokenSource();
@@ -189,6 +205,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   showFile(uri: vscode.Uri): void {
+    this.retainedSession = undefined;
+    this.canvasState = defaultCanvasState();
     this.stopExpansion();
     this.generation += 1;
     const root = fileNode(uri);
@@ -216,6 +234,106 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     this.model.markStale(reason);
     void this.publish();
+  }
+
+  sessionState(): RelationshipGraphSessionState | undefined {
+    const snapshot = this.model.snapshot();
+    if (!snapshot.rootId || snapshot.nodes.length === 0) {
+      return this.retainedSession;
+    }
+    const maximum = vscode.workspace
+      .getConfiguration("cInsight.session")
+      .get<number>("relationshipGraphMaximumSnapshotNodes", 1_000);
+    const graph =
+      snapshot.nodes.length <= maximum &&
+      snapshot.edges.length <= 5_000
+        ? snapshot
+        : {
+            ...snapshot,
+            limitedBy: "maximumNodes" as const,
+            nodes: snapshot.nodes.filter(
+              (node) => node.id === snapshot.rootId,
+            ),
+            edges: [],
+          };
+    return {
+      schemaVersion: 1,
+      graph,
+      selectedId: graph.nodes.some(
+        (node) => node.id === this.canvasState.selectedId,
+      )
+        ? this.canvasState.selectedId
+        : graph.rootId,
+      enabledRelations: [...this.canvasState.enabledRelations],
+      collapsedIds: this.canvasState.collapsedIds.filter((id) =>
+        graph.nodes.some((node) => node.id === id),
+      ),
+      viewport: { ...this.canvasState.viewport },
+    };
+  }
+
+  async restoreSession(
+    state: RelationshipGraphSessionState | undefined,
+  ): Promise<boolean> {
+    if (!state?.graph.rootId) {
+      return false;
+    }
+    const root = state.graph.nodes.find(
+      (node) => node.id === state.graph.rootId,
+    );
+    if (!root) {
+      return false;
+    }
+    if (root.uri) {
+      try {
+        const uri = vscode.Uri.parse(root.uri);
+        if (uri.scheme === "file") {
+          await vscode.workspace.fs.stat(uri);
+        }
+      } catch {
+        this.output.appendLine(
+          `Relationship Graph restore skipped: root file is unavailable (${root.uri}).`,
+        );
+        return false;
+      }
+    }
+    this.stopExpansion();
+    this.generation += 1;
+    this.model = this.createModel();
+    this.model.restore(state.graph);
+    this.callNodes.clear();
+    this.typeNodes.clear();
+    this.includeFiles.clear();
+    this.expandedCalls.clear();
+    this.expandedTypes.clear();
+    this.expandedIncludes.clear();
+    this.rebuildRestoredDepths();
+    for (const node of this.model.snapshot().nodes) {
+      if (
+        (node.kind === "source" || node.kind === "header") &&
+        node.uri
+      ) {
+        this.includeFiles.set(node.id, vscode.Uri.parse(node.uri));
+      }
+    }
+    this.canvasState = {
+      selectedId: state.selectedId,
+      enabledRelations: [...state.enabledRelations],
+      collapsedIds: [...state.collapsedIds],
+      viewport: { ...state.viewport },
+    };
+    this.pendingCanvasRestore = this.canvasState;
+    this.retainedSession = undefined;
+    this.operationStatus = {
+      kind: "info",
+      message:
+        "Restored static graph snapshot; semantic nodes revalidate when expanded.",
+    };
+    this.ensurePanel();
+    this.panel!.title = `Relationship Graph — ${root.name}`;
+    this.panel!.reveal(vscode.ViewColumn.Beside, true);
+    await this.publish();
+    return true;
   }
 
   dispose(): void {
@@ -253,6 +371,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     panel.onDidDispose(
       () => {
         this.stopExpansion();
+        this.retainedSession = this.sessionState();
         this.generation += 1;
         this.model = this.createModel();
         this.callNodes.clear();
@@ -263,6 +382,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         this.expandedTypes.clear();
         this.expandedIncludes.clear();
         this.operationStatus = undefined;
+        this.pendingCanvasRestore = undefined;
         this.panel = undefined;
       },
       undefined,
@@ -287,6 +407,25 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       this.output.appendLine(
         `Slow Relationship Graph render: ${message.duration.toFixed(1)} ms (${message.nodes} nodes, ${message.edges} edges)`,
       );
+      return;
+    }
+    if (message.type === "canvasState") {
+      const nodeIds = new Set(
+        this.model.snapshot().nodes.map((node) => node.id),
+      );
+      this.canvasState = {
+        selectedId:
+          message.selectedId && nodeIds.has(message.selectedId)
+            ? message.selectedId
+            : this.model.snapshot().rootId,
+        enabledRelations: message.enabledRelations.filter(
+          isGraphRelation,
+        ),
+        collapsedIds: message.collapsedIds.filter((id) =>
+          nodeIds.has(id),
+        ),
+        viewport: { ...message.viewport },
+      };
       return;
     }
     if (message.type === "stopExpansion") {
@@ -339,6 +478,9 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     if (!node || !location) {
       return;
     }
+    if (!(await this.locationAvailable(node.id, location.uri))) {
+      return;
+    }
     await vscode.commands.executeCommand(
       "cInsight.previewLocation",
       location,
@@ -353,6 +495,9 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     const node = this.model.node(nodeId);
     const location = nodeLocation(node);
     if (!location) {
+      return;
+    }
+    if (!(await this.locationAvailable(nodeId, location.uri))) {
       return;
     }
     const document = await vscode.workspace.openTextDocument(location.uri);
@@ -370,11 +515,32 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     );
   }
 
+  private async locationAvailable(
+    nodeId: string,
+    uri: vscode.Uri,
+  ): Promise<boolean> {
+    if (uri.scheme !== "file") {
+      return true;
+    }
+    try {
+      await vscode.workspace.fs.stat(uri);
+      return true;
+    } catch {
+      this.model.addNodeState(nodeId, "missing");
+      this.operationStatus = {
+        kind: "warning",
+        message: `Graph location is no longer available: ${uri.fsPath}`,
+      };
+      await this.publish();
+      return false;
+    }
+  }
+
   private async expandCall(
     nodeId: string,
     direction: CallDirection,
   ): Promise<boolean> {
-    const callNode = this.callNodes.get(nodeId);
+    const callNode = await this.ensureCallNode(nodeId);
     if (!callNode) {
       return false;
     }
@@ -465,7 +631,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     direction: CallDirection,
     token: vscode.CancellationToken,
   ): Promise<string[]> {
-    const callNode = this.callNodes.get(nodeId);
+    const callNode = await this.ensureCallNode(nodeId);
     if (!callNode || token.isCancellationRequested) {
       return [];
     }
@@ -533,7 +699,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     nodeId: string,
     direction: TypeHierarchyDirection,
   ): Promise<boolean> {
-    const item = this.typeNodes.get(nodeId);
+    const item = await this.ensureTypeNode(nodeId);
     if (!item || !this.canExpand(nodeId)) {
       return false;
     }
@@ -606,7 +772,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     direction: TypeHierarchyDirection,
     token: vscode.CancellationToken,
   ): Promise<string[]> {
-    const item = this.typeNodes.get(nodeId);
+    const item = await this.ensureTypeNode(nodeId);
     if (!item || token.isCancellationRequested) {
       return [];
     }
@@ -831,9 +997,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   private async expandToDepth(nodeId: string): Promise<void> {
-    const isCall = this.callNodes.has(nodeId);
-    const isType = this.typeNodes.has(nodeId);
-    const isInclude = this.includeFiles.has(nodeId);
+    const capabilities = this.model.node(nodeId)?.capabilities ?? [];
+    const isCall = capabilities.includes("calls");
+    const isType = capabilities.includes("inherits");
+    const isInclude = capabilities.includes("includes");
     if (!isCall && !isType && !isInclude) {
       return;
     }
@@ -1152,6 +1319,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       detail: "unresolved include",
       uri: source.toString(),
       line,
+      character: 0,
       states: ["unresolved"],
       capabilities: [],
     };
@@ -1214,7 +1382,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   private async addTypeMembers(nodeId: string): Promise<void> {
-    const type = this.typeNodes.get(nodeId);
+    const type = await this.ensureTypeNode(nodeId);
     if (!type || !this.canExpand(nodeId)) {
       return;
     }
@@ -1305,7 +1473,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   private async addContainingType(nodeId: string): Promise<void> {
-    const call = this.callNodes.get(nodeId);
+    const call = await this.ensureCallNode(nodeId);
     if (!call || !this.canExpand(nodeId)) {
       return;
     }
@@ -1458,9 +1626,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     if (!node) {
       return;
     }
-    const typeNode = this.typeNodes.has(nodeId);
+    const typeNode =
+      this.typeNodes.has(nodeId) || node.kind === "type";
     const includeNode = this.includeFiles.has(nodeId);
-    const expandable = typeNode || includeNode || this.callNodes.has(nodeId);
+    const callNode =
+      this.callNodes.has(nodeId) ||
+      node.kind === "function" ||
+      node.kind === "method";
+    const expandable = typeNode || includeNode || callNode;
     const action = await vscode.window.showQuickPick(
       [
         ...(expandable
@@ -1503,7 +1676,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
               },
             ]
           : []),
-        ...(this.callNodes.has(nodeId)
+        ...(callNode
           ? [
               {
                 label: "$(symbol-class) Add Containing Type",
@@ -1623,6 +1796,100 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       : undefined;
   }
 
+  private async ensureCallNode(
+    nodeId: string,
+  ): Promise<CallNode | undefined> {
+    const existing = this.callNodes.get(nodeId);
+    if (existing) {
+      return existing;
+    }
+    const node = this.model.node(nodeId);
+    if (
+      !node?.uri ||
+      (node.kind !== "function" && node.kind !== "method")
+    ) {
+      return undefined;
+    }
+    const uri = vscode.Uri.parse(node.uri);
+    const position = await this.restoredNodePosition(node);
+    let roots: CallNode[];
+    try {
+      roots = await this.callRepository.prepare(uri, position);
+    } catch (error) {
+      this.operationStatus = {
+        kind: "error",
+        message: `Call node revalidation failed: ${String(error)}`,
+      };
+      await this.publish();
+      return undefined;
+    }
+    const matched =
+      roots.find(
+        (candidate) =>
+          candidate.raw.name === node.name ||
+          candidate.raw.name.endsWith(`::${node.name}`),
+      ) ?? roots[0];
+    if (matched) {
+      this.callNodes.set(nodeId, matched);
+      this.model.addNodeState(nodeId, "revalidated");
+    }
+    return matched;
+  }
+
+  private async ensureTypeNode(
+    nodeId: string,
+  ): Promise<TypeHierarchyItem | undefined> {
+    const existing = this.typeNodes.get(nodeId);
+    if (existing) {
+      return existing;
+    }
+    const node = this.model.node(nodeId);
+    if (!node?.uri || node.kind !== "type") {
+      return undefined;
+    }
+    const uri = vscode.Uri.parse(node.uri);
+    const position = await this.restoredNodePosition(node);
+    let roots: TypeHierarchyItem[];
+    try {
+      roots = await this.typeRepository.prepare(uri, position);
+    } catch (error) {
+      this.operationStatus = {
+        kind: "error",
+        message: `Type node revalidation failed: ${String(error)}`,
+      };
+      await this.publish();
+      return undefined;
+    }
+    const matched =
+      roots.find((candidate) => candidate.name === node.name) ?? roots[0];
+    if (matched) {
+      this.typeNodes.set(nodeId, matched);
+      this.model.addNodeState(nodeId, "revalidated");
+    }
+    return matched;
+  }
+
+  private async restoredNodePosition(
+    node: GraphNode,
+  ): Promise<vscode.Position> {
+    const line = Math.max(0, (node.line ?? 1) - 1);
+    if (node.character !== undefined) {
+      return new vscode.Position(line, node.character);
+    }
+    try {
+      const document = await vscode.workspace.openTextDocument(
+        vscode.Uri.parse(node.uri!),
+      );
+      const text = document.lineAt(
+        Math.min(line, document.lineCount - 1),
+      ).text;
+      const name = node.name.split("::").at(-1) ?? node.name;
+      return new vscode.Position(line, Math.max(0, text.indexOf(name)));
+    } catch {
+      return new vscode.Position(line, 0);
+    }
+  }
+
   private callGraphNode(node: CallNode): GraphNode {
     const raw = node.raw;
     const line = raw.selectionRange.start.line + 1;
@@ -1638,6 +1905,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       detail: raw.detail,
       uri: raw.uri,
       line,
+      character: raw.selectionRange.start.character,
       states: [],
       capabilities: ["calls"],
     };
@@ -1652,6 +1920,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       detail: item.detail,
       uri: item.uri,
       line,
+      character: item.selectionRange.start.character,
       states: [],
       capabilities: ["inherits"],
     };
@@ -1671,6 +1940,35 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       return false;
     }
     return true;
+  }
+
+  private rebuildRestoredDepths(): void {
+    this.nodeDepth.clear();
+    const snapshot = this.model.snapshot();
+    if (!snapshot.rootId) {
+      return;
+    }
+    this.nodeDepth.set(snapshot.rootId, 0);
+    const adjacency = new Map<string, string[]>();
+    for (const edge of snapshot.edges) {
+      const from = adjacency.get(edge.from) ?? [];
+      from.push(edge.to);
+      adjacency.set(edge.from, from);
+      const to = adjacency.get(edge.to) ?? [];
+      to.push(edge.from);
+      adjacency.set(edge.to, to);
+    }
+    const queue = [snapshot.rootId];
+    for (let index = 0; index < queue.length; index += 1) {
+      const current = queue[index];
+      const depth = this.nodeDepth.get(current) ?? 0;
+      for (const neighbor of adjacency.get(current) ?? []) {
+        if (!this.nodeDepth.has(neighbor)) {
+          this.nodeDepth.set(neighbor, depth + 1);
+          queue.push(neighbor);
+        }
+      }
+    }
   }
 
   private stopExpansion(): void {
@@ -1698,11 +1996,15 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   private async publish(): Promise<void> {
-    await this.panel?.webview.postMessage({
+    const posted = await this.panel?.webview.postMessage({
       type: "graphSnapshot",
       graph: this.model.snapshot(),
       operationStatus: this.operationStatus,
+      canvasState: this.pendingCanvasRestore,
     });
+    if (posted && this.pendingCanvasRestore) {
+      this.pendingCanvasRestore = undefined;
+    }
   }
 }
 
@@ -1822,9 +2124,10 @@ function nodeLocation(
     return undefined;
   }
   const line = Math.max(0, (node.line ?? 1) - 1);
+  const character = Math.max(0, node.character ?? 0);
   return new vscode.Location(
     vscode.Uri.parse(node.uri),
-    new vscode.Range(line, 0, line, 0),
+    new vscode.Range(line, character, line, character),
   );
 }
 
@@ -1841,9 +2144,25 @@ function fileNode(uri: vscode.Uri): GraphNode {
     detail: vscode.workspace.asRelativePath(uri),
     uri: uri.toString(),
     line: 1,
+    character: 0,
     states: [],
     capabilities: ["includes"],
   };
+}
+
+function defaultCanvasState(): Omit<
+  RelationshipGraphSessionState,
+  "schemaVersion" | "graph"
+> {
+  return {
+    enabledRelations: ["calls", "inherits", "includes", "defines"],
+    collapsedIds: [],
+    viewport: { scale: 1, tx: 80, ty: 80 },
+  };
+}
+
+function isGraphRelation(value: string): value is GraphNode["capabilities"][number] {
+  return ["calls", "inherits", "includes", "defines"].includes(value);
 }
 
 function isGraphMessage(value: unknown): value is GraphMessage {
@@ -1868,6 +2187,28 @@ function isGraphMessage(value: unknown): value is GraphMessage {
       typeof (value as { nodes: unknown }).nodes === "number" &&
       "edges" in value &&
       typeof (value as { edges: unknown }).edges === "number"
+    );
+  }
+  if (type === "canvasState") {
+    return (
+      (!("selectedId" in value) ||
+        typeof (value as { selectedId?: unknown }).selectedId ===
+          "string") &&
+      "enabledRelations" in value &&
+      Array.isArray(
+        (value as { enabledRelations: unknown }).enabledRelations,
+      ) &&
+      (value as { enabledRelations: unknown[] }).enabledRelations.every(
+        (relation) =>
+          typeof relation === "string" && isGraphRelation(relation),
+      ) &&
+      "collapsedIds" in value &&
+      Array.isArray((value as { collapsedIds: unknown }).collapsedIds) &&
+      (value as { collapsedIds: unknown[] }).collapsedIds.every(
+        (id) => typeof id === "string",
+      ) &&
+      "viewport" in value &&
+      isCanvasViewport((value as { viewport: unknown }).viewport)
     );
   }
   if (type === "expandCall") {
@@ -1904,6 +2245,24 @@ function isGraphMessage(value: unknown): value is GraphMessage {
       type === "expandToDepth") &&
     "nodeId" in value &&
     typeof (value as { nodeId: unknown }).nodeId === "string"
+  );
+}
+
+function isCanvasViewport(
+  value: unknown,
+): value is { scale: number; tx: number; ty: number } {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const viewport = value as Record<string, unknown>;
+  return (
+    typeof viewport.scale === "number" &&
+    viewport.scale >= 0.1 &&
+    viewport.scale <= 5 &&
+    typeof viewport.tx === "number" &&
+    Number.isFinite(viewport.tx) &&
+    typeof viewport.ty === "number" &&
+    Number.isFinite(viewport.ty)
   );
 }
 
@@ -1993,6 +2352,7 @@ function graphHtml(): string {
     let renderFrame;
     let pendingFit = false;
     let lastSlowRender = 0;
+    let canvasStateTimer;
     const nodeElements = new Map();
     const edgeElements = new Map();
     const enabled = new Set(['calls', 'inherits', 'includes', 'defines']);
@@ -2068,10 +2428,26 @@ function graphHtml(): string {
         lastSlowRender = performance.now();
         vscode.postMessage({ type: 'slowRender', duration, nodes: visible.nodes.length, edges: visibleEdges.length });
       }
+      scheduleCanvasState();
       if (pendingFit) {
         pendingFit = false;
         fit();
       }
+    }
+    function scheduleCanvasState(immediate = false) {
+      if (canvasStateTimer) clearTimeout(canvasStateTimer);
+      const send = () => {
+        canvasStateTimer = undefined;
+        vscode.postMessage({
+          type: 'canvasState',
+          selectedId: selected,
+          enabledRelations: [...enabled],
+          collapsedIds: [...collapsed],
+          viewport: { scale, tx, ty },
+        });
+      };
+      if (immediate) send();
+      else canvasStateTimer = setTimeout(send, 200);
     }
     function reconcile(cache, values, layer, keyOf, update) {
       const retained = new Set();
@@ -2114,6 +2490,7 @@ function graphHtml(): string {
       if (node.states?.some(state => state.startsWith('expanded-'))) values.push('expanded');
       if (node.states?.includes('duplicate')) values.push('duplicate');
       if (node.states?.includes('unresolved')) values.push('unresolved');
+      if (node.states?.includes('missing')) values.push('missing');
       if (node.states?.some(state => state.includes('recursion') || state.includes('cycle'))) values.push('cycle');
       if (!values.length && node.capabilities?.length) values.push('expandable');
       return values.join(' · ');
@@ -2269,13 +2646,26 @@ function graphHtml(): string {
         graph = event.data.graph; operationStatus = event.data.operationStatus;
         if (rootChanged) { currentRoot = graph.rootId; selected = graph.rootId; collapsed.clear(); positionCache.clear(); }
         else if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId;
-        render(rootChanged);
+        const restored = event.data.canvasState;
+        if (restored) {
+          selected = restored.selectedId || graph.rootId;
+          collapsed = new Set(restored.collapsedIds || []);
+          enabled.clear();
+          (restored.enabledRelations || ['calls', 'inherits', 'includes', 'defines']).forEach(relation => enabled.add(relation));
+          scale = restored.viewport?.scale ?? 1;
+          tx = restored.viewport?.tx ?? 80;
+          ty = restored.viewport?.ty ?? 80;
+          document.querySelectorAll('.relation').forEach(button => button.classList.toggle('active', enabled.has(button.dataset.relation)));
+        }
+        render(rootChanged && !restored);
       }
       else if (event.data?.type === 'focusNode') focusNode(event.data.nodeId);
     });
     window.addEventListener('unload', () => {
+      scheduleCanvasState(true);
       resizeObserver.disconnect();
       if (renderFrame) cancelAnimationFrame(renderFrame);
+      if (canvasStateTimer) clearTimeout(canvasStateTimer);
       nodeElements.clear(); edgeElements.clear(); positionCache.clear();
     });
     vscode.postMessage({ type: 'ready' });

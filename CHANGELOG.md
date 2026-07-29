@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.12.8
+
+- Added versioned, bounded Relationship Graph snapshots to Workspace Session.
+- Restored loaded nodes/edges, selection, relation filters, collapsed branches,
+  and viewport pan/zoom without issuing clangd or Include queries.
+- Revalidated restored function/type nodes only when the user explicitly
+  continues semantic expansion.
+- Added root-file availability checks and lazy `missing` state for other
+  deleted graph locations.
+- Added configurable graph-session restore and snapshot node limit; oversized
+  node/edge graphs safely degrade to a root-only snapshot.
+- Added strict graph-section parsing so malformed or incompatible graph state
+  is dropped without rejecting the rest of the workspace session.
+
 ## 0.12.7
 
 - Added explicit Definition ownership edges so one graph can connect source
