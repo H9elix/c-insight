@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.8",
+  "version": "0.12.9",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1174,6 +1174,18 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Number of source lines displayed after the Code Preview target."
+        },
+        "cInsight.codePreview.semanticHighlighting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the active VS Code semantic token provider to color symbols in Code Preview, with lexical highlighting as a fallback."
+        },
+        "cInsight.codePreview.semanticTokenCacheSize": {
+          "type": "number",
+          "default": 32,
+          "minimum": 1,
+          "maximum": 256,
+          "description": "Maximum number of document-version semantic-token results retained in memory."
         },
         "cInsight.references.pageSize": {
           "type": "number",

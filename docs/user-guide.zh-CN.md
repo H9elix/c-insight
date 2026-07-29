@@ -1,4 +1,4 @@
-# C Insight 0.12.8 使用手册
+# C Insight 0.12.9 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -177,8 +177,16 @@ Lock Preview 只阻止编辑器光标的自动更新。锁定后仍允许：
 - 从 References、Callers 或 Callees 手动选择新位置。
 - 使用预览历史、复制和打开操作。
 
-Code Preview 使用轻量词法高亮，不保证与 VS Code 编辑器的完整语义颜色完全
-一致。
+Code Preview 默认通过 VS Code Document Semantic Tokens 命令复用当前 C/C++
+文档已注册的语义令牌提供器。使用 C Insight 自带 clangd 时，函数、方法、变量、
+参数、类型、命名空间和宏等分类来自同一 clangd；关键字、字符串、数字和注释等
+未被语义令牌覆盖的区间继续使用轻量词法高亮。语义请求暂不可用时会自动退回
+纯词法高亮，不影响预览和导航。
+
+Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成后的全部
+`semanticTokenColors`，因此 Code Preview 使用当前主题公开的 VS Code 颜色变量
+映射语义类别。符号分类与编辑器一致，但极少数主题中的具体颜色和字体样式可能
+不完全相同。
 
 ### 4.3 References
 
@@ -881,8 +889,11 @@ C Insight 默认管理：
 | --- | --- | --- | --- | --- |
 | `cInsight.codePreview.linesBefore` | number | `6` | 0–100 | 目标行之前显示的源码行数 |
 | `cInsight.codePreview.linesAfter` | number | `8` | 0–100 | 目标行之后显示的源码行数 |
+| `cInsight.codePreview.semanticHighlighting` | boolean | `true` | `true` / `false` | 是否使用当前 VS Code 语义令牌提供器着色符号；关闭后只使用词法高亮 |
+| `cInsight.codePreview.semanticTokenCacheSize` | number | `32` | 1–256 | 内存中最多保留的按文档及其版本区分的语义令牌结果数 |
 
-修改后会重新渲染当前 Code Preview。
+修改后会清空语义令牌缓存并重新渲染当前 Code Preview。源码发生变化时，对应
+文档的缓存会失效；切换颜色主题时，可见的 Code Preview 会重新渲染。
 
 ### 9.4 References
 
@@ -1079,7 +1090,8 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 ## 12. 当前限制
 
 - 主要面向单个本地工作区根目录。
-- Code Preview 的高亮不是 VS Code 编辑器完整语义渲染。
+- Code Preview 复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与
+  编辑器最终合成颜色存在细微差异。
 - 静态调用树无法完整解析运行时多态、所有函数指针、宏生成调用和动态分派。
 - References Read/Write 分类对复杂指针副作用、模板和重载运算符保持保守。
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。

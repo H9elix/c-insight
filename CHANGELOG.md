@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.9
+
+- Added editor-grade semantic symbol classification to Code Preview through
+  the active VS Code Document Semantic Tokens provider.
+- Layered function, method, variable, parameter, type, namespace, macro, and
+  modifier styling over the existing keyword/string/comment lexical fallback.
+- Preserved exact target-range highlighting and all preview click/navigation
+  behavior when semantic spans split a source line.
+- Added bounded, versioned preview token caching with edit, configuration, and
+  visible-theme refresh handling.
+- Added settings to disable semantic highlighting or tune its cache size.
+- Kept semantic-provider failures non-fatal with an automatic lexical fallback.
+
 ## 0.12.8
 
 - Added versioned, bounded Relationship Graph snapshots to Workspace Session.

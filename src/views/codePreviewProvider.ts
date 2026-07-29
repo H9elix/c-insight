@@ -10,8 +10,11 @@ import { LocationResult } from "../models/types";
 import type { PreviewSessionState } from "../session/workspaceSession";
 import {
   escapeHtml,
+  decodeSemanticTokens,
   highlightCppLine,
+  highlightSemanticLine,
   highlightTarget,
+  SemanticTokenSpan,
 } from "./sourceHighlight";
 export type PreviewMode = NavigationMode;
 
@@ -34,6 +37,11 @@ interface PreviewMessage {
   selection?: unknown;
 }
 
+interface SemanticTokenDocument {
+  data: Uint32Array;
+  legend: vscode.SemanticTokensLegend;
+}
+
 export class CodePreviewProvider
   implements vscode.WebviewViewProvider, vscode.Disposable
 {
@@ -43,6 +51,11 @@ export class CodePreviewProvider
   private locked = false;
   private definitionGeneration = 0;
   private definitionCancellation?: vscode.CancellationTokenSource;
+  private renderGeneration = 0;
+  private readonly semanticTokens = new Map<
+    string,
+    Promise<SemanticTokenDocument | undefined>
+  >();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
@@ -54,7 +67,15 @@ export class CodePreviewProvider
   constructor(
     private readonly analysis: AnalysisService,
     private readonly navigationHistory: NavigationHistoryExplorer,
-  ) {}
+  ) {
+    this.disposables.push(
+      vscode.window.onDidChangeActiveColorTheme(() => {
+        if (this.visible) {
+          void this.render();
+        }
+      }),
+    );
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
@@ -112,7 +133,20 @@ export class CodePreviewProvider
   }
 
   refresh(): void {
+    this.semanticTokens.clear();
     void this.render();
+  }
+
+  handleDocumentChange(document: vscode.TextDocument): void {
+    const prefix = `${document.uri.toString()}\0`;
+    for (const key of this.semanticTokens.keys()) {
+      if (key.startsWith(prefix)) {
+        this.semanticTokens.delete(key);
+      }
+    }
+    if (this.visible && this.state?.location.uri.toString() === document.uri.toString()) {
+      void this.render();
+    }
   }
 
   sessionState(): PreviewSessionState | undefined {
@@ -155,6 +189,7 @@ export class CodePreviewProvider
   }
 
   dispose(): void {
+    this.renderGeneration += 1;
     this.cancelDefinition();
     this.disposables.forEach((item) => item.dispose());
     this.visibilityEmitter.dispose();
@@ -328,6 +363,7 @@ export class CodePreviewProvider
   }
 
   private async render(): Promise<void> {
+    const generation = ++this.renderGeneration;
     if (!this.view) {
       return;
     }
@@ -345,6 +381,16 @@ export class CodePreviewProvider
       const targetLine = location.range.start.line;
       const startLine = Math.max(0, targetLine - linesBefore);
       const endLine = Math.min(document.lineCount - 1, targetLine + linesAfter);
+      const semanticHighlighting = config.get<boolean>(
+        "semanticHighlighting",
+        true,
+      );
+      const tokens = semanticHighlighting
+        ? await this.semanticTokensFor(document, startLine, endLine)
+        : undefined;
+      if (generation !== this.renderGeneration || !this.view) {
+        return;
+      }
       this.rendered = { document, startLine, endLine };
       const lines: string[] = [];
       for (let line = startLine; line <= endLine; line += 1) {
@@ -352,7 +398,7 @@ export class CodePreviewProvider
         lines.push(
           `<div class="line${line === targetLine ? " target" : ""}" data-line="${line}">` +
             `<span class="number">${line + 1}</span>` +
-            `<code data-line="${line}">${highlightPreviewLine(source, line, location.range)}</code>` +
+            `<code data-line="${line}">${highlightPreviewLine(source, line, location.range, tokens?.get(line))}</code>` +
             "</div>",
         );
       }
@@ -373,6 +419,35 @@ export class CodePreviewProvider
       this.rendered = undefined;
       this.view.webview.html = errorHtml(String(error));
     }
+  }
+
+  private async semanticTokensFor(
+    document: vscode.TextDocument,
+    startLine: number,
+    endLine: number,
+  ): Promise<Map<number, SemanticTokenSpan[]> | undefined> {
+    const key = `${document.uri.toString()}\0${document.version}`;
+    let request = this.semanticTokens.get(key);
+    if (!request) {
+      request = requestSemanticTokens(document);
+      this.semanticTokens.set(key, request);
+    }
+    const maximumEntries = vscode.workspace
+      .getConfiguration("cInsight.codePreview")
+      .get<number>("semanticTokenCacheSize", 32);
+    while (this.semanticTokens.size > maximumEntries) {
+      const oldest = this.semanticTokens.keys().next().value as
+        | string
+        | undefined;
+      if (oldest === undefined) {
+        break;
+      }
+      this.semanticTokens.delete(oldest);
+    }
+    const result = await request;
+    return result
+      ? decodeSemanticTokens(result.data, result.legend, startLine, endLine)
+      : undefined;
   }
 }
 
@@ -396,13 +471,48 @@ function highlightPreviewLine(
   source: string,
   line: number,
   range: vscode.Range,
+  semanticTokens?: readonly SemanticTokenSpan[],
 ): string {
+  if (semanticTokens) {
+    const target =
+      line >= range.start.line && line <= range.end.line
+        ? {
+            start: line === range.start.line ? range.start.character : 0,
+            end:
+              line === range.end.line ? range.end.character : source.length,
+          }
+        : undefined;
+    return highlightSemanticLine(source, semanticTokens, target);
+  }
   if (line < range.start.line || line > range.end.line) {
     return highlightCppLine(source);
   }
   const start = line === range.start.line ? range.start.character : 0;
   const end = line === range.end.line ? range.end.character : source.length;
   return highlightTarget(source, start, end);
+}
+
+async function requestSemanticTokens(
+  document: vscode.TextDocument,
+): Promise<SemanticTokenDocument | undefined> {
+  try {
+    const [legend, tokens] = await Promise.all([
+      vscode.commands.executeCommand<vscode.SemanticTokensLegend | undefined>(
+        "vscode.provideDocumentSemanticTokensLegend",
+        document.uri,
+      ),
+      vscode.commands.executeCommand<vscode.SemanticTokens | undefined>(
+        "vscode.provideDocumentSemanticTokens",
+        document.uri,
+      ),
+    ]);
+    if (!legend || !tokens) {
+      return undefined;
+    }
+    return { data: tokens.data, legend };
+  } catch {
+    return undefined;
+  }
 }
 
 async function openEditor(
@@ -531,6 +641,42 @@ function htmlDocument(
     .str { color: var(--vscode-symbolIcon-stringForeground, #ce9178); }
     .comment { color: var(--vscode-editorLineNumber-foreground); }
     .num { color: var(--vscode-symbolIcon-numberForeground, #b5cea8); }
+    .sem-namespace { color: var(--vscode-symbolIcon-namespaceForeground, #4ec9b0); }
+    .sem-type, .sem-class, .sem-struct, .sem-interface, .sem-enum,
+    .sem-typeParameter {
+      color: var(--vscode-symbolIcon-classForeground, #4ec9b0);
+    }
+    .sem-function, .sem-method {
+      color: var(--vscode-symbolIcon-methodForeground, #dcdcaa);
+    }
+    .sem-macro {
+      color: var(--vscode-symbolIcon-constantForeground, #c586c0);
+    }
+    .sem-parameter {
+      color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
+      font-style: italic;
+    }
+    .sem-variable, .sem-property, .sem-enumMember, .sem-event {
+      color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
+    }
+    .sem-label {
+      color: var(--vscode-symbolIcon-keyForeground, #c8c8c8);
+    }
+    .sem-keyword, .sem-modification {
+      color: var(--vscode-symbolIcon-keywordForeground, #c586c0);
+    }
+    .sem-comment { color: var(--vscode-editorLineNumber-foreground); }
+    .sem-string {
+      color: var(--vscode-symbolIcon-stringForeground, #ce9178);
+    }
+    .sem-number {
+      color: var(--vscode-symbolIcon-numberForeground, #b5cea8);
+    }
+    .sem-operator {
+      color: var(--vscode-symbolIcon-operatorForeground, var(--vscode-editor-foreground));
+    }
+    .sem-mod-deprecated { text-decoration: line-through; }
+    .sem-mod-readonly { font-style: italic; }
     .empty, .error { color: var(--vscode-descriptionForeground); }
   </style>
 </head>

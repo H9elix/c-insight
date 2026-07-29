@@ -9,14 +9,6 @@ reconsidered after real-world use:
   the current Definition preview interaction.
 - Persisting and restoring horizontal and vertical scroll positions for every
   preview history target.
-- Editor-like semantic coloring in Code Preview. The preferred implementation
-  is to decode clangd-backed VS Code Document Semantic Tokens, layer them over
-  the existing lexical fallback, cache results, and invalidate them after
-  source or theme changes. This is deferred because Webviews cannot reuse the
-  editor renderer or obtain every theme's final computed semantic-token
-  colors, so the result would be more complex without guaranteeing exact
-  editor/Webview color parity.
-
 ## References classification follow-ups
 
 Version 0.6.1 added confidence-labelled Read, Write, Read/Write, address, and

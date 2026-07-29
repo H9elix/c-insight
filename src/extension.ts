@@ -353,6 +353,7 @@ export async function activate(
     vscode.workspace.onDidChangeTextDocument((event) => {
       bookmarks.handleDocumentChange(event.document);
       includeHierarchy.handleDocumentChange(event.document);
+      views.preview.handleDocumentChange(event.document);
       relationshipGraph.markStale("source changed");
       if (isCppDocument(event.document)) {
         typeHierarchy.invalidate();
