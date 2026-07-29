@@ -29,6 +29,14 @@ changes rerender the visible preview. The Webview maps semantic
 classes to public VS Code theme variables because it cannot reuse the editor
 renderer or inspect every final semantic-token color rule.
 
+Code Preview incremental context loading is driven by validated `before` and
+`after` messages from the Webview when its scroll container approaches an
+edge. The host expands a pure bounded line-range model and sends only newly
+rendered lines back. The Webview inserts those rows in place, trims the
+opposite edge after the configured DOM budget is reached, and anchors an
+existing row while preserving horizontal scroll. Trimmed ranges can be loaded
+again; the document-version semantic-token result is reused for every batch.
+
 Navigation History is session-scoped and uses one shared cursor for the
 History view and Code Preview Back/Forward. Bookmarks are intentionally
 separate: they persist in VS Code workspaceState and retain a captured

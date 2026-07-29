@@ -1,4 +1,4 @@
-# C Insight 0.12.10 使用手册
+# C Insight 0.12.11 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -151,6 +151,11 @@ Code Preview 是共享源码预览窗口，可显示：
 
 目标符号会突出显示，并显示目标前后的源码行。长代码行可以横向滚动，滚动条
 位于预览代码区域底部。
+
+默认情况下，向上或向下滚动到预览边缘会继续加载同一文件的源码上下文，直到
+文件开头或结尾。新增代码行直接插入现有预览，不会重建整个窗口；向上插入以及
+达到行数上限后裁剪远端代码时，会保留当前可见代码和横向滚动位置。被裁剪的
+代码不是永久丢失，滚回对应方向时会再次加载。
 
 ### 鼠标操作
 
@@ -893,6 +898,9 @@ C Insight 默认管理：
 | `cInsight.codePreview.linesAfter` | number | `8` | 0–100 | 目标行之后显示的源码行数 |
 | `cInsight.codePreview.semanticHighlighting` | boolean | `true` | `true` / `false` | 是否使用当前 VS Code 语义令牌提供器着色符号；关闭后只使用词法高亮 |
 | `cInsight.codePreview.semanticTokenCacheSize` | number | `32` | 1–256 | 内存中最多保留的按文档及其版本区分的语义令牌结果数 |
+| `cInsight.codePreview.incrementalLoading` | boolean | `true` | `true` / `false` | 滚动到 Code Preview 上下边缘时是否继续加载源码 |
+| `cInsight.codePreview.loadBatchLines` | number | `50` | 10–500 | 每次向上或向下增量加载的源码行数 |
+| `cInsight.codePreview.maximumLoadedLines` | number | `1000` | 50–10000 | Code Preview DOM 同时保留的最大源码行数；超过后裁剪远离滚动方向的一端 |
 
 修改后会清空语义令牌缓存并重新渲染当前 Code Preview。源码发生变化时，对应
 文档的缓存会失效；切换颜色主题时，可见的 Code Preview 会重新渲染。
