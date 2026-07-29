@@ -65,9 +65,12 @@ snapshots and renders native SVG under a nonce-restricted CSP. Incoming
 messages contain only a discriminated action and node ID; the host validates
 the ID against its current model before previewing or opening a file.
 
-The 0.12.0 foundation creates only an active-file root. It does not yet call
-Call/Type Hierarchy or Include adapters, and opening it cannot build the
-Included By reverse index.
+Callers/Callees trees and Relationship Graph share a
+`CallHierarchyRepository`, including separate bounded Incoming and Outgoing
+caches and the opaque clangd call items needed by follow-up requests. The graph
+maps every result into semantic Caller → Callee edges and merges stable node
+IDs. Type and Include adapters are not connected yet, and opening the graph
+cannot build the Included By reverse index.
 
 Include Hierarchy is local and does not require a non-standard clangd method.
 The forward tree parses directives lazily and resolves them with the active

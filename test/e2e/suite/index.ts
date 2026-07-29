@@ -141,10 +141,14 @@ export async function run(): Promise<void> {
     async () =>
       vscode.window.tabGroups.all
         .flatMap((group) => group.tabs)
-        .some((tab) => tab.label.startsWith("Relationship Graph"))
+        .some(
+          (tab) =>
+            tab.label.startsWith("Relationship Graph") &&
+            tab.label.includes("add"),
+        )
         ? true
         : undefined,
-    "Relationship Graph panel did not open",
+    "Relationship Graph did not open with Calculator::add as its call root",
   );
 
   const firstDefinition = definitions[0];

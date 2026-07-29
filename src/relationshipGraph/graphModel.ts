@@ -107,6 +107,27 @@ export class RelationshipGraphModel {
     return this.nodes.get(id);
   }
 
+  hasPath(from: string, to: string): boolean {
+    const queue = [from];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === to) {
+        return true;
+      }
+      if (visited.has(current)) {
+        continue;
+      }
+      visited.add(current);
+      for (const edge of this.edges.values()) {
+        if (edge.from === current && !visited.has(edge.to)) {
+          queue.push(edge.to);
+        }
+      }
+    }
+    return false;
+  }
+
   markStale(reason: string): void {
     this.staleReason = reason;
     this.revision += 1;

@@ -3,6 +3,7 @@ import { AnalysisService } from "./analysis/analysisService";
 import { ClangdManager } from "./clangd/clangdManager";
 import { ClangdLogOutputChannel } from "./clangd/clangdLog";
 import { BookmarkExplorer } from "./bookmarks/bookmarkExplorer";
+import { CallHierarchyRepository } from "./callHierarchy/callHierarchyRepository";
 import { registerCommands } from "./commands/registerCommands";
 import { isCppDocument } from "./configuration/configuration";
 import { ContextController } from "./context/contextController";
@@ -36,12 +37,16 @@ export async function activate(
     new ClangdLogOutputChannel(clangdOutput),
   );
   const analysis = new AnalysisService(manager, output);
+  const callRepository = new CallHierarchyRepository(analysis);
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
   const typeHierarchy = new TypeHierarchyExplorer(analysis);
   const includeHierarchy = new IncludeHierarchyExplorer();
-  const relationshipGraph = new RelationshipGraphPanel();
+  const relationshipGraph = new RelationshipGraphPanel(
+    analysis,
+    callRepository,
+  );
   const views = new ViewRegistry(
     analysis,
     navigationHistory,
@@ -49,6 +54,7 @@ export async function activate(
     symbolSearch,
     typeHierarchy,
     includeHierarchy,
+    callRepository,
   );
   const controller = new ContextController(analysis, views, output);
   const projectDiagnostics = new ProjectDiagnostics(manager);
@@ -221,7 +227,7 @@ export async function activate(
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cInsight.relationshipGraph.show",
-      () => {
+      async () => {
         const editor = vscode.window.activeTextEditor;
         if (
           !editor ||
@@ -233,7 +239,10 @@ export async function activate(
           );
           return;
         }
-        relationshipGraph.showFile(editor.document.uri);
+        await relationshipGraph.showAt(
+          editor.document.uri,
+          editor.selection.active,
+        );
       },
     ),
   );
@@ -319,6 +328,7 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.callHierarchy")) {
         views.invalidateCallHierarchy();
+        relationshipGraph.markStale("call hierarchy configuration changed");
         controller.refresh();
       }
       if (event.affectsConfiguration("cInsight.typeHierarchy")) {

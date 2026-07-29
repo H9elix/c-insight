@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.12.1
+
+- Added a shared Call Hierarchy repository so the native trees and
+  Relationship Graph reuse the same bounded Incoming/Outgoing request caches.
+- Show Relationship Graph now prepares the callable symbol under the cursor
+  and retains clangd's opaque call item for subsequent graph expansion.
+- Added Expand Callers, Expand Callees, and Stop actions for the selected graph
+  node, with cancellable progress and clangd 20 outgoing-call diagnostics.
+- Maps calls into semantic Caller → Callee edges, merges repeated targets, and
+  labels direct or indirect recursion without duplicating graph entities.
+- Enforces graph depth, node, and edge budgets while expanding Call Graph data.
+- A positive `relationshipGraph.defaultDepth` loads the root's first Caller
+  and Callee level; zero keeps the root collapsed.
+
 ## 0.12.0
 
 - Added the Relationship Graph foundation as an editor-area WebviewPanel.
