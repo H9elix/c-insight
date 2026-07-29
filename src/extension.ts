@@ -228,6 +228,9 @@ export async function activate(
     projectDiagnostics,
     reliabilityStatusBar,
     compilationDatabaseWatcher,
+    relationshipGraph.onDidClose(() => {
+      void workspaceSession?.save();
+    }),
   );
 
   registerCommands(

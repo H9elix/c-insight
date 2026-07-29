@@ -1,4 +1,4 @@
-# C Insight 0.12.11 使用手册
+# C Insight 0.12.12 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -540,6 +540,10 @@ Relationship Graph 恢复采用不同策略：直接显示上次保存的静态�
 重新执行 prepare，并给节点加入 `revalidated` 状态。文件节点同样只有在明确
 展开时才读取关系。
 
+只有 VS Code 退出或 Reload Window 时仍然打开的 Relationship Graph 才会在下次
+启动时恢复。用户主动关闭 Graph 标签页会立即从工作区会话快照中清除关系图，
+之后关闭并重新打开 VS Code 不会再次出现已关闭的 Graph。
+
 恢复前会检查根文件是否仍然存在；根文件缺失时跳过整张图。其他文件若之后删除，
 会在用户预览或打开时标记 `missing` 并显示警告。关系图快照具有独立 schema
 版本和严格大小限制；格式不兼容或内容损坏时只丢弃关系图部分，不影响其他会话
@@ -969,7 +973,7 @@ C Insight 默认管理：
 | `cInsight.session.restore` | boolean | `true` | `true` / `false` | 是否自动保存并恢复当前工作区浏览快照 |
 | `cInsight.session.persistNavigationHistory` | boolean | `true` | `true` / `false` | 是否在快照中保存 Navigation History |
 | `cInsight.session.restoreCallHierarchy` | boolean | `true` | `true` / `false` | 是否重新查询并恢复 Callers/Callees 根和加载深度 |
-| `cInsight.session.restoreRelationshipGraph` | boolean | `true` | `true` / `false` | 是否无查询地恢复上次 Relationship Graph 静态快照 |
+| `cInsight.session.restoreRelationshipGraph` | boolean | `true` | `true` / `false` | 是否无查询地恢复退出时仍打开的 Relationship Graph 静态快照 |
 | `cInsight.session.relationshipGraphMaximumSnapshotNodes` | number | `1000` | 50–2000 | 会话最多保存的关系图节点数；超过时降级为仅保存根节点 |
 | `cInsight.session.maximumAgeDays` | number | `30` | 1–365 | 超过此天数的快照自动忽略 |
 

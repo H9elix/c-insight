@@ -121,6 +121,11 @@ the first explicit expansion of a restored node. Oversized snapshots degrade
 to the root, while malformed graph sections are discarded independently from
 the enclosing workspace session.
 
+Panel disposal distinguishes a user-close from extension shutdown. A
+user-close clears the retained graph and triggers an immediate workspace
+session save; extension shutdown temporarily retains the live snapshot so the
+normal final save still records a panel that was open when VS Code exited.
+
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing
 caches and the opaque clangd call items needed by follow-up requests. The graph
