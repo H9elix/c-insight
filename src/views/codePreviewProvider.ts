@@ -9,6 +9,10 @@ import {
 import { LocationResult } from "../models/types";
 import type { PreviewSessionState } from "../session/workspaceSession";
 import {
+  expandPreviewRange,
+  PreviewLoadDirection,
+} from "./previewRange";
+import {
   escapeHtml,
   decodeSemanticTokens,
   highlightCppLine,
@@ -35,6 +39,7 @@ interface PreviewMessage {
   line?: unknown;
   character?: unknown;
   selection?: unknown;
+  direction?: unknown;
 }
 
 interface SemanticTokenDocument {
@@ -52,6 +57,7 @@ export class CodePreviewProvider
   private definitionGeneration = 0;
   private definitionCancellation?: vscode.CancellationTokenSource;
   private renderGeneration = 0;
+  private loadingMore = false;
   private readonly semanticTokens = new Map<
     string,
     Promise<SemanticTokenDocument | undefined>
@@ -250,6 +256,11 @@ export class CodePreviewProvider
             : undefined,
         );
         break;
+      case "loadMore":
+        if (message.direction === "before" || message.direction === "after") {
+          await this.loadMore(message.direction);
+        }
+        break;
     }
   }
 
@@ -379,8 +390,26 @@ export class CodePreviewProvider
       const linesBefore = config.get<number>("linesBefore", 6);
       const linesAfter = config.get<number>("linesAfter", 8);
       const targetLine = location.range.start.line;
-      const startLine = Math.max(0, targetLine - linesBefore);
-      const endLine = Math.min(document.lineCount - 1, targetLine + linesAfter);
+      let startLine = Math.max(0, targetLine - linesBefore);
+      let endLine = Math.min(
+        document.lineCount - 1,
+        targetLine + linesAfter,
+      );
+      const maximumLoadedLines = Math.max(
+        1,
+        Math.floor(config.get<number>("maximumLoadedLines", 1000)),
+      );
+      if (endLine - startLine + 1 > maximumLoadedLines) {
+        startLine = Math.max(
+          0,
+          targetLine - Math.min(linesBefore, maximumLoadedLines - 1),
+        );
+        endLine = Math.min(
+          document.lineCount - 1,
+          startLine + maximumLoadedLines - 1,
+        );
+        startLine = Math.max(0, endLine - maximumLoadedLines + 1);
+      }
       const semanticHighlighting = config.get<boolean>(
         "semanticHighlighting",
         true,
@@ -392,32 +421,106 @@ export class CodePreviewProvider
         return;
       }
       this.rendered = { document, startLine, endLine };
-      const lines: string[] = [];
-      for (let line = startLine; line <= endLine; line += 1) {
-        const source = document.lineAt(line).text;
-        lines.push(
-          `<div class="line${line === targetLine ? " target" : ""}" data-line="${line}">` +
-            `<span class="number">${line + 1}</span>` +
-            `<code data-line="${line}">${highlightPreviewLine(source, line, location.range, tokens?.get(line))}</code>` +
-            "</div>",
-        );
-      }
+      const lines = renderSourceLines(
+        document,
+        startLine,
+        endLine,
+        location.range,
+        tokens,
+      );
       const relative = vscode.workspace.asRelativePath(location.uri);
       const nonce = randomBytes(16).toString("base64");
       this.view.webview.html = htmlDocument(
         `${previewModeLabel(mode)} · ${escapeHtml(title)}`,
         `${escapeHtml(relative)}:${targetLine + 1}`,
-        lines.join(""),
+        lines,
         nonce,
         {
           back: this.navigationHistory.canBack,
           forward: this.navigationHistory.canForward,
           locked: this.locked,
         },
+        {
+          enabled: config.get<boolean>("incrementalLoading", true),
+          hasBefore: startLine > 0,
+          hasAfter: endLine < document.lineCount - 1,
+        },
       );
     } catch (error) {
       this.rendered = undefined;
       this.view.webview.html = errorHtml(String(error));
+    }
+  }
+
+  private async loadMore(direction: PreviewLoadDirection): Promise<void> {
+    if (this.loadingMore || !this.view || !this.rendered || !this.state) {
+      return;
+    }
+    const config = vscode.workspace.getConfiguration("cInsight.codePreview");
+    if (!config.get<boolean>("incrementalLoading", true)) {
+      return;
+    }
+    const rendered = this.rendered;
+    const expansion = expandPreviewRange(
+      rendered,
+      direction,
+      config.get<number>("loadBatchLines", 50),
+      config.get<number>("maximumLoadedLines", 1000),
+      rendered.document.lineCount - 1,
+    );
+    if (!expansion) {
+      await this.view.webview.postMessage({
+        type: "incrementalLines",
+        direction,
+        html: "",
+        startLine: rendered.startLine,
+        endLine: rendered.endLine,
+        hasBefore: rendered.startLine > 0,
+        hasAfter: rendered.endLine < rendered.document.lineCount - 1,
+      });
+      return;
+    }
+    this.loadingMore = true;
+    try {
+      const semanticHighlighting = config.get<boolean>(
+        "semanticHighlighting",
+        true,
+      );
+      const tokens = semanticHighlighting
+        ? await this.semanticTokensFor(
+            rendered.document,
+            expansion.addedStartLine,
+            expansion.addedEndLine,
+          )
+        : undefined;
+      if (
+        this.rendered !== rendered ||
+        !this.view ||
+        this.state.location.uri.toString() !==
+          rendered.document.uri.toString()
+      ) {
+        return;
+      }
+      const html = renderSourceLines(
+        rendered.document,
+        expansion.addedStartLine,
+        expansion.addedEndLine,
+        this.state.location.range,
+        tokens,
+      );
+      rendered.startLine = expansion.startLine;
+      rendered.endLine = expansion.endLine;
+      await this.view.webview.postMessage({
+        type: "incrementalLines",
+        direction,
+        html,
+        startLine: expansion.startLine,
+        endLine: expansion.endLine,
+        hasBefore: expansion.startLine > 0,
+        hasAfter: expansion.endLine < rendered.document.lineCount - 1,
+      });
+    } finally {
+      this.loadingMore = false;
     }
   }
 
@@ -449,6 +552,27 @@ export class CodePreviewProvider
       ? decodeSemanticTokens(result.data, result.legend, startLine, endLine)
       : undefined;
   }
+}
+
+function renderSourceLines(
+  document: vscode.TextDocument,
+  startLine: number,
+  endLine: number,
+  targetRange: vscode.Range,
+  tokens?: ReadonlyMap<number, readonly SemanticTokenSpan[]>,
+): string {
+  const lines: string[] = [];
+  const targetLine = targetRange.start.line;
+  for (let line = startLine; line <= endLine; line += 1) {
+    const source = document.lineAt(line).text;
+    lines.push(
+      `<div class="line${line === targetLine ? " target" : ""}" data-line="${line}">` +
+        `<span class="number">${line + 1}</span>` +
+        `<code data-line="${line}">${highlightPreviewLine(source, line, targetRange, tokens?.get(line))}</code>` +
+        "</div>",
+    );
+  }
+  return lines.join("");
 }
 
 function serializeRange(range: vscode.Range): {
@@ -564,11 +688,22 @@ function errorHtml(error: string): string {
 }
 
 function staticHtml(title: string, location: string, body: string): string {
-  return htmlDocument(title, location, body, "", {
-    back: false,
-    forward: false,
-    locked: false,
-  });
+  return htmlDocument(
+    title,
+    location,
+    body,
+    "",
+    {
+      back: false,
+      forward: false,
+      locked: false,
+    },
+    {
+      enabled: false,
+      hasBefore: false,
+      hasAfter: false,
+    },
+  );
 }
 
 function htmlDocument(
@@ -577,6 +712,7 @@ function htmlDocument(
   body: string,
   nonce: string,
   controls: { back: boolean; forward: boolean; locked: boolean },
+  incremental: { enabled: boolean; hasBefore: boolean; hasAfter: boolean },
 ): string {
   const scriptPolicy = nonce ? ` script-src 'nonce-${nonce}';` : "";
   return `<!DOCTYPE html>
@@ -615,6 +751,7 @@ function htmlDocument(
     .code {
       box-sizing: border-box; flex: 1 1 auto; min-height: 0;
       width: 100%; max-width: 100%; overflow: auto; padding: 4px 0;
+      overflow-anchor: none;
       font-family: var(--vscode-editor-font-family);
       font-size: var(--vscode-editor-font-size);
     }
@@ -700,6 +837,66 @@ function htmlDocument(
   ${nonce ? `<script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     let clickTimer;
+    let loadingMore = false;
+    let hasBefore = ${incremental.hasBefore};
+    let hasAfter = ${incremental.hasAfter};
+    const incrementalLoading = ${incremental.enabled};
+    const codeContainer = document.querySelector('.code');
+    function requestMore(direction) {
+      if (!incrementalLoading || loadingMore) return;
+      if (direction === 'before' ? !hasBefore : !hasAfter) return;
+      loadingMore = true;
+      vscode.postMessage({ type: 'loadMore', direction });
+    }
+    function loadAtScrollEdge(deltaY) {
+      if (!codeContainer) return;
+      const threshold = 80;
+      if (deltaY <= 0 && codeContainer.scrollTop <= threshold) {
+        requestMore('before');
+      } else if (
+        deltaY >= 0 &&
+        codeContainer.scrollTop + codeContainer.clientHeight >=
+          codeContainer.scrollHeight - threshold
+      ) {
+        requestMore('after');
+      }
+    }
+    codeContainer?.addEventListener('scroll', () => loadAtScrollEdge(0));
+    codeContainer?.addEventListener(
+      'wheel',
+      event => loadAtScrollEdge(event.deltaY),
+      { passive: true }
+    );
+    window.addEventListener('message', event => {
+      const message = event.data;
+      if (!message || message.type !== 'incrementalLines' || !codeContainer) return;
+      const direction = message.direction;
+      const existing = codeContainer.querySelectorAll('.line');
+      const anchor = direction === 'before'
+        ? existing[0]
+        : existing[existing.length - 1];
+      const anchorTop = anchor?.offsetTop ?? 0;
+      const scrollLeft = codeContainer.scrollLeft;
+      if (message.html) {
+        codeContainer.insertAdjacentHTML(
+          direction === 'before' ? 'afterbegin' : 'beforeend',
+          message.html
+        );
+      }
+      for (const line of codeContainer.querySelectorAll('.line[data-line]')) {
+        const number = Number(line.dataset.line);
+        if (number < message.startLine || number > message.endLine) {
+          line.remove();
+        }
+      }
+      if (anchor?.isConnected) {
+        codeContainer.scrollTop += anchor.offsetTop - anchorTop;
+      }
+      codeContainer.scrollLeft = scrollLeft;
+      hasBefore = Boolean(message.hasBefore);
+      hasAfter = Boolean(message.hasAfter);
+      loadingMore = false;
+    });
     function sourcePosition(event) {
       const code = event.target.closest && event.target.closest('code[data-line]');
       if (!code) return undefined;

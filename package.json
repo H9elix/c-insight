@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.10",
+  "version": "0.12.11",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1186,6 +1186,25 @@
           "minimum": 1,
           "maximum": 256,
           "description": "Maximum number of document-version semantic-token results retained in memory."
+        },
+        "cInsight.codePreview.incrementalLoading": {
+          "type": "boolean",
+          "default": true,
+          "description": "Load more source context when Code Preview is scrolled near its top or bottom edge."
+        },
+        "cInsight.codePreview.loadBatchLines": {
+          "type": "number",
+          "default": 50,
+          "minimum": 10,
+          "maximum": 500,
+          "description": "Number of source lines added for each incremental Code Preview load."
+        },
+        "cInsight.codePreview.maximumLoadedLines": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 50,
+          "maximum": 10000,
+          "description": "Maximum source lines retained in the Code Preview DOM; distant lines are trimmed and can be loaded again."
         },
         "cInsight.references.pageSize": {
           "type": "number",

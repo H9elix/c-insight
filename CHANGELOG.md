@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.12.11
+
+- Added bidirectional incremental source loading when Code Preview is scrolled
+  near its top or bottom edge.
+- Inserted newly rendered lines in place while preserving vertical anchors,
+  horizontal scroll, semantic coloring, and navigation behavior.
+- Added a bounded loaded-line window that trims the distant edge and reloads it
+  on demand instead of allowing unbounded Webview DOM growth.
+- Added configurable incremental loading, batch size, and maximum loaded lines.
+- Reused document-version semantic-token results across every loaded batch.
+
 ## 0.12.10
 
 - Code Preview now shows a pointer cursor over semantic symbols that can be
