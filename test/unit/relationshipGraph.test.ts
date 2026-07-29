@@ -139,4 +139,31 @@ describe("relationship graph model", () => {
       /n0 -->\|includes\| n1/,
     );
   });
+
+  it("builds and snapshots a large bounded graph without quadratic growth", () => {
+    const started = performance.now();
+    const graph = new RelationshipGraphModel(5_100, 5_100);
+    const root = node("root");
+    graph.replaceRoot(root);
+    let previous = root;
+    for (let index = 0; index < 5_000; index += 1) {
+      const current = node(`node-${index}`);
+      graph.addNode(current);
+      graph.addEdge({
+        id: graphEdgeId("calls", previous.id, current.id),
+        from: previous.id,
+        to: current.id,
+        relation: "calls",
+        states: [],
+      });
+      previous = current;
+    }
+    const snapshot = graph.snapshot();
+    assert.equal(snapshot.nodes.length, 5_001);
+    assert.equal(snapshot.edges.length, 5_000);
+    assert.ok(
+      performance.now() - started < 2_000,
+      "Large graph construction exceeded the 2 second regression budget",
+    );
+  });
 });

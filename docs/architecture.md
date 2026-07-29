@@ -77,6 +77,15 @@ data, while the viewport is fitted only when the root identity changes.
 Collapse derives the outward branch from semantic ranks and hides it locally,
 so expanding it again cannot trigger a language or file-system request.
 
+Rendering is scheduled through `requestAnimationFrame` and reconciles SVG
+elements by stable semantic IDs. Layer ranks are computed from adjacency lists
+in O(V+E), while graph-space viewport bounds select nearby nodes before DOM
+reconciliation. The complete immutable snapshot remains available for search,
+statistics, collapse, and export. Slow frames are reported to the extension
+host with a throttled, validated telemetry-free message and written only to
+the local C Insight output channel. Closing the panel cancels active work and
+releases both host graph maps and Webview render/layout caches.
+
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing
 caches and the opaque clangd call items needed by follow-up requests. The graph

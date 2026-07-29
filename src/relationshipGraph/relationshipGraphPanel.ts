@@ -40,6 +40,12 @@ type GraphMessage =
   | { type: "search" }
   | { type: "export" }
   | {
+      type: "slowRender";
+      duration: number;
+      nodes: number;
+      edges: number;
+    }
+  | {
       type: "expandCall";
       nodeId: string;
       direction: CallDirection;
@@ -80,6 +86,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     private readonly typeRepository: TypeHierarchyRepository,
     private readonly includeRepository: IncludeHierarchyRepository,
     private readonly bookmarks: BookmarkExplorer,
+    private readonly output: vscode.OutputChannel,
   ) {}
 
   async showAt(uri: vscode.Uri, position: vscode.Position): Promise<void> {
@@ -243,6 +250,17 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     panel.webview.html = graphHtml();
     panel.onDidDispose(
       () => {
+        this.stopExpansion();
+        this.generation += 1;
+        this.model = this.createModel();
+        this.callNodes.clear();
+        this.typeNodes.clear();
+        this.includeFiles.clear();
+        this.nodeDepth.clear();
+        this.expandedCalls.clear();
+        this.expandedTypes.clear();
+        this.expandedIncludes.clear();
+        this.operationStatus = undefined;
         this.panel = undefined;
       },
       undefined,
@@ -261,6 +279,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (message.type === "ready") {
       await this.publish();
+      return;
+    }
+    if (message.type === "slowRender") {
+      this.output.appendLine(
+        `Slow Relationship Graph render: ${message.duration.toFixed(1)} ms (${message.nodes} nodes, ${message.edges} edges)`,
+      );
       return;
     }
     if (message.type === "stopExpansion") {
@@ -1455,6 +1479,16 @@ function isGraphMessage(value: unknown): value is GraphMessage {
   if (type === "search" || type === "export") {
     return true;
   }
+  if (type === "slowRender") {
+    return (
+      "duration" in value &&
+      typeof (value as { duration: unknown }).duration === "number" &&
+      "nodes" in value &&
+      typeof (value as { nodes: unknown }).nodes === "number" &&
+      "edges" in value &&
+      typeof (value as { edges: unknown }).edges === "number"
+    );
+  }
   if (type === "expandCall") {
     return (
       "nodeId" in value &&
@@ -1572,37 +1606,63 @@ function graphHtml(): string {
     let positionCache = new Map();
     let collapsed = new Set();
     let currentRoot;
+    let renderFrame;
+    let pendingFit = false;
+    let lastSlowRender = 0;
+    const nodeElements = new Map();
+    const edgeElements = new Map();
     const enabled = new Set(['calls', 'inherits', 'includes']);
+    const resizeObserver = new ResizeObserver(() => render());
+    resizeObserver.observe(svg);
     const applyTransform = () => viewport.setAttribute('transform', 'translate(' + tx + ' ' + ty + ') scale(' + scale + ')');
     const element = (name, attrs = {}) => { const value = document.createElementNS('http://www.w3.org/2000/svg', name); for (const [key, item] of Object.entries(attrs)) value.setAttribute(key, item); return value; };
-    function render() {
-      edgeLayer.replaceChildren(); nodeLayer.replaceChildren();
+    function render(fitAfter = false) {
+      pendingFit ||= fitAfter;
+      if (renderFrame) return;
+      renderFrame = requestAnimationFrame(() => {
+        renderFrame = undefined;
+        renderNow();
+      });
+    }
+    function renderNow() {
+      const started = performance.now();
       const visible = visibleGraph();
       empty.style.display = visible.nodes.length ? 'none' : 'grid';
       positions = layeredPositions(visible);
       const visibleEdges = visible.edges.filter(edge => enabled.has(edge.relation));
-      visibleEdges.forEach(edge => {
+      const viewportBounds = graphViewportBounds(420);
+      const renderedNodes = visible.nodes.filter(node => {
+        const point = positions.get(node.id);
+        return node.id === selected || node.id === graph.rootId || !point || (point.x + 190 >= viewportBounds.left && point.x <= viewportBounds.right && point.y + 80 >= viewportBounds.top && point.y <= viewportBounds.bottom);
+      });
+      const renderedIds = new Set(renderedNodes.map(node => node.id));
+      const renderedEdges = visibleEdges.filter(edge => renderedIds.has(edge.from) && renderedIds.has(edge.to));
+      reconcile(edgeElements, renderedEdges, edgeLayer, edge => edge.id, (path, edge) => {
         const from = positions.get(edge.from), to = positions.get(edge.to);
         if (!from || !to) return;
         const recursive = edge.states?.some(state => state.includes('recursion') || state.includes('cycle'));
-        const path = element('path', { class: 'edge ' + edge.relation + (recursive ? ' recursive' : ''), d: 'M' + (from.x + 190) + ',' + (from.y + 40) + ' L' + to.x + ',' + (to.y + 40) });
-        const tooltip = element('title'); tooltip.textContent = edge.relation + (edge.states?.length ? ' · ' + edge.states.join(' · ') : ''); path.append(tooltip);
-        edgeLayer.append(path);
+        path.setAttribute('class', 'edge ' + edge.relation + (recursive ? ' recursive' : ''));
+        path.setAttribute('d', 'M' + (from.x + 190) + ',' + (from.y + 40) + ' L' + to.x + ',' + (to.y + 40));
+        let tooltip = path.querySelector('title');
+        if (!tooltip) { tooltip = element('title'); path.append(tooltip); }
+        tooltip.textContent = edge.relation + (edge.states?.length ? ' · ' + edge.states.join(' · ') : '');
       });
-      visible.nodes.forEach(node => {
+      reconcile(nodeElements, renderedNodes, nodeLayer, node => node.id, (group, node, created) => {
         const point = positions.get(node.id);
         const classes = ['node', node.id === graph.rootId ? 'root' : '', node.id === selected ? 'selected' : '', node.states?.includes('duplicate') ? 'duplicate' : '', node.kind === 'unresolved' ? 'unresolved' : ''].filter(Boolean).join(' ');
-        const group = element('g', { class: classes, transform: 'translate(' + point.x + ' ' + point.y + ')', tabindex: '0', role: 'button', 'data-node-id': node.id, 'aria-label': node.name + ', ' + node.kind + (node.states?.length ? ', ' + node.states.join(', ') : '') });
-        group.append(element('rect', { width: '190', height: '80' }));
-        const title = element('text', { x: '10', y: '27' }); title.textContent = node.name; group.append(title);
-        const detail = element('text', { class: 'detail', x: '10', y: '49' }); detail.textContent = node.detail || node.kind; group.append(detail);
-        const state = element('text', { class: 'state', x: '10', y: '68' }); state.textContent = nodeStateLabel(node); group.append(state);
-        group.addEventListener('click', event => { event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'selectNode', nodeId: node.id }); });
-        group.addEventListener('dblclick', event => { event.stopPropagation(); vscode.postMessage({ type: 'openNode', nodeId: node.id }); });
-        group.addEventListener('contextmenu', event => { event.preventDefault(); event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'nodeContext', nodeId: node.id }); });
-        group.addEventListener('focus', () => { selected = node.id; });
-        group.addEventListener('keydown', event => handleNodeKey(event, node.id));
-        nodeLayer.append(group);
+        group.setAttribute('class', classes);
+        group.setAttribute('transform', 'translate(' + point.x + ' ' + point.y + ')');
+        group.setAttribute('aria-label', node.name + ', ' + node.kind + (node.states?.length ? ', ' + node.states.join(', ') : ''));
+        group.querySelector('.title').textContent = node.name;
+        group.querySelector('.detail').textContent = node.detail || node.kind;
+        group.querySelector('.state').textContent = nodeStateLabel(node);
+        if (created) {
+          group.addEventListener('click', event => { event.stopPropagation(); const id = group.dataset.nodeId; selected = id; render(); vscode.postMessage({ type: 'selectNode', nodeId: id }); });
+          group.addEventListener('dblclick', event => { event.stopPropagation(); vscode.postMessage({ type: 'openNode', nodeId: group.dataset.nodeId }); });
+          group.addEventListener('contextmenu', event => { event.preventDefault(); event.stopPropagation(); const id = group.dataset.nodeId; selected = id; render(); vscode.postMessage({ type: 'nodeContext', nodeId: id }); });
+          group.addEventListener('focus', () => { selected = group.dataset.nodeId; });
+          group.addEventListener('keydown', event => handleNodeKey(event, group.dataset.nodeId));
+        }
       });
       const selectedNode = graph.nodes.find(node => node.id === selected);
       const isType = selectedNode?.capabilities?.includes('inherits');
@@ -1618,6 +1678,51 @@ function graphHtml(): string {
       status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : operationStatus?.message ? operationStatus.message + ' · ' + statistics : statistics + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
       status.style.color = operationStatus?.kind === 'error' ? 'var(--vscode-errorForeground)' : operationStatus?.kind === 'warning' ? 'var(--vscode-editorWarning-foreground)' : 'var(--vscode-descriptionForeground)';
       applyTransform();
+      const duration = performance.now() - started;
+      status.title = 'Last render: ' + duration.toFixed(1) + ' ms · rendered ' + renderedNodes.length + ' viewport nodes';
+      if (duration >= 50 && performance.now() - lastSlowRender >= 5000) {
+        lastSlowRender = performance.now();
+        vscode.postMessage({ type: 'slowRender', duration, nodes: visible.nodes.length, edges: visibleEdges.length });
+      }
+      if (pendingFit) {
+        pendingFit = false;
+        fit();
+      }
+    }
+    function reconcile(cache, values, layer, keyOf, update) {
+      const retained = new Set();
+      values.forEach(value => {
+        const key = keyOf(value);
+        retained.add(key);
+        let item = cache.get(key);
+        let created = false;
+        if (!item) {
+          created = true;
+          if (layer === nodeLayer) {
+            item = element('g', { tabindex: '0', role: 'button', 'data-node-id': key });
+            item.append(element('rect', { width: '190', height: '80' }));
+            item.append(element('text', { class: 'title', x: '10', y: '27' }));
+            item.append(element('text', { class: 'detail', x: '10', y: '49' }));
+            item.append(element('text', { class: 'state', x: '10', y: '68' }));
+          } else {
+            item = element('path');
+          }
+          cache.set(key, item);
+          layer.append(item);
+        }
+        update(item, value, created);
+      });
+      for (const [key, item] of cache) {
+        if (!retained.has(key)) { item.remove(); cache.delete(key); }
+      }
+    }
+    function graphViewportBounds(margin = 0) {
+      return {
+        left: -tx / scale - margin,
+        top: -ty / scale - margin,
+        right: (svg.clientWidth - tx) / scale + margin,
+        bottom: (svg.clientHeight - ty) / scale + margin,
+      };
     }
     function nodeStateLabel(node) {
       const values = [];
@@ -1631,14 +1736,31 @@ function graphHtml(): string {
     }
     function graphRanks(value = graph) {
       const ranks = new Map();
-      if (value.rootId) ranks.set(value.rootId, 0);
-      let changed = true;
-      for (let pass = 0; pass < value.nodes.length && changed; pass++) {
-        changed = false;
-        value.edges.forEach(edge => {
-          if (ranks.has(edge.from) && !ranks.has(edge.to)) { ranks.set(edge.to, ranks.get(edge.from) + 1); changed = true; }
-          else if (!ranks.has(edge.from) && ranks.has(edge.to)) { ranks.set(edge.from, ranks.get(edge.to) - 1); changed = true; }
-        });
+      const adjacency = new Map();
+      value.nodes.forEach(node => adjacency.set(node.id, []));
+      value.edges.forEach(edge => {
+        adjacency.get(edge.from)?.push({ id: edge.to, delta: 1 });
+        adjacency.get(edge.to)?.push({ id: edge.from, delta: -1 });
+      });
+      const roots = [
+        ...(value.rootId ? [value.rootId] : []),
+        ...value.nodes
+          .map(node => node.id)
+          .filter(id => id !== value.rootId),
+      ];
+      for (const root of roots) {
+        if (ranks.has(root)) continue;
+        ranks.set(root, root === value.rootId ? 0 : 0);
+        const queue = [root];
+        for (let index = 0; index < queue.length; index++) {
+          const current = queue[index];
+          for (const neighbor of adjacency.get(current) ?? []) {
+            if (!ranks.has(neighbor.id)) {
+              ranks.set(neighbor.id, (ranks.get(current) ?? 0) + neighbor.delta);
+              queue.push(neighbor.id);
+            }
+          }
+        }
       }
       return ranks;
     }
@@ -1688,7 +1810,7 @@ function graphHtml(): string {
       const minY = Math.min(...points.map(point => point.y)), maxY = Math.max(...points.map(point => point.y));
       const width = maxX - minX + 190, height = maxY - minY + 80;
       scale = Math.min(1.5, Math.max(.2, Math.min(svg.clientWidth / (width + 120), svg.clientHeight / (height + 120))));
-      tx = (svg.clientWidth - width * scale) / 2 - minX * scale; ty = (svg.clientHeight - height * scale) / 2 - minY * scale; applyTransform();
+      tx = (svg.clientWidth - width * scale) / 2 - minX * scale; ty = (svg.clientHeight - height * scale) / 2 - minY * scale; applyTransform(); render();
     }
     function focusNode(nodeId) {
       const point = positions.get(nodeId);
@@ -1729,12 +1851,12 @@ function graphHtml(): string {
       });
       if (candidates[0]) { selected = candidates[0][0]; render(); focusRendered(selected); }
     }
-    svg.addEventListener('wheel', event => { event.preventDefault(); const next = Math.min(3, Math.max(.2, scale * (event.deltaY < 0 ? 1.1 : .9))); scale = next; applyTransform(); }, { passive: false });
+    svg.addEventListener('wheel', event => { event.preventDefault(); const next = Math.min(3, Math.max(.2, scale * (event.deltaY < 0 ? 1.1 : .9))); scale = next; applyTransform(); render(); }, { passive: false });
     svg.addEventListener('pointerdown', event => { dragging = true; lastX = event.clientX; lastY = event.clientY; svg.classList.add('dragging'); svg.setPointerCapture(event.pointerId); });
-    svg.addEventListener('pointermove', event => { if (!dragging) return; tx += event.clientX - lastX; ty += event.clientY - lastY; lastX = event.clientX; lastY = event.clientY; applyTransform(); });
+    svg.addEventListener('pointermove', event => { if (!dragging) return; tx += event.clientX - lastX; ty += event.clientY - lastY; lastX = event.clientX; lastY = event.clientY; applyTransform(); render(); });
     svg.addEventListener('pointerup', () => { dragging = false; svg.classList.remove('dragging'); });
     document.getElementById('fit').addEventListener('click', fit);
-    document.getElementById('reset').addEventListener('click', () => { scale = 1; tx = 80; ty = 80; applyTransform(); });
+    document.getElementById('reset').addEventListener('click', () => { scale = 1; tx = 80; ty = 80; applyTransform(); render(); });
     document.getElementById('collapse').addEventListener('click', () => { if (selected) { collapsed.add(selected); render(); } });
     document.getElementById('uncollapse').addEventListener('click', () => { if (selected) { collapsed.delete(selected); render(); } });
     function expandSelected(incoming) {
@@ -1754,8 +1876,8 @@ function graphHtml(): string {
     svg.addEventListener('keydown', event => {
       if (event.target?.classList?.contains('node')) return;
       if (event.key.toLowerCase() === 'f') { event.preventDefault(); fit(); }
-      else if (event.key === '+' || event.key === '=') { event.preventDefault(); scale = Math.min(3, scale * 1.1); applyTransform(); }
-      else if (event.key === '-') { event.preventDefault(); scale = Math.max(.2, scale * .9); applyTransform(); }
+      else if (event.key === '+' || event.key === '=') { event.preventDefault(); scale = Math.min(3, scale * 1.1); applyTransform(); render(); }
+      else if (event.key === '-') { event.preventDefault(); scale = Math.max(.2, scale * .9); applyTransform(); render(); }
     });
     window.addEventListener('message', event => {
       if (event.data?.type === 'graphSnapshot') {
@@ -1763,10 +1885,14 @@ function graphHtml(): string {
         graph = event.data.graph; operationStatus = event.data.operationStatus;
         if (rootChanged) { currentRoot = graph.rootId; selected = graph.rootId; collapsed.clear(); positionCache.clear(); }
         else if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId;
-        render();
-        if (rootChanged) fit();
+        render(rootChanged);
       }
       else if (event.data?.type === 'focusNode') focusNode(event.data.nodeId);
+    });
+    window.addEventListener('unload', () => {
+      resizeObserver.disconnect();
+      if (renderFrame) cancelAnimationFrame(renderFrame);
+      nodeElements.clear(); edgeElements.clear(); positionCache.clear();
     });
     vscode.postMessage({ type: 'ready' });
   </script>

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.6
+
+- Coalesced graph mutations, pan/zoom, and resize work to one render per
+  animation frame.
+- Replaced full SVG layer rebuilds with stable-ID keyed node/edge
+  reconciliation.
+- Added viewport virtualization with a graph-space buffer so large loaded
+  graphs retain only nearby SVG elements.
+- Replaced repeated edge scans in layered ranking with linear adjacency-list
+  traversal.
+- Added throttled slow-render diagnostics and last-render timing in the graph
+  status tooltip.
+- Released expansion work, semantic graph state, layout caches, and SVG caches
+  when the graph panel closes.
+- Added a 5,001-node/5,000-edge host-model performance regression test.
+
 ## 0.12.5
 
 - Added distinct Call, Inheritance, and Include edge colors/line styles plus an
