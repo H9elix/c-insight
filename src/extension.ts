@@ -53,6 +53,7 @@ export async function activate(
     typeRepository,
     includeRepository,
     bookmarks,
+    output,
   );
   const views = new ViewRegistry(
     analysis,
