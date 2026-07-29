@@ -55,6 +55,11 @@ export interface ProjectDiagnosticsReport {
   };
 }
 
+export type DiagnosticsReportRedaction =
+  | "none"
+  | "paths"
+  | "paths-and-defines";
+
 export interface DiagnosticCounts {
   errors: number;
   warnings: number;
@@ -184,6 +189,67 @@ export function renderProjectDiagnosticsText(
     );
   }
   return `${lines.join("\n")}\n`;
+}
+
+export function redactProjectDiagnosticsReport(
+  report: ProjectDiagnosticsReport,
+  mode: DiagnosticsReportRedaction,
+): ProjectDiagnosticsReport {
+  if (mode === "none") {
+    return structuredClone(report);
+  }
+  const redacted = structuredClone(report);
+  redacted.clangd.executable = redactPath(redacted.clangd.executable);
+  if (redacted.compilationDatabase.path) {
+    redacted.compilationDatabase.path = "<redacted-path>";
+  }
+  const current = redacted.currentFile;
+  if (current) {
+    current.path = "<redacted-path>";
+    current.workingDirectory = current.workingDirectory
+      ? "<redacted-path>"
+      : undefined;
+    current.inferredFrom = current.inferredFrom
+      ? "<redacted-path>"
+      : undefined;
+    current.compileCommand = current.compileCommand
+      ? "<redacted-command>"
+      : undefined;
+    if (current.command) {
+      current.command.compiler = current.command.compiler
+        ? redactPath(current.command.compiler)
+        : undefined;
+      current.command.includePaths = current.command.includePaths.map(
+        () => "<redacted-path>",
+      );
+      current.command.systemIncludePaths =
+        current.command.systemIncludePaths.map(() => "<redacted-path>");
+      current.command.quoteIncludePaths =
+        current.command.quoteIncludePaths.map(() => "<redacted-path>");
+      current.command.forcedIncludes = current.command.forcedIncludes.map(
+        () => "<redacted-path>",
+      );
+      current.command.responseFiles = current.command.responseFiles.map(
+        () => "<redacted-path>",
+      );
+      if (mode === "paths-and-defines") {
+        current.command.defines = current.command.defines.map(
+          (_value, index) => `<redacted-define-${index + 1}>`,
+        );
+        current.fallbackFlags = current.fallbackFlags?.map(
+          () => "<redacted-flag>",
+        );
+      }
+    }
+  }
+  return redacted;
+}
+
+function redactPath(value: string): string {
+  const basename = value.replaceAll("\\", "/").split("/").pop();
+  return basename && basename !== value
+    ? `<redacted-path>/${basename}`
+    : value;
 }
 
 export function isMissingInclude(message: string): boolean {

@@ -14,11 +14,13 @@ import {
 import { TreeNode } from "../views/treeNode";
 import {
   CompilationDatabaseEntry,
+  DiagnosticsReportRedaction,
   ProjectDiagnosticsReport,
   analyzeCompileCommand,
   compilationCommand,
   emptyDiagnosticCounts,
   isMissingInclude,
+  redactProjectDiagnosticsReport,
   renderProjectDiagnosticsText,
 } from "./projectDiagnosticsModel";
 import {
@@ -80,7 +82,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
   }
 
   async copyReport(format: "text" | "json"): Promise<void> {
-    const report = await this.latestReport();
+    const report = await this.latestExportReport();
     await vscode.env.clipboard.writeText(
       format === "json"
         ? `${JSON.stringify(report, undefined, 2)}\n`
@@ -92,7 +94,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
   }
 
   async exportReport(format: "text" | "json"): Promise<void> {
-    const report = await this.latestReport();
+    const report = await this.latestExportReport();
     const uri = await vscode.window.showSaveDialog({
       title: `Export C Insight Project Diagnostics (${format.toUpperCase()})`,
       defaultUri: vscode.Uri.joinPath(
@@ -202,15 +204,31 @@ export class ProjectDiagnostics implements vscode.Disposable {
           : "Compilation database: missing",
         databasePath ? "database" : "warning",
         [
-          detail(
-            "Path",
-            databasePath
-              ? vscode.workspace.asRelativePath(databasePath)
-              : config.compileCommandsDir
-                ? `Configured file not found: ${path.join(config.compileCommandsDir, "compile_commands.json")}`
-                : "No compile_commands.json found in the workspace or common build directories",
-            databasePath ? "file-code" : "warning",
-          ),
+          ...(databasePath
+            ? [
+                actionDetail(
+                  "Path",
+                  vscode.workspace.asRelativePath(databasePath),
+                  "file-code",
+                  "vscode.open",
+                  [vscode.Uri.file(databasePath)],
+                ),
+              ]
+            : [
+                detail(
+                  "Path",
+                  config.compileCommandsDir
+                    ? `Configured file not found: ${path.join(config.compileCommandsDir, "compile_commands.json")}`
+                    : "No compile_commands.json found in the workspace or common build directories",
+                  "warning",
+                ),
+                actionDetail(
+                  "Select compilation database…",
+                  "Choose compile_commands.json",
+                  "database",
+                  "cInsight.diagnostics.selectCompilationDatabase",
+                ),
+              ]),
           ...(databasePath && !database
             ? [
                 detail(
@@ -281,19 +299,23 @@ export class ProjectDiagnostics implements vscode.Disposable {
                         : "Header commands are inferred by clangd from a related source file",
                     isSource ? "warning" : "info",
                   ),
-                  detail(
+                  actionDetail(
                     "Fallback flags",
                     config.fallbackFlags.join(" ") || "None",
                     "settings-gear",
+                    "workbench.action.openSettings",
+                    ["cInsight.fallbackFlags"],
                   ),
                   ...(inferredEntry
                     ? [
-                        detail(
+                        actionDetail(
                           "Candidate source",
                           vscode.workspace.asRelativePath(
                             inferredEntry.file,
                           ),
                           "file-code",
+                          "vscode.open",
+                          [vscode.Uri.file(inferredEntry.file)],
                         ),
                         detail(
                           "Candidate command",
@@ -386,6 +408,14 @@ export class ProjectDiagnostics implements vscode.Disposable {
     return this.report;
   }
 
+  private async latestExportReport(): Promise<ProjectDiagnosticsReport> {
+    const report = await this.latestReport();
+    const redaction = vscode.workspace
+      .getConfiguration("cInsight.diagnostics")
+      .get<DiagnosticsReportRedaction>("reportRedaction", "none");
+    return redactProjectDiagnosticsReport(report, redaction);
+  }
+
   private async loadDatabase(
     databasePath: string,
   ): Promise<CachedDatabase> {
@@ -444,6 +474,12 @@ function indexProgressNode(
         "Last update",
         new Date(progress.updatedAt).toLocaleTimeString(),
         "history",
+      ),
+      actionDetail(
+        "Restart background indexing…",
+        "Restart clangd and rebuild the index",
+        "sync",
+        "cInsight.index.refresh",
       ),
     ],
   );
@@ -504,13 +540,7 @@ function diagnosticNodes(document?: vscode.TextDocument): {
         ),
         ...(current.length > 0
           ? current.slice(0, 20).map((diagnostic) =>
-              detail(
-                `Line ${diagnostic.range.start.line + 1}`,
-                diagnostic.message,
-                diagnostic.severity === vscode.DiagnosticSeverity.Error
-                  ? "error"
-                  : "warning",
-              ),
+              diagnosticDetail(document!, diagnostic),
             )
           : [
               detail(
@@ -634,6 +664,44 @@ function detail(label: string, value: string, icon: string): TreeNode {
     tooltip: value,
     icon: new vscode.ThemeIcon(icon),
   };
+}
+
+function actionDetail(
+  label: string,
+  value: string,
+  icon: string,
+  command: string,
+  args: unknown[] = [],
+): TreeNode {
+  return {
+    ...detail(label, value, icon),
+    command: { command, title: label, arguments: args },
+  };
+}
+
+function diagnosticDetail(
+  document: vscode.TextDocument,
+  diagnostic: vscode.Diagnostic,
+): TreeNode {
+  const node: TreeNode = {
+    ...detail(
+      `Line ${diagnostic.range.start.line + 1}`,
+      diagnostic.message,
+      diagnostic.severity === vscode.DiagnosticSeverity.Error
+        ? "error"
+        : "warning",
+    ),
+    location: {
+      uri: document.uri,
+      range: diagnostic.range,
+    },
+  };
+  node.command = {
+    command: "cInsight.openLocation",
+    title: "Open Diagnostic",
+    arguments: [node],
+  };
+  return node;
 }
 
 function normalizeFile(file: string): string {

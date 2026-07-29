@@ -1,4 +1,4 @@
-# C Insight 0.13.0 使用手册
+# C Insight 0.13.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -505,6 +505,10 @@ clangd 状态/版本、索引状态、编译数据库、当前文件命令拆解
 能够确认 clangd 最终选择了它。没有直接条目或候选条目时标记为 `fallback`，
 并显示 `cInsight.fallbackFlags`。
 
+Project Diagnostics 中的具体错误/警告可直接单击并在编辑器中打开对应范围。
+编译数据库路径和头文件候选源文件也可以单击打开。缺少编译数据库时提供选择
+入口；Fallback Flags 可直接打开相应设置；索引分组提供重启后台索引入口。
+
 命令面板还提供 **Use Automatic Compilation Database Detection**，用于清除
 手动选择并恢复自动发现。
 
@@ -900,6 +904,12 @@ C Insight 默认管理：
 --log=<配置值>
 --compile-commands-dir=<发现或配置的目录>
 ```
+
+诊断报告脱敏配置不会重启 clangd：
+
+| 配置 | 类型 | 默认值 | 可用值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.diagnostics.reportRedaction` | string | `"none"` | `"none"`、`"paths"`、`"paths-and-defines"` | 复制和导出报告时不脱敏、隐藏路径，或同时隐藏路径、宏定义与 Fallback Flags |
 
 ### 9.2 自动光标跟随
 
