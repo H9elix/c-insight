@@ -16,6 +16,8 @@ dedicated activity-bar container.
 - C++ supertype and subtype trees with lazy expansion, search, and export
 - Forward Includes and reverse Included By trees with compile-command-aware
   header resolution, lazy expansion, search, cycle detection, and export
+- Editor-area Relationship Graph foundation with a bounded semantic graph
+  model, secure SVG canvas, pan/zoom, filtering, preview, and editor navigation
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
@@ -83,6 +85,9 @@ and safety-limit markers.
 11. In a C/C++ file, choose Show Includes to follow its include directives, or
     Show Included By to find workspace files that include it. Included By
     builds its reverse workspace index only when first expanded.
+12. Choose **Show Relationship Graph** to open the active C/C++ file as a graph
+    root beside the editor. Version 0.12.0 provides the secure graph/model
+    foundation; relationship queries are connected in subsequent stages.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has
@@ -291,6 +296,12 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.includeHierarchy.maximumNodes`
 - `cInsight.includeHierarchy.includeSystemHeaders`
 - `cInsight.includeHierarchy.workspaceFileLimit`
+- `cInsight.relationshipGraph.defaultDepth`
+- `cInsight.relationshipGraph.maximumDepth`
+- `cInsight.relationshipGraph.maximumNodes`
+- `cInsight.relationshipGraph.maximumEdges`
+- `cInsight.relationshipGraph.layout`
+- `cInsight.relationshipGraph.includeSystemHeaders`
 - `cInsight.exclude`
 
 ## Known limitations

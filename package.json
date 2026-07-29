@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.11.10",
+  "version": "0.12.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -40,7 +40,8 @@
     "onView:cInsight.supertypes",
     "onView:cInsight.subtypes",
     "onView:cInsight.includes",
-    "onView:cInsight.includedBy"
+    "onView:cInsight.includedBy",
+    "onCommand:cInsight.relationshipGraph.show"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -70,6 +71,11 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "cInsight.relationshipGraph.show",
+        "title": "C Insight: Show Relationship Graph",
+        "icon": "$(graph)"
+      },
       {
         "command": "cInsight.goToDefinition",
         "title": "C Insight: Go to Definition"
@@ -550,6 +556,11 @@
           "command": "cInsight.includeHierarchy.showIncludedBy",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
           "group": "navigation@8"
+        },
+        {
+          "command": "cInsight.relationshipGraph.show",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@9"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",
@@ -1267,6 +1278,47 @@
           "minimum": 100,
           "maximum": 200000,
           "description": "Maximum workspace source/header files scanned when building the on-demand Included By index."
+        },
+        "cInsight.relationshipGraph.defaultDepth": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Relationship levels loaded explicitly when a new graph root is created. The 0.12.0 foundation does not query relationships yet."
+        },
+        "cInsight.relationshipGraph.maximumDepth": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum relationship depth allowed in the graph."
+        },
+        "cInsight.relationshipGraph.maximumNodes": {
+          "type": "number",
+          "default": 500,
+          "minimum": 50,
+          "maximum": 10000,
+          "description": "Maximum semantic nodes retained in the current relationship graph."
+        },
+        "cInsight.relationshipGraph.maximumEdges": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum semantic edges retained in the current relationship graph."
+        },
+        "cInsight.relationshipGraph.layout": {
+          "type": "string",
+          "enum": [
+            "layered"
+          ],
+          "default": "layered",
+          "description": "Relationship graph layout strategy."
+        },
+        "cInsight.relationshipGraph.includeSystemHeaders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow system headers to enter the relationship graph when Include adapters are enabled."
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",
