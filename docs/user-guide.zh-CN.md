@@ -1,4 +1,4 @@
-# C Insight 0.12.2 使用手册
+# C Insight 0.12.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -623,8 +623,9 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.2 使用标准 Call Hierarchy 建立函数根；没有可调用符号时退回活动文件根，
-并且该文件根不能执行 Callers/Callees 展开。
+0.12.3 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
+struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者都不可用时
+退回活动文件根，该文件根当前不能展开关系。
 
 当前可用操作：
 
@@ -635,8 +636,11 @@ Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位�
   尚未接入。
 - Expand Callers：为当前选中函数加载直接调用者。
 - Expand Callees：为当前选中函数加载直接被调用函数。
+- 当根或选中节点为类型时，上述两个按钮自动显示为 Expand Supertypes 和
+  Expand Subtypes，分别加载直接基类和直接派生类。
 - Expand to Depth：从当前选中函数开始，同时逐层加载 Callers 和 Callees；
-  输入值表示相对选中节点的展开层数，并受 `maximumDepth`、节点和边上限约束。
+  从类型节点执行时则同时逐层加载 Supertypes 和 Subtypes。输入值表示相对
+  选中节点的展开层数，并受 `maximumDepth`、节点和边上限约束。
 - Stop：取消当前准备或展开请求；已加载节点继续保留。
 - Search：在已加载节点中按名称、详情和路径搜索，选择后居中并更新 Code Preview。
 - Export：把当前已加载图导出为 Text、JSON 或 Mermaid；也可从命令面板分别
@@ -650,14 +654,18 @@ Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位�
 图使用有严格 CSP 的 SVG Webview。文件读取、位置验证和导航都在扩展宿主中
 执行；Webview 不读取本地文件，也不直接请求 clangd。隐藏或未打开图时不会
 产生关系查询。Callers/Callees 树与图共享有界 Incoming/Outgoing 请求缓存，
-但图的节点和展开状态不替换原有树。Type、Inheritance 和 Include Adapter 尚未
-接入，打开图不会触发 Included By 反向索引扫描。
+Supertypes/Subtypes 树与图也共享 Type Hierarchy 请求缓存；图的节点和展开状态
+不会替换原有树。Include Adapter 尚未接入，打开图不会触发 Included By 反向
+索引扫描。
 
 调用边始终表示 Caller → Callee。相同函数会合并成一个节点；形成回路的边标记
 direct-recursion 或 indirect-recursion。`defaultDepth=1` 时显式 Show 会加载
 根的第一层 Callers 和 Callees；设为 0 时只准备根。选择任意已加载函数后仍可
 按需继续展开，直到达到深度、节点或边上限。默认分层布局把调用者放在根左侧、
 被调用者放在根右侧；画布状态文字会报告展开进行中、取消、失败或达到资源上限。
+继承边始终表示 Supertype → Subtype，基类位于类型根左侧，派生类位于右侧；
+重复类型会合并，循环继承关系具有与调用图相同的防无限展开处理。类型查询只在
+显式打开类型图或展开类型节点时执行，隐藏或未打开关系图不会产生查询。
 
 ## 5. 底部可靠性状态栏
 
@@ -885,7 +893,7 @@ C Insight 默认管理：
 
 | 配置 | 类型 | 默认值 | 范围/可用值 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.relationshipGraph.defaultDepth` | number | `1` | 0–1 | 新函数根是否加载第一层 Callers 和 Callees；0 只保留根 |
+| `cInsight.relationshipGraph.defaultDepth` | number | `1` | 0–1 | 新函数或类型根是否加载第一层关系；0 只保留根 |
 | `cInsight.relationshipGraph.maximumDepth` | number | `10` | 1–50 | 图中单条关系路径允许的最大深度 |
 | `cInsight.relationshipGraph.maximumNodes` | number | `500` | 50–10000 | 当前图保留的最大语义节点数 |
 | `cInsight.relationshipGraph.maximumEdges` | number | `1000` | 100–50000 | 当前图保留的最大语义边数 |
