@@ -13,6 +13,11 @@ import {
 } from "../callHierarchy/callHierarchyRepository";
 import { CallNode } from "../models/types";
 import {
+  IncludeHierarchyDirection,
+  IncludeHierarchyRepository,
+} from "../includeHierarchy/includeHierarchyRepository";
+import type { IncludeTargetKind } from "../includeHierarchy/includeResolver";
+import {
   TypeHierarchyDirection,
   TypeHierarchyRepository,
 } from "../typeHierarchy/typeHierarchyRepository";
@@ -44,6 +49,11 @@ type GraphMessage =
       nodeId: string;
       direction: TypeHierarchyDirection;
     }
+  | {
+      type: "expandInclude";
+      nodeId: string;
+      direction: IncludeHierarchyDirection;
+    }
   | { type: "stopExpansion" };
 
 export class RelationshipGraphPanel implements vscode.Disposable {
@@ -54,6 +64,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private readonly expandedCalls = new Set<string>();
   private readonly typeNodes = new Map<string, TypeHierarchyItem>();
   private readonly expandedTypes = new Set<string>();
+  private readonly includeFiles = new Map<string, vscode.Uri>();
+  private readonly expandedIncludes = new Set<string>();
   private expansion?: vscode.CancellationTokenSource;
   private operationStatus?: {
     kind: "info" | "warning" | "error";
@@ -66,6 +78,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     private readonly analysis: AnalysisService,
     private readonly callRepository: CallHierarchyRepository,
     private readonly typeRepository: TypeHierarchyRepository,
+    private readonly includeRepository: IncludeHierarchyRepository,
     private readonly bookmarks: BookmarkExplorer,
   ) {}
 
@@ -130,9 +143,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.model = this.createModel();
     this.callNodes.clear();
     this.typeNodes.clear();
+    this.includeFiles.clear();
     this.nodeDepth.clear();
     this.expandedCalls.clear();
     this.expandedTypes.clear();
+    this.expandedIncludes.clear();
     this.operationStatus = undefined;
     const root =
       callRoots.length > 0
@@ -171,11 +186,15 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.model = this.createModel();
     this.callNodes.clear();
     this.typeNodes.clear();
+    this.includeFiles.clear();
     this.nodeDepth.clear();
     this.expandedCalls.clear();
     this.expandedTypes.clear();
+    this.expandedIncludes.clear();
     this.operationStatus = undefined;
     this.model.replaceRoot(root);
+    this.includeFiles.set(root.id, uri);
+    this.nodeDepth.set(root.id, 0);
     this.ensurePanel();
     this.panel!.title = `Relationship Graph — ${root.name}`;
     this.panel!.reveal(vscode.ViewColumn.Beside, true);
@@ -275,6 +294,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (message.type === "expandType") {
       await this.expandType(message.nodeId, message.direction);
+      return;
+    }
+    if (message.type === "expandInclude") {
+      await this.expandInclude(message.nodeId, message.direction);
       return;
     }
     if (message.type === "selectNode") {
@@ -600,15 +623,194 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     return neighbors;
   }
 
+  private async expandInclude(
+    nodeId: string,
+    direction: IncludeHierarchyDirection,
+  ): Promise<boolean> {
+    const uri = this.includeFiles.get(nodeId);
+    if (!uri || !this.canExpand(nodeId)) {
+      return false;
+    }
+    this.stopExpansion();
+    const generation = this.generation;
+    const cancellation = new vscode.CancellationTokenSource();
+    this.expansion = cancellation;
+    const buildingIndex =
+      direction === "includedBy" &&
+      !this.includeRepository.isReverseBuilt;
+    this.operationStatus = {
+      kind: "info",
+      message: buildingIndex
+        ? "Building Included By workspace index…"
+        : `Loading ${direction === "includes" ? "includes" : "included by"} for ${path.basename(uri.fsPath)}…`,
+    };
+    await this.publish();
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: buildingIndex
+            ? "C Insight: Building Included By index"
+            : `C Insight: Loading ${direction === "includes" ? "Includes" : "Included By"}`,
+          cancellable: true,
+        },
+        async (progress, token) => {
+          const subscription = token.onCancellationRequested(() =>
+            cancellation.cancel(),
+          );
+          try {
+            await this.loadIncludeNeighbors(
+              nodeId,
+              direction,
+              cancellation.token,
+              (completed, total) =>
+                progress.report({
+                  message: `${completed}/${total} files`,
+                }),
+            );
+          } finally {
+            subscription.dispose();
+          }
+        },
+      );
+      if (
+        generation === this.generation &&
+        !cancellation.token.isCancellationRequested
+      ) {
+        this.operationStatus = this.limitStatus() ?? {
+          kind:
+            this.includeRepository.wasReverseTruncated &&
+            direction === "includedBy"
+              ? "warning"
+              : "info",
+          message:
+            this.includeRepository.wasReverseTruncated &&
+            direction === "includedBy"
+              ? "Included By index reached workspaceFileLimit; results may be incomplete."
+              : "Expansion complete.",
+        };
+        await this.publish();
+        return true;
+      }
+      this.operationStatus = {
+        kind: "warning",
+        message: "Expansion cancelled; loaded nodes remain available.",
+      };
+      await this.publish();
+    } catch (error) {
+      if (!cancellation.token.isCancellationRequested) {
+        this.operationStatus = {
+          kind: "error",
+          message: `Include Graph expansion failed: ${String(error)}`,
+        };
+        await this.publish();
+      }
+    } finally {
+      if (this.expansion === cancellation) {
+        this.expansion = undefined;
+      }
+      cancellation.dispose();
+    }
+    return false;
+  }
+
+  private async loadIncludeNeighbors(
+    nodeId: string,
+    direction: IncludeHierarchyDirection,
+    token: vscode.CancellationToken,
+    progress?: (completed: number, total: number) => void,
+  ): Promise<string[]> {
+    const uri = this.includeFiles.get(nodeId);
+    if (!uri || token.isCancellationRequested) {
+      return [];
+    }
+    const key = `${nodeId}:${direction}`;
+    if (this.expandedIncludes.has(key)) {
+      return this.model
+        .snapshot()
+        .edges.filter(
+          (edge) =>
+            edge.relation === "includes" &&
+            (direction === "includes"
+              ? edge.from === nodeId
+              : edge.to === nodeId),
+        )
+        .map((edge) =>
+          direction === "includes" ? edge.to : edge.from,
+        );
+    }
+    const neighbors: string[] = [];
+    if (direction === "includes") {
+      const includes = await this.includeRepository.forward(uri);
+      for (const include of includes) {
+        if (token.isCancellationRequested) {
+          break;
+        }
+        if (
+          include.kind === "system" &&
+          !this.includeSystemHeaders
+        ) {
+          continue;
+        }
+        const neighbor = include.uri
+          ? this.addIncludeRelation(
+              uri,
+              include.uri,
+              include.directive.line,
+              include.kind,
+              nodeId,
+            )
+          : this.addUnresolvedInclude(
+              uri,
+              include.directive.target,
+              include.directive.line,
+              nodeId,
+            );
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+    } else {
+      const incoming = await this.includeRepository.incoming(
+        uri,
+        token,
+        progress,
+      );
+      for (const edge of incoming) {
+        if (token.isCancellationRequested) {
+          break;
+        }
+        if (edge.kind === "system" && !this.includeSystemHeaders) {
+          continue;
+        }
+        const neighbor = this.addIncludeRelation(
+          edge.source,
+          uri,
+          edge.directive.line,
+          edge.kind,
+          nodeId,
+        );
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+    }
+    if (!token.isCancellationRequested) {
+      this.expandedIncludes.add(key);
+    }
+    return neighbors;
+  }
+
   private async expandToDepth(nodeId: string): Promise<void> {
     const isCall = this.callNodes.has(nodeId);
     const isType = this.typeNodes.has(nodeId);
-    if (!isCall && !isType) {
+    const isInclude = this.includeFiles.has(nodeId);
+    if (!isCall && !isType && !isInclude) {
       return;
     }
     const value = await vscode.window.showInputBox({
-      title: `Expand ${isCall ? "Call" : "Type"} Graph to Depth`,
-      prompt: `Load ${isCall ? "callers and callees" : "supertypes and subtypes"} from the selected node (maximum ${this.maximumDepth})`,
+      title: `Expand ${isCall ? "Call" : isType ? "Type" : "Include"} Graph to Depth`,
+      prompt: `Load ${isCall ? "callers and callees" : isType ? "supertypes and subtypes" : "includes and included by"} from the selected node (maximum ${this.maximumDepth})`,
       value: String(Math.min(2, this.maximumDepth)),
       validateInput: (input) => {
         const depth = Number(input);
@@ -628,14 +830,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.expansion = cancellation;
     this.operationStatus = {
       kind: "info",
-      message: `Expanding ${isCall ? "callers and callees" : "supertypes and subtypes"} to depth ${requestedDepth}…`,
+      message: `Expanding ${isCall ? "callers and callees" : isType ? "supertypes and subtypes" : "includes and included by"} to depth ${requestedDepth}…`,
     };
     await this.publish();
     try {
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: `C Insight: Expanding ${isCall ? "Call" : "Type"} Graph to depth ${requestedDepth}`,
+          title: `C Insight: Expanding ${isCall ? "Call" : isType ? "Type" : "Include"} Graph to depth ${requestedDepth}`,
           cancellable: true,
         },
         async (progress, token) => {
@@ -667,22 +869,34 @@ export class RelationshipGraphPanel implements vscode.Disposable {
                     "incoming",
                     cancellation.token,
                   )
-                : await this.loadTypeNeighbors(
-                    current.id,
-                    "supertypes",
-                    cancellation.token,
-                  );
+                : isType
+                  ? await this.loadTypeNeighbors(
+                      current.id,
+                      "supertypes",
+                      cancellation.token,
+                    )
+                  : await this.loadIncludeNeighbors(
+                      current.id,
+                      "includedBy",
+                      cancellation.token,
+                    );
               const outgoing = isCall
                 ? await this.loadCallNeighbors(
                     current.id,
                     "outgoing",
                     cancellation.token,
                   )
-                : await this.loadTypeNeighbors(
-                    current.id,
-                    "subtypes",
-                    cancellation.token,
-                  );
+                : isType
+                  ? await this.loadTypeNeighbors(
+                      current.id,
+                      "subtypes",
+                      cancellation.token,
+                    )
+                  : await this.loadIncludeNeighbors(
+                      current.id,
+                      "includes",
+                      cancellation.token,
+                    );
               for (const id of [...incoming, ...outgoing]) {
                 if (!visited.has(id)) {
                   queue.push({ id, depth: current.depth + 1 });
@@ -821,6 +1035,113 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     return neighborId;
   }
 
+  private addIncludeRelation(
+    source: vscode.Uri,
+    target: vscode.Uri,
+    zeroBasedLine: number,
+    kind: IncludeTargetKind,
+    expandedNodeId: string,
+  ): string | undefined {
+    const sourceGraph = fileNode(source);
+    const targetGraph = fileNode(target);
+    sourceGraph.states.push(kind);
+    targetGraph.states.push(kind);
+    if (this.model.node(sourceGraph.id)) {
+      sourceGraph.states.push("duplicate");
+    }
+    if (this.model.node(targetGraph.id)) {
+      targetGraph.states.push("duplicate");
+    }
+    if (!this.model.addNode(sourceGraph) || !this.model.addNode(targetGraph)) {
+      return undefined;
+    }
+    this.includeFiles.set(sourceGraph.id, source);
+    this.includeFiles.set(targetGraph.id, target);
+    const neighborId =
+      sourceGraph.id === expandedNodeId ? targetGraph.id : sourceGraph.id;
+    this.recordNeighborDepth(expandedNodeId, neighborId);
+    const line = zeroBasedLine + 1;
+    const cycle = this.model.hasPath(targetGraph.id, sourceGraph.id);
+    const direct = sourceGraph.id === targetGraph.id;
+    this.model.addEdge({
+      id: graphEdgeId(
+        "includes",
+        sourceGraph.id,
+        targetGraph.id,
+        source.toString(),
+        line,
+      ),
+      from: sourceGraph.id,
+      to: targetGraph.id,
+      relation: "includes",
+      sourceUri: source.toString(),
+      line,
+      states: direct
+        ? ["direct-cycle"]
+        : cycle
+          ? ["indirect-cycle"]
+          : [],
+    });
+    return neighborId;
+  }
+
+  private addUnresolvedInclude(
+    source: vscode.Uri,
+    target: string,
+    zeroBasedLine: number,
+    expandedNodeId: string,
+  ): string | undefined {
+    const sourceGraph = fileNode(source);
+    const line = zeroBasedLine + 1;
+    const unresolved: GraphNode = {
+      id: graphNodeId(
+        "unresolved",
+        source.toString(),
+        line,
+        target,
+      ),
+      kind: "unresolved",
+      name: target,
+      detail: "unresolved include",
+      uri: source.toString(),
+      line,
+      states: ["unresolved"],
+      capabilities: [],
+    };
+    if (!this.model.addNode(sourceGraph) || !this.model.addNode(unresolved)) {
+      return undefined;
+    }
+    this.model.addEdge({
+      id: graphEdgeId(
+        "includes",
+        sourceGraph.id,
+        unresolved.id,
+        source.toString(),
+        line,
+      ),
+      from: sourceGraph.id,
+      to: unresolved.id,
+      relation: "includes",
+      sourceUri: source.toString(),
+      line,
+      states: ["unresolved"],
+    });
+    this.recordNeighborDepth(expandedNodeId, unresolved.id);
+    return unresolved.id;
+  }
+
+  private recordNeighborDepth(
+    expandedNodeId: string,
+    neighborId: string,
+  ): void {
+    const depth = (this.nodeDepth.get(expandedNodeId) ?? 0) + 1;
+    const existing = this.nodeDepth.get(neighborId);
+    this.nodeDepth.set(
+      neighborId,
+      existing === undefined ? depth : Math.min(existing, depth),
+    );
+  }
+
   private async searchLoadedNodes(): Promise<void> {
     const picked = await vscode.window.showQuickPick(
       this.model.snapshot().nodes.map((node) => ({
@@ -852,21 +1173,34 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       return;
     }
     const typeNode = this.typeNodes.has(nodeId);
+    const includeNode = this.includeFiles.has(nodeId);
+    const expandable = typeNode || includeNode || this.callNodes.has(nodeId);
     const action = await vscode.window.showQuickPick(
       [
-        {
-          label: typeNode
-            ? "$(type-hierarchy-super) Expand Supertypes"
-            : "$(references) Expand Callers",
-          value: "incoming",
-        },
-        {
-          label: typeNode
-            ? "$(type-hierarchy-sub) Expand Subtypes"
-            : "$(references) Expand Callees",
-          value: "outgoing",
-        },
-        { label: "$(layers) Expand to Depth…", value: "depth" },
+        ...(expandable
+          ? [
+              {
+                label: typeNode
+                  ? "$(type-hierarchy-super) Expand Supertypes"
+                  : includeNode
+                    ? "$(references) Expand Included By"
+                    : "$(references) Expand Callers",
+                value: "incoming",
+              },
+              {
+                label: typeNode
+                  ? "$(type-hierarchy-sub) Expand Subtypes"
+                  : includeNode
+                    ? "$(files) Expand Includes"
+                    : "$(references) Expand Callees",
+                value: "outgoing",
+              },
+              {
+                label: "$(layers) Expand to Depth…",
+                value: "depth",
+              },
+            ]
+          : []),
         { label: "$(bookmark) Add Bookmark", value: "bookmark" },
         { label: "$(go-to-file) Open Location", value: "open" },
         { label: "$(target) Focus Node", value: "focus" },
@@ -881,6 +1215,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         await this.expandType(
           nodeId,
           action.value === "incoming" ? "supertypes" : "subtypes",
+        );
+      } else if (includeNode) {
+        await this.expandInclude(
+          nodeId,
+          action.value === "incoming" ? "includedBy" : "includes",
         );
       } else {
         await this.expandCall(nodeId, action.value);
@@ -1035,6 +1374,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       .get<number>("maximumDepth", 10);
   }
 
+  private get includeSystemHeaders(): boolean {
+    return vscode.workspace
+      .getConfiguration("cInsight.relationshipGraph")
+      .get<boolean>("includeSystemHeaders", false);
+  }
+
   private async publish(): Promise<void> {
     await this.panel?.webview.postMessage({
       type: "graphSnapshot",
@@ -1105,6 +1450,15 @@ function isGraphMessage(value: unknown): value is GraphMessage {
       "direction" in value &&
       ((value as { direction: unknown }).direction === "supertypes" ||
         (value as { direction: unknown }).direction === "subtypes")
+    );
+  }
+  if (type === "expandInclude") {
+    return (
+      "nodeId" in value &&
+      typeof (value as { nodeId: unknown }).nodeId === "string" &&
+      "direction" in value &&
+      ((value as { direction: unknown }).direction === "includes" ||
+        (value as { direction: unknown }).direction === "includedBy")
     );
   }
   return (
@@ -1203,8 +1557,12 @@ function graphHtml(): string {
       });
       const selectedNode = graph.nodes.find(node => node.id === selected);
       const isType = selectedNode?.capabilities?.includes('inherits');
-      document.getElementById('callers').textContent = isType ? 'Expand Supertypes' : 'Expand Callers';
-      document.getElementById('callees').textContent = isType ? 'Expand Subtypes' : 'Expand Callees';
+      const isInclude = selectedNode?.capabilities?.includes('includes');
+      document.getElementById('callers').textContent = isType ? 'Expand Supertypes' : isInclude ? 'Expand Included By' : 'Expand Callers';
+      document.getElementById('callees').textContent = isType ? 'Expand Subtypes' : isInclude ? 'Expand Includes' : 'Expand Callees';
+      document.getElementById('callers').disabled = !selectedNode?.capabilities?.length;
+      document.getElementById('callees').disabled = !selectedNode?.capabilities?.length;
+      document.getElementById('depth').disabled = !selectedNode?.capabilities?.length;
       status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : operationStatus?.message || graph.nodes.length + ' nodes · ' + graph.edges.length + ' edges' + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
       status.style.color = operationStatus?.kind === 'error' ? 'var(--vscode-errorForeground)' : operationStatus?.kind === 'warning' ? 'var(--vscode-editorWarning-foreground)' : 'var(--vscode-descriptionForeground)';
       applyTransform();
@@ -1215,7 +1573,7 @@ function graphHtml(): string {
       let changed = true;
       for (let pass = 0; pass < value.nodes.length && changed; pass++) {
         changed = false;
-        value.edges.filter(edge => edge.relation === 'calls' || edge.relation === 'inherits').forEach(edge => {
+        value.edges.filter(edge => edge.relation === 'calls' || edge.relation === 'inherits' || edge.relation === 'includes').forEach(edge => {
           if (ranks.has(edge.from) && !ranks.has(edge.to)) { ranks.set(edge.to, ranks.get(edge.from) + 1); changed = true; }
           else if (!ranks.has(edge.from) && ranks.has(edge.to)) { ranks.set(edge.from, ranks.get(edge.to) - 1); changed = true; }
         });
@@ -1253,6 +1611,7 @@ function graphHtml(): string {
       const node = graph.nodes.find(item => item.id === selected);
       if (!node) return;
       if (node.capabilities?.includes('inherits')) vscode.postMessage({ type: 'expandType', nodeId: selected, direction: incoming ? 'supertypes' : 'subtypes' });
+      else if (node.capabilities?.includes('includes')) vscode.postMessage({ type: 'expandInclude', nodeId: selected, direction: incoming ? 'includedBy' : 'includes' });
       else if (node.capabilities?.includes('calls')) vscode.postMessage({ type: 'expandCall', nodeId: selected, direction: incoming ? 'incoming' : 'outgoing' });
     }
     document.getElementById('callers').addEventListener('click', () => expandSelected(true));

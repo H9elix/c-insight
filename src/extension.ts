@@ -18,6 +18,7 @@ import {
 import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
 import { TypeHierarchyRepository } from "./typeHierarchy/typeHierarchyRepository";
 import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExplorer";
+import { IncludeHierarchyRepository } from "./includeHierarchy/includeHierarchyRepository";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
 
@@ -44,11 +45,13 @@ export async function activate(
   const symbolSearch = new SymbolSearchExplorer(analysis);
   const typeRepository = new TypeHierarchyRepository(analysis);
   const typeHierarchy = new TypeHierarchyExplorer(analysis, typeRepository);
-  const includeHierarchy = new IncludeHierarchyExplorer();
+  const includeRepository = new IncludeHierarchyRepository();
+  const includeHierarchy = new IncludeHierarchyExplorer(includeRepository);
   const relationshipGraph = new RelationshipGraphPanel(
     analysis,
     callRepository,
     typeRepository,
+    includeRepository,
     bookmarks,
   );
   const views = new ViewRegistry(
@@ -250,6 +253,23 @@ export async function activate(
       },
     ),
     vscode.commands.registerCommand(
+      "cInsight.relationshipGraph.showFile",
+      () => {
+        const editor = vscode.window.activeTextEditor;
+        if (
+          !editor ||
+          editor.document.uri.scheme !== "file" ||
+          !isCppDocument(editor.document)
+        ) {
+          void vscode.window.showWarningMessage(
+            "C Insight: Open and activate a local C/C++ source or header file first.",
+          );
+          return;
+        }
+        relationshipGraph.showFile(editor.document.uri);
+      },
+    ),
+    vscode.commands.registerCommand(
       "cInsight.relationshipGraph.exportText",
       () => relationshipGraph.exportGraph("text"),
     ),
@@ -353,6 +373,9 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.includeHierarchy")) {
         includeHierarchy.invalidate();
+        relationshipGraph.markStale(
+          "include hierarchy configuration changed",
+        );
       }
       if (event.affectsConfiguration("cInsight.relationshipGraph")) {
         relationshipGraph.markStale("relationship graph configuration changed");

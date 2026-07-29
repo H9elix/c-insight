@@ -76,8 +76,14 @@ caches and the opaque clangd call items needed by follow-up requests. The graph
 maps every result into semantic Caller → Callee edges and merges stable node
 IDs. Supertypes/Subtypes trees and Relationship Graph likewise share a
 `TypeHierarchyRepository`; inheritance edges are normalized as Supertype →
-Subtype before entering the graph model. The Include adapter is not connected
-yet, and opening the graph cannot build the Included By reverse index.
+Subtype before entering the graph model.
+
+Includes/Included By trees and Relationship Graph share an
+`IncludeHierarchyRepository`. It owns the resolver, forward promise cache, and
+single reverse workspace index. File-graph creation and forward expansion call
+only `forward`; only an explicit Included By expansion path calls `incoming`,
+which is the sole operation that can build the reverse index. Include edges
+are normalized as Includer → Included.
 
 Include Hierarchy is local and does not require a non-standard clangd method.
 The forward tree parses directives lazily and resolves them with the active

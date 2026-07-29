@@ -16,9 +16,9 @@ dedicated activity-bar container.
 - C++ supertype and subtype trees with lazy expansion, search, and export
 - Forward Includes and reverse Included By trees with compile-command-aware
   header resolution, lazy expansion, search, cycle detection, and export
-- Editor-area Call and C++ Type Relationship Graph with bounded multi-level
-  expansion, semantic layered layout, search, bookmarks, export, pan/zoom,
-  filtering, preview, and editor navigation
+- Editor-area Call, C++ Type, and File Include Relationship Graph with bounded
+  multi-level expansion, semantic layered layout, search, bookmarks, export,
+  pan/zoom, filtering, preview, and editor navigation
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets directly in References, Callers, and Callees result rows
@@ -96,6 +96,10 @@ and safety-limit markers.
 13. Put the cursor on a C++ class or struct and run the same command to open a
     Type Graph. Expand Supertypes or Subtypes from any loaded type; inheritance
     arrows always point from the base type to the derived type.
+14. Run **Show File Relationship Graph** to use the active source/header as a
+    file root. Expand Includes or Included By from any resolved file node.
+    Opening the graph and forward-only expansion do not build the reverse
+    workspace index.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has

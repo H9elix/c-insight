@@ -1,4 +1,4 @@
-# C Insight 0.12.3 使用手册
+# C Insight 0.12.4 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -623,9 +623,12 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.3 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
+0.12.4 会先尝试使用标准 Call Hierarchy 建立函数根；光标位于 C++ class、
 struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者都不可用时
-退回活动文件根，该文件根当前不能展开关系。
+退回活动文件根，可继续展开 Includes 或 Included By。
+
+需要明确查看文件包含关系时，建议执行 **Show File Relationship Graph**。该命令
+忽略光标下的函数或类型，直接以活动 C/C++ 源码或头文件作为文件根。
 
 当前可用操作：
 
@@ -638,9 +641,12 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - Expand Callees：为当前选中函数加载直接被调用函数。
 - 当根或选中节点为类型时，上述两个按钮自动显示为 Expand Supertypes 和
   Expand Subtypes，分别加载直接基类和直接派生类。
+- 当根或选中节点为文件时，按钮自动显示为 Expand Included By 和 Expand
+  Includes。前者查询哪些文件包含当前文件，后者解析当前文件包含了哪些文件。
 - Expand to Depth：从当前选中函数开始，同时逐层加载 Callers 和 Callees；
-  从类型节点执行时则同时逐层加载 Supertypes 和 Subtypes。输入值表示相对
-  选中节点的展开层数，并受 `maximumDepth`、节点和边上限约束。
+  从类型节点执行时同时加载 Supertypes 和 Subtypes，从文件节点执行时同时加载
+  Included By 和 Includes。输入值表示相对选中节点的展开层数，并受
+  `maximumDepth`、节点和边上限约束。
 - Stop：取消当前准备或展开请求；已加载节点继续保留。
 - Search：在已加载节点中按名称、详情和路径搜索，选择后居中并更新 Code Preview。
 - Export：把当前已加载图导出为 Text、JSON 或 Mermaid；也可从命令面板分别
@@ -654,9 +660,9 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 图使用有严格 CSP 的 SVG Webview。文件读取、位置验证和导航都在扩展宿主中
 执行；Webview 不读取本地文件，也不直接请求 clangd。隐藏或未打开图时不会
 产生关系查询。Callers/Callees 树与图共享有界 Incoming/Outgoing 请求缓存，
-Supertypes/Subtypes 树与图也共享 Type Hierarchy 请求缓存；图的节点和展开状态
-不会替换原有树。Include Adapter 尚未接入，打开图不会触发 Included By 反向
-索引扫描。
+Supertypes/Subtypes 树与图也共享 Type Hierarchy 请求缓存；Includes/Included
+By 树与图共享 include resolver、正向结果缓存和反向索引。图的节点和展开状态
+不会替换原有树。
 
 调用边始终表示 Caller → Callee。相同函数会合并成一个节点；形成回路的边标记
 direct-recursion 或 indirect-recursion。`defaultDepth=1` 时显式 Show 会加载
@@ -666,6 +672,13 @@ direct-recursion 或 indirect-recursion。`defaultDepth=1` 时显式 Show 会加
 继承边始终表示 Supertype → Subtype，基类位于类型根左侧，派生类位于右侧；
 重复类型会合并，循环继承关系具有与调用图相同的防无限展开处理。类型查询只在
 显式打开类型图或展开类型节点时执行，隐藏或未打开关系图不会产生查询。
+
+Include 边始终表示 Includer → Included，即“包含者 → 被包含文件”。包含者位于
+左侧，被包含文件位于右侧；无法解析的 include 会显示为 unresolved 节点并指向
+原始 `#include` 行。系统头仍由 `relationshipGraph.includeSystemHeaders` 控制。
+打开文件图、展开 Includes、搜索、过滤和导出都不会建立 Included By 反向索引；
+只有明确执行 Expand Included By，或从文件节点明确执行双向 Expand to Depth，
+才会扫描工作区。取消扫描不会发布不完整索引。
 
 ## 5. 底部可靠性状态栏
 
@@ -898,7 +911,7 @@ C Insight 默认管理：
 | `cInsight.relationshipGraph.maximumNodes` | number | `500` | 50–10000 | 当前图保留的最大语义节点数 |
 | `cInsight.relationshipGraph.maximumEdges` | number | `1000` | 100–50000 | 当前图保留的最大语义边数 |
 | `cInsight.relationshipGraph.layout` | string | `"layered"` | `"layered"` | 图布局策略；基础版本仅提供分层布局 |
-| `cInsight.relationshipGraph.includeSystemHeaders` | boolean | `false` | `true` / `false` | Include Adapter 接入后是否允许系统头进入图 |
+| `cInsight.relationshipGraph.includeSystemHeaders` | boolean | `false` | `true` / `false` | 是否允许已解析的系统头进入 Include Graph |
 
 `defaultDepth`、`maximumDepth`、`maximumNodes` 和 `maximumEdges` 已用于 Call
 Graph。布局和系统头开关要到后续 Type/Include Adapter 接入后才完整参与查询。

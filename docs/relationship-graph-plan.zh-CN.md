@@ -238,8 +238,8 @@ Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据�
 4. 单元、集成、E2E、FFmpeg 手工验证、手册和打包。
 
 Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成，Type Adapter 已在
-0.12.3 完成。C 阶段只剩 Include Adapter；在接入之前，Include 过滤按钮不会
-产生后台查询。
+0.12.3 完成，Include Adapter 已在 0.12.4 完成。三类关系均已接入；后续工作
+转向混合关系体验、规模性能和画布交互完善。
 
 ## 13. 验收标准
 
