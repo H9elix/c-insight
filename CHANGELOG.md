@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.13.3
+
+- Serialized workspace-session writes so older autosaves cannot overwrite a
+  newer panel-close, clear, or shutdown state.
+- Restored session sections independently with visible cancellable progress and
+  retained successfully restored sections after cancellation or partial
+  failure.
+- Delayed startup cursor following until session restoration completes or is
+  cancelled, preventing immediate restored-state replacement.
+- Checked local and Remote SSH locations through `workspace.fs` and skipped
+  only unavailable Preview, Call Hierarchy, or Graph sections.
+- Added a total serialized snapshot byte budget with deterministic graph,
+  history, and secondary-state degradation.
+- Throttled repeated size-limit reporting while preserving final-save behavior.
+
 ## 0.13.2
 
 - Added a Code Preview status line for loaded ranges, loading direction, total

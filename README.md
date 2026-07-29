@@ -83,7 +83,10 @@ and safety-limit markers.
    variable, type, and macro lookup. Select a result to preview it, or use Open
    Location and Add Bookmark from its context menu.
 9. Reopen the same folder or `.code-workspace` to restore the previous C
-   Insight browsing session. Call hierarchy data is queried again from clangd.
+   Insight browsing session. Restore is sectioned, cancellable, Remote-aware,
+   and completed before cursor following starts. Call hierarchy data is queried
+   again from clangd; oversized snapshots degrade within a configurable total
+   byte budget.
 10. In C++, place the cursor on a class or struct and choose Show Supertypes or
     Show Subtypes. Select a type to preview it; use the view menu for depth
     expansion and Text, JSON, or Mermaid export.

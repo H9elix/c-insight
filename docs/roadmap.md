@@ -32,13 +32,13 @@ the 0.8.x series. Version 0.13.0 added compile-command decomposition,
 conservative header command candidates, fallback-flag visibility, and
 shareable versioned text/JSON reports.
 
-## Deferred 0.10.1 session stabilization
+## Session stabilization
 
-Version 0.10.0 restored correctly in initial FFmpeg testing, so the planned
-stabilization release was deferred. Reconsider it if real usage exposes slow
-large-tree restoration, startup cursor-follow races, Remote SSH reconnect
-failures, oversized snapshots, stale locations after project changes, or a
-need for restore progress/cancellation and finer partial-failure reporting.
+Version 0.13.3 completed the deferred 0.10.1 stabilization work with serialized
+saves, startup cursor-follow ordering, cancellable sectioned progress, remote
+URI availability checks, partial-failure isolation, and a total serialized
+snapshot byte budget. Exact Call/Type/Include per-node expansion restoration
+remains governed by their separate roadmap notes.
 
 ## Type hierarchy
 

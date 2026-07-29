@@ -63,6 +63,15 @@ hierarchy snapshots retain only a root source position and loaded depths;
 clangd re-resolves the root and rebuilds those depths after startup. Autosave
 runs every five seconds and shutdown performs a final save.
 
+Session writes run through one promise chain so an older autosave cannot finish
+after and overwrite a newer panel-close or shutdown capture. Before storage, a
+pure UTF-8 byte-budget pass drops Relationship Graph first, trims Navigation
+History to its newest entries, then removes secondary sections only as needed.
+Restore executes isolated progress steps and starts cursor following only after
+restore completes or is cancelled. Saved local and remote URIs are checked
+through `workspace.fs`; an unavailable section is skipped without rejecting
+the rest of the snapshot.
+
 Type Hierarchy uses the standard prepare/supertypes/subtypes LSP requests.
 Opaque `TypeHierarchyItem.data` values remain attached to each lazy node.
 Supertypes and Subtypes have separate request caches and duplicate sets, while

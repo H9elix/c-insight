@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import {
+  boundWorkspaceSessionSnapshot,
   parseWorkspaceSession,
   WORKSPACE_SESSION_VERSION,
   WorkspaceSessionSnapshot,
@@ -17,11 +18,14 @@ export type {
 const STORAGE_KEY = "cInsight.workspaceSession";
 export interface WorkspaceSessionAdapters {
   capture(): Omit<WorkspaceSessionSnapshot, "format" | "version" | "savedAt">;
+  onSnapshotLimited?(dropped: string[], byteLength: number): void;
 }
 
 export class WorkspaceSessionManager implements vscode.Disposable {
   private timer?: NodeJS.Timeout;
   private suspended = false;
+  private saveChain: Promise<void> = Promise.resolve();
+  private lastLimitSignature = "";
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -58,17 +62,44 @@ export class WorkspaceSessionManager implements vscode.Disposable {
     if (!this.enabled || this.suspended) {
       return;
     }
-    const snapshot: WorkspaceSessionSnapshot = {
+    const operation = this.saveChain.then(() => this.saveNow());
+    this.saveChain = operation.catch(() => undefined);
+    await operation;
+  }
+
+  private async saveNow(): Promise<void> {
+    if (!this.enabled || this.suspended) {
+      return;
+    }
+    const captured: WorkspaceSessionSnapshot = {
       format: "c-insight-workspace-session",
       version: WORKSPACE_SESSION_VERSION,
       savedAt: Date.now(),
       ...this.adapters.capture(),
     };
-    await this.context.workspaceState.update(STORAGE_KEY, snapshot);
+    const maximumBytes =
+      vscode.workspace
+        .getConfiguration("cInsight.session")
+        .get<number>("maximumSnapshotKilobytes", 2048) * 1024;
+    const bounded = boundWorkspaceSessionSnapshot(captured, maximumBytes);
+    if (bounded.dropped.length > 0) {
+      const signature = bounded.dropped.join("\0");
+      if (signature !== this.lastLimitSignature) {
+        this.adapters.onSnapshotLimited?.(
+          bounded.dropped,
+          bounded.byteLength,
+        );
+      }
+      this.lastLimitSignature = signature;
+    } else {
+      this.lastLimitSignature = "";
+    }
+    await this.context.workspaceState.update(STORAGE_KEY, bounded.snapshot);
   }
 
   async clear(): Promise<void> {
     this.suspended = true;
+    await this.saveChain;
     await this.context.workspaceState.update(STORAGE_KEY, undefined);
   }
 

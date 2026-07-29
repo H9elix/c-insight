@@ -87,52 +87,118 @@ export async function activate(
         ? relationshipGraph.sessionState()
         : undefined,
     }),
+    onSnapshotLimited: (dropped, byteLength) => {
+      output.appendLine(
+        `Workspace session limited to ${byteLength} bytes; dropped: ${dropped.join(", ")}.`,
+      );
+    },
   });
   const restoreSnapshot = async (
+    snapshot: WorkspaceSessionSnapshot | undefined = workspaceSession?.load(true),
+    progress?: vscode.Progress<{ message?: string; increment?: number }>,
+    token?: vscode.CancellationToken,
+  ): Promise<boolean> => {
+    if (!snapshot) {
+      return false;
+    }
+    const runStep = async (
+      label: string,
+      action: () => void | Promise<void>,
+    ): Promise<void> => {
+      if (token?.isCancellationRequested) {
+        return;
+      }
+      progress?.report({ message: label, increment: 100 / 6 });
+      try {
+        await action();
+      } catch (error) {
+        output.appendLine(
+          `Workspace session ${label} failed: ${String(error)}`,
+        );
+      }
+    };
+    await runStep("restoring navigation history", () => {
+      if (
+        vscode.workspace
+          .getConfiguration("cInsight.session")
+          .get<boolean>("persistNavigationHistory", true)
+      ) {
+        navigationHistory.restoreSession(snapshot.history);
+      }
+    });
+    await runStep("restoring reference and symbol searches", async () => {
+      await views.restoreReferenceSession(snapshot.references);
+      await symbolSearch.restoreSession(snapshot.symbolSearch);
+    });
+    await runStep("restoring relationship graph", async () => {
+      if (
+        snapshot.relationshipGraph &&
+        vscode.workspace
+          .getConfiguration("cInsight.session")
+          .get<boolean>("restoreRelationshipGraph", true)
+      ) {
+        await relationshipGraph.restoreSession(snapshot.relationshipGraph);
+      }
+    });
+    await runStep("checking call hierarchy location", async () => {
+      if (
+        !snapshot.callHierarchy ||
+        !vscode.workspace
+          .getConfiguration("cInsight.session")
+          .get<boolean>("restoreCallHierarchy", true)
+      ) {
+        return;
+      }
+      const call = snapshot.callHierarchy;
+      const uri = vscode.Uri.parse(call.uri);
+      if (!(await workspaceUriExists(uri))) {
+        output.appendLine(
+          `Workspace call hierarchy restore skipped: location is unavailable (${call.uri}).`,
+        );
+        return;
+      }
+      await controller.resolveNow(
+        uri,
+        new vscode.Position(call.position.line, call.position.character),
+        { manualCallHierarchy: true, manualReferences: true },
+      );
+      if (!token?.isCancellationRequested) {
+        await views.restoreCallHierarchyDepths(call);
+      }
+    });
+    await runStep("restoring code preview", async () => {
+      if (!snapshot.preview) {
+        return;
+      }
+      const uri = vscode.Uri.parse(snapshot.preview.uri);
+      if (!(await workspaceUriExists(uri))) {
+        output.appendLine(
+          `Workspace Code Preview restore skipped: location is unavailable (${snapshot.preview.uri}).`,
+        );
+        return;
+      }
+      await views.preview.restoreSession(snapshot.preview);
+    });
+    await runStep("finalizing workspace session", () => undefined);
+    if (token?.isCancellationRequested) {
+      output.appendLine("Workspace session restore cancelled; partial state retained.");
+    }
+    return true;
+  };
+  const restoreWithProgress = async (
     snapshot: WorkspaceSessionSnapshot | undefined = workspaceSession?.load(true),
   ): Promise<boolean> => {
     if (!snapshot) {
       return false;
     }
-    if (
-      vscode.workspace
-        .getConfiguration("cInsight.session")
-        .get<boolean>("persistNavigationHistory", true)
-    ) {
-      navigationHistory.restoreSession(snapshot.history);
-    }
-    await views.restoreReferenceSession(snapshot.references);
-    await symbolSearch.restoreSession(snapshot.symbolSearch);
-    if (
-      snapshot.relationshipGraph &&
-      vscode.workspace
-        .getConfiguration("cInsight.session")
-        .get<boolean>("restoreRelationshipGraph", true)
-    ) {
-      await relationshipGraph.restoreSession(snapshot.relationshipGraph);
-    }
-    if (
-      snapshot.callHierarchy &&
-      vscode.workspace
-        .getConfiguration("cInsight.session")
-        .get<boolean>("restoreCallHierarchy", true)
-    ) {
-      const call = snapshot.callHierarchy;
-      try {
-        await controller.resolveNow(
-          vscode.Uri.parse(call.uri),
-          new vscode.Position(call.position.line, call.position.character),
-          { manualCallHierarchy: true, manualReferences: true },
-        );
-        await views.restoreCallHierarchyDepths(call);
-      } catch (error) {
-        output.appendLine(
-          `Workspace call hierarchy restore failed: ${String(error)}`,
-        );
-      }
-    }
-    await views.preview.restoreSession(snapshot.preview);
-    return true;
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "C Insight: Restoring workspace session",
+        cancellable: true,
+      },
+      (progress, token) => restoreSnapshot(snapshot, progress, token),
+    );
   };
   const initialSession = workspaceSession.load();
   const reliabilityStatusBar = new ReliabilityStatusBar();
@@ -246,7 +312,7 @@ export async function activate(
     typeHierarchy,
     includeHierarchy,
     workspaceSession,
-    () => restoreSnapshot(),
+    () => restoreWithProgress(),
   );
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -454,16 +520,13 @@ export async function activate(
   try {
     await manager.start();
     await projectDiagnostics.refresh();
-    controller.start();
     if (initialSession) {
-      void restoreSnapshot(initialSession)
-        .catch((error: unknown) => {
-          output.appendLine(`Workspace session restore failed: ${String(error)}`);
-        })
-        .finally(() => workspaceSession?.startAutosave());
-    } else {
-      workspaceSession.startAutosave();
+      await restoreWithProgress(initialSession).catch((error: unknown) => {
+        output.appendLine(`Workspace session restore failed: ${String(error)}`);
+      });
     }
+    workspaceSession.startAutosave();
+    controller.start();
     await updateDocumentSymbols(
       vscode.window.activeTextEditor,
       analysis,
@@ -490,6 +553,18 @@ export async function activate(
 export async function deactivate(): Promise<void> {
   await workspaceSession?.save();
   await manager?.stop();
+}
+
+async function workspaceUriExists(uri: vscode.Uri): Promise<boolean> {
+  if (uri.scheme === "untitled") {
+    return false;
+  }
+  try {
+    await vscode.workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function updateDocumentSymbols(

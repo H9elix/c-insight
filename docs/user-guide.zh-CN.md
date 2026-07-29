@@ -1,4 +1,4 @@
-# C Insight 0.13.2 使用手册
+# C Insight 0.13.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -550,6 +550,12 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 - Relationship Graph 的版本化静态图快照、当前选择、关系过滤、折叠节点和
   缩放/平移位置。
 
+自动保存、面板关闭和 VS Code 退出产生的保存请求会按顺序写入，较早的异步
+写入不会覆盖较新的关闭状态。启动恢复期间显示可取消进度；Navigation
+History、搜索状态、Relationship Graph、Call Hierarchy 和 Code Preview 分步
+恢复，某一部分失败不会阻止其他部分。取消会在当前步骤结束后阻止后续步骤，并
+保留已经恢复的状态。
+
 当前快照仍不保存 Supertypes/Subtypes 或 Includes/Included By 树的根、已加载深度
 和展开状态。关闭或重新加载窗口后，需要显式重新执行对应的 Show 命令；此项已
 列入备忘录，暂不实现，以避免打开大型工程时因 Included By 恢复而意外启动
@@ -559,6 +565,11 @@ Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编
 保存的位置重新请求 clangd，再展开到上次加载深度，并标记为从上一会话恢复。
 因此源码或编译数据库变化后不会把旧调用结果伪装成最新结果。当前实现恢复最大
 深度，不保证逐个节点的折叠状态完全相同。
+
+启动时会先完成或取消会话恢复，再启动编辑器光标自动跟随，避免恢复结果立刻被
+启动光标查询覆盖。保存的 `file:` 或 Remote SSH URI 会通过 VS Code
+`workspace.fs` 检查；远程连接恢复后仍可继续恢复，位置不可访问或文件已删除时
+只跳过对应 Code Preview、Call Hierarchy 或 Graph 部分并记录原因。
 
 Relationship Graph 恢复采用不同策略：直接显示上次保存的静态节点和边，不在
 恢复阶段请求 clangd、解析 Include 或建立 Included By 索引。恢复的函数和类型
@@ -1010,6 +1021,7 @@ C Insight 默认管理：
 | `cInsight.session.restoreCallHierarchy` | boolean | `true` | `true` / `false` | 是否重新查询并恢复 Callers/Callees 根和加载深度 |
 | `cInsight.session.restoreRelationshipGraph` | boolean | `true` | `true` / `false` | 是否无查询地恢复退出时仍打开的 Relationship Graph 静态快照 |
 | `cInsight.session.relationshipGraphMaximumSnapshotNodes` | number | `1000` | 50–2000 | 会话最多保存的关系图节点数；超过时降级为仅保存根节点 |
+| `cInsight.session.maximumSnapshotKilobytes` | number | `2048` | 64–8192 | 整个工作区会话序列化后的最大 KiB；超限时依次丢弃 Graph、裁剪旧 History，再丢弃次要浏览状态 |
 | `cInsight.session.maximumAgeDays` | number | `30` | 1–365 | 超过此天数的快照自动忽略 |
 
 关闭 `restore` 会同时停止自动保存与自动恢复，但仍可使用手动 Restore 命令读取
