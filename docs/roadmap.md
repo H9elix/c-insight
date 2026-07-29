@@ -5,8 +5,8 @@
 The following features were intentionally excluded from 0.5.0 and may be
 reconsidered after real-world use:
 
-- A complete Code Preview context menu for References, Callers, Callees, and
-  other semantic queries. Version 0.5.0 supports single-click Definition only.
+- A complete Code Preview context menu for additional semantic queries beyond
+  the current Definition preview interaction.
 - Persisting and restoring horizontal and vertical scroll positions for every
   preview history target.
 - Editor-like semantic coloring in Code Preview. The preferred implementation
@@ -61,10 +61,6 @@ and cycle/duplicate handling. Exact compiler builtin include-path discovery,
 conditional-preprocessor evaluation, and cross-session tree restoration remain
 deferred.
 
-The next relationship-navigation iteration should consolidate common
-interaction patterns across Call, Type, and Include Hierarchy before a larger
-graph view is considered.
-
 ## Deferred Type/Include workspace restoration
 
 Do not implement Type Hierarchy or Include Hierarchy workspace-session
@@ -78,13 +74,5 @@ delayed, visible, and cancellable so reopening a large workspace never starts
 an unexpected reverse-index scan.
 
 Reconsider this work only if real usage shows that repeatedly rebuilding these
-trees is disruptive, or after the planned relationship graph defines a common
-session model that can restore all hierarchy types consistently.
-
-## Relationship Graph 0.12.0
-
-The implementation plan is documented in
-`docs/relationship-graph-plan.zh-CN.md`. The first release will use an explicit,
-lazy, bounded editor-area graph for Call, Type, and Include relationships.
-References edges, automatic cursor following, and workspace restoration are
-out of scope for 0.12.0.
+trees is disruptive. Relationship Graph session restoration is already
+implemented independently and does not restore these tree views.
