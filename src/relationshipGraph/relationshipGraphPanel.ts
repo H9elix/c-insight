@@ -33,6 +33,7 @@ import {
   renderGraphMermaid,
   renderGraphText,
 } from "./graphModel";
+import { sessionAfterPanelDispose } from "./graphSessionLifecycle";
 
 type GraphMessage =
   | { type: "ready" }
@@ -93,8 +94,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   > = defaultCanvasState();
   private pendingCanvasRestore?: typeof this.canvasState;
   private retainedSession?: RelationshipGraphSessionState;
+  private extensionDisposing = false;
   private generation = 0;
   private readonly disposables: vscode.Disposable[] = [];
+  private readonly closeEmitter = new vscode.EventEmitter<void>();
+  readonly onDidClose = this.closeEmitter.event;
 
   constructor(
     private readonly analysis: AnalysisService,
@@ -337,9 +341,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.extensionDisposing = true;
     this.stopExpansion();
     this.panel?.dispose();
     this.disposables.forEach((item) => item.dispose());
+    this.closeEmitter.dispose();
   }
 
   private createModel(): RelationshipGraphModel {
@@ -371,7 +377,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     panel.onDidDispose(
       () => {
         this.stopExpansion();
-        this.retainedSession = this.sessionState();
+        const retainedSession = sessionAfterPanelDispose(
+          this.sessionState(),
+          this.extensionDisposing,
+        );
         this.generation += 1;
         this.model = this.createModel();
         this.callNodes.clear();
@@ -384,6 +393,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         this.operationStatus = undefined;
         this.pendingCanvasRestore = undefined;
         this.panel = undefined;
+        this.retainedSession = retainedSession;
+        if (!this.extensionDisposing) {
+          this.closeEmitter.fire();
+        }
       },
       undefined,
       this.disposables,

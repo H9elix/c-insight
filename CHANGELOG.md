@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.12
+
+- Fixed a closed Relationship Graph being restored when the workspace or VS
+  Code was opened again.
+- Distinguished explicit panel close from extension shutdown: only a graph
+  that was still open at shutdown remains eligible for session restore.
+- Saved the workspace session immediately after an explicit graph close so a
+  quick Reload Window cannot revive the previous snapshot.
+
 ## 0.12.11
 
 - Added bidirectional incremental source loading when Code Preview is scrolled
