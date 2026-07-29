@@ -243,6 +243,8 @@ Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成，Type Adapter 已�
 节点状态、无查询折叠、稳定视口、过滤统计和键盘操作。
 0.12.6 已完成按帧合并、稳定 ID 增量 SVG、视口虚拟化、线性分层遍历、
 慢渲染诊断、关闭释放和大型合成图回归测试。
+0.12.7 已通过显式 Definition 归属边接通 File、Type 与 Callable 节点，
+支持从新增节点继续使用原有 Include、Inheritance 和 Call 展开能力。
 
 ## 13. 验收标准
 

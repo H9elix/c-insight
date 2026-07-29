@@ -8,7 +8,11 @@ export type GraphNodeKind =
   | "header"
   | "unresolved";
 
-export type GraphRelation = "calls" | "inherits" | "includes";
+export type GraphRelation =
+  | "calls"
+  | "inherits"
+  | "includes"
+  | "defines";
 
 export interface GraphNode {
   id: string;
