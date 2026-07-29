@@ -174,6 +174,12 @@ items. The view refreshes when the active editor, clangd state, diagnostics, or
 compilation database changes. Its title-bar actions provide manual refresh and
 direct access to the classified **C Insight: clangd** log.
 
+The active command is broken down into compiler, language, standard, user,
+system, and quote include paths, definitions, forced includes, and response
+files. Headers show a same-directory source candidate as diagnostic guidance
+without claiming it is clangd's actual inferred command. The complete report
+can be copied or exported as versioned JSON or plain text.
+
 When `cInsight.compileCommandsDir` is empty, C Insight searches the workspace
 root and common build directories before searching other workspace locations.
 The selected directory is passed to clangd automatically. Use **C Insight:

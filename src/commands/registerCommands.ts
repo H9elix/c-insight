@@ -287,6 +287,15 @@ export function registerCommands(
     vscode.commands.executeCommand("cInsight.status.focus"),
   );
   register("cInsight.diagnostics.showClangdLog", () => manager.showLog());
+  register("cInsight.diagnostics.copyReport", () =>
+    projectDiagnostics.copyReport("text"),
+  );
+  register("cInsight.diagnostics.exportText", () =>
+    projectDiagnostics.exportReport("text"),
+  );
+  register("cInsight.diagnostics.exportJson", () =>
+    projectDiagnostics.exportReport("json"),
+  );
   register("cInsight.index.refresh", () =>
     vscode.commands.executeCommand("cInsight.restartClangd"),
   );

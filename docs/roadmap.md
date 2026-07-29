@@ -28,7 +28,9 @@ and deeper unresolved function-pointer/indirect-call analysis remain deferred.
 
 Compilation database discovery, clangd project diagnostics, background index
 progress, reliability reporting, and stale-result markers were implemented in
-the 0.8.x series.
+the 0.8.x series. Version 0.13.0 added compile-command decomposition,
+conservative header command candidates, fallback-flag visibility, and
+shareable versioned text/JSON reports.
 
 ## Deferred 0.10.1 session stabilization
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0
+
+- Expanded Project Diagnostics with compiler, language, standard, user/system/
+  quote include paths, defines, forced includes, and response-file breakdowns.
+- Added conservative same-name/same-directory compile-command candidates for
+  headers while clearly distinguishing them from clangd's unobservable actual
+  inferred command.
+- Displayed configured fallback flags when no direct or candidate compilation
+  database entry is available.
+- Added one schema-versioned diagnostic report shared by the tree, clipboard
+  copy, plain-text export, and JSON export.
+- Included clangd state/version, index progress, database metadata, command
+  source, and current-file diagnostics in exported reports.
+
 ## 0.12.12
 
 - Fixed a closed Relationship Graph being restored when the workspace or VS

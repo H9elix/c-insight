@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.12",
+  "version": "0.13.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -166,6 +166,20 @@
         "command": "cInsight.diagnostics.showClangdLog",
         "title": "C Insight: Show clangd Log",
         "icon": "$(output)"
+      },
+      {
+        "command": "cInsight.diagnostics.copyReport",
+        "title": "C Insight: Copy Project Diagnostics Report",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "cInsight.diagnostics.exportText",
+        "title": "C Insight: Export Project Diagnostics as Text"
+      },
+      {
+        "command": "cInsight.diagnostics.exportJson",
+        "title": "C Insight: Export Project Diagnostics as JSON",
+        "icon": "$(save)"
       },
       {
         "command": "cInsight.index.refresh",
@@ -669,6 +683,16 @@
           "command": "cInsight.index.refresh",
           "when": "view == cInsight.status",
           "group": "navigation@4"
+        },
+        {
+          "command": "cInsight.diagnostics.copyReport",
+          "when": "view == cInsight.status",
+          "group": "navigation@5"
+        },
+        {
+          "command": "cInsight.diagnostics.exportJson",
+          "when": "view == cInsight.status",
+          "group": "navigation@6"
         },
         {
           "command": "cInsight.references.search",
