@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1339,6 +1339,13 @@
           "minimum": 50,
           "maximum": 2000,
           "description": "Maximum Relationship Graph nodes stored in a workspace session; larger graphs degrade to a root-only snapshot."
+        },
+        "cInsight.session.maximumSnapshotKilobytes": {
+          "type": "number",
+          "default": 2048,
+          "minimum": 64,
+          "maximum": 8192,
+          "description": "Maximum serialized workspace-session size in KiB; oversized snapshots progressively drop graph and older/secondary navigation state."
         },
         "cInsight.session.maximumAgeDays": {
           "type": "number",

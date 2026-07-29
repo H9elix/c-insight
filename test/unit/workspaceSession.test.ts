@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  boundWorkspaceSessionSnapshot,
   parseWorkspaceSession,
   WORKSPACE_SESSION_VERSION,
 } from "../../src/session/workspaceSessionModel";
@@ -92,5 +93,48 @@ describe("workspace session snapshot", () => {
     });
     assert.ok(snapshot);
     assert.equal(snapshot.relationshipGraph, undefined);
+  });
+
+  it("degrades oversized sessions in a deterministic priority order", () => {
+    const result = boundWorkspaceSessionSnapshot(
+      {
+        format: "c-insight-workspace-session",
+        version: 1,
+        savedAt: 100,
+        history: {
+          entries: Array.from({ length: 100 }, (_, index) => ({
+            id: index + 1,
+            uri: `file:///workspace/${"x".repeat(80)}/${index}.cpp`,
+            range: {
+              start: { line: index, character: 0 },
+              end: { line: index, character: 1 },
+            },
+            mode: "definition",
+            title: `Entry ${index}`,
+            origin: "definition",
+            timestamp: index,
+          })),
+          currentId: 1,
+          filter: "",
+        },
+        preview: {
+          uri: `file:///workspace/${"p".repeat(200)}.cpp`,
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 1 },
+          },
+          mode: "definition",
+          title: "preview",
+          locked: false,
+        },
+      },
+      6000,
+    );
+    assert.ok(result.byteLength <= 6000);
+    assert.ok(
+      result.dropped.includes("older Navigation History entries"),
+    );
+    assert.equal(result.snapshot.history?.entries.length, 20);
+    assert.equal(result.snapshot.history?.currentId, 100);
   });
 });

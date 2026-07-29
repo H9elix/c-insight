@@ -291,7 +291,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     if (root.uri) {
       try {
         const uri = vscode.Uri.parse(root.uri);
-        if (uri.scheme === "file") {
+        if (uri.scheme !== "untitled") {
           await vscode.workspace.fs.stat(uri);
         }
       } catch {

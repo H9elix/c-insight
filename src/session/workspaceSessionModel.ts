@@ -67,6 +67,67 @@ export interface WorkspaceSessionSnapshot {
   relationshipGraph?: RelationshipGraphSessionState;
 }
 
+export interface BoundedWorkspaceSession {
+  snapshot: WorkspaceSessionSnapshot;
+  dropped: string[];
+  byteLength: number;
+}
+
+export function boundWorkspaceSessionSnapshot(
+  input: WorkspaceSessionSnapshot,
+  maximumBytes: number,
+): BoundedWorkspaceSession {
+  const snapshot = structuredClone(input);
+  const dropped: string[] = [];
+  const limit = Math.max(1, Math.floor(maximumBytes));
+  const size = (): number =>
+    new TextEncoder().encode(JSON.stringify(snapshot)).byteLength;
+  let byteLength = size();
+  if (byteLength <= limit) {
+    return { snapshot, dropped, byteLength };
+  }
+  if (snapshot.relationshipGraph) {
+    snapshot.relationshipGraph = undefined;
+    dropped.push("Relationship Graph");
+    byteLength = size();
+  }
+  if (
+    byteLength > limit &&
+    snapshot.history &&
+    snapshot.history.entries.length > 20
+  ) {
+    snapshot.history.entries = snapshot.history.entries.slice(-20);
+    if (
+      snapshot.history.currentId !== undefined &&
+      !snapshot.history.entries.some(
+        (entry) => entry.id === snapshot.history?.currentId,
+      )
+    ) {
+      snapshot.history.currentId =
+        snapshot.history.entries.at(-1)?.id;
+    }
+    dropped.push("older Navigation History entries");
+    byteLength = size();
+  }
+  for (const [label, key] of [
+    ["Call Hierarchy", "callHierarchy"],
+    ["References state", "references"],
+    ["Symbol Search state", "symbolSearch"],
+    ["Code Preview state", "preview"],
+    ["Navigation History", "history"],
+  ] as const) {
+    if (byteLength <= limit) {
+      break;
+    }
+    if (snapshot[key] !== undefined) {
+      snapshot[key] = undefined;
+      dropped.push(label);
+      byteLength = size();
+    }
+  }
+  return { snapshot, dropped, byteLength };
+}
+
 export function parseWorkspaceSession(
   value: unknown,
 ): WorkspaceSessionSnapshot | undefined {
