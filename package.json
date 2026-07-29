@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.3",
+  "version": "0.12.4",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -42,6 +42,7 @@
     "onView:cInsight.includes",
     "onView:cInsight.includedBy",
     "onCommand:cInsight.relationshipGraph.show",
+    "onCommand:cInsight.relationshipGraph.showFile",
     "onCommand:cInsight.relationshipGraph.exportText",
     "onCommand:cInsight.relationshipGraph.exportJson",
     "onCommand:cInsight.relationshipGraph.exportMermaid"
@@ -78,6 +79,11 @@
         "command": "cInsight.relationshipGraph.show",
         "title": "C Insight: Show Relationship Graph",
         "icon": "$(graph)"
+      },
+      {
+        "command": "cInsight.relationshipGraph.showFile",
+        "title": "C Insight: Show File Relationship Graph",
+        "icon": "$(files)"
       },
       {
         "command": "cInsight.relationshipGraph.exportText",
@@ -576,6 +582,11 @@
           "command": "cInsight.relationshipGraph.show",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
           "group": "navigation@9"
+        },
+        {
+          "command": "cInsight.relationshipGraph.showFile",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "navigation@10"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",

@@ -1,15 +1,15 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { IncludeDirective, parseIncludes } from "./includeModel";
+import { IncludeDirective } from "./includeModel";
 import {
-  IncludeResolver,
   IncludeTargetKind,
   ResolvedInclude,
 } from "./includeResolver";
+import { ReverseIncludeEdge } from "./reverseIncludeIndex";
 import {
-  ReverseIncludeEdge,
-  ReverseIncludeIndex,
-} from "./reverseIncludeIndex";
+  IncludeHierarchyDirection,
+  IncludeHierarchyRepository,
+} from "./includeHierarchyRepository";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
 import {
   hierarchyExpansionMessage,
@@ -22,13 +22,11 @@ import {
   renderHierarchyExport,
 } from "../utils/hierarchyExport";
 
-export type IncludeHierarchyDirection = "includes" | "includedBy";
+export type { IncludeHierarchyDirection } from "./includeHierarchyRepository";
 
 export class IncludeHierarchyExplorer implements vscode.Disposable {
   readonly includes = new MutableTreeProvider();
   readonly includedBy = new MutableTreeProvider();
-  private readonly resolver = new IncludeResolver();
-  private readonly reverse = new ReverseIncludeIndex(this.resolver);
   private readonly views = new Map<
     IncludeHierarchyDirection,
     vscode.TreeView<TreeNode>
@@ -47,7 +45,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   private readonly stale = { includes: false, includedBy: false };
   private reportedTruncatedIndex = false;
 
-  constructor() {
+  constructor(private readonly repository: IncludeHierarchyRepository) {
     this.publishEmpty();
     const watcher = vscode.workspace.createFileSystemWatcher(
       "**/*.{c,h,cc,hh,cpp,hpp,cxx,hxx,m,mm}",
@@ -57,7 +55,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       watcher.onDidCreate((uri) => void this.updateFile(uri)),
       watcher.onDidChange((uri) => void this.updateFile(uri)),
       watcher.onDidDelete((uri) => {
-        this.reverse.remove(uri);
+        this.repository.remove(uri);
         this.markStale();
       }),
     );
@@ -149,14 +147,13 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     if (!isIncludeFile(document.uri)) {
       return;
     }
-    void this.reverse.update(document.uri, document.getText());
+    void this.repository.update(document.uri, document.getText());
     this.markStale();
   }
 
   invalidate(): void {
     this.stopExpansion();
-    this.resolver.invalidate();
-    this.reverse.invalidate();
+    this.repository.invalidate();
     this.reportedTruncatedIndex = false;
     this.markStale();
   }
@@ -271,12 +268,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       return [limitNode()];
     }
     try {
-      const document = await vscode.workspace.openTextDocument(uri);
-      const resolved = await Promise.all(
-        parseIncludes(document.getText()).map((directive) =>
-          this.resolver.resolve(uri, directive),
-        ),
-      );
+      const resolved = await this.repository.forward(uri);
       return resolved
         .filter(
           (include) =>
@@ -308,12 +300,12 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       return [limitNode()];
     }
     try {
-      const incoming = this.reverse.isBuilt
-        ? await this.reverse.incoming(uri)
+      const incoming = this.repository.isReverseBuilt
+        ? await this.repository.incoming(uri)
         : await this.buildReverseIndex(uri);
       if (
-        this.reverse.isBuilt &&
-        this.reverse.wasTruncated &&
+        this.repository.isReverseBuilt &&
+        this.repository.wasReverseTruncated &&
         !this.reportedTruncatedIndex
       ) {
         this.reportedTruncatedIndex = true;
@@ -354,7 +346,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
         ].filter((item): item is vscode.Disposable => item !== undefined);
         let percentage = 0;
         try {
-          return await this.reverse.incoming(
+          return await this.repository.incoming(
             uri,
             linked.token,
             (completed, total) => {
@@ -473,7 +465,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   private async updateFile(uri: vscode.Uri): Promise<void> {
     try {
       const content = await vscode.workspace.fs.readFile(uri);
-      await this.reverse.update(uri, Buffer.from(content).toString("utf8"));
+      await this.repository.update(uri, Buffer.from(content).toString("utf8"));
     } finally {
       this.markStale();
     }

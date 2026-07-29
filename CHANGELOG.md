@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.4
+
+- Added File Relationship Graph roots through the explicit Show File
+  Relationship Graph command.
+- Added on-demand Includes and Included By expansion with semantic
+  Includer → Included edges, unresolved targets, cycle detection, and
+  multi-level expansion.
+- Added a shared Include Hierarchy repository for forward-resolution caching
+  and one common reverse workspace index.
+- Kept reverse-index construction demand-driven: opening/exporting/searching a
+  file graph or expanding only Includes does not build Included By.
+
 ## 0.12.3
 
 - Added C++ Type Graph roots with on-demand Supertypes and Subtypes expansion.

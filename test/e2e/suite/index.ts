@@ -123,6 +123,7 @@ export async function run(): Promise<void> {
     "cInsight.includedBy.exportJson",
     "cInsight.includedBy.exportMermaid",
     "cInsight.relationshipGraph.show",
+    "cInsight.relationshipGraph.showFile",
     "cInsight.relationshipGraph.exportText",
     "cInsight.relationshipGraph.exportJson",
     "cInsight.relationshipGraph.exportMermaid",
@@ -179,6 +180,22 @@ export async function run(): Promise<void> {
         ? true
         : undefined,
     "Relationship Graph did not open with Calculator as its type root",
+  );
+
+  await vscode.window.showTextDocument(document);
+  await vscode.commands.executeCommand("cInsight.relationshipGraph.showFile");
+  await waitFor(
+    async () =>
+      vscode.window.tabGroups.all
+        .flatMap((group) => group.tabs)
+        .some(
+          (tab) =>
+            tab.label.startsWith("Relationship Graph") &&
+            tab.label.includes("calculator.cpp"),
+        )
+        ? true
+        : undefined,
+    "Relationship Graph did not open with calculator.cpp as its file root",
   );
 
   const firstDefinition = definitions[0];

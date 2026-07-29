@@ -105,4 +105,33 @@ describe("relationship graph model", () => {
       /n1 -->\|inherits\| n0/,
     );
   });
+
+  it("keeps includes directed from includer to included file", () => {
+    const source = {
+      ...node("main.c"),
+      id: graphNodeId("source", "file:///main.c", 1, "main.c"),
+      kind: "source" as const,
+      capabilities: ["includes" as const],
+    };
+    const header = {
+      ...node("common.h"),
+      id: graphNodeId("header", "file:///common.h", 1, "common.h"),
+      kind: "header" as const,
+      capabilities: ["includes" as const],
+    };
+    const graph = new RelationshipGraphModel(10, 10);
+    graph.replaceRoot(source);
+    graph.addNode(header);
+    graph.addEdge({
+      id: graphEdgeId("includes", source.id, header.id),
+      from: source.id,
+      to: header.id,
+      relation: "includes",
+      states: [],
+    });
+    assert.match(
+      renderGraphMermaid(graph.snapshot()),
+      /n0 -->\|includes\| n1/,
+    );
+  });
 });
