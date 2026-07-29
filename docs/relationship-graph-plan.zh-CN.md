@@ -237,6 +237,10 @@ Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据�
 3. stale、限制、错误和取消状态。
 4. 单元、集成、E2E、FFmpeg 手工验证、手册和打包。
 
+Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成。C 阶段中的 Type 与
+Include Adapter 仍为后续计划；在接入之前，Inheritance 与 Include 过滤按钮
+不会产生后台查询。
+
 ## 13. 验收标准
 
 - 用户可从函数、类型或文件显式打开关系图。
@@ -248,4 +252,3 @@ Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据�
 - 隐藏/未打开图时没有自动关系查询。
 - Included By 不会因打开图或其他关系展开而意外扫描工作区。
 - 导出不触发查询，且 JSON/Mermaid 能完整表达已加载的一般图。
-

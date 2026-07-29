@@ -64,6 +64,11 @@ file/navigation authority. Its editor-area WebviewPanel receives immutable
 snapshots and renders native SVG under a nonce-restricted CSP. Incoming
 messages contain only a discriminated action and node ID; the host validates
 the ID against its current model before previewing or opening a file.
+Call nodes are laid out by semantic Caller → Callee rank around the selected
+root. Multi-level expansion is cancellable, reuses already loaded directions,
+and leaves partial results intact. Search and export operate only on the
+current immutable snapshot; node context actions delegate bookmarks and
+navigation back to extension-host services.
 
 Callers/Callees trees and Relationship Graph share a
 `CallHierarchyRepository`, including separate bounded Incoming and Outgoing

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.12.2
+
+- Added cancellable multi-level Call Graph expansion from any selected node,
+  with visible completion, cancellation, failure, and graph-limit status.
+- Added loaded-node search and node context actions for expansion, bookmarks,
+  navigation, and focus.
+- Added Text, JSON, and Mermaid export from the graph toolbar and command
+  palette.
+- Changed the layered Call Graph layout to place callers left of the root and
+  callees to its right.
+
 ## 0.12.1
 
 - Added a shared Call Hierarchy repository so the native trees and

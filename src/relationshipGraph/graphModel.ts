@@ -195,6 +195,36 @@ export function renderGraphMermaid(
   return lines.join("\n");
 }
 
+export function renderGraphText(
+  snapshot: RelationshipGraphSnapshot,
+): string {
+  const nodes = new Map(snapshot.nodes.map((node) => [node.id, node]));
+  const lines = [
+    `Relationship Graph (${snapshot.nodes.length} nodes, ${snapshot.edges.length} edges)`,
+    "",
+  ];
+  if (snapshot.rootId) {
+    lines.push(`Root: ${formatTextNode(nodes.get(snapshot.rootId))}`, "");
+  }
+  lines.push("Nodes:");
+  for (const node of snapshot.nodes) {
+    lines.push(`- ${formatTextNode(node)}`);
+  }
+  lines.push("", "Relations:");
+  for (const edge of snapshot.edges) {
+    lines.push(
+      `- ${formatTextNode(nodes.get(edge.from))} --${edge.relation}--> ${formatTextNode(nodes.get(edge.to))}`,
+    );
+  }
+  if (snapshot.staleReason) {
+    lines.push("", `Stale: ${snapshot.staleReason}`);
+  }
+  if (snapshot.limitedBy) {
+    lines.push("", `Limited by: ${snapshot.limitedBy}`);
+  }
+  return lines.join("\n");
+}
+
 function normalizeNode(node: GraphNode): GraphNode {
   return {
     ...node,
@@ -232,4 +262,14 @@ function unique<T>(values: readonly T[]): T[] {
 
 function escapeMermaid(value: string): string {
   return value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"");
+}
+
+function formatTextNode(node: GraphNode | undefined): string {
+  if (!node) {
+    return "<missing>";
+  }
+  const location = node.uri
+    ? ` (${node.uri}${node.line ? `:${node.line}` : ""})`
+    : "";
+  return `${node.name} [${node.kind}]${location}`;
 }
