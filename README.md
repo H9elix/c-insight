@@ -68,6 +68,7 @@ and safety-limit markers.
    Preview without moving the editor; use **Open Location** from the result's
    context menu to navigate.
 4. Single-click a symbol inside Code Preview to preview its definition. A
+   pointer cursor identifies semantic symbols that can continue navigation. A
    double-click opens the exact source position in the main editor.
 5. Use the Code Preview toolbar to move backward or forward, lock cursor
    following, copy code, copy the path, or open the current target.

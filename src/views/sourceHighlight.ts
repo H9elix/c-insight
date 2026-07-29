@@ -157,11 +157,34 @@ export function highlightSemanticLine(
 
 function semanticTokenClasses(token: SemanticTokenSpan): string {
   const classes = ["sem", `sem-${cssIdentifier(token.type)}`];
+  if (NAVIGABLE_SEMANTIC_TOKEN_TYPES.has(token.type)) {
+    classes.push("sem-navigable");
+  }
   for (const modifier of token.modifiers) {
     classes.push(`sem-mod-${cssIdentifier(modifier)}`);
   }
   return classes.join(" ");
 }
+
+const NAVIGABLE_SEMANTIC_TOKEN_TYPES = new Set([
+  "namespace",
+  "type",
+  "class",
+  "enum",
+  "interface",
+  "struct",
+  "typeParameter",
+  "parameter",
+  "variable",
+  "property",
+  "enumMember",
+  "event",
+  "function",
+  "method",
+  "macro",
+  "label",
+  "decorator",
+]);
 
 function cssIdentifier(value: string): string {
   const safe = value.replace(/[^a-zA-Z0-9_-]/g, "-");

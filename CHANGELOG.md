@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.10
+
+- Code Preview now shows a pointer cursor over semantic symbols that can be
+  clicked to continue Definition browsing.
+- Kept the text cursor for keywords, operators, literals, and comments so
+  non-navigation syntax does not look actionable.
+
 ## 0.12.9
 
 - Added editor-grade semantic symbol classification to Code Preview through
