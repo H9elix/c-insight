@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { SymbolKind } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
+import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import {
   CallDirection,
   CallHierarchyRepository,
@@ -13,12 +14,19 @@ import {
   RelationshipGraphModel,
   graphEdgeId,
   graphNodeId,
+  renderGraphJson,
+  renderGraphMermaid,
+  renderGraphText,
 } from "./graphModel";
 
 type GraphMessage =
   | { type: "ready" }
   | { type: "selectNode"; nodeId: string }
   | { type: "openNode"; nodeId: string }
+  | { type: "nodeContext"; nodeId: string }
+  | { type: "expandToDepth"; nodeId: string }
+  | { type: "search" }
+  | { type: "export" }
   | {
       type: "expandCall";
       nodeId: string;
@@ -31,13 +39,19 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private model = this.createModel();
   private readonly callNodes = new Map<string, CallNode>();
   private readonly nodeDepth = new Map<string, number>();
+  private readonly expandedCalls = new Set<string>();
   private expansion?: vscode.CancellationTokenSource;
+  private operationStatus?: {
+    kind: "info" | "warning" | "error";
+    message: string;
+  };
   private generation = 0;
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
     private readonly analysis: AnalysisService,
     private readonly callRepository: CallHierarchyRepository,
+    private readonly bookmarks: BookmarkExplorer,
   ) {}
 
   async showAt(uri: vscode.Uri, position: vscode.Position): Promise<void> {
@@ -90,6 +104,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.model = this.createModel();
     this.callNodes.clear();
     this.nodeDepth.clear();
+    this.expandedCalls.clear();
+    this.operationStatus = undefined;
     const root = this.callGraphNode(roots[0]);
     this.model.replaceRoot(root);
     this.callNodes.set(root.id, roots[0]);
@@ -113,6 +129,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.model = this.createModel();
     this.callNodes.clear();
     this.nodeDepth.clear();
+    this.expandedCalls.clear();
+    this.operationStatus = undefined;
     this.model.replaceRoot(root);
     this.ensurePanel();
     this.panel!.title = `Relationship Graph — ${root.name}`;
@@ -184,41 +202,73 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (message.type === "stopExpansion") {
       this.stopExpansion();
+      this.operationStatus = {
+        kind: "warning",
+        message: "Expansion cancelled; loaded nodes remain available.",
+      };
+      await this.publish();
+      return;
+    }
+    if (message.type === "search") {
+      await this.searchLoadedNodes();
+      return;
+    }
+    if (message.type === "export") {
+      await this.chooseExport();
+      return;
+    }
+    if (message.type === "nodeContext") {
+      await this.showNodeActions(message.nodeId);
+      return;
+    }
+    if (message.type === "expandToDepth") {
+      await this.expandToDepth(message.nodeId);
       return;
     }
     if (message.type === "expandCall") {
       await this.expandCall(message.nodeId, message.direction);
       return;
     }
-    const node = this.model.node(message.nodeId);
-    if (!node?.uri) {
-      return;
-    }
-    const uri = vscode.Uri.parse(node.uri);
-    const line = Math.max(0, (node.line ?? 1) - 1);
-    const location = {
-      uri,
-      range: new vscode.Range(line, 0, line, 0),
-    };
     if (message.type === "selectNode") {
-      await vscode.commands.executeCommand(
-        "cInsight.previewLocation",
-        location,
-        node.kind === "source" || node.kind === "header"
-          ? "reference"
-          : "definition",
-        node.name,
-      );
+      await this.previewNode(message.nodeId);
       return;
     }
-    const document = await vscode.workspace.openTextDocument(uri);
+    await this.openNode(message.nodeId);
+  }
+
+  private async previewNode(nodeId: string): Promise<void> {
+    const node = this.model.node(nodeId);
+    const location = nodeLocation(node);
+    if (!node || !location) {
+      return;
+    }
+    await vscode.commands.executeCommand(
+      "cInsight.previewLocation",
+      location,
+      node.kind === "source" || node.kind === "header"
+        ? "reference"
+        : "definition",
+      node.name,
+    );
+  }
+
+  private async openNode(nodeId: string): Promise<void> {
+    const node = this.model.node(nodeId);
+    const location = nodeLocation(node);
+    if (!location) {
+      return;
+    }
+    const document = await vscode.workspace.openTextDocument(location.uri);
     const editor = await vscode.window.showTextDocument(document, {
       preview: false,
       preserveFocus: false,
     });
-    editor.selection = new vscode.Selection(line, 0, line, 0);
+    editor.selection = new vscode.Selection(
+      location.range.start,
+      location.range.start,
+    );
     editor.revealRange(
-      new vscode.Range(line, 0, line, 0),
+      location.range,
       vscode.TextEditorRevealType.InCenterIfOutsideViewport,
     );
   }
@@ -249,6 +299,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     const cancellation = new vscode.CancellationTokenSource();
     this.expansion = cancellation;
     let completed = false;
+    this.operationStatus = {
+      kind: "info",
+      message: `Loading ${direction === "incoming" ? "callers" : "callees"} for ${callNode.raw.name}…`,
+    };
+    await this.publish();
     try {
       await vscode.window.withProgress(
         {
@@ -261,43 +316,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
             cancellation.cancel(),
           );
           try {
-            if (direction === "incoming") {
-              const calls = await this.callRepository.incoming(
-                callNode,
-                cancellation.token,
-              );
-              for (const call of calls) {
-                if (cancellation.token.isCancellationRequested) {
-                  return;
-                }
-                const caller = this.analysis.callNode(call.from);
-                this.addCallRelation(
-                  caller,
-                  callNode,
-                  call.from.uri,
-                  call.fromRanges[0]?.start.line,
-                  nodeId,
-                );
-              }
-            } else {
-              const calls = await this.callRepository.outgoing(
-                callNode,
-                cancellation.token,
-              );
-              for (const call of calls) {
-                if (cancellation.token.isCancellationRequested) {
-                  return;
-                }
-                const callee = this.analysis.callNode(call.to);
-                this.addCallRelation(
-                  callNode,
-                  callee,
-                  callNode.raw.uri,
-                  call.fromRanges[0]?.start.line,
-                  nodeId,
-                );
-              }
-            }
+            await this.loadCallNeighbors(
+              nodeId,
+              direction,
+              cancellation.token,
+            );
           } finally {
             subscription.dispose();
           }
@@ -307,11 +330,26 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         generation === this.generation &&
         !cancellation.token.isCancellationRequested
       ) {
+        this.operationStatus = this.limitStatus() ?? {
+          kind: "info",
+          message: "Expansion complete.",
+        };
         await this.publish();
         completed = true;
+      } else if (cancellation.token.isCancellationRequested) {
+        this.operationStatus = {
+          kind: "warning",
+          message: "Expansion cancelled; loaded nodes remain available.",
+        };
+        await this.publish();
       }
     } catch (error) {
       if (!cancellation.token.isCancellationRequested) {
+        this.operationStatus = {
+          kind: "error",
+          message: `Expansion failed: ${String(error)}`,
+        };
+        await this.publish();
         void vscode.window.showErrorMessage(
           `C Insight: Call Graph expansion failed: ${String(error)}`,
         );
@@ -325,13 +363,187 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     return completed;
   }
 
+  private async loadCallNeighbors(
+    nodeId: string,
+    direction: CallDirection,
+    token: vscode.CancellationToken,
+  ): Promise<string[]> {
+    const callNode = this.callNodes.get(nodeId);
+    if (!callNode || token.isCancellationRequested) {
+      return [];
+    }
+    const key = `${nodeId}:${direction}`;
+    if (this.expandedCalls.has(key)) {
+      return this.model
+        .snapshot()
+        .edges.filter(
+          (edge) =>
+            edge.relation === "calls" &&
+            (direction === "incoming"
+              ? edge.to === nodeId
+              : edge.from === nodeId),
+        )
+        .map((edge) =>
+          direction === "incoming" ? edge.from : edge.to,
+        );
+    }
+    const neighbors: string[] = [];
+    if (direction === "incoming") {
+      const calls = await this.callRepository.incoming(callNode, token);
+      for (const call of calls) {
+        if (token.isCancellationRequested) {
+          break;
+        }
+        const caller = this.analysis.callNode(call.from);
+        const neighbor = this.addCallRelation(
+          caller,
+          callNode,
+          call.from.uri,
+          call.fromRanges[0]?.start.line,
+          nodeId,
+        );
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+    } else {
+      const calls = await this.callRepository.outgoing(callNode, token);
+      for (const call of calls) {
+        if (token.isCancellationRequested) {
+          break;
+        }
+        const callee = this.analysis.callNode(call.to);
+        const neighbor = this.addCallRelation(
+          callNode,
+          callee,
+          callNode.raw.uri,
+          call.fromRanges[0]?.start.line,
+          nodeId,
+        );
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+    }
+    if (!token.isCancellationRequested) {
+      this.expandedCalls.add(key);
+    }
+    return neighbors;
+  }
+
+  private async expandToDepth(nodeId: string): Promise<void> {
+    if (!this.callNodes.has(nodeId)) {
+      return;
+    }
+    const value = await vscode.window.showInputBox({
+      title: "Expand Call Graph to Depth",
+      prompt: `Load callers and callees from the selected node (maximum ${this.maximumDepth})`,
+      value: String(Math.min(2, this.maximumDepth)),
+      validateInput: (input) => {
+        const depth = Number(input);
+        return Number.isInteger(depth) &&
+          depth >= 1 &&
+          depth <= this.maximumDepth
+          ? undefined
+          : `Enter an integer from 1 to ${this.maximumDepth}`;
+      },
+    });
+    if (!value) {
+      return;
+    }
+    const requestedDepth = Number(value);
+    this.stopExpansion();
+    const cancellation = new vscode.CancellationTokenSource();
+    this.expansion = cancellation;
+    this.operationStatus = {
+      kind: "info",
+      message: `Expanding callers and callees to depth ${requestedDepth}…`,
+    };
+    await this.publish();
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `C Insight: Expanding Call Graph to depth ${requestedDepth}`,
+          cancellable: true,
+        },
+        async (progress, token) => {
+          const subscription = token.onCancellationRequested(() =>
+            cancellation.cancel(),
+          );
+          const queue = [{ id: nodeId, depth: 0 }];
+          const visited = new Set<string>();
+          try {
+            while (
+              queue.length > 0 &&
+              !cancellation.token.isCancellationRequested
+            ) {
+              const current = queue.shift()!;
+              if (
+                current.depth >= requestedDepth ||
+                visited.has(current.id) ||
+                (this.nodeDepth.get(current.id) ?? 0) >= this.maximumDepth
+              ) {
+                continue;
+              }
+              visited.add(current.id);
+              progress.report({
+                message: `${visited.size} nodes processed`,
+              });
+              const incoming = await this.loadCallNeighbors(
+                current.id,
+                "incoming",
+                cancellation.token,
+              );
+              const outgoing = await this.loadCallNeighbors(
+                current.id,
+                "outgoing",
+                cancellation.token,
+              );
+              for (const id of [...incoming, ...outgoing]) {
+                if (!visited.has(id)) {
+                  queue.push({ id, depth: current.depth + 1 });
+                }
+              }
+              if (this.model.snapshot().limitedBy) {
+                break;
+              }
+            }
+          } finally {
+            subscription.dispose();
+          }
+        },
+      );
+      this.operationStatus = cancellation.token.isCancellationRequested
+        ? {
+            kind: "warning",
+            message: "Expansion cancelled; loaded nodes remain available.",
+          }
+        : (this.limitStatus() ?? {
+            kind: "info",
+            message: `Depth ${requestedDepth} expansion complete.`,
+          });
+    } catch (error) {
+      this.operationStatus = {
+        kind: "error",
+        message: `Expansion failed: ${String(error)}`,
+      };
+    } finally {
+      if (this.expansion === cancellation) {
+        this.expansion = undefined;
+      }
+      cancellation.dispose();
+      await this.publish();
+    }
+  }
+
   private addCallRelation(
     from: CallNode,
     to: CallNode,
     sourceUri: string,
     zeroBasedLine: number | undefined,
     expandedNodeId: string,
-  ): void {
+  ): string | undefined {
     const fromGraph = this.callGraphNode(from);
     const toGraph = this.callGraphNode(to);
     const fromExists = this.model.node(fromGraph.id) !== undefined;
@@ -343,7 +555,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       toGraph.states.push("duplicate");
     }
     if (!this.model.addNode(fromGraph) || !this.model.addNode(toGraph)) {
-      return;
+      return undefined;
     }
     this.callNodes.set(fromGraph.id, from);
     this.callNodes.set(toGraph.id, to);
@@ -379,6 +591,135 @@ export class RelationshipGraphPanel implements vscode.Disposable {
           ? ["indirect-recursion"]
           : [],
     });
+    return neighborId;
+  }
+
+  private async searchLoadedNodes(): Promise<void> {
+    const picked = await vscode.window.showQuickPick(
+      this.model.snapshot().nodes.map((node) => ({
+        label: node.name,
+        description: node.detail ?? node.kind,
+        detail: node.uri
+          ? `${vscode.workspace.asRelativePath(vscode.Uri.parse(node.uri))}:${node.line ?? 1}`
+          : undefined,
+        nodeId: node.id,
+      })),
+      {
+        title: "Search Loaded Relationship Graph Nodes",
+        matchOnDescription: true,
+        matchOnDetail: true,
+      },
+    );
+    if (picked) {
+      await this.panel?.webview.postMessage({
+        type: "focusNode",
+        nodeId: picked.nodeId,
+      });
+      await this.previewNode(picked.nodeId);
+    }
+  }
+
+  private async showNodeActions(nodeId: string): Promise<void> {
+    const node = this.model.node(nodeId);
+    if (!node) {
+      return;
+    }
+    const action = await vscode.window.showQuickPick(
+      [
+        { label: "$(references) Expand Callers", value: "incoming" },
+        { label: "$(references) Expand Callees", value: "outgoing" },
+        { label: "$(layers) Expand to Depth…", value: "depth" },
+        { label: "$(bookmark) Add Bookmark", value: "bookmark" },
+        { label: "$(go-to-file) Open Location", value: "open" },
+        { label: "$(target) Focus Node", value: "focus" },
+      ],
+      { title: node.name },
+    );
+    if (!action) {
+      return;
+    }
+    if (action.value === "incoming" || action.value === "outgoing") {
+      await this.expandCall(nodeId, action.value);
+    } else if (action.value === "depth") {
+      await this.expandToDepth(nodeId);
+    } else if (action.value === "bookmark") {
+      const location = nodeLocation(node);
+      if (location) {
+        await this.bookmarks.addNode({
+          label: node.name,
+          location,
+          previewTitle: node.name,
+          previewMode: "definition",
+        });
+      }
+    } else if (action.value === "open") {
+      await this.openNode(nodeId);
+    } else {
+      await this.panel?.webview.postMessage({
+        type: "focusNode",
+        nodeId,
+      });
+    }
+  }
+
+  private async chooseExport(): Promise<void> {
+    const format = await vscode.window.showQuickPick(
+      [
+        { label: "Text", value: "text" as const },
+        { label: "JSON", value: "json" as const },
+        { label: "Mermaid", value: "mermaid" as const },
+      ],
+      { title: "Export Loaded Relationship Graph" },
+    );
+    if (format) {
+      await this.exportGraph(format.value);
+    }
+  }
+
+  async exportGraph(format: "text" | "json" | "mermaid"): Promise<void> {
+    if (!this.panel) {
+      void vscode.window.showInformationMessage(
+        "C Insight: Open a Relationship Graph before exporting.",
+      );
+      return;
+    }
+    const extension =
+      format === "json" ? "json" : format === "mermaid" ? "md" : "txt";
+    const uri = await vscode.window.showSaveDialog({
+      title: `Export Relationship Graph as ${format}`,
+      filters: { [format]: [extension] },
+      defaultUri: vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders?.[0]?.uri ??
+          vscode.Uri.file(process.cwd()),
+        `relationship-graph.${extension}`,
+      ),
+    });
+    if (!uri) {
+      return;
+    }
+    const snapshot = this.model.snapshot();
+    const content =
+      format === "json"
+        ? renderGraphJson(snapshot)
+        : format === "mermaid"
+          ? `\`\`\`mermaid\n${renderGraphMermaid(snapshot)}\n\`\`\`\n`
+          : renderGraphText(snapshot);
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(content, "utf8"));
+    void vscode.window.showInformationMessage(
+      `C Insight: Relationship Graph exported to ${uri.fsPath}`,
+    );
+  }
+
+  private limitStatus():
+    | { kind: "warning"; message: string }
+    | undefined {
+    const limitedBy = this.model.snapshot().limitedBy;
+    return limitedBy
+      ? {
+          kind: "warning",
+          message: `Graph limit reached: ${limitedBy}. Loaded nodes remain available.`,
+        }
+      : undefined;
   }
 
   private callGraphNode(node: CallNode): GraphNode {
@@ -423,8 +764,22 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     await this.panel?.webview.postMessage({
       type: "graphSnapshot",
       graph: this.model.snapshot(),
+      operationStatus: this.operationStatus,
     });
   }
+}
+
+function nodeLocation(
+  node: GraphNode | undefined,
+): vscode.Location | undefined {
+  if (!node?.uri) {
+    return undefined;
+  }
+  const line = Math.max(0, (node.line ?? 1) - 1);
+  return new vscode.Location(
+    vscode.Uri.parse(node.uri),
+    new vscode.Range(line, 0, line, 0),
+  );
 }
 
 function fileNode(uri: vscode.Uri): GraphNode {
@@ -456,6 +811,9 @@ function isGraphMessage(value: unknown): value is GraphMessage {
   if (type === "stopExpansion") {
     return true;
   }
+  if (type === "search" || type === "export") {
+    return true;
+  }
   if (type === "expandCall") {
     return (
       "nodeId" in value &&
@@ -466,7 +824,10 @@ function isGraphMessage(value: unknown): value is GraphMessage {
     );
   }
   return (
-    (type === "selectNode" || type === "openNode") &&
+    (type === "selectNode" ||
+      type === "openNode" ||
+      type === "nodeContext" ||
+      type === "expandToDepth") &&
     "nodeId" in value &&
     typeof (value as { nodeId: unknown }).nodeId === "string"
   );
@@ -504,7 +865,10 @@ function graphHtml(): string {
   <div id="toolbar">
     <button id="callers">Expand Callers</button>
     <button id="callees">Expand Callees</button>
+    <button id="depth">Expand to Depth</button>
     <button id="stop">Stop</button>
+    <button id="search">Search</button>
+    <button id="export">Export</button>
     <button id="fit">Fit</button>
     <button id="reset">Reset Layout</button>
     <button class="relation active" data-relation="calls">Call</button>
@@ -526,16 +890,17 @@ function graphHtml(): string {
     const empty = document.getElementById('empty');
     const status = document.getElementById('status');
     let graph = { nodes: [], edges: [] };
+    let operationStatus;
     let scale = 1, tx = 80, ty = 80, dragging = false, lastX = 0, lastY = 0;
     let selected;
+    let positions = new Map();
     const enabled = new Set(['calls', 'inherits', 'includes']);
     const applyTransform = () => viewport.setAttribute('transform', 'translate(' + tx + ' ' + ty + ') scale(' + scale + ')');
     const element = (name, attrs = {}) => { const value = document.createElementNS('http://www.w3.org/2000/svg', name); for (const [key, item] of Object.entries(attrs)) value.setAttribute(key, item); return value; };
     function render() {
       edgeLayer.replaceChildren(); nodeLayer.replaceChildren();
       empty.style.display = graph.nodes.length ? 'none' : 'grid';
-      const positions = new Map();
-      graph.nodes.forEach((node, index) => positions.set(node.id, { x: (index % 4) * 240, y: Math.floor(index / 4) * 120 }));
+      positions = layeredPositions(graph);
       graph.edges.filter(edge => enabled.has(edge.relation)).forEach(edge => {
         const from = positions.get(edge.from), to = positions.get(edge.to);
         if (!from || !to) return;
@@ -549,17 +914,46 @@ function graphHtml(): string {
         const detail = element('text', { class: 'detail', x: '10', y: '49' }); detail.textContent = node.detail || node.kind; group.append(detail);
         group.addEventListener('click', event => { event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'selectNode', nodeId: node.id }); });
         group.addEventListener('dblclick', event => { event.stopPropagation(); vscode.postMessage({ type: 'openNode', nodeId: node.id }); });
+        group.addEventListener('contextmenu', event => { event.preventDefault(); event.stopPropagation(); selected = node.id; render(); vscode.postMessage({ type: 'nodeContext', nodeId: node.id }); });
         nodeLayer.append(group);
       });
-      status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : graph.nodes.length + ' nodes · ' + graph.edges.length + ' edges' + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
+      status.textContent = graph.staleReason ? 'Stale: ' + graph.staleReason : operationStatus?.message || graph.nodes.length + ' nodes · ' + graph.edges.length + ' edges' + (graph.limitedBy ? ' · limited by ' + graph.limitedBy : '');
+      status.style.color = operationStatus?.kind === 'error' ? 'var(--vscode-errorForeground)' : operationStatus?.kind === 'warning' ? 'var(--vscode-editorWarning-foreground)' : 'var(--vscode-descriptionForeground)';
       applyTransform();
+    }
+    function layeredPositions(value) {
+      const ranks = new Map();
+      if (value.rootId) ranks.set(value.rootId, 0);
+      let changed = true;
+      for (let pass = 0; pass < value.nodes.length && changed; pass++) {
+        changed = false;
+        value.edges.filter(edge => edge.relation === 'calls').forEach(edge => {
+          if (ranks.has(edge.from) && !ranks.has(edge.to)) { ranks.set(edge.to, ranks.get(edge.from) + 1); changed = true; }
+          else if (!ranks.has(edge.from) && ranks.has(edge.to)) { ranks.set(edge.from, ranks.get(edge.to) - 1); changed = true; }
+        });
+      }
+      const columns = new Map();
+      value.nodes.forEach(node => { const rank = ranks.get(node.id) ?? 0; const list = columns.get(rank) || []; list.push(node); columns.set(rank, list); });
+      const result = new Map();
+      [...columns.entries()].sort((a, b) => a[0] - b[0]).forEach(([rank, nodes]) => nodes.forEach((node, index) => result.set(node.id, { x: rank * 260, y: (index - (nodes.length - 1) / 2) * 110 })));
+      return result;
     }
     function fit() {
       if (!graph.nodes.length) return;
-      const columns = Math.min(4, graph.nodes.length), rows = Math.ceil(graph.nodes.length / 4);
-      const width = columns * 240 - 70, height = rows * 120 - 52;
+      const points = [...positions.values()];
+      const minX = Math.min(...points.map(point => point.x)), maxX = Math.max(...points.map(point => point.x));
+      const minY = Math.min(...points.map(point => point.y)), maxY = Math.max(...points.map(point => point.y));
+      const width = maxX - minX + 170, height = maxY - minY + 68;
       scale = Math.min(1.5, Math.max(.2, Math.min(svg.clientWidth / (width + 120), svg.clientHeight / (height + 120))));
-      tx = (svg.clientWidth - width * scale) / 2; ty = (svg.clientHeight - height * scale) / 2; applyTransform();
+      tx = (svg.clientWidth - width * scale) / 2 - minX * scale; ty = (svg.clientHeight - height * scale) / 2 - minY * scale; applyTransform();
+    }
+    function focusNode(nodeId) {
+      const point = positions.get(nodeId);
+      if (!point) return;
+      selected = nodeId;
+      tx = svg.clientWidth / 2 - (point.x + 85) * scale;
+      ty = svg.clientHeight / 2 - (point.y + 34) * scale;
+      render();
     }
     svg.addEventListener('wheel', event => { event.preventDefault(); const next = Math.min(3, Math.max(.2, scale * (event.deltaY < 0 ? 1.1 : .9))); scale = next; applyTransform(); }, { passive: false });
     svg.addEventListener('pointerdown', event => { dragging = true; lastX = event.clientX; lastY = event.clientY; svg.classList.add('dragging'); svg.setPointerCapture(event.pointerId); });
@@ -569,9 +963,15 @@ function graphHtml(): string {
     document.getElementById('reset').addEventListener('click', () => { scale = 1; tx = 80; ty = 80; applyTransform(); });
     document.getElementById('callers').addEventListener('click', () => { if (selected) vscode.postMessage({ type: 'expandCall', nodeId: selected, direction: 'incoming' }); });
     document.getElementById('callees').addEventListener('click', () => { if (selected) vscode.postMessage({ type: 'expandCall', nodeId: selected, direction: 'outgoing' }); });
+    document.getElementById('depth').addEventListener('click', () => { if (selected) vscode.postMessage({ type: 'expandToDepth', nodeId: selected }); });
     document.getElementById('stop').addEventListener('click', () => vscode.postMessage({ type: 'stopExpansion' }));
+    document.getElementById('search').addEventListener('click', () => vscode.postMessage({ type: 'search' }));
+    document.getElementById('export').addEventListener('click', () => vscode.postMessage({ type: 'export' }));
     document.querySelectorAll('.relation').forEach(button => button.addEventListener('click', () => { const relation = button.dataset.relation; enabled.has(relation) ? enabled.delete(relation) : enabled.add(relation); button.classList.toggle('active', enabled.has(relation)); render(); }));
-    window.addEventListener('message', event => { if (event.data?.type === 'graphSnapshot') { graph = event.data.graph; if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId; render(); fit(); } });
+    window.addEventListener('message', event => {
+      if (event.data?.type === 'graphSnapshot') { graph = event.data.graph; operationStatus = event.data.operationStatus; if (!graph.nodes.some(node => node.id === selected)) selected = graph.rootId; render(); fit(); }
+      else if (event.data?.type === 'focusNode') focusNode(event.data.nodeId);
+    });
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>

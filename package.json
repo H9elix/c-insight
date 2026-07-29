@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -41,7 +41,10 @@
     "onView:cInsight.subtypes",
     "onView:cInsight.includes",
     "onView:cInsight.includedBy",
-    "onCommand:cInsight.relationshipGraph.show"
+    "onCommand:cInsight.relationshipGraph.show",
+    "onCommand:cInsight.relationshipGraph.exportText",
+    "onCommand:cInsight.relationshipGraph.exportJson",
+    "onCommand:cInsight.relationshipGraph.exportMermaid"
   ],
   "scripts": {
     "compile": "tsc -p .",
@@ -75,6 +78,18 @@
         "command": "cInsight.relationshipGraph.show",
         "title": "C Insight: Show Relationship Graph",
         "icon": "$(graph)"
+      },
+      {
+        "command": "cInsight.relationshipGraph.exportText",
+        "title": "C Insight: Export Relationship Graph as Text"
+      },
+      {
+        "command": "cInsight.relationshipGraph.exportJson",
+        "title": "C Insight: Export Relationship Graph as JSON"
+      },
+      {
+        "command": "cInsight.relationshipGraph.exportMermaid",
+        "title": "C Insight: Export Relationship Graph as Mermaid"
       },
       {
         "command": "cInsight.goToDefinition",

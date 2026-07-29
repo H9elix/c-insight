@@ -6,6 +6,7 @@ import {
   graphEdgeId,
   graphNodeId,
   renderGraphMermaid,
+  renderGraphText,
 } from "../../src/relationshipGraph/graphModel";
 
 function node(name: string): GraphNode {
@@ -71,5 +72,8 @@ describe("relationship graph model", () => {
     assert.match(renderGraphMermaid(graph.snapshot()), /n0 -->\\|calls\\| n1/);
     assert.equal(graph.hasPath(caller.id, callee.id), true);
     assert.equal(graph.hasPath(callee.id, caller.id), false);
+    const text = renderGraphText(graph.snapshot());
+    assert.match(text, /Root: caller/);
+    assert.match(text, /caller.*--calls--> callee/);
   });
 });

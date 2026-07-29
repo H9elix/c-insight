@@ -1,4 +1,4 @@
-# C Insight 0.12.1 使用手册
+# C Insight 0.12.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -623,7 +623,7 @@ Includes/Included By 当前不写入 Workspace Session，重开工作区后需�
 
 在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **Show Relationship
 Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，
-0.12.1 使用标准 Call Hierarchy 建立函数根；没有可调用符号时退回活动文件根，
+0.12.2 使用标准 Call Hierarchy 建立函数根；没有可调用符号时退回活动文件根，
 并且该文件根不能执行 Callers/Callees 展开。
 
 当前可用操作：
@@ -635,9 +635,16 @@ Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位�
   尚未接入。
 - Expand Callers：为当前选中函数加载直接调用者。
 - Expand Callees：为当前选中函数加载直接被调用函数。
+- Expand to Depth：从当前选中函数开始，同时逐层加载 Callers 和 Callees；
+  输入值表示相对选中节点的展开层数，并受 `maximumDepth`、节点和边上限约束。
 - Stop：取消当前准备或展开请求；已加载节点继续保留。
+- Search：在已加载节点中按名称、详情和路径搜索，选择后居中并更新 Code Preview。
+- Export：把当前已加载图导出为 Text、JSON 或 Mermaid；也可从命令面板分别
+  执行三个 Export Relationship Graph 命令。
 - 单击节点：更新 Code Preview。
 - 双击节点：在主编辑器打开文件。
+- 右键节点：可展开 Callers/Callees、展开到指定深度、加入 Bookmarks、打开位置
+  或把节点居中。
 - 源码、clangd、编译数据库或图配置变化后显示 stale。
 
 图使用有严格 CSP 的 SVG Webview。文件读取、位置验证和导航都在扩展宿主中
@@ -649,7 +656,8 @@ Graph**，会在编辑器区域旁边打开综合关系图标签页。光标位�
 调用边始终表示 Caller → Callee。相同函数会合并成一个节点；形成回路的边标记
 direct-recursion 或 indirect-recursion。`defaultDepth=1` 时显式 Show 会加载
 根的第一层 Callers 和 Callees；设为 0 时只准备根。选择任意已加载函数后仍可
-按需继续展开，直到达到深度、节点或边上限。
+按需继续展开，直到达到深度、节点或边上限。默认分层布局把调用者放在根左侧、
+被调用者放在根右侧；画布状态文字会报告展开进行中、取消、失败或达到资源上限。
 
 ## 5. 底部可靠性状态栏
 

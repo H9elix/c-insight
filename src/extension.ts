@@ -46,6 +46,7 @@ export async function activate(
   const relationshipGraph = new RelationshipGraphPanel(
     analysis,
     callRepository,
+    bookmarks,
   );
   const views = new ViewRegistry(
     analysis,
@@ -244,6 +245,18 @@ export async function activate(
           editor.selection.active,
         );
       },
+    ),
+    vscode.commands.registerCommand(
+      "cInsight.relationshipGraph.exportText",
+      () => relationshipGraph.exportGraph("text"),
+    ),
+    vscode.commands.registerCommand(
+      "cInsight.relationshipGraph.exportJson",
+      () => relationshipGraph.exportGraph("json"),
+    ),
+    vscode.commands.registerCommand(
+      "cInsight.relationshipGraph.exportMermaid",
+      () => relationshipGraph.exportGraph("mermaid"),
     ),
   );
   context.subscriptions.push(
