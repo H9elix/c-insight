@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.10
+
+- Builds the Included By reverse index in isolated temporary maps and publishes
+  it atomically only after a complete, current scan.
+- Cancels in-progress reverse indexing when compilation database, include
+  configuration, or workspace analysis state invalidates the index.
+- Uses a generation check so an obsolete scan cannot overwrite a newer index
+  after invalidation.
+- Queues file create/change/delete events received during scanning and applies
+  them before the completed index becomes visible.
+- Keeps a cancelled partial scan unavailable so the next explicit expansion
+  starts from a clean rebuild.
+- Pins E2E tests to a known cached VS Code runtime by default while allowing
+  `C_INSIGHT_VSCODE_TEST_VERSION` to select another version explicitly.
+
 ## 0.11.9
 
 - Added one shared Text, JSON, and Mermaid renderer for Call, Type, and Include
