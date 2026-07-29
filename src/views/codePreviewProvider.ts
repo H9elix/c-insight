@@ -11,6 +11,7 @@ import type { PreviewSessionState } from "../session/workspaceSession";
 import {
   expandPreviewRange,
   PreviewLoadDirection,
+  restorePreviewRange,
 } from "./previewRange";
 import {
   escapeHtml,
@@ -40,11 +41,27 @@ interface PreviewMessage {
   character?: unknown;
   selection?: unknown;
   direction?: unknown;
+  anchorLine?: unknown;
+  anchorOffset?: unknown;
+  scrollLeft?: unknown;
 }
 
 interface SemanticTokenDocument {
   data: Uint32Array;
   legend: vscode.SemanticTokensLegend;
+}
+
+interface SemanticTokenCacheEntry {
+  promise: Promise<SemanticTokenDocument | undefined>;
+  byteLength?: number;
+}
+
+interface PreviewScrollState {
+  startLine: number;
+  endLine: number;
+  anchorLine: number;
+  anchorOffset: number;
+  scrollLeft: number;
 }
 
 export class CodePreviewProvider
@@ -60,8 +77,9 @@ export class CodePreviewProvider
   private loadingMore = false;
   private readonly semanticTokens = new Map<
     string,
-    Promise<SemanticTokenDocument | undefined>
+    SemanticTokenCacheEntry
   >();
+  private readonly scrollStates = new Map<string, PreviewScrollState>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
@@ -148,6 +166,11 @@ export class CodePreviewProvider
     for (const key of this.semanticTokens.keys()) {
       if (key.startsWith(prefix)) {
         this.semanticTokens.delete(key);
+      }
+    }
+    for (const key of this.scrollStates.keys()) {
+      if (key.startsWith(prefix)) {
+        this.scrollStates.delete(key);
       }
     }
     if (this.visible && this.state?.location.uri.toString() === document.uri.toString()) {
@@ -260,6 +283,9 @@ export class CodePreviewProvider
         if (message.direction === "before" || message.direction === "after") {
           await this.loadMore(message.direction);
         }
+        break;
+      case "saveScroll":
+        this.saveScrollState(message);
         break;
     }
   }
@@ -399,6 +425,21 @@ export class CodePreviewProvider
         1,
         Math.floor(config.get<number>("maximumLoadedLines", 1000)),
       );
+      const scrollKey = previewScrollKey(this.state);
+      const savedScroll = config.get<boolean>("restoreScrollPositions", true)
+        ? this.scrollStates.get(scrollKey)
+        : undefined;
+      const restoredRange = savedScroll
+        ? restorePreviewRange(
+            savedScroll,
+            document.lineCount - 1,
+            maximumLoadedLines,
+          )
+        : undefined;
+      if (restoredRange) {
+        startLine = restoredRange.startLine;
+        endLine = restoredRange.endLine;
+      }
       if (endLine - startLine + 1 > maximumLoadedLines) {
         startLine = Math.max(
           0,
@@ -444,6 +485,10 @@ export class CodePreviewProvider
           enabled: config.get<boolean>("incrementalLoading", true),
           hasBefore: startLine > 0,
           hasAfter: endLine < document.lineCount - 1,
+          startLine,
+          endLine,
+          totalLines: document.lineCount,
+          scroll: savedScroll,
         },
       );
     } catch (error) {
@@ -477,6 +522,7 @@ export class CodePreviewProvider
         endLine: rendered.endLine,
         hasBefore: rendered.startLine > 0,
         hasAfter: rendered.endLine < rendered.document.lineCount - 1,
+        totalLines: rendered.document.lineCount,
       });
       return;
     }
@@ -518,6 +564,18 @@ export class CodePreviewProvider
         endLine: expansion.endLine,
         hasBefore: expansion.startLine > 0,
         hasAfter: expansion.endLine < rendered.document.lineCount - 1,
+        totalLines: rendered.document.lineCount,
+      });
+    } catch (error) {
+      await this.view?.webview.postMessage({
+        type: "incrementalLines",
+        direction,
+        error: String(error),
+        startLine: rendered.startLine,
+        endLine: rendered.endLine,
+        hasBefore: rendered.startLine > 0,
+        hasAfter: rendered.endLine < rendered.document.lineCount - 1,
+        totalLines: rendered.document.lineCount,
       });
     } finally {
       this.loadingMore = false;
@@ -530,28 +588,112 @@ export class CodePreviewProvider
     endLine: number,
   ): Promise<Map<number, SemanticTokenSpan[]> | undefined> {
     const key = `${document.uri.toString()}\0${document.version}`;
-    let request = this.semanticTokens.get(key);
-    if (!request) {
-      request = requestSemanticTokens(document);
-      this.semanticTokens.set(key, request);
+    let entry = this.semanticTokens.get(key);
+    if (entry) {
+      this.semanticTokens.delete(key);
+      this.semanticTokens.set(key, entry);
+    } else {
+      const promise = requestSemanticTokens(document);
+      const created: SemanticTokenCacheEntry = { promise };
+      entry = created;
+      this.semanticTokens.set(key, created);
+      void promise.then((result) => {
+        if (this.semanticTokens.get(key) !== created) {
+          return;
+        }
+        created.byteLength = result?.data.byteLength ?? 0;
+        this.trimSemanticTokenCache();
+      });
     }
+    this.trimSemanticTokenCache();
+    const result = await entry.promise;
+    return result
+      ? decodeSemanticTokens(result.data, result.legend, startLine, endLine)
+      : undefined;
+  }
+
+  private trimSemanticTokenCache(): void {
     const maximumEntries = vscode.workspace
       .getConfiguration("cInsight.codePreview")
       .get<number>("semanticTokenCacheSize", 32);
-    while (this.semanticTokens.size > maximumEntries) {
+    const maximumBytes =
+      vscode.workspace
+        .getConfiguration("cInsight.codePreview")
+        .get<number>("semanticTokenCacheMaximumMegabytes", 16) *
+      1024 *
+      1024;
+    let totalBytes = [...this.semanticTokens.values()].reduce(
+      (total, entry) => total + (entry.byteLength ?? 0),
+      0,
+    );
+    while (
+      this.semanticTokens.size > maximumEntries ||
+      (totalBytes > maximumBytes && this.semanticTokens.size > 0)
+    ) {
       const oldest = this.semanticTokens.keys().next().value as
         | string
         | undefined;
       if (oldest === undefined) {
         break;
       }
+      totalBytes -= this.semanticTokens.get(oldest)?.byteLength ?? 0;
       this.semanticTokens.delete(oldest);
     }
-    const result = await request;
-    return result
-      ? decodeSemanticTokens(result.data, result.legend, startLine, endLine)
-      : undefined;
   }
+
+  private saveScrollState(message: PreviewMessage): void {
+    if (
+      !this.state ||
+      !this.rendered ||
+      !Number.isInteger(message.anchorLine) ||
+      typeof message.anchorOffset !== "number" ||
+      !Number.isFinite(message.anchorOffset) ||
+      typeof message.scrollLeft !== "number" ||
+      !Number.isFinite(message.scrollLeft)
+    ) {
+      return;
+    }
+    const anchorLine = message.anchorLine as number;
+    if (
+      anchorLine < this.rendered.startLine ||
+      anchorLine > this.rendered.endLine
+    ) {
+      return;
+    }
+    const key = previewScrollKey(this.state);
+    this.scrollStates.delete(key);
+    this.scrollStates.set(key, {
+      startLine: this.rendered.startLine,
+      endLine: this.rendered.endLine,
+      anchorLine,
+      anchorOffset: Math.max(0, message.anchorOffset),
+      scrollLeft: Math.max(0, message.scrollLeft),
+    });
+    const maximum = vscode.workspace
+      .getConfiguration("cInsight.codePreview")
+      .get<number>("maximumScrollPositions", 100);
+    while (this.scrollStates.size > maximum) {
+      const oldest = this.scrollStates.keys().next().value as
+        | string
+        | undefined;
+      if (oldest === undefined) {
+        break;
+      }
+      this.scrollStates.delete(oldest);
+    }
+  }
+}
+
+function previewScrollKey(state: PreviewState): string {
+  const { range } = state.location;
+  return [
+    state.location.uri.toString(),
+    state.mode,
+    range.start.line,
+    range.start.character,
+    range.end.line,
+    range.end.character,
+  ].join("\0");
 }
 
 function renderSourceLines(
@@ -702,6 +844,9 @@ function staticHtml(title: string, location: string, body: string): string {
       enabled: false,
       hasBefore: false,
       hasAfter: false,
+      startLine: 0,
+      endLine: 0,
+      totalLines: 0,
     },
   );
 }
@@ -712,7 +857,15 @@ function htmlDocument(
   body: string,
   nonce: string,
   controls: { back: boolean; forward: boolean; locked: boolean },
-  incremental: { enabled: boolean; hasBefore: boolean; hasAfter: boolean },
+  incremental: {
+    enabled: boolean;
+    hasBefore: boolean;
+    hasAfter: boolean;
+    startLine: number;
+    endLine: number;
+    totalLines: number;
+    scroll?: PreviewScrollState;
+  },
 ): string {
   const scriptPolicy = nonce ? ` script-src 'nonce-${nonce}';` : "";
   return `<!DOCTYPE html>
@@ -815,6 +968,12 @@ function htmlDocument(
     .sem-navigable { cursor: pointer; }
     .sem-mod-deprecated { text-decoration: line-through; }
     .sem-mod-readonly { font-style: italic; }
+    .load-status {
+      flex: none; min-height: 1.2em; padding: 3px 0 0;
+      color: var(--vscode-descriptionForeground); font-size: .9em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .load-status.error { color: var(--vscode-errorForeground); }
     .empty, .error { color: var(--vscode-descriptionForeground); }
   </style>
 </head>
@@ -834,18 +993,53 @@ function htmlDocument(
     <div class="location">${location}</div>
   </div>
   <div class="code">${body}</div>
+  <div class="load-status" aria-live="polite"></div>
   ${nonce ? `<script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     let clickTimer;
     let loadingMore = false;
+    let pendingDirection;
     let hasBefore = ${incremental.hasBefore};
     let hasAfter = ${incremental.hasAfter};
+    let startLine = ${incremental.startLine};
+    let endLine = ${incremental.endLine};
+    const totalLines = ${incremental.totalLines};
+    const restoredScroll = ${JSON.stringify(incremental.scroll ?? null)};
     const incrementalLoading = ${incremental.enabled};
     const codeContainer = document.querySelector('.code');
+    const loadStatus = document.querySelector('.load-status');
+    function updateLoadStatus(message, error = false) {
+      if (!loadStatus) return;
+      loadStatus.classList.toggle('error', error);
+      if (message) {
+        loadStatus.textContent = message;
+        return;
+      }
+      const boundary =
+        !hasBefore && !hasAfter
+          ? 'Complete file'
+          : !hasBefore
+            ? 'Start of file'
+            : !hasAfter
+              ? 'End of file'
+              : 'Scroll for more context';
+      loadStatus.textContent =
+        'Lines ' + (startLine + 1) + '–' + (endLine + 1) +
+        ' / ' + totalLines + ' · ' + boundary;
+    }
     function requestMore(direction) {
-      if (!incrementalLoading || loadingMore) return;
+      if (!incrementalLoading) return;
+      if (loadingMore) {
+        pendingDirection = direction;
+        return;
+      }
       if (direction === 'before' ? !hasBefore : !hasAfter) return;
       loadingMore = true;
+      updateLoadStatus(
+        direction === 'before'
+          ? 'Loading earlier source lines…'
+          : 'Loading later source lines…'
+      );
       vscode.postMessage({ type: 'loadMore', direction });
     }
     function loadAtScrollEdge(deltaY) {
@@ -861,7 +1055,33 @@ function htmlDocument(
         requestMore('after');
       }
     }
-    codeContainer?.addEventListener('scroll', () => loadAtScrollEdge(0));
+    let scrollSaveTimer;
+    function saveScroll() {
+      if (!codeContainer) return;
+      const lines = codeContainer.querySelectorAll('.line[data-line]');
+      let anchor = lines[0];
+      for (const line of lines) {
+        if (line.offsetTop + line.offsetHeight >= codeContainer.scrollTop) {
+          anchor = line;
+          break;
+        }
+      }
+      if (!anchor) return;
+      vscode.postMessage({
+        type: 'saveScroll',
+        anchorLine: Number(anchor.dataset.line),
+        anchorOffset: Math.max(0, codeContainer.scrollTop - anchor.offsetTop),
+        scrollLeft: codeContainer.scrollLeft
+      });
+    }
+    function scheduleScrollSave() {
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(saveScroll, 150);
+    }
+    codeContainer?.addEventListener('scroll', () => {
+      loadAtScrollEdge(0);
+      scheduleScrollSave();
+    });
     codeContainer?.addEventListener(
       'wheel',
       event => loadAtScrollEdge(event.deltaY),
@@ -870,6 +1090,12 @@ function htmlDocument(
     window.addEventListener('message', event => {
       const message = event.data;
       if (!message || message.type !== 'incrementalLines' || !codeContainer) return;
+      if (message.error) {
+        loadingMore = false;
+        updateLoadStatus('Source loading failed: ' + message.error, true);
+        pendingDirection = undefined;
+        return;
+      }
       const direction = message.direction;
       const existing = codeContainer.querySelectorAll('.line');
       const anchor = direction === 'before'
@@ -895,8 +1121,25 @@ function htmlDocument(
       codeContainer.scrollLeft = scrollLeft;
       hasBefore = Boolean(message.hasBefore);
       hasAfter = Boolean(message.hasAfter);
+      startLine = Number(message.startLine);
+      endLine = Number(message.endLine);
       loadingMore = false;
+      updateLoadStatus();
+      scheduleScrollSave();
+      const queued = pendingDirection;
+      pendingDirection = undefined;
+      if (queued) setTimeout(() => requestMore(queued), 0);
     });
+    if (restoredScroll && codeContainer) {
+      const anchor = codeContainer.querySelector(
+        '.line[data-line="' + restoredScroll.anchorLine + '"]'
+      );
+      if (anchor) {
+        codeContainer.scrollTop = anchor.offsetTop + restoredScroll.anchorOffset;
+        codeContainer.scrollLeft = restoredScroll.scrollLeft;
+      }
+    }
+    updateLoadStatus();
     function sourcePosition(event) {
       const code = event.target.closest && event.target.closest('code[data-line]');
       if (!code) return undefined;

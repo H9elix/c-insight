@@ -36,6 +36,11 @@ rendered lines back. The Webview inserts those rows in place, trims the
 opposite edge after the configured DOM budget is reached, and anchors an
 existing row while preserving horizontal scroll. Trimmed ranges can be loaded
 again; the document-version semantic-token result is reused for every batch.
+The Webview exposes loading and boundary state, queues only the latest
+direction while one batch is active, and reports a debounced visible-line
+anchor to the host. Per-target anchors and loaded ranges are held in a bounded
+session-only LRU and invalidated on document edits. Semantic-token entries are
+also true LRU entries bounded by both count and completed `Uint32Array` bytes.
 
 Navigation History is session-scoped and uses one shared cursor for the
 History view and Code Preview Back/Forward. Bookmarks are intentionally
