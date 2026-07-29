@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1283,8 +1283,8 @@
           "type": "number",
           "default": 1,
           "minimum": 0,
-          "maximum": 5,
-          "description": "Relationship levels loaded explicitly when a new graph root is created. The 0.12.0 foundation does not query relationships yet."
+          "maximum": 1,
+          "description": "Whether a new callable graph root loads its first Caller and Callee level. Zero keeps only the root."
         },
         "cInsight.relationshipGraph.maximumDepth": {
           "type": "number",

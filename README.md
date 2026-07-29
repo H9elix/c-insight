@@ -85,9 +85,10 @@ and safety-limit markers.
 11. In a C/C++ file, choose Show Includes to follow its include directives, or
     Show Included By to find workspace files that include it. Included By
     builds its reverse workspace index only when first expanded.
-12. Choose **Show Relationship Graph** to open the active C/C++ file as a graph
-    root beside the editor. Version 0.12.0 provides the secure graph/model
-    foundation; relationship queries are connected in subsequent stages.
+12. Put the cursor on a function and choose **Show Relationship Graph** to open
+    a Call Graph beside the editor. Select any function node and use Expand
+    Callers or Expand Callees; Stop cancels the active request. If no callable
+    symbol is under the cursor, the active file is used as a non-callable root.
 
 For large workspaces, the inexpensive symbol identity and definition preview
 appear first. References and first-level call counts load after the cursor has

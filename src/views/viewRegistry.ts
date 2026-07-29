@@ -11,6 +11,7 @@ import {
 } from "../analysis/analysisService";
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
+import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import type {
   CallHierarchySessionState,
@@ -42,7 +43,6 @@ import {
   hierarchyNodeStates,
   renderHierarchyExport,
 } from "../utils/hierarchyExport";
-import { LruPromiseCache } from "../utils/lruPromiseCache";
 import { shouldUpdatePinnedView } from "../utils/viewPin";
 import { CodePreviewProvider, PreviewMode } from "./codePreviewProvider";
 import { ReferenceExplorer } from "./referenceExplorer";
@@ -64,12 +64,6 @@ export class ViewRegistry implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly sourceLines = new SourceLineCache();
   private readonly treeViews = new Map<string, vscode.TreeView<TreeNode>>();
-  private readonly incomingCache: LruPromiseCache<
-    CallHierarchyIncomingCall[]
-  >;
-  private readonly outgoingCache: LruPromiseCache<
-    CallHierarchyOutgoingCall[]
-  >;
   private readonly callTreeState = {
     incoming: new HierarchyTreeState(),
     outgoing: new HierarchyTreeState(),
@@ -112,12 +106,8 @@ export class ViewRegistry implements vscode.Disposable {
     symbolSearch: SymbolSearchExplorer,
     typeHierarchy: TypeHierarchyExplorer,
     includeHierarchy: IncludeHierarchyExplorer,
+    private readonly callRepository: CallHierarchyRepository,
   ) {
-    const cacheSize = vscode.workspace
-      .getConfiguration("cInsight.callHierarchy")
-      .get<number>("cacheSize", 500);
-    this.incomingCache = new LruPromiseCache(cacheSize);
-    this.outgoingCache = new LruPromiseCache(cacheSize);
     this.preview = new CodePreviewProvider(analysis, history);
     this.referenceExplorer = new ReferenceExplorer(
       analysis,
@@ -562,13 +552,7 @@ export class ViewRegistry implements vscode.Disposable {
 
   invalidateCallHierarchy(): void {
     this.stopCallExpansion();
-    const cacheSize = vscode.workspace
-      .getConfiguration("cInsight.callHierarchy")
-      .get<number>("cacheSize", 500);
-    this.incomingCache.resize(cacheSize);
-    this.outgoingCache.resize(cacheSize);
-    this.incomingCache.clear();
-    this.outgoingCache.clear();
+    this.callRepository.invalidate();
     this.callRootSignature = "";
   }
 
@@ -870,10 +854,7 @@ export class ViewRegistry implements vscode.Disposable {
         },
       );
       if (announce && !cancellation.token.isCancellationRequested) {
-        const cache =
-          direction === "incoming"
-            ? this.incomingCache
-            : this.outgoingCache;
+        const cache = this.callRepository.stats(direction);
         void vscode.window.showInformationMessage(
           `C Insight: Loaded ${this.callTreeState[direction].loadedNodes} ${direction === "incoming" ? "caller" : "callee"} nodes; cache ${cache.hits} hits / ${cache.misses} misses.`,
         );
@@ -974,14 +955,10 @@ export class ViewRegistry implements vscode.Disposable {
     token: vscode.CancellationToken,
   ): Promise<CallNode[]> {
     if (direction === "incoming") {
-      const calls = await this.incomingCache.getOrCreate(node.key, () =>
-        this.analysis.incomingCalls(node, token),
-      );
+      const calls = await this.callRepository.incoming(node, token);
       return calls.map((call) => this.analysis.callNode(call.from));
     }
-    const calls = await this.outgoingCache.getOrCreate(node.key, () =>
-      this.analysis.outgoingCalls(node, token),
-    );
+    const calls = await this.callRepository.outgoing(node, token);
     return calls.map((call) => this.analysis.callNode(call.to));
   }
 
@@ -1095,13 +1072,9 @@ export class ViewRegistry implements vscode.Disposable {
             }
             const lineage = [...ancestors, node.key];
             if (direction === "incoming") {
-              const calls = await this.incomingCache.getOrCreate(
-                node.key,
-                () =>
-                  this.analysis.incomingCalls(
-                    node,
-                    this.callExpansion?.token,
-                  ),
+              const calls = await this.callRepository.incoming(
+                node,
+                this.callExpansion?.token,
               );
               const remaining = this.callTreeState[direction].remaining(
                 this.maximumCallNodes(),
@@ -1117,13 +1090,9 @@ export class ViewRegistry implements vscode.Disposable {
                 : [this.noCallsNode("incoming")];
             }
             try {
-              const calls = await this.outgoingCache.getOrCreate(
-                node.key,
-                () =>
-                  this.analysis.outgoingCalls(
-                    node,
-                    this.callExpansion?.token,
-                  ),
+              const calls = await this.callRepository.outgoing(
+                node,
+                this.callExpansion?.token,
               );
               const remaining = this.callTreeState[direction].remaining(
                 this.maximumCallNodes(),

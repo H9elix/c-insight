@@ -69,5 +69,7 @@ describe("relationship graph model", () => {
       states: [],
     });
     assert.match(renderGraphMermaid(graph.snapshot()), /n0 -->\\|calls\\| n1/);
+    assert.equal(graph.hasPath(caller.id, callee.id), true);
+    assert.equal(graph.hasPath(callee.id, caller.id), false);
   });
 });
