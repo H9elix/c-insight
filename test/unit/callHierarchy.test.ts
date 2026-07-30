@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { CallHierarchyItem } from "vscode-languageclient/node";
 import {
   callHierarchyKey,
+  findExplicitIndirectCalls,
   isRecursiveCall,
   looksLikeExplicitIndirectCall,
   recursionKind,
@@ -46,5 +47,33 @@ describe("call hierarchy utilities", () => {
       true,
     );
     assert.equal(looksLikeExplicitIndirectCall("direct(value);", 0), false);
+  });
+
+  it("finds explicit indirect call sites without guessing ordinary calls", () => {
+    assert.deepEqual(
+      findExplicitIndirectCalls(
+        [
+          "(*callback)(value);",
+          "(object.*handler)(value);",
+          "ordinary(value);",
+          '// "(*ignored)(value)"',
+          "/* (*also_ignored)(",
+          "value); */",
+        ],
+        20,
+      ).map(({ line, expression, kind }) => ({ line, expression, kind })),
+      [
+        {
+          line: 20,
+          expression: "(*callback)(",
+          kind: "function-pointer",
+        },
+        {
+          line: 21,
+          expression: "object.*handler)(",
+          kind: "member-function-pointer",
+        },
+      ],
+    );
   });
 });

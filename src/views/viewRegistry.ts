@@ -29,6 +29,7 @@ import {
   ViewUpdateIntent,
 } from "../models/types";
 import {
+  findExplicitIndirectCalls,
   looksLikeExplicitIndirectCall,
   recursionKind,
 } from "../utils/callHierarchy";
@@ -1210,8 +1211,12 @@ export class ViewRegistry implements vscode.Disposable {
               if (children.length < calls.length) {
                 children.push(limitNode("Call hierarchy node limit reached"));
               }
-              return children.length > 0
-                ? children
+              const unresolved = await this.unresolvedIndirectCallNodes(
+                node,
+                calls.flatMap((call) => call.fromRanges),
+              );
+              return children.length + unresolved.length > 0
+                ? [...children, ...unresolved]
                 : [this.noCallsNode("outgoing")];
             } catch (error) {
               return [
@@ -1246,6 +1251,58 @@ export class ViewRegistry implements vscode.Disposable {
       call.fromRanges,
       "caller",
     );
+  }
+
+  private async unresolvedIndirectCallNodes(
+    caller: CallNode,
+    resolvedRanges: CallHierarchyOutgoingCall["fromRanges"],
+  ): Promise<TreeNode[]> {
+    const uri = vscode.Uri.parse(caller.raw.uri);
+    const firstLine = caller.raw.range.start.line;
+    const finalLine = Math.min(caller.raw.range.end.line, firstLine + 1_999);
+    const lines = await Promise.all(
+      Array.from(
+        { length: Math.max(0, finalLine - firstLine + 1) },
+        (_, offset) => this.sourceLines.line(uri, firstLine + offset),
+      ),
+    );
+    return findExplicitIndirectCalls(
+      lines.map((line) => line ?? ""),
+      firstLine,
+    )
+      .filter(
+        (call) =>
+          !resolvedRanges.some(
+            (range) =>
+              call.line >= range.start.line &&
+              call.line <= range.end.line &&
+              (call.line !== range.start.line ||
+                call.character >= range.start.character) &&
+              (call.line !== range.end.line ||
+                call.character <= range.end.character),
+          ),
+      )
+      .map((call) => ({
+        label: `Unresolved indirect call · Line ${call.line + 1}`,
+        description:
+          `${call.kind.replaceAll("-", " ")} · syntax evidence`,
+        tooltip:
+          `${uri.fsPath}:${call.line + 1}\n${call.expression}\n` +
+          "Target unresolved: clangd returned no matching outgoing-call target. C Insight does not guess runtime targets.",
+        location: {
+          uri,
+          range: new vscode.Range(
+            call.line,
+            call.character,
+            call.line,
+            call.character + Math.max(1, call.expression.length),
+          ),
+        },
+        previewMode: "callee-call-site",
+        previewTitle: "Unresolved indirect call",
+        icon: new vscode.ThemeIcon("question"),
+        contextValue: "unresolvedIndirectCall",
+      }));
   }
 
   private outgoingNode(
