@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.3
+
+- Completed the second-phase regression and documentation audit across
+  References, Call Hierarchy, and Type Hierarchy.
+- Added compatibility tests for pre-0.15 call snapshots and summary-free
+  version-1 hierarchy exports.
+- Added a second-phase capability and compatibility section to the user guide
+  and refreshed the feature, persistence, and limitation descriptions.
+- Retained workspace-session version 1 and hierarchy-export schema version 1;
+  all second-phase hierarchy fields remain additive.
+
 ## 0.16.2
 
 - Added loaded node, maximum depth, unexpanded node, kind, relationship, and

@@ -1,5 +1,12 @@
 # C Insight Roadmap Notes
 
+## Second phase completion
+
+Versions 0.14.0 through 0.16.3 completed the planned References, Call
+Hierarchy, and Type Hierarchy semantic-evidence, restoration, search, and
+export work. Version 0.16.3 completed compatibility regression and user-guide
+auditing. The deferred items below remain deliberately outside this phase.
+
 ## Deferred Code Preview ideas
 
 The following features were intentionally excluded from 0.5.0 and may be
