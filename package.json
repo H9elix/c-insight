@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.13.4",
+  "version": "0.14.0",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
