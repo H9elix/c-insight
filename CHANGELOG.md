@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0
+
+- Added a structured References classification evidence model with a stable
+  evidence source, rule identifier, explanation, and confidence.
+- Displayed the full classification explanation in reference tooltips.
+- Included compact evidence identifiers in text exports and full structured
+  evidence in JSON exports.
+
 ## 0.13.4
 
 - Added a complete feature/view capability matrix covering data sources,

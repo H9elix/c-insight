@@ -13,6 +13,7 @@ import { LocationResult, LspSymbol } from "../models/types";
 import {
   classifyReference,
   enhanceReferenceClassification,
+  referenceClassificationExplanation,
   isMacroDefinitionLine,
   ReferenceClassification,
   ReferenceKind,
@@ -567,7 +568,8 @@ export class ReferenceExplorer implements vscode.Disposable {
         node.icon = referenceIcon(record.classification);
         node.tooltip =
           `${record.location.uri.fsPath}:${lineNumber}\n${source.trim()}\n` +
-          `Classification: ${node.description} · ${record.classification.confidence}`;
+          `Classification: ${node.description}\n` +
+          referenceClassificationExplanation(record.classification);
       }
     };
     return node;
@@ -619,7 +621,10 @@ export class ReferenceExplorer implements vscode.Disposable {
 
   private async renderRecord(record: ReferenceRecord): Promise<string> {
     await this.enhanceRecord(record);
-    return `${record.location.uri.fsPath}:${record.location.range.start.line + 1}:${record.location.range.start.character + 1} [${referenceClassificationLabel(record.classification)}; ${record.classification.confidence}] ${record.source?.trim() ?? ""}`;
+    const evidence = record.classification.evidence
+      .map((item) => `${item.source}:${item.rule}`)
+      .join(", ");
+    return `${record.location.uri.fsPath}:${record.location.range.start.line + 1}:${record.location.range.start.character + 1} [${referenceClassificationLabel(record.classification)}; confidence=${record.classification.confidence}; evidence=${evidence}] ${record.source?.trim() ?? ""}`;
   }
 
   private async renderText(records: ReferenceRecord[]): Promise<string> {

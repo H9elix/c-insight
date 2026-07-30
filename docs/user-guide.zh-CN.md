@@ -1,4 +1,4 @@
-# C Insight 0.13.4 使用手册
+# C Insight 0.14.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -217,6 +217,19 @@ References 显示当前符号的所有引用，并尝试分类为：
 分类优先使用 clangd Document Highlight，再结合保守的源码语法判断。对于
 指针副作用、模板、重载运算符、宏展开等复杂情况，分类可能显示推断置信度，
 而不会假装结果绝对准确。
+
+每条已解析的引用都带有可追溯的分类证据。将鼠标悬停在引用节点上可查看：
+
+- Classification：最终分类结论。
+- Confidence：`Semantic`、`Syntax`、`Inferred` 或 `Unknown`。
+- Evidence source：`clangd-result`、`clangd-highlight`、`source-syntax`、
+  `symbol-metadata` 或 `fallback`。
+- Rule：稳定的规则标识，例如 `access.highlight-read`。
+- Summary：该规则为何得出当前结论的说明。
+
+文本导出使用紧凑的 `来源:规则` 形式；JSON 导出在 `classification.evidence`
+中保留完整的 `source`、`rule` 和 `summary`，便于脚本审计或后续分析。一个宏
+引用可能同时包含“宏来源”和“读写类型”两条证据。
 
 ### 分组方式
 

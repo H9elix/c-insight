@@ -9,6 +9,7 @@ import {
   isSimpleWrite,
   looksLikeFunctionCall,
   referenceClassificationLabel,
+  referenceClassificationExplanation,
   referenceTypeGroup,
   referenceKindLabel,
 } from "../../src/views/referenceModel";
@@ -72,6 +73,13 @@ describe("reference classification", () => {
     });
     assert.equal(referenceClassificationLabel(read), "Read");
     assert.equal(read.confidence, "semantic");
+    assert.deepEqual(read.evidence.map((item) => item.rule), [
+      "access.highlight-read",
+    ]);
+    assert.match(
+      referenceClassificationExplanation(read),
+      /clangd-highlight \[access\.highlight-read\]/,
+    );
     assert.equal(referenceClassificationLabel(write), "Write");
   });
 
@@ -112,6 +120,10 @@ describe("reference classification", () => {
       },
     );
     assert.equal(referenceClassificationLabel(classification), "Macro · Read");
+    assert.deepEqual(classification.evidence.map((item) => item.rule), [
+      "macro.symbol",
+      "access.highlight-read",
+    ]);
   });
 
   it("labels non-called callable uses as inferred addresses", () => {
@@ -138,6 +150,7 @@ describe("reference classification", () => {
         access: "read",
         macro: true,
         confidence: "semantic",
+        evidence: [],
       }),
       "Reads",
     );
@@ -146,6 +159,7 @@ describe("reference classification", () => {
         role: "call",
         macro: false,
         confidence: "syntax",
+        evidence: [],
       }),
       "Function Calls",
     );
@@ -154,6 +168,7 @@ describe("reference classification", () => {
         role: "reference",
         macro: false,
         confidence: "unknown",
+        evidence: [],
       }),
       "Other References",
     );

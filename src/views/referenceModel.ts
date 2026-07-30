@@ -6,12 +6,25 @@ export type ReferenceKind =
 
 export type ReferenceAccess = "read" | "write" | "readwrite" | "address";
 export type ReferenceConfidence = "semantic" | "syntax" | "inferred" | "unknown";
+export type ReferenceEvidenceSource =
+  | "clangd-result"
+  | "clangd-highlight"
+  | "source-syntax"
+  | "symbol-metadata"
+  | "fallback";
+
+export interface ReferenceClassificationEvidence {
+  source: ReferenceEvidenceSource;
+  rule: string;
+  summary: string;
+}
 
 export interface ReferenceClassification {
   role: ReferenceKind;
   access?: ReferenceAccess;
   macro: boolean;
   confidence: ReferenceConfidence;
+  evidence: ReferenceClassificationEvidence[];
 }
 
 export interface ReferenceEvidence {
@@ -80,40 +93,125 @@ export function enhanceReferenceClassification(
 ): ReferenceClassification {
   const source = evidence.sourceLine;
   const character = location.range.start.character;
-  const macro =
-    Boolean(evidence.macroSymbol) ||
-    Boolean(source && isMacroDirectiveReference(source, character));
+  const classificationEvidence: ReferenceClassificationEvidence[] = [];
+  if (evidence.macroSymbol) {
+    classificationEvidence.push({
+      source: "symbol-metadata",
+      rule: "macro.symbol",
+      summary: "The queried symbol is defined as a preprocessor macro.",
+    });
+  }
+  if (source && isMacroDirectiveReference(source, character)) {
+    classificationEvidence.push({
+      source: "source-syntax",
+      rule: "macro.directive",
+      summary: "The reference appears in a preprocessor directive.",
+    });
+  }
+  const macro = classificationEvidence.length > 0;
 
   if (role === "definition" || role === "declaration" || role === "call") {
-    return {
+    const primary: ReferenceClassificationEvidence =
+      role === "call"
+        ? {
+            source: "source-syntax",
+            rule: "role.call",
+            summary: "The identifier is followed by a function-call argument list.",
+          }
+        : {
+            source: "clangd-result",
+            rule: `role.${role}`,
+            summary: `The location matches a clangd ${role} result.`,
+          };
+    return classified(
       role,
       macro,
-      confidence: role === "call" ? "syntax" : "semantic",
-    };
+      role === "call" ? "syntax" : "semantic",
+      classificationEvidence,
+      primary,
+    );
   }
   if (source && isAddressAcquisition(source, character)) {
-    return { role, access: "address", macro, confidence: "syntax" };
+    return classified(role, macro, "syntax", classificationEvidence, {
+      source: "source-syntax",
+      rule: "access.address-of",
+      summary: "A unary address-of operator is applied to the identifier.",
+    }, "address");
   }
   if (source && isReadWriteUse(source, character)) {
-    return { role, access: "readwrite", macro, confidence: "syntax" };
+    return classified(role, macro, "syntax", classificationEvidence, {
+      source: "source-syntax",
+      rule: "access.readwrite-operator",
+      summary: "An increment, decrement, or compound-assignment operator reads and writes the identifier.",
+    }, "readwrite");
   }
   // LSP DocumentHighlightKind.Read = 2, Write = 3.
   if (evidence.highlightKind === 2) {
-    return { role, access: "read", macro, confidence: "semantic" };
+    return classified(role, macro, "semantic", classificationEvidence, {
+      source: "clangd-highlight",
+      rule: "access.highlight-read",
+      summary: "clangd Document Highlight classifies the occurrence as a read.",
+    }, "read");
   }
   if (evidence.highlightKind === 3) {
-    return { role, access: "write", macro, confidence: "semantic" };
+    return classified(role, macro, "semantic", classificationEvidence, {
+      source: "clangd-highlight",
+      rule: "access.highlight-write",
+      summary: "clangd Document Highlight classifies the occurrence as a write.",
+    }, "write");
   }
   if (source && isSimpleWrite(source, character)) {
-    return { role, access: "write", macro, confidence: "syntax" };
+    return classified(role, macro, "syntax", classificationEvidence, {
+      source: "source-syntax",
+      rule: "access.simple-assignment",
+      summary: "A simple assignment operator follows the identifier.",
+    }, "write");
   }
   if (evidence.callableSymbol && source) {
     const tail = source.slice(identifierEnd(source, character));
     if (!/^\s*\(/.test(tail)) {
-      return { role, access: "address", macro, confidence: "inferred" };
+      return classified(role, macro, "inferred", classificationEvidence, {
+        source: "symbol-metadata",
+        rule: "access.callable-non-call",
+        summary: "A callable symbol is used without a call argument list, so its address is likely used.",
+      }, "address");
     }
   }
-  return { role, macro, confidence: "unknown" };
+  return classified(role, macro, "unknown", classificationEvidence, {
+    source: "fallback",
+    rule: "reference.unclassified",
+    summary: "No supported semantic or syntax rule classified this occurrence.",
+  });
+}
+
+export function referenceClassificationExplanation(
+  classification: ReferenceClassification,
+): string {
+  const evidence = classification.evidence
+    .map((item) => `${item.source} [${item.rule}]: ${item.summary}`)
+    .join("\n");
+  return `Confidence: ${confidenceLabel(classification.confidence)}\nEvidence:\n${evidence}`;
+}
+
+function classified(
+  role: ReferenceKind,
+  macro: boolean,
+  confidence: ReferenceConfidence,
+  existingEvidence: ReferenceClassificationEvidence[],
+  primaryEvidence: ReferenceClassificationEvidence,
+  access?: ReferenceAccess,
+): ReferenceClassification {
+  return {
+    role,
+    access,
+    macro,
+    confidence,
+    evidence: [...existingEvidence, primaryEvidence],
+  };
+}
+
+function confidenceLabel(confidence: ReferenceConfidence): string {
+  return confidence[0].toUpperCase() + confidence.slice(1);
 }
 
 export function referenceClassificationLabel(
