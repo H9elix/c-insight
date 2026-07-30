@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.1
+
+- Distinguished writes through a pointer from writes to the pointer variable.
+- Used clangd Signature Help to identify arguments passed to mutable C++
+  reference and pointer parameters.
+- Marked potential caller-visible parameter effects as inferred and included
+  their signature evidence in tooltips and exports.
+
 ## 0.14.0
 
 - Added a structured References classification evidence model with a stable

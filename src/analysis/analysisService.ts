@@ -10,6 +10,7 @@ import {
   LocationLink,
   Position,
   Range,
+  SignatureHelp,
   SymbolInformation,
   TypeHierarchyItem,
 } from "vscode-languageclient/node";
@@ -103,6 +104,33 @@ export class AnalysisService {
         .join("\n");
     }
     return "value" in content ? content.value : undefined;
+  }
+
+  async activeParameterLabel(
+    uri: vscode.Uri,
+    position: vscode.Position,
+    token?: vscode.CancellationToken,
+  ): Promise<string | undefined> {
+    const result = await this.request<SignatureHelp | null>(
+      "textDocument/signatureHelp",
+      this.positionParams(uri, position),
+      token,
+    );
+    if (!result || result.signatures.length === 0) {
+      return undefined;
+    }
+    const signature =
+      result.signatures[result.activeSignature ?? 0] ?? result.signatures[0];
+    const parameterIndex =
+      result.activeParameter ?? signature.activeParameter ?? 0;
+    const parameter = signature.parameters?.[parameterIndex];
+    if (!parameter) {
+      return undefined;
+    }
+    if (typeof parameter.label === "string") {
+      return parameter.label;
+    }
+    return signature.label.slice(parameter.label[0], parameter.label[1]);
   }
 
   async symbolInfo(

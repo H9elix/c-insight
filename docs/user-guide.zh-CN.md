@@ -1,4 +1,4 @@
-# C Insight 0.14.0 使用手册
+# C Insight 0.14.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -223,13 +223,26 @@ References 显示当前符号的所有引用，并尝试分类为：
 - Classification：最终分类结论。
 - Confidence：`Semantic`、`Syntax`、`Inferred` 或 `Unknown`。
 - Evidence source：`clangd-result`、`clangd-highlight`、`source-syntax`、
-  `symbol-metadata` 或 `fallback`。
+  `clangd-signature`、`symbol-metadata` 或 `fallback`。
 - Rule：稳定的规则标识，例如 `access.highlight-read`。
 - Summary：该规则为何得出当前结论的说明。
 
 文本导出使用紧凑的 `来源:规则` 形式；JSON 导出在 `classification.evidence`
 中保留完整的 `source`、`rule` 和 `summary`，便于脚本审计或后续分析。一个宏
 引用可能同时包含“宏来源”和“读写类型”两条证据。
+
+对于指针和 C++ 引用参数，C Insight 额外区分：
+
+- `Read · Pointee Write`：读取指针值，但写入的是所指对象，不表示指针变量本身
+  被赋值。直接的 `*pointer = ...` 或 `pointer->field = ...` 使用语法置信度。
+- `Read/Write · Reference Write (inferred)`：clangd Signature Help 表明实参
+  对应可变 `T&` 参数，调用可能通过引用修改对象。
+- `Read · Pointee Write (inferred)`：实参对应可变 `T*` 参数，参数类型允许被调
+  函数修改所指对象。
+
+`const T&`、`const T*` 和 `T&&` 不会被上述保守规则标成可变副作用。参数类型
+只说明“允许修改”，不能证明函数体一定发生写入，因此跨调用点结果使用
+`Inferred`。
 
 ### 分组方式
 

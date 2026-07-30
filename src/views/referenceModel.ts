@@ -9,6 +9,7 @@ export type ReferenceConfidence = "semantic" | "syntax" | "inferred" | "unknown"
 export type ReferenceEvidenceSource =
   | "clangd-result"
   | "clangd-highlight"
+  | "clangd-signature"
   | "source-syntax"
   | "symbol-metadata"
   | "fallback";
@@ -24,6 +25,7 @@ export interface ReferenceClassification {
   access?: ReferenceAccess;
   macro: boolean;
   confidence: ReferenceConfidence;
+  effect?: "pointee-write" | "reference-write";
   evidence: ReferenceClassificationEvidence[];
 }
 
@@ -32,6 +34,7 @@ export interface ReferenceEvidence {
   highlightKind?: number;
   macroSymbol?: boolean;
   callableSymbol?: boolean;
+  parameterLabel?: string;
 }
 
 export interface ComparableLocation {
@@ -145,6 +148,30 @@ export function enhanceReferenceClassification(
       summary: "An increment, decrement, or compound-assignment operator reads and writes the identifier.",
     }, "readwrite");
   }
+  if (source && isIndirectWrite(source, character)) {
+    return classified(role, macro, "syntax", classificationEvidence, {
+      source: "source-syntax",
+      rule: "effect.pointee-write",
+      summary: "An assignment writes through this pointer to the pointed-to object.",
+    }, "read", "pointee-write");
+  }
+  const parameterEffect = evidence.parameterLabel
+    ? classifyParameterEffect(evidence.parameterLabel)
+    : undefined;
+  if (parameterEffect === "reference-write") {
+    return classified(role, macro, "inferred", classificationEvidence, {
+      source: "clangd-signature",
+      rule: "effect.mutable-reference-argument",
+      summary: `clangd maps the argument to mutable reference parameter “${evidence.parameterLabel}”.`,
+    }, "readwrite", "reference-write");
+  }
+  if (parameterEffect === "pointee-write") {
+    return classified(role, macro, "inferred", classificationEvidence, {
+      source: "clangd-signature",
+      rule: "effect.mutable-pointer-argument",
+      summary: `clangd maps the argument to pointer parameter “${evidence.parameterLabel}”, which permits writing the pointed-to object.`,
+    }, "read", "pointee-write");
+  }
   // LSP DocumentHighlightKind.Read = 2, Write = 3.
   if (evidence.highlightKind === 2) {
     return classified(role, macro, "semantic", classificationEvidence, {
@@ -200,12 +227,14 @@ function classified(
   existingEvidence: ReferenceClassificationEvidence[],
   primaryEvidence: ReferenceClassificationEvidence,
   access?: ReferenceAccess,
+  effect?: ReferenceClassification["effect"],
 ): ReferenceClassification {
   return {
     role,
     access,
     macro,
     confidence,
+    effect,
     evidence: [...existingEvidence, primaryEvidence],
   };
 }
@@ -225,6 +254,11 @@ export function referenceClassificationLabel(
     labels.push(accessLabel(classification.access));
   } else {
     labels.push(referenceKindLabel(classification.role));
+  }
+  if (classification.effect === "pointee-write") {
+    labels.push("Pointee Write");
+  } else if (classification.effect === "reference-write") {
+    labels.push("Reference Write");
   }
   const label = labels.join(" · ");
   return classification.confidence === "inferred"
@@ -300,6 +334,46 @@ export function isAddressAcquisition(
     /(?:^|[({[,=!:?;+\-*/%|^~<>])$/.test(prefix) ||
     /\b(?:return|case|sizeof|alignof)\s*$/.test(prefix)
   );
+}
+
+export function isIndirectWrite(
+  sourceLine: string,
+  character: number,
+): boolean {
+  const start = clampCharacter(sourceLine, character);
+  const end = identifierEnd(sourceLine, start);
+  const before = sourceLine.slice(0, start).replace(/\s+$/, "");
+  const after = sourceLine.slice(end);
+  if (
+    before.endsWith("*") &&
+    !/[A-Za-z0-9_)\]]\s*\*$/.test(before) &&
+    /^\s*=(?!=)/.test(after)
+  ) {
+    return true;
+  }
+  return /^\s*->[^;=]*=(?!=)/.test(after);
+}
+
+export function classifyParameterEffect(
+  parameterLabel: string,
+): ReferenceClassification["effect"] | undefined {
+  const normalized = parameterLabel.replace(/\s+/g, " ").trim();
+  if (/&&/.test(normalized)) {
+    return undefined;
+  }
+  const reference = normalized.indexOf("&");
+  if (reference >= 0) {
+    return /\bconst\b/.test(normalized.slice(0, reference))
+      ? undefined
+      : "reference-write";
+  }
+  const pointer = normalized.indexOf("*");
+  if (pointer >= 0) {
+    return /\bconst\b/.test(normalized.slice(0, pointer))
+      ? undefined
+      : "pointee-write";
+  }
+  return undefined;
 }
 
 export function isMacroDirectiveReference(

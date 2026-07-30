@@ -61,6 +61,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     string,
     Promise<DocumentHighlight[]>
   >();
+  private readonly parameterRequests = new Map<string, Promise<string | undefined>>();
   private pinned = false;
   private pinnedSymbol?: string;
   private pinnedStale = false;
@@ -100,6 +101,7 @@ export class ReferenceExplorer implements vscode.Disposable {
       this.pinnedStale = false;
     }
     this.highlightRequests.clear();
+    this.parameterRequests.clear();
     this.state = "ready";
     this.errorMessage = undefined;
     if (this.loadingStarted !== undefined) {
@@ -697,14 +699,19 @@ export class ReferenceExplorer implements vscode.Disposable {
       record.source,
     );
     let highlightKind: number | undefined;
+    let parameterLabel: string | undefined;
     if (record.kind === "reference") {
-      const highlights = await this.highlightsFor(record.location);
+      const [highlights, activeParameter] = await Promise.all([
+        this.highlightsFor(record.location),
+        this.parameterFor(record.location),
+      ]);
       highlightKind = highlights.find((highlight) =>
         rangeContains(
           this.analysis.toVsRange(highlight.range),
           record.location.range.start,
         ),
       )?.kind;
+      parameterLabel = activeParameter;
     }
     record.classification = enhanceReferenceClassification(
       record.location,
@@ -714,6 +721,7 @@ export class ReferenceExplorer implements vscode.Disposable {
         highlightKind,
         macroSymbol: this.macroSymbol,
         callableSymbol: this.callableSymbol,
+        parameterLabel,
       },
     );
   }
@@ -728,6 +736,22 @@ export class ReferenceExplorer implements vscode.Disposable {
         .documentHighlights(location.uri, location.range.start)
         .catch(() => []);
       this.highlightRequests.set(key, request);
+    }
+    return request;
+  }
+
+  private async parameterFor(
+    location: LocationResult,
+  ): Promise<string | undefined> {
+    const key =
+      `${location.uri.toString()}:${location.range.start.line}:` +
+      `${location.range.start.character}`;
+    let request = this.parameterRequests.get(key);
+    if (!request) {
+      request = this.analysis
+        .activeParameterLabel(location.uri, location.range.start)
+        .catch(() => undefined);
+      this.parameterRequests.set(key, request);
     }
     return request;
   }
@@ -766,6 +790,9 @@ function referenceIcon(
 ): vscode.ThemeIcon {
   if (classification.macro) {
     return new vscode.ThemeIcon("symbol-constant");
+  }
+  if (classification.effect) {
+    return new vscode.ThemeIcon("warning");
   }
   switch (classification.access) {
     case "read":

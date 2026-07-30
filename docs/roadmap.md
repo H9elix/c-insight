@@ -14,10 +14,11 @@ reconsidered after real-world use:
 Version 0.6.1 added confidence-labelled Read, Write, Read/Write, address, and
 macro-related classifications. Version 0.14.0 added a unified evidence model
 so every result records its conclusion, evidence source, stable rule,
-explanation, and confidence. The remaining second-phase work will refine
-pointer side effects, reference parameters, overloaded operators, templates,
-macro expansion provenance, and other cases not exposed by standard clangd
-Document Highlights.
+explanation, and confidence. Version 0.14.1 distinguished pointee writes and
+used clangd signatures to conservatively identify mutable reference/pointer
+argument effects. The remaining second-phase work will refine overloaded
+operators, templates, macro expansion provenance, and other cases not exposed
+by standard clangd Document Highlights.
 
 ## Call hierarchy follow-ups
 

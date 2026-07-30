@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   classifyReference,
+  classifyParameterEffect,
   enhanceReferenceClassification,
   isAddressAcquisition,
+  isIndirectWrite,
   isMacroDefinitionLine,
   isReadWriteUse,
   isSimpleWrite,
@@ -105,6 +107,48 @@ describe("reference classification", () => {
     assert.equal(isAddressAcquisition("return &value;", 8), true);
     assert.equal(isAddressAcquisition("flags & value", 8), false);
     assert.equal(isAddressAcquisition("ready && value", 9), false);
+  });
+
+  it("separates writes through pointers from writes to pointer variables", () => {
+    assert.equal(isIndirectWrite("*pointer = value;", 1), true);
+    assert.equal(isIndirectWrite("pointer->field = value;", 0), true);
+    assert.equal(isIndirectWrite("pointer = other;", 0), false);
+    assert.equal(isIndirectWrite("value * pointer;", 8), false);
+    const reference = location("file:///source.c", 2, 1, 8);
+    const classification = enhanceReferenceClassification(
+      reference,
+      "reference",
+      { sourceLine: "*pointer = value;" },
+    );
+    assert.equal(
+      referenceClassificationLabel(classification),
+      "Read · Pointee Write",
+    );
+    assert.equal(classification.effect, "pointee-write");
+    assert.equal(classification.evidence.at(-1)?.rule, "effect.pointee-write");
+  });
+
+  it("infers mutable reference and pointer argument side effects", () => {
+    assert.equal(classifyParameterEffect("Widget &output"), "reference-write");
+    assert.equal(classifyParameterEffect("const Widget &input"), undefined);
+    assert.equal(classifyParameterEffect("Widget *output"), "pointee-write");
+    assert.equal(classifyParameterEffect("const Widget *input"), undefined);
+    assert.equal(classifyParameterEffect("Widget &&temporary"), undefined);
+    const reference = location("file:///source.cpp", 2, 7, 12);
+    const classification = enhanceReferenceClassification(
+      reference,
+      "reference",
+      {
+        sourceLine: "update(value);",
+        highlightKind: 2,
+        parameterLabel: "Widget &value",
+      },
+    );
+    assert.equal(
+      referenceClassificationLabel(classification),
+      "Read/Write · Reference Write (inferred)",
+    );
+    assert.equal(classification.evidence.at(-1)?.source, "clangd-signature");
   });
 
   it("marks macro symbols and macro directives", () => {
