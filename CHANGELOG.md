@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.3
+
+- Added definition provenance for macro references, including the defining URI
+  and source position in evidence tooltips and exports.
+- Detected C++ template declarations around clangd definition/declaration
+  targets and labelled their references as template-derived.
+- Added stable `macro.symbol` and `template.declaration` provenance records to
+  structured JSON and compact text exports.
+
 ## 0.14.2
 
 - Recognized punctuation-based uses of overloaded C++ operators as inferred

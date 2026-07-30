@@ -19,8 +19,10 @@ used clangd signatures to conservatively identify mutable reference/pointer
 argument effects. The remaining second-phase work will refine overloaded
 operators, templates, macro expansion provenance, and other cases not exposed
 by standard clangd Document Highlights. Version 0.14.2 then recognized
-punctuation-based overloaded operator references as inferred calls. Template
-and macro provenance remain the next classification refinements.
+punctuation-based overloaded operator references as inferred calls. Version
+0.14.3 added macro-definition and template-declaration provenance. Full
+compiler macro expansion stacks and template instantiation chains remain
+outside the standard clangd reference protocol.
 
 ## Call hierarchy follow-ups
 

@@ -15,6 +15,7 @@ import {
   enhanceReferenceClassification,
   referenceClassificationExplanation,
   isMacroDefinitionLine,
+  isTemplateDeclarationContext,
   ReferenceClassification,
   ReferenceKind,
   referenceClassificationLabel,
@@ -56,6 +57,9 @@ export class ReferenceExplorer implements vscode.Disposable {
   private loadingStarted?: number;
   private lastDurationMs?: number;
   private macroSymbol = false;
+  private macroOrigin?: string;
+  private templateSymbol = false;
+  private templateOrigin?: string;
   private callableSymbol = false;
   private queriedSymbolName?: string;
   private readonly highlightRequests = new Map<
@@ -114,9 +118,12 @@ export class ReferenceExplorer implements vscode.Disposable {
       this.restoredDisplayedLimit ?? this.pageSize();
     this.restoredDisplayedLimit = undefined;
     const generation = ++this.generation;
-    void this.detectMacroSymbol().then((macroSymbol) => {
+    void this.detectSymbolOrigins().then((origins) => {
       if (generation === this.generation) {
-        this.macroSymbol = macroSymbol;
+        this.macroSymbol = origins.macro;
+        this.macroOrigin = origins.macroOrigin;
+        this.templateSymbol = origins.template;
+        this.templateOrigin = origins.templateOrigin;
         void this.rebuild();
       }
     });
@@ -425,6 +432,9 @@ export class ReferenceExplorer implements vscode.Disposable {
           kind,
           classification: enhanceReferenceClassification(location, kind, {
             macroSymbol: this.macroSymbol,
+            macroOrigin: this.macroOrigin,
+            templateSymbol: this.templateSymbol,
+            templateOrigin: this.templateOrigin,
           }),
         } satisfies ReferenceRecord;
       });
@@ -626,7 +636,11 @@ export class ReferenceExplorer implements vscode.Disposable {
   private async renderRecord(record: ReferenceRecord): Promise<string> {
     await this.enhanceRecord(record);
     const evidence = record.classification.evidence
-      .map((item) => `${item.source}:${item.rule}`)
+      .map(
+        (item) =>
+          `${item.source}:${item.rule}` +
+          (item.origin ? `@${item.origin}` : ""),
+      )
       .join(", ");
     return `${record.location.uri.fsPath}:${record.location.range.start.line + 1}:${record.location.range.start.character + 1} [${referenceClassificationLabel(record.classification)}; confidence=${record.classification.confidence}; evidence=${evidence}] ${record.source?.trim() ?? ""}`;
   }
@@ -722,6 +736,9 @@ export class ReferenceExplorer implements vscode.Disposable {
         sourceLine: record.source,
         highlightKind,
         macroSymbol: this.macroSymbol,
+        macroOrigin: this.macroOrigin,
+        templateSymbol: this.templateSymbol,
+        templateOrigin: this.templateOrigin,
         callableSymbol: this.callableSymbol,
         parameterLabel,
         queriedSymbolName: this.queriedSymbolName,
@@ -759,18 +776,41 @@ export class ReferenceExplorer implements vscode.Disposable {
     return request;
   }
 
-  private async detectMacroSymbol(): Promise<boolean> {
-    const candidates =
-      this.definitions.length > 0 ? this.definitions : this.declarations;
-    return (
-      await mapLimit(candidates.slice(0, 8), 4, async (location) => {
-        const line = await this.sourceLines.line(
-          location.uri,
-          location.range.start.line,
-        );
-        return Boolean(line && isMacroDefinitionLine(line));
-      })
-    ).some(Boolean);
+  private async detectSymbolOrigins(): Promise<{
+    macro: boolean;
+    macroOrigin?: string;
+    template: boolean;
+    templateOrigin?: string;
+  }> {
+    const candidates = [...this.definitions, ...this.declarations].slice(0, 8);
+    const inspected = await mapLimit(candidates, 4, async (location) => {
+      const lines = await Promise.all(
+        [3, 2, 1, 0].map((offset) =>
+          this.sourceLines.line(
+            location.uri,
+            location.range.start.line - offset,
+          ),
+        ),
+      );
+      const origin =
+        `${location.uri.toString()}:${location.range.start.line + 1}:` +
+        `${location.range.start.character + 1}`;
+      return {
+        macro: Boolean(lines.at(-1) && isMacroDefinitionLine(lines.at(-1)!)),
+        template: isTemplateDeclarationContext(
+          lines.filter((line): line is string => line !== undefined),
+        ),
+        origin,
+      };
+    });
+    const macro = inspected.find((item) => item.macro);
+    const template = inspected.find((item) => item.template);
+    return {
+      macro: Boolean(macro),
+      macroOrigin: macro?.origin,
+      template: Boolean(template),
+      templateOrigin: template?.origin,
+    };
   }
 }
 
@@ -793,6 +833,9 @@ function referenceIcon(
 ): vscode.ThemeIcon {
   if (classification.macro) {
     return new vscode.ThemeIcon("symbol-constant");
+  }
+  if (classification.template) {
+    return new vscode.ThemeIcon("symbol-type-parameter");
   }
   if (classification.effect) {
     return new vscode.ThemeIcon("warning");

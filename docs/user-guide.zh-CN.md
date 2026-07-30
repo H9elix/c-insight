@@ -1,4 +1,4 @@
-# C Insight 0.14.2 使用手册
+# C Insight 0.14.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -248,6 +248,20 @@ C++ 重载运算符的调用位置通常只显示 `+`、`[]`、`()` 等符号，
 函数名。查询符号由 clangd 标识为 `operator...`，且引用范围与对应运算符
 token 匹配时，References 会显示 `Function Call (inferred)`，证据规则为
 `role.overloaded-operator-call`。这不会把同一行中无关的标点当成该运算符调用。
+
+### 模板与宏来源
+
+C Insight 会检查 clangd 返回的 Definition 和 Declaration：
+
+- 定义行为 `#define` 时，引用证据 `macro.symbol` 的 `origin` 指向宏定义的
+  URI、行和列。
+- 定义或声明附近存在 `template <...>` 时，结果增加 `Template` 标签，并以
+  `template.declaration` 记录模板声明来源。
+- 位于预处理指令本身的引用仍额外记录 `macro.directive`。
+
+悬停提示会显示 `Origin`；文本导出采用 `来源:规则@Origin`，JSON 则在每条
+evidence 的 `origin` 字段保存来源。该分析说明符号从哪个声明产生，不尝试完整
+重建编译器的宏展开栈或每个模板实例化步骤。
 
 ### 分组方式
 
