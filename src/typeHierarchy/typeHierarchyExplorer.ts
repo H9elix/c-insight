@@ -12,6 +12,8 @@ import {
 import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import {
   isTypeHierarchyRecursion,
+  matchesTypeHierarchySearchFilters,
+  TypeHierarchyRelation,
   typeHierarchyEvidence,
   typeHierarchyKey,
 } from "../utils/typeHierarchy";
@@ -94,7 +96,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
 
   async search(direction: TypeHierarchyDirection): Promise<void> {
     const nodes = flatten(this.provider(direction).getRoots()).filter(
-      (node) => node.location,
+      (node) => node.location && node.typeHierarchyEvidence && node.typeKind,
     );
     if (nodes.length === 0) {
       void vscode.window.showInformationMessage(
@@ -102,12 +104,62 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       );
       return;
     }
+    const kinds = [
+      "all",
+      ...new Set(nodes.map((node) => node.typeKind).filter(Boolean)),
+    ] as string[];
+    const kind = await vscode.window.showQuickPick(
+      kinds.map((value) => ({
+        label: value === "all" ? "All type kinds" : value,
+        value,
+      })),
+      {
+        title: `Filter Loaded ${label(direction)} by Type Kind`,
+      },
+    );
+    if (!kind) {
+      return;
+    }
+    const relationships: Array<TypeHierarchyRelation | "all"> = [
+      "all",
+      "queried-type",
+      direction === "supertypes" ? "direct-supertype" : "direct-subtype",
+    ];
+    const relationship = await vscode.window.showQuickPick(
+      relationships.map((value) => ({
+        label: value === "all" ? "All relationships" : value,
+        value,
+      })),
+      {
+        title: `Filter Loaded ${label(direction)} by Relationship`,
+      },
+    );
+    if (!relationship) {
+      return;
+    }
+    const filtered = nodes.filter((node) =>
+      matchesTypeHierarchySearchFilters(
+        {
+          kind: node.typeKind!,
+          relationship: node.typeHierarchyEvidence!.relationship,
+        },
+        kind.value,
+        relationship.value,
+      ),
+    );
+    if (filtered.length === 0) {
+      void vscode.window.showInformationMessage(
+        "C Insight: No loaded type hierarchy nodes match the selected filters.",
+      );
+      return;
+    }
     const selected = await vscode.window.showQuickPick(
-      nodes.map((node) => ({
+      filtered.map((node) => ({
         label: node.label,
-        description: node.description,
+        description:
+          `${node.typeKind} · ${node.typeHierarchyEvidence?.relationship} · depth ${node.typeDepth ?? 0}`,
         detail: node.location
-          ? `${vscode.workspace.asRelativePath(node.location.uri)}:${node.location.range.start.line + 1}`
+          ? `${vscode.workspace.asRelativePath(node.location.uri)}:${node.location.range.start.line + 1} · ${(node.typePath ?? [node.label]).join(" → ")}`
           : undefined,
         node,
       })),
@@ -230,6 +282,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     direction: TypeHierarchyDirection,
     ancestors: string[],
     depth: number,
+    ancestorNames: string[] = [],
   ): TreeNode {
     const key = typeHierarchyKey(item);
     const recursive = isTypeHierarchyRecursion(item, ancestors);
@@ -273,6 +326,8 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       contextValue: "typeHierarchyLocation",
       typeHierarchyEvidence: evidence,
       typeKind: kind,
+      typeDepth: depth,
+      typePath: [...ancestorNames, item.name],
       collapsibleState:
         recursive || duplicate || atDepthLimit
           ? vscode.TreeItemCollapsibleState.None
@@ -293,7 +348,13 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
                       this.treeState[direction].remaining(this.maximumNodes),
                     )
                     .map((child) =>
-                      this.node(child, direction, [...ancestors, key], depth + 1),
+                      this.node(
+                        child,
+                        direction,
+                        [...ancestors, key],
+                        depth + 1,
+                        [...ancestorNames, item.name],
+                      ),
                     );
             },
     };

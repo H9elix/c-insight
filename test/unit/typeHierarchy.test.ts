@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { TypeHierarchyItem } from "vscode-languageserver-types";
 import {
   isTypeHierarchyRecursion,
+  matchesTypeHierarchySearchFilters,
   typeHierarchyKey,
   typeHierarchyEvidence,
   typeHierarchyMermaidEdge,
@@ -48,6 +49,25 @@ describe("type hierarchy helpers", () => {
     assert.equal(
       typeHierarchyEvidence("subtypes", 1).relationship,
       "direct-subtype",
+    );
+  });
+
+  it("filters loaded type nodes by kind and relationship without querying", () => {
+    const record = {
+      kind: "Class",
+      relationship: "direct-supertype" as const,
+    };
+    assert.equal(
+      matchesTypeHierarchySearchFilters(record, "all", "all"),
+      true,
+    );
+    assert.equal(
+      matchesTypeHierarchySearchFilters(record, "Class", "direct-supertype"),
+      true,
+    );
+    assert.equal(
+      matchesTypeHierarchySearchFilters(record, "Struct", "all"),
+      false,
     );
   });
 });

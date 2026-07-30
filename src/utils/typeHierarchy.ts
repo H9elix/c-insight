@@ -15,6 +15,22 @@ export interface TypeHierarchyEvidence {
   confidence: "semantic";
 }
 
+export interface TypeHierarchySearchRecord {
+  kind: string;
+  relationship: TypeHierarchyRelation;
+}
+
+export function matchesTypeHierarchySearchFilters(
+  record: TypeHierarchySearchRecord,
+  kind: string,
+  relationship: TypeHierarchyRelation | "all",
+): boolean {
+  return (
+    (kind === "all" || record.kind === kind) &&
+    (relationship === "all" || record.relationship === relationship)
+  );
+}
+
 export function typeHierarchyKey(item: TypeHierarchyItem): string {
   return [
     item.uri,

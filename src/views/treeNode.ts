@@ -28,6 +28,8 @@ export interface TreeNode {
   includeFileUri?: vscode.Uri;
   typeHierarchyEvidence?: TypeHierarchyEvidence;
   typeKind?: string;
+  typeDepth?: number;
+  typePath?: string[];
 }
 
 export class MutableTreeProvider
