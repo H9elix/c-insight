@@ -1,4 +1,4 @@
-# C Insight 0.15.0 使用手册
+# C Insight 0.15.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -350,6 +350,15 @@ Call Site 子节点指向调用发生的位置。
 
 显式函数指针或成员函数指针调用可能标记为 `possible indirect call`。clangd
 无法解析的运行时目标不会被 C Insight 猜测或伪造。
+
+展开 Callees 节点时，C Insight 还会在对应函数体中查找明确的
+`(*callback)(...)`、`(object.*handler)(...)` 和 `(pointer->*handler)(...)`
+语法。如果 clangd 的 Outgoing Calls 没有包含该位置，则添加可导航的
+`Unresolved indirect call` 节点，说明其为函数指针或成员函数指针以及
+`syntax evidence`。该节点只证明“这里存在显式间接调用”，不会猜测运行时目标。
+
+扫描会忽略注释、字符串和字符字面量，并限制为函数体前 2000 行；只有用户展开
+对应 Callees 节点时才执行，不会在隐藏窗口或未展开节点上后台扫描。
 
 ### Callers/Callees 共用 Pin
 

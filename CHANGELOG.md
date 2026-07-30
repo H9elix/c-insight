@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.1
+
+- Scanned an expanded function body for explicit function-pointer and member-
+  function-pointer call syntax not represented in clangd outgoing calls.
+- Added navigable Unresolved Indirect Call nodes with syntax evidence while
+  deliberately avoiding guesses about runtime targets.
+- Excluded comments and quoted literals from indirect-call syntax scanning and
+  bounded each scan to the first 2,000 lines of the function body.
+
 ## 0.15.0
 
 - Persisted exact expanded Callers and Callees node paths independently.
