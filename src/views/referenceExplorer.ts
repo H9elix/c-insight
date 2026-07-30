@@ -57,6 +57,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   private lastDurationMs?: number;
   private macroSymbol = false;
   private callableSymbol = false;
+  private queriedSymbolName?: string;
   private readonly highlightRequests = new Map<
     string,
     Promise<DocumentHighlight[]>
@@ -95,6 +96,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.definitions = definitions;
     this.declarations = declarations;
     this.callableSymbol = callableSymbol;
+    this.queriedSymbolName = symbolName;
     this.resultsStaleReason = undefined;
     if (this.pinned) {
       this.pinnedSymbol = symbolName ?? this.pinnedSymbol;
@@ -722,6 +724,7 @@ export class ReferenceExplorer implements vscode.Disposable {
         macroSymbol: this.macroSymbol,
         callableSymbol: this.callableSymbol,
         parameterLabel,
+        queriedSymbolName: this.queriedSymbolName,
       },
     );
   }

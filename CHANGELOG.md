@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.2
+
+- Recognized punctuation-based uses of overloaded C++ operators as inferred
+  function calls when clangd identifies the queried symbol as an operator.
+- Covered ordinary, subscript, and call operators without treating unrelated
+  punctuation as operator references.
+
 ## 0.14.1
 
 - Distinguished writes through a pointer from writes to the pointer variable.
