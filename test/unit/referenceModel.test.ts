@@ -7,6 +7,7 @@ import {
   isAddressAcquisition,
   isIndirectWrite,
   isMacroDefinitionLine,
+  isOverloadedOperatorUse,
   isReadWriteUse,
   isSimpleWrite,
   looksLikeFunctionCall,
@@ -149,6 +150,28 @@ describe("reference classification", () => {
       "Read/Write · Reference Write (inferred)",
     );
     assert.equal(classification.evidence.at(-1)?.source, "clangd-signature");
+  });
+
+  it("recognizes overloaded operator tokens as inferred calls", () => {
+    assert.equal(isOverloadedOperatorUse("left + right", 5, "operator+"), true);
+    assert.equal(isOverloadedOperatorUse("items[index]", 5, "operator[]"), true);
+    assert.equal(isOverloadedOperatorUse("callable()", 8, "operator()"), true);
+    assert.equal(isOverloadedOperatorUse("left - right", 5, "operator+"), false);
+    const reference = location("file:///source.cpp", 2, 5, 6);
+    const classification = enhanceReferenceClassification(
+      reference,
+      "reference",
+      {
+        sourceLine: "left + right",
+        queriedSymbolName: "operator+",
+      },
+    );
+    assert.equal(referenceClassificationLabel(classification), "Function Call (inferred)");
+    assert.equal(classification.role, "call");
+    assert.equal(
+      classification.evidence.at(-1)?.rule,
+      "role.overloaded-operator-call",
+    );
   });
 
   it("marks macro symbols and macro directives", () => {

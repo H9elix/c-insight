@@ -35,6 +35,7 @@ export interface ReferenceEvidence {
   macroSymbol?: boolean;
   callableSymbol?: boolean;
   parameterLabel?: string;
+  queriedSymbolName?: string;
 }
 
 export interface ComparableLocation {
@@ -113,6 +114,23 @@ export function enhanceReferenceClassification(
   }
   const macro = classificationEvidence.length > 0;
 
+  if (
+    role === "reference" &&
+    evidence.queriedSymbolName?.startsWith("operator") &&
+    source &&
+    isOverloadedOperatorUse(
+      source,
+      character,
+      evidence.queriedSymbolName,
+    )
+  ) {
+    return classified(role === "reference" ? "call" : role, macro, "inferred",
+      classificationEvidence, {
+        source: "symbol-metadata",
+        rule: "role.overloaded-operator-call",
+        summary: `The queried symbol is “${evidence.queriedSymbolName}” and the reference range matches its operator token.`,
+      });
+  }
   if (role === "definition" || role === "declaration" || role === "call") {
     const primary: ReferenceClassificationEvidence =
       role === "call"
@@ -374,6 +392,25 @@ export function classifyParameterEffect(
       : "pointee-write";
   }
   return undefined;
+}
+
+export function isOverloadedOperatorUse(
+  sourceLine: string,
+  character: number,
+  symbolName: string,
+): boolean {
+  const operator = symbolName.slice("operator".length).trim();
+  if (!operator) {
+    return false;
+  }
+  const start = clampCharacter(sourceLine, character);
+  const candidates =
+    operator === "[]"
+      ? ["[", "]"]
+      : operator === "()"
+        ? ["(", ")"]
+        : [operator];
+  return candidates.some((token) => sourceLine.startsWith(token, start));
 }
 
 export function isMacroDirectiveReference(
