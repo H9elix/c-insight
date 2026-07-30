@@ -26,6 +26,14 @@ describe("workspace session snapshot", () => {
         query: "decode",
         selectedKinds: [12],
       },
+      callHierarchy: {
+        uri: "file:///workspace/main.cpp",
+        position: { line: 1, character: 4 },
+        incomingDepth: 3,
+        outgoingDepth: 2,
+        incomingExpandedPaths: ["root", "root\u0000caller"],
+        outgoingExpandedPaths: [],
+      },
       relationshipGraph: {
         schemaVersion: 1,
         graph: {
@@ -54,11 +62,37 @@ describe("workspace session snapshot", () => {
     });
     assert.equal(snapshot?.preview?.title, "main");
     assert.deepEqual(snapshot?.symbolSearch?.selectedKinds, [12]);
+    assert.deepEqual(snapshot?.callHierarchy?.incomingExpandedPaths, [
+      "root",
+      "root\u0000caller",
+    ]);
+    assert.deepEqual(snapshot?.callHierarchy?.outgoingExpandedPaths, []);
     assert.equal(
       snapshot?.relationshipGraph?.graph.nodes[0].name,
       "main",
     );
     assert.equal(snapshot?.relationshipGraph?.viewport.scale, 1.2);
+  });
+
+  it("rejects unbounded call hierarchy expansion identities", () => {
+    const snapshot = parseWorkspaceSession({
+      format: "c-insight-workspace-session",
+      version: 1,
+      savedAt: 100,
+      callHierarchy: {
+        uri: "file:///workspace/main.cpp",
+        position: { line: 1, character: 4 },
+        incomingDepth: 1,
+        outgoingDepth: 1,
+        incomingExpandedPaths: Array.from(
+          { length: 501 },
+          (_, index) => `path-${index}`,
+        ),
+        outgoingExpandedPaths: [],
+      },
+    });
+    assert.ok(snapshot);
+    assert.equal(snapshot.callHierarchy, undefined);
   });
 
   it("rejects unsupported envelopes and drops malformed sections", () => {

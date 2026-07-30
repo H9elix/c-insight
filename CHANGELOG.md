@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+- Persisted exact expanded Callers and Callees node paths independently.
+- Restored only branches that were expanded at save time instead of rebuilding
+  every node up to the previously observed maximum depth.
+- Removed collapsed branches and their descendants from the saved expansion
+  state.
+- Bounded each direction to 500 stable paths and retained maximum-depth
+  restoration as compatibility behavior for older session snapshots.
+
 ## 0.14.4
 
 - Added a References filter for semantic/syntax/inferred/unknown confidence

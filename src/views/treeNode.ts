@@ -20,6 +20,7 @@ export interface TreeNode {
   callKey?: string;
   callDepth?: number;
   callNode?: CallNode;
+  callPath?: string;
   parent?: TreeNode;
   bookmarkId?: string;
   bookmarkGroup?: string;
