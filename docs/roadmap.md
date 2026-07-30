@@ -60,7 +60,8 @@ expansion, search, and export. Version 0.16.0 added explicit relationship,
 protocol evidence, confidence, type-kind, declaration, and duplicate/cycle
 explanations to the tree and exports. Exact cross-session expansion restoration
 remains deferred until real-world usage justifies adding Type Hierarchy to the
-unified workspace snapshot.
+unified workspace snapshot. Version 0.16.1 added local kind/relationship
+filters plus depth- and path-aware search over loaded nodes.
 
 ## Include hierarchy
 

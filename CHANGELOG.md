@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.1
+
+- Added type-kind and relationship filters before searching loaded Supertypes
+  or Subtypes.
+- Added inheritance depth and the full loaded path to every search result.
+- Preserved distinct occurrences of the same type on different loaded paths
+  and revealed the selected occurrence in its original tree.
+- Kept all search work local to already loaded nodes without issuing semantic
+  requests or expanding hidden branches.
+
 ## 0.16.0
 
 - Added explicit queried-type, direct-supertype, and direct-subtype

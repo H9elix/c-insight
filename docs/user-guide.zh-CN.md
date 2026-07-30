@@ -1,4 +1,4 @@
-# C Insight 0.16.0 使用手册
+# C Insight 0.16.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -694,7 +694,9 @@ Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一�
 - 单击节点：以 Definition 模式更新 Code Preview，并写入 Navigation History。
 - 右键 Open Location：在主编辑器打开。
 - 右键 Add Bookmark：保存类型位置。
-- Search Loaded Supertypes/Subtypes：只搜索当前已经加载的节点。
+- Search Loaded Supertypes/Subtypes：先按 Class/Struct/Interface 等类型种类
+  和 queried/supertype/subtype 关系过滤，再用输入框搜索名称、关系、文件或
+  路径。结果显示继承深度和完整已加载路径；选择后定位原树节点。
 - Expand to Depth：批量加载指定深度。
 - Stop Type Hierarchy Expansion：取消正在进行的批量展开。
 - 窗口 `...` 菜单可导出 Text、JSON 或 Mermaid。
@@ -713,6 +715,9 @@ Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一�
 JSON 导出的每个类型节点包含 `kind`、`relationship` 和结构化 `evidence`；
 Text 导出在节点后以花括号附加同等信息。Mermaid 仍保持简洁标签，并始终使用
 “父类型 → 子类型”的语义方向。
+
+搜索只遍历当前已经加载的节点，不会调用 clangd，也不会展开隐藏分支。同一
+类型通过不同继承路径出现时保留为不同搜索结果，路径信息用于区分具体位置。
 
 树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd
 重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show
