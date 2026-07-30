@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { CallNode, LocationResult } from "../models/types";
 import type { NavigationMode } from "../history/navigationHistoryModel";
+import type { TypeHierarchyEvidence } from "../utils/typeHierarchy";
 
 export interface TreeNode {
   id?: string;
@@ -25,6 +26,8 @@ export interface TreeNode {
   bookmarkId?: string;
   bookmarkGroup?: string;
   includeFileUri?: vscode.Uri;
+  typeHierarchyEvidence?: TypeHierarchyEvidence;
+  typeKind?: string;
 }
 
 export class MutableTreeProvider

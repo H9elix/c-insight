@@ -8,6 +8,13 @@ export interface HierarchyExportNode {
   sourceUri?: string;
   line?: number;
   states: string[];
+  kind?: string;
+  relationship?: string;
+  evidence?: {
+    source: string;
+    method: string;
+    confidence: string;
+  };
   children: HierarchyExportNode[];
 }
 
@@ -68,7 +75,17 @@ function hierarchyText(node: HierarchyExportNode, depth = 0): string {
     : "";
   const states =
     node.states.length > 0 ? ` [${node.states.join(", ")}]` : "";
-  const line = `${"  ".repeat(depth)}${node.name}${location}${states}`;
+  const semantics = [
+    node.kind,
+    node.relationship,
+    node.evidence
+      ? `${node.evidence.source}:${node.evidence.method} (${node.evidence.confidence})`
+      : undefined,
+  ].filter(Boolean);
+  const semanticText =
+    semantics.length > 0 ? ` {${semantics.join("; ")}}` : "";
+  const line =
+    `${"  ".repeat(depth)}${node.name}${location}${states}${semanticText}`;
   return node.children.length > 0
     ? `${line}\n${node.children.map((child) => hierarchyText(child, depth + 1)).join("\n")}`
     : line;
