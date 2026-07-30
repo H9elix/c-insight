@@ -80,6 +80,10 @@ export class ViewRegistry implements vscode.Disposable {
     issues: [],
   };
   private callResultsStaleReason?: string;
+  private readonly expandedCallPaths = {
+    incoming: new Set<string>(),
+    outgoing: new Set<string>(),
+  };
 
   get navigationVisible(): boolean {
     return Object.values(this.navigationVisibility).some(Boolean);
@@ -135,6 +139,32 @@ export class ViewRegistry implements vscode.Disposable {
         showCollapseAll: true,
       });
       this.treeViews.set(id, treeView);
+      const callDirection =
+        id === "cInsight.callers"
+          ? "incoming"
+          : id === "cInsight.callees"
+            ? "outgoing"
+            : undefined;
+      if (callDirection) {
+        this.disposables.push(
+          treeView.onDidExpandElement(({ element }) => {
+            if (element.callPath) {
+              this.expandedCallPaths[callDirection].add(element.callPath);
+            }
+          }),
+          treeView.onDidCollapseElement(({ element }) => {
+            if (!element.callPath) {
+              return;
+            }
+            const prefix = `${element.callPath}\u0000`;
+            for (const path of this.expandedCallPaths[callDirection]) {
+              if (path === element.callPath || path.startsWith(prefix)) {
+                this.expandedCallPaths[callDirection].delete(path);
+              }
+            }
+          }),
+        );
+      }
       if (id === "cInsight.references") {
         this.referenceExplorer.attachTreeView(treeView);
       }
@@ -357,6 +387,8 @@ export class ViewRegistry implements vscode.Disposable {
       }
       this.callTreeState.incoming.reset();
       this.callTreeState.outgoing.reset();
+      this.expandedCallPaths.incoming.clear();
+      this.expandedCallPaths.outgoing.clear();
       const callerRoots = context.callRoots.map((root) =>
         this.callTreeNode(root, "incoming", [], 0),
       );
@@ -437,6 +469,8 @@ export class ViewRegistry implements vscode.Disposable {
       },
       incomingDepth: maximumLoadedDepth(this.callers.getRoots()),
       outgoingDepth: maximumLoadedDepth(this.callees.getRoots()),
+      incomingExpandedPaths: [...this.expandedCallPaths.incoming].slice(0, 500),
+      outgoingExpandedPaths: [...this.expandedCallPaths.outgoing].slice(0, 500),
     };
   }
 
@@ -446,15 +480,39 @@ export class ViewRegistry implements vscode.Disposable {
     if (!state) {
       return;
     }
+    this.stopCallExpansion();
+    this.expandedCallPaths.incoming.clear();
+    this.expandedCallPaths.outgoing.clear();
+    await Promise.all([
+      vscode.commands.executeCommand(
+        "workbench.actions.treeView.cInsight.callers.collapseAll",
+      ),
+      vscode.commands.executeCommand(
+        "workbench.actions.treeView.cInsight.callees.collapseAll",
+      ),
+    ]);
     const maximumDepth = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
       .get<number>("maximumDepth", 10);
     const incomingDepth = Math.min(maximumDepth, state.incomingDepth);
     const outgoingDepth = Math.min(maximumDepth, state.outgoingDepth);
-    if (incomingDepth > 0) {
+    const hasExactState =
+      state.incomingExpandedPaths !== undefined ||
+      state.outgoingExpandedPaths !== undefined;
+    if (state.incomingExpandedPaths) {
+      await this.restoreExpandedCallPaths(
+        "incoming",
+        state.incomingExpandedPaths,
+      );
+    } else if (incomingDepth > 0 && !hasExactState) {
       await this.expandCallHierarchy("incoming", incomingDepth, false);
     }
-    if (outgoingDepth > 0) {
+    if (state.outgoingExpandedPaths) {
+      await this.restoreExpandedCallPaths(
+        "outgoing",
+        state.outgoingExpandedPaths,
+      );
+    } else if (outgoingDepth > 0 && !hasExactState) {
       await this.expandCallHierarchy("outgoing", outgoingDepth, false);
     }
     this.markResultsStale("restored from the previous session");
@@ -949,6 +1007,48 @@ export class ViewRegistry implements vscode.Disposable {
     }
   }
 
+  private async restoreExpandedCallPaths(
+    direction: "incoming" | "outgoing",
+    serializedPaths: string[],
+  ): Promise<void> {
+    const wanted = new Set(serializedPaths.slice(0, 500));
+    if (wanted.size === 0) {
+      return;
+    }
+    const provider =
+      direction === "incoming" ? this.callers : this.callees;
+    const view = this.treeViews.get(
+      direction === "incoming"
+        ? "cInsight.callers"
+        : "cInsight.callees",
+    );
+    const queue = [...provider.getRoots()];
+    while (
+      queue.length > 0 &&
+      !this.callTreeState[direction].atLimit(this.maximumCallNodes())
+    ) {
+      const node = queue.shift()!;
+      if (!node.callPath || !wanted.has(node.callPath)) {
+        continue;
+      }
+      const children = await provider.getChildren(node);
+      this.expandedCallPaths[direction].add(node.callPath);
+      await view?.reveal(node, {
+        expand: true,
+        focus: false,
+        select: false,
+      });
+      for (const child of children) {
+        if (
+          child.callPath &&
+          hasPathOrDescendant(wanted, child.callPath)
+        ) {
+          queue.push(child);
+        }
+      }
+    }
+  }
+
   private async callNeighbors(
     direction: "incoming" | "outgoing",
     node: CallNode,
@@ -1058,6 +1158,7 @@ export class ViewRegistry implements vscode.Disposable {
       callKey: node.key,
       callDepth: depth,
       callNode: node,
+      callPath: [...ancestors, node.key].join("\u0000"),
       icon: new vscode.ThemeIcon(recursive ? "debug-restart" : "symbol-method"),
       collapsibleState: recursive
         ? vscode.TreeItemCollapsibleState.None
@@ -1264,6 +1365,16 @@ export class ViewRegistry implements vscode.Disposable {
     }
   }
 
+}
+
+function hasPathOrDescendant(paths: Set<string>, candidate: string): boolean {
+  const prefix = `${candidate}\u0000`;
+  for (const path of paths) {
+    if (path === candidate || path.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function limitNode(label: string): TreeNode {

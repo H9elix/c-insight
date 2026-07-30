@@ -30,8 +30,10 @@ modes, and self-describing versioned exports.
 
 Version 0.7.1 provides bounded call-path search, Mermaid graph export, and
 explicit indirect-call syntax hints. Version 0.10.0 restores the call root and
-maximum loaded depth by re-querying clangd. Exact per-node expansion identity
-and deeper unresolved function-pointer/indirect-call analysis remain deferred.
+maximum loaded depth by re-querying clangd. Version 0.15.0 added bounded,
+direction-specific stable path identities and restores only nodes that were
+actually expanded. Deeper unresolved function-pointer/indirect-call analysis
+remains deferred.
 
 ## Engineering diagnostics
 

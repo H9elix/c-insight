@@ -40,6 +40,8 @@ export interface CallHierarchySessionState {
   position: { line: number; character: number };
   incomingDepth: number;
   outgoingDepth: number;
+  incomingExpandedPaths?: string[];
+  outgoingExpandedPaths?: string[];
 }
 
 export interface RelationshipGraphSessionState {
@@ -191,7 +193,9 @@ export function parseWorkspaceSession(
     Number.isInteger(value.callHierarchy.incomingDepth) &&
     (value.callHierarchy.incomingDepth as number) >= 0 &&
     Number.isInteger(value.callHierarchy.outgoingDepth) &&
-    (value.callHierarchy.outgoingDepth as number) >= 0
+    (value.callHierarchy.outgoingDepth as number) >= 0 &&
+    isStringArrayWithin(value.callHierarchy.incomingExpandedPaths, 500) &&
+    isStringArrayWithin(value.callHierarchy.outgoingExpandedPaths, 500)
   ) {
     snapshot.callHierarchy =
       value.callHierarchy as unknown as CallHierarchySessionState;
@@ -201,6 +205,15 @@ export function parseWorkspaceSession(
     snapshot.relationshipGraph = relationshipGraph;
   }
   return snapshot;
+}
+
+function isStringArrayWithin(value: unknown, maximum: number): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.length <= maximum &&
+      value.every((item) => typeof item === "string" && item.length <= 8_192))
+  );
 }
 
 function parseRelationshipGraph(
