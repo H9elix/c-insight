@@ -12,6 +12,7 @@ import {
 import { HierarchyTreeState } from "../utils/hierarchyTreeState";
 import {
   isTypeHierarchyRecursion,
+  typeHierarchyEvidence,
   typeHierarchyKey,
 } from "../utils/typeHierarchy";
 import {
@@ -236,20 +237,42 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     const uri = vscode.Uri.parse(item.uri);
     const range = this.analysis.toVsRange(item.selectionRange);
     const atDepthLimit = depth >= this.maximumDepth;
-    const detail = duplicate
-      ? `duplicate · ${item.detail ?? vscode.workspace.asRelativePath(uri)}`
-      : item.detail ??
-        `${vscode.workspace.asRelativePath(uri)}:${range.start.line + 1}`;
+    const kind = typeKindLabel(item.kind);
+    const evidence = typeHierarchyEvidence(direction, depth);
+    const locationDetail =
+      item.detail ??
+      `${vscode.workspace.asRelativePath(uri)}:${range.start.line + 1}`;
+    const state = recursive
+      ? "cycle: stable type identity occurs in the active ancestor path"
+      : duplicate
+        ? "duplicate: stable type identity was already loaded elsewhere"
+        : undefined;
+    const detail = [kind, state, locationDetail].filter(Boolean).join(" · ");
+    const tooltip = [
+      `${kind}: ${item.name}`,
+      `Relationship: ${evidence.relationship}`,
+      `Evidence: ${evidence.source} ${evidence.method}`,
+      `Confidence: ${evidence.confidence}`,
+      `Declaration: ${uri.fsPath}:${range.start.line + 1}:${range.start.character + 1}`,
+      item.detail ? `Detail: ${item.detail}` : undefined,
+      state ? `State: ${state}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n");
     return {
       id: `type:${direction}:${ancestors.join(">")}:${key}`,
       label: item.name,
       description: atDepthLimit ? `${detail} · max depth` : detail,
-      tooltip: `${item.detail ?? typeKindLabel(item.kind)}\n${uri.fsPath}:${range.start.line + 1}`,
-      icon: new vscode.ThemeIcon(typeIcon(item.kind)),
+      tooltip,
+      icon: new vscode.ThemeIcon(
+        recursive ? "debug-restart" : duplicate ? "copy" : typeIcon(item.kind),
+      ),
       location: { uri, range },
       previewMode: "definition",
       previewTitle: item.name,
       contextValue: "typeHierarchyLocation",
+      typeHierarchyEvidence: evidence,
+      typeKind: kind,
       collapsibleState:
         recursive || duplicate || atDepthLimit
           ? vscode.TreeItemCollapsibleState.None
@@ -490,6 +513,15 @@ function typeExportNode(node: TreeNode): HierarchyExportNode {
     uri: node.location?.uri.toString(),
     line: node.location ? node.location.range.start.line + 1 : undefined,
     states: hierarchyNodeStates(node.label, node.description),
+    kind: node.typeKind,
+    relationship: node.typeHierarchyEvidence?.relationship,
+    evidence: node.typeHierarchyEvidence
+      ? {
+          source: node.typeHierarchyEvidence.source,
+          method: node.typeHierarchyEvidence.method,
+          confidence: node.typeHierarchyEvidence.confidence,
+        }
+      : undefined,
     children: node.children?.map(typeExportNode) ?? [],
   };
 }

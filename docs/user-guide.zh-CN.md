@@ -1,4 +1,4 @@
-# C Insight 0.15.1 使用手册
+# C Insight 0.16.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -698,6 +698,21 @@ Supertypes** 或 **Show Subtypes**。一次查询会为两个窗口建立同一�
 - Expand to Depth：批量加载指定深度。
 - Stop Type Hierarchy Expansion：取消正在进行的批量展开。
 - 窗口 `...` 菜单可导出 Text、JSON 或 Mermaid。
+
+每个类型节点会显示 Class、Struct、Interface 或 Type 种类。将鼠标悬停到节点
+可查看：
+
+- `queried-type`、`direct-supertype` 或 `direct-subtype` 关系。
+- 关系来自 `textDocument/prepareTypeHierarchy`、
+  `typeHierarchy/supertypes` 或 `typeHierarchy/subtypes`。
+- `semantic` 置信度，表示关系由 clangd 语义协议直接返回。
+- 完整声明文件、行、列以及 clangd detail。
+- 重复节点表示相同稳定类型身份已在树中其他位置加载；cycle 节点表示相同身份
+  出现在当前祖先路径中。两者会说明停止继续展开的原因。
+
+JSON 导出的每个类型节点包含 `kind`、`relationship` 和结构化 `evidence`；
+Text 导出在节点后以花括号附加同等信息。Mermaid 仍保持简洁标签，并始终使用
+“父类型 → 子类型”的语义方向。
 
 树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd
 重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show

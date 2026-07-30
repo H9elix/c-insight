@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0
+
+- Added explicit queried-type, direct-supertype, and direct-subtype
+  relationship metadata to Type Hierarchy nodes.
+- Displayed the clangd protocol method, semantic confidence, type kind,
+  declaration position, and duplicate/cycle reason in node tooltips.
+- Added structured type kind, relationship, and evidence fields to JSON
+  hierarchy exports and equivalent annotations to text exports.
+- Added distinct icons and explanations for duplicate and cyclic type nodes.
+
 ## 0.15.1
 
 - Scanned an expanded function body for explicit function-pointer and member-

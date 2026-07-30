@@ -56,9 +56,11 @@ remains governed by their separate roadmap notes.
 ## Type hierarchy
 
 Version 0.11.0 added clangd-backed Supertypes and Subtypes trees, bounded lazy
-expansion, search, and export. Exact cross-session expansion restoration is
-deferred until real-world usage justifies adding Type Hierarchy to the unified
-workspace snapshot.
+expansion, search, and export. Version 0.16.0 added explicit relationship,
+protocol evidence, confidence, type-kind, declaration, and duplicate/cycle
+explanations to the tree and exports. Exact cross-session expansion restoration
+remains deferred until real-world usage justifies adding Type Hierarchy to the
+unified workspace snapshot.
 
 ## Include hierarchy
 

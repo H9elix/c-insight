@@ -4,6 +4,7 @@ import type { TypeHierarchyItem } from "vscode-languageserver-types";
 import {
   isTypeHierarchyRecursion,
   typeHierarchyKey,
+  typeHierarchyEvidence,
   typeHierarchyMermaidEdge,
 } from "../../src/utils/typeHierarchy";
 
@@ -31,5 +32,22 @@ describe("type hierarchy helpers", () => {
 
   it("always renders inheritance from supertype to subtype", () => {
     assert.equal(typeHierarchyMermaidEdge("base", "derived"), "base --> derived");
+  });
+
+  it("describes the exact clangd evidence for each hierarchy direction", () => {
+    assert.deepEqual(typeHierarchyEvidence("supertypes", 0), {
+      relationship: "queried-type",
+      source: "clangd",
+      method: "textDocument/prepareTypeHierarchy",
+      confidence: "semantic",
+    });
+    assert.equal(
+      typeHierarchyEvidence("supertypes", 1).method,
+      "typeHierarchy/supertypes",
+    );
+    assert.equal(
+      typeHierarchyEvidence("subtypes", 1).relationship,
+      "direct-subtype",
+    );
   });
 });
