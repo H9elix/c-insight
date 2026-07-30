@@ -18,12 +18,14 @@ export interface ReferenceClassificationEvidence {
   source: ReferenceEvidenceSource;
   rule: string;
   summary: string;
+  origin?: string;
 }
 
 export interface ReferenceClassification {
   role: ReferenceKind;
   access?: ReferenceAccess;
   macro: boolean;
+  template?: boolean;
   confidence: ReferenceConfidence;
   effect?: "pointee-write" | "reference-write";
   evidence: ReferenceClassificationEvidence[];
@@ -33,6 +35,9 @@ export interface ReferenceEvidence {
   sourceLine?: string;
   highlightKind?: number;
   macroSymbol?: boolean;
+  macroOrigin?: string;
+  templateSymbol?: boolean;
+  templateOrigin?: string;
   callableSymbol?: boolean;
   parameterLabel?: string;
   queriedSymbolName?: string;
@@ -103,6 +108,7 @@ export function enhanceReferenceClassification(
       source: "symbol-metadata",
       rule: "macro.symbol",
       summary: "The queried symbol is defined as a preprocessor macro.",
+      origin: evidence.macroOrigin,
     });
   }
   if (source && isMacroDirectiveReference(source, character)) {
@@ -113,6 +119,15 @@ export function enhanceReferenceClassification(
     });
   }
   const macro = classificationEvidence.length > 0;
+  if (evidence.templateSymbol) {
+    classificationEvidence.push({
+      source: "symbol-metadata",
+      rule: "template.declaration",
+      summary: "The queried symbol originates from a C++ template declaration.",
+      origin: evidence.templateOrigin,
+    });
+  }
+  const template = Boolean(evidence.templateSymbol);
 
   if (
     role === "reference" &&
@@ -129,7 +144,7 @@ export function enhanceReferenceClassification(
         source: "symbol-metadata",
         rule: "role.overloaded-operator-call",
         summary: `The queried symbol is “${evidence.queriedSymbolName}” and the reference range matches its operator token.`,
-      });
+      }, undefined, undefined, template);
   }
   if (role === "definition" || role === "declaration" || role === "call") {
     const primary: ReferenceClassificationEvidence =
@@ -150,6 +165,9 @@ export function enhanceReferenceClassification(
       role === "call" ? "syntax" : "semantic",
       classificationEvidence,
       primary,
+      undefined,
+      undefined,
+      template,
     );
   }
   if (source && isAddressAcquisition(source, character)) {
@@ -157,21 +175,21 @@ export function enhanceReferenceClassification(
       source: "source-syntax",
       rule: "access.address-of",
       summary: "A unary address-of operator is applied to the identifier.",
-    }, "address");
+    }, "address", undefined, template);
   }
   if (source && isReadWriteUse(source, character)) {
     return classified(role, macro, "syntax", classificationEvidence, {
       source: "source-syntax",
       rule: "access.readwrite-operator",
       summary: "An increment, decrement, or compound-assignment operator reads and writes the identifier.",
-    }, "readwrite");
+    }, "readwrite", undefined, template);
   }
   if (source && isIndirectWrite(source, character)) {
     return classified(role, macro, "syntax", classificationEvidence, {
       source: "source-syntax",
       rule: "effect.pointee-write",
       summary: "An assignment writes through this pointer to the pointed-to object.",
-    }, "read", "pointee-write");
+    }, "read", "pointee-write", template);
   }
   const parameterEffect = evidence.parameterLabel
     ? classifyParameterEffect(evidence.parameterLabel)
@@ -181,14 +199,14 @@ export function enhanceReferenceClassification(
       source: "clangd-signature",
       rule: "effect.mutable-reference-argument",
       summary: `clangd maps the argument to mutable reference parameter “${evidence.parameterLabel}”.`,
-    }, "readwrite", "reference-write");
+    }, "readwrite", "reference-write", template);
   }
   if (parameterEffect === "pointee-write") {
     return classified(role, macro, "inferred", classificationEvidence, {
       source: "clangd-signature",
       rule: "effect.mutable-pointer-argument",
       summary: `clangd maps the argument to pointer parameter “${evidence.parameterLabel}”, which permits writing the pointed-to object.`,
-    }, "read", "pointee-write");
+    }, "read", "pointee-write", template);
   }
   // LSP DocumentHighlightKind.Read = 2, Write = 3.
   if (evidence.highlightKind === 2) {
@@ -196,21 +214,21 @@ export function enhanceReferenceClassification(
       source: "clangd-highlight",
       rule: "access.highlight-read",
       summary: "clangd Document Highlight classifies the occurrence as a read.",
-    }, "read");
+    }, "read", undefined, template);
   }
   if (evidence.highlightKind === 3) {
     return classified(role, macro, "semantic", classificationEvidence, {
       source: "clangd-highlight",
       rule: "access.highlight-write",
       summary: "clangd Document Highlight classifies the occurrence as a write.",
-    }, "write");
+    }, "write", undefined, template);
   }
   if (source && isSimpleWrite(source, character)) {
     return classified(role, macro, "syntax", classificationEvidence, {
       source: "source-syntax",
       rule: "access.simple-assignment",
       summary: "A simple assignment operator follows the identifier.",
-    }, "write");
+    }, "write", undefined, template);
   }
   if (evidence.callableSymbol && source) {
     const tail = source.slice(identifierEnd(source, character));
@@ -219,21 +237,24 @@ export function enhanceReferenceClassification(
         source: "symbol-metadata",
         rule: "access.callable-non-call",
         summary: "A callable symbol is used without a call argument list, so its address is likely used.",
-      }, "address");
+      }, "address", undefined, template);
     }
   }
   return classified(role, macro, "unknown", classificationEvidence, {
     source: "fallback",
     rule: "reference.unclassified",
     summary: "No supported semantic or syntax rule classified this occurrence.",
-  });
+  }, undefined, undefined, template);
 }
 
 export function referenceClassificationExplanation(
   classification: ReferenceClassification,
 ): string {
   const evidence = classification.evidence
-    .map((item) => `${item.source} [${item.rule}]: ${item.summary}`)
+    .map((item) =>
+      `${item.source} [${item.rule}]: ${item.summary}` +
+      (item.origin ? ` Origin: ${item.origin}` : ""),
+    )
     .join("\n");
   return `Confidence: ${confidenceLabel(classification.confidence)}\nEvidence:\n${evidence}`;
 }
@@ -246,11 +267,13 @@ function classified(
   primaryEvidence: ReferenceClassificationEvidence,
   access?: ReferenceAccess,
   effect?: ReferenceClassification["effect"],
+  template?: boolean,
 ): ReferenceClassification {
   return {
     role,
     access,
     macro,
+    template,
     confidence,
     effect,
     evidence: [...existingEvidence, primaryEvidence],
@@ -267,6 +290,9 @@ export function referenceClassificationLabel(
   const labels: string[] = [];
   if (classification.macro) {
     labels.push("Macro");
+  }
+  if (classification.template) {
+    labels.push("Template");
   }
   if (classification.access) {
     labels.push(accessLabel(classification.access));
@@ -423,6 +449,10 @@ export function isMacroDirectiveReference(
 
 export function isMacroDefinitionLine(sourceLine: string): boolean {
   return /^\s*#\s*define\b/.test(sourceLine);
+}
+
+export function isTemplateDeclarationContext(sourceLines: string[]): boolean {
+  return /\btemplate\s*</.test(sourceLines.join("\n"));
 }
 
 function accessLabel(access: ReferenceAccess): string {

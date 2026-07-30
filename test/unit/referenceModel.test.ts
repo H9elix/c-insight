@@ -8,6 +8,7 @@ import {
   isIndirectWrite,
   isMacroDefinitionLine,
   isOverloadedOperatorUse,
+  isTemplateDeclarationContext,
   isReadWriteUse,
   isSimpleWrite,
   looksLikeFunctionCall,
@@ -184,6 +185,7 @@ describe("reference classification", () => {
         sourceLine: "int n = BUFFER_SIZE;",
         highlightKind: 2,
         macroSymbol: true,
+        macroOrigin: "file:///include/config.h:7:9",
       },
     );
     assert.equal(referenceClassificationLabel(classification), "Macro · Read");
@@ -191,6 +193,43 @@ describe("reference classification", () => {
       "macro.symbol",
       "access.highlight-read",
     ]);
+    assert.equal(
+      classification.evidence[0].origin,
+      "file:///include/config.h:7:9",
+    );
+  });
+
+  it("records template declaration provenance", () => {
+    assert.equal(
+      isTemplateDeclarationContext([
+        "template <typename T>",
+        "T max_value(T left, T right) {",
+      ]),
+      true,
+    );
+    assert.equal(
+      isTemplateDeclarationContext(["int max_value(int left, int right);"]),
+      false,
+    );
+    const reference = location("file:///source.cpp", 8, 10, 19);
+    const classification = enhanceReferenceClassification(
+      reference,
+      "call",
+      {
+        sourceLine: "auto n = max_value(1, 2);",
+        templateSymbol: true,
+        templateOrigin: "file:///include/math.hpp:3:3",
+      },
+    );
+    assert.equal(
+      referenceClassificationLabel(classification),
+      "Template · Function Call",
+    );
+    assert.equal(classification.evidence[0].rule, "template.declaration");
+    assert.equal(
+      classification.evidence[0].origin,
+      "file:///include/math.hpp:3:3",
+    );
   });
 
   it("labels non-called callable uses as inferred addresses", () => {
