@@ -179,6 +179,9 @@ export function registerCommands(
   register("cInsight.references.scope", () =>
     views.referenceExplorer.chooseScope(),
   );
+  register("cInsight.references.filterEvidence", () =>
+    views.referenceExplorer.chooseEvidenceFilter(),
+  );
   register("cInsight.references.loadMore", () =>
     views.referenceExplorer.loadMore(),
   );

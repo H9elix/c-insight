@@ -25,8 +25,19 @@ import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode } from "./treeNode";
 import type { ReferenceSessionState } from "../session/workspaceSession";
 
-type GroupMode = "file" | "directory" | "function" | "type" | "flat";
+type GroupMode =
+  | "file"
+  | "directory"
+  | "function"
+  | "type"
+  | "confidence"
+  | "evidence"
+  | "flat";
 type ReferenceScope = "all" | "workspace" | "directory" | "file";
+type EvidenceFilter =
+  | "all"
+  | `confidence:${ReferenceClassification["confidence"]}`
+  | `source:${ReferenceClassification["evidence"][number]["source"]}`;
 type ExplorerState = "idle" | "loading" | "ready" | "cancelled" | "error";
 
 interface ReferenceRecord {
@@ -50,6 +61,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   private query = "";
   private groupMode: GroupMode = "file";
   private scope: ReferenceScope = "all";
+  private evidenceFilter: EvidenceFilter = "all";
   private displayedLimit = 200;
   private restoredDisplayedLimit?: number;
   private generation = 0;
@@ -251,6 +263,16 @@ export class ReferenceExplorer implements vscode.Disposable {
         description: "Group by definition, call, access, or other reference",
         value: "type",
       },
+      {
+        label: "Confidence",
+        description: "Group by semantic, syntax, inferred, or unknown confidence",
+        value: "confidence",
+      },
+      {
+        label: "Evidence Source",
+        description: "Group by the primary classification evidence source",
+        value: "evidence",
+      },
       { label: "Flat", description: "Show one flat result list", value: "flat" },
     ];
     const picked = await vscode.window.showQuickPick(options, {
@@ -264,6 +286,43 @@ export class ReferenceExplorer implements vscode.Disposable {
     await vscode.workspace
       .getConfiguration("cInsight.references")
       .update("groupBy", picked.value, vscode.ConfigurationTarget.Workspace);
+    this.displayedLimit = this.pageSize();
+    await this.rebuild();
+  }
+
+  async chooseEvidenceFilter(): Promise<void> {
+    const values: EvidenceFilter[] = [
+      "all",
+      "confidence:semantic",
+      "confidence:syntax",
+      "confidence:inferred",
+      "confidence:unknown",
+      "source:clangd-result",
+      "source:clangd-highlight",
+      "source:clangd-signature",
+      "source:source-syntax",
+      "source:symbol-metadata",
+      "source:fallback",
+    ];
+    const picked = await vscode.window.showQuickPick(
+      values.map((value) => ({
+        label:
+          value === "all"
+            ? "All classifications"
+            : value.replace(":", ": "),
+        description:
+          value === this.evidenceFilter ? "Current filter" : undefined,
+        value,
+      })),
+      {
+        title: "C Insight: Reference Evidence Filter",
+        placeHolder: `Current: ${this.evidenceFilter}`,
+      },
+    );
+    if (!picked) {
+      return;
+    }
+    this.evidenceFilter = picked.value;
     this.displayedLimit = this.pageSize();
     await this.rebuild();
   }
@@ -472,6 +531,19 @@ export class ReferenceExplorer implements vscode.Disposable {
         return record;
       });
     }
+    if (
+      this.evidenceFilter !== "all" ||
+      this.groupMode === "confidence" ||
+      this.groupMode === "evidence"
+    ) {
+      records = await mapLimit(records, 8, async (record) => {
+        await this.enhanceRecord(record);
+        return record;
+      });
+    }
+    records = records.filter((record) =>
+      matchesEvidenceFilter(record.classification, this.evidenceFilter),
+    );
     if (generation !== this.generation) {
       return;
     }
@@ -530,6 +602,10 @@ export class ReferenceExplorer implements vscode.Disposable {
             ? record.functionName ?? "Global scope"
             : this.groupMode === "type"
               ? referenceTypeGroup(record.classification)
+            : this.groupMode === "confidence"
+              ? confidenceGroup(record.classification)
+            : this.groupMode === "evidence"
+              ? evidenceGroup(record.classification)
             : relative;
       const values = groups.get(key) ?? [];
       values.push(record);
@@ -551,6 +627,10 @@ export class ReferenceExplorer implements vscode.Disposable {
               ? "symbol-function"
               : this.groupMode === "type"
                 ? "symbol-enum"
+              : this.groupMode === "confidence"
+                ? "verified"
+              : this.groupMode === "evidence"
+                ? "inspect"
               : "file",
         ),
         children: values.map((record) => this.referenceNode(record, false)),
@@ -649,20 +729,35 @@ export class ReferenceExplorer implements vscode.Disposable {
     const lines = await mapLimit(records, 8, (record) =>
       this.renderRecord(record),
     );
-    return lines.join("\n");
+    return [
+      `# C Insight References · ${records.length} results · group=${this.groupMode} · scope=${this.scope} · evidenceFilter=${this.evidenceFilter}`,
+      ...lines,
+    ].join("\n");
   }
 
-  private async jsonRecords(records: ReferenceRecord[]): Promise<unknown[]> {
+  private async jsonRecords(records: ReferenceRecord[]): Promise<unknown> {
     await this.renderText(records);
-    return records.map((record) => ({
-      uri: record.location.uri.toString(),
-      path: record.location.uri.fsPath,
-      line: record.location.range.start.line + 1,
-      character: record.location.range.start.character + 1,
-      kind: record.kind,
-      classification: record.classification,
-      source: record.source?.trim() ?? "",
-    }));
+    return {
+      schema: "c-insight.references",
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      filters: {
+        query: this.query,
+        scope: this.scope,
+        evidence: this.evidenceFilter,
+        grouping: this.groupMode,
+      },
+      count: records.length,
+      references: records.map((record) => ({
+        uri: record.location.uri.toString(),
+        path: record.location.uri.fsPath,
+        line: record.location.range.start.line + 1,
+        character: record.location.range.start.character + 1,
+        kind: record.kind,
+        classification: record.classification,
+        source: record.source?.trim() ?? "",
+      })),
+    };
   }
 
   private summary(): string {
@@ -673,6 +768,7 @@ export class ReferenceExplorer implements vscode.Disposable {
       this.groupMode,
       this.scope !== "all" ? this.scope : undefined,
       this.query ? `“${this.query}”` : undefined,
+      this.evidenceFilter !== "all" ? this.evidenceFilter : undefined,
     ].filter(Boolean);
     return filters.join(" · ");
   }
@@ -882,6 +978,30 @@ function referenceTypeOrder(label: string): number {
   ];
   const index = order.indexOf(label);
   return index < 0 ? order.length : index;
+}
+
+export function matchesEvidenceFilter(
+  classification: ReferenceClassification,
+  filter: EvidenceFilter,
+): boolean {
+  if (filter === "all") {
+    return true;
+  }
+  const [kind, value] = filter.split(":", 2);
+  return kind === "confidence"
+    ? classification.confidence === value
+    : classification.evidence.some((item) => item.source === value);
+}
+
+function confidenceGroup(classification: ReferenceClassification): string {
+  return `Confidence: ${classification.confidence}`;
+}
+
+function evidenceGroup(classification: ReferenceClassification): string {
+  const primary = classification.evidence.at(-1);
+  return primary
+    ? `Evidence: ${primary.source}`
+    : "Evidence: unavailable";
 }
 
 function sameLocation(left: LocationResult, right: LocationResult): boolean {

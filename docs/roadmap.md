@@ -22,7 +22,9 @@ by standard clangd Document Highlights. Version 0.14.2 then recognized
 punctuation-based overloaded operator references as inferred calls. Version
 0.14.3 added macro-definition and template-declaration provenance. Full
 compiler macro expansion stacks and template instantiation chains remain
-outside the standard clangd reference protocol.
+outside the standard clangd reference protocol. Version 0.14.4 completed this
+classification phase with confidence/evidence filters, matching grouping
+modes, and self-describing versioned exports.
 
 ## Call hierarchy follow-ups
 
