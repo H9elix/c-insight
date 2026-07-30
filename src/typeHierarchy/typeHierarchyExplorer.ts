@@ -231,6 +231,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         direction,
         edgeDirection:
           direction === "supertypes" ? "child-to-parent" : "parent-to-child",
+        summary: this.exportSummary(direction, roots),
       },
       format,
     );
@@ -340,22 +341,27 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
                 return [limitNode()];
               }
               const children = await this.children(item, direction);
-              return children.length === 0
-                ? [emptyNode(direction)]
-                : children
-                    .slice(
-                      0,
-                      this.treeState[direction].remaining(this.maximumNodes),
-                    )
-                    .map((child) =>
-                      this.node(
-                        child,
-                        direction,
-                        [...ancestors, key],
-                        depth + 1,
-                        [...ancestorNames, item.name],
-                      ),
-                    );
+              if (children.length === 0) {
+                return [emptyNode(direction)];
+              }
+              const loaded = children
+                .slice(
+                  0,
+                  this.treeState[direction].remaining(this.maximumNodes),
+                )
+                .map((child) =>
+                  this.node(
+                    child,
+                    direction,
+                    [...ancestors, key],
+                    depth + 1,
+                    [...ancestorNames, item.name],
+                  ),
+                );
+              if (loaded.length < children.length) {
+                loaded.push(limitNode());
+              }
+              return loaded;
             },
     };
   }
@@ -489,6 +495,42 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     return this.provider(direction)
       .getRoots()
       .filter((node) => node.location);
+  }
+
+  private exportSummary(
+    direction: TypeHierarchyDirection,
+    roots: TreeNode[],
+  ): Record<string, unknown> {
+    const nodes = flatten(roots).filter((node) => node.location);
+    const count = (values: Array<string | undefined>): Record<string, number> =>
+      values.reduce<Record<string, number>>((output, value) => {
+        if (value) {
+          output[value] = (output[value] ?? 0) + 1;
+        }
+        return output;
+      }, {});
+    const states = nodes.flatMap((node) =>
+      hierarchyNodeStates(node.label, node.description),
+    );
+    return {
+      loadedNodes: nodes.length,
+      maximumLoadedDepth: nodes.reduce(
+        (maximum, node) => Math.max(maximum, node.typeDepth ?? 0),
+        0,
+      ),
+      unexpandedNodes: nodes.filter((node) => Boolean(node.loadChildren)).length,
+      kinds: count(nodes.map((node) => node.typeKind)),
+      relationships: count(
+        nodes.map((node) => node.typeHierarchyEvidence?.relationship),
+      ),
+      states: count(states),
+      truncatedBy: {
+        maximumDepth: states.includes("maximum-depth"),
+        maximumNodes:
+          this.treeState[direction].loadedNodes >= this.maximumNodes ||
+          states.includes("maximum-nodes"),
+      },
+    };
   }
 
   private get defaultDepth(): number {

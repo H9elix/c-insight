@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.2
+
+- Added loaded node, maximum depth, unexpanded node, kind, relationship, and
+  hierarchy-state statistics to Type Hierarchy exports.
+- Reported maximum-depth and maximum-node truncation independently.
+- Added summaries to the versioned JSON envelope, text header, and Mermaid
+  comment without triggering additional hierarchy queries.
+- Added an explicit node-limit marker when a returned type relation set must be
+  truncated.
+
 ## 0.16.1
 
 - Added type-kind and relationship filters before searching loaded Supertypes

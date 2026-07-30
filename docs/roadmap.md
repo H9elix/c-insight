@@ -61,7 +61,9 @@ protocol evidence, confidence, type-kind, declaration, and duplicate/cycle
 explanations to the tree and exports. Exact cross-session expansion restoration
 remains deferred until real-world usage justifies adding Type Hierarchy to the
 unified workspace snapshot. Version 0.16.1 added local kind/relationship
-filters plus depth- and path-aware search over loaded nodes.
+filters plus depth- and path-aware search over loaded nodes. Version 0.16.2
+added loaded-subgraph statistics and explicit depth/node truncation metadata
+to every Type Hierarchy export format.
 
 ## Include hierarchy
 
