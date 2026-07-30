@@ -1,4 +1,4 @@
-# C Insight 0.16.1 使用手册
+# C Insight 0.16.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -718,6 +718,19 @@ Text 导出在节点后以花括号附加同等信息。Mermaid 仍保持简洁�
 
 搜索只遍历当前已经加载的节点，不会调用 clangd，也不会展开隐藏分支。同一
 类型通过不同继承路径出现时保留为不同搜索结果，路径信息用于区分具体位置。
+
+Type Hierarchy 导出还包含当前已加载子图的统计：
+
+- `loadedNodes` 和 `maximumLoadedDepth`。
+- 尚未展开的 `unexpandedNodes`。
+- Class、Struct、Interface 等 `kinds` 计数。
+- queried/supertype/subtype `relationships` 计数。
+- duplicate、cycle、maximum-depth、maximum-nodes 等 `states` 计数。
+- `truncatedBy.maximumDepth` 和 `truncatedBy.maximumNodes` 独立标志。
+
+JSON 将统计放在顶层 `summary`；Text 使用 `# Summary` 首行；Mermaid 使用
+`%% Summary` 注释，因此不改变图的节点标签或边方向。统计只反映当前已加载
+子图，不会为了导出展开节点或产生新的 clangd 请求。
 
 树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd
 重启或 Type Hierarchy 配置变化后，已有结果显示 stale，需要重新执行 Show

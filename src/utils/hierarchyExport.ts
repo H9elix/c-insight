@@ -22,6 +22,7 @@ export interface HierarchyExportMetadata {
   relation: "call" | "type" | "include";
   direction: string;
   edgeDirection: HierarchyEdgeDirection;
+  summary?: Record<string, unknown>;
 }
 
 export function hierarchyNodeStates(
@@ -64,9 +65,15 @@ export function renderHierarchyExport(
     );
   }
   if (format === "mermaid") {
-    return hierarchyMermaid(roots, metadata.edgeDirection);
+    const diagram = hierarchyMermaid(roots, metadata.edgeDirection);
+    return metadata.summary
+      ? `%% Summary: ${JSON.stringify(metadata.summary)}\n${diagram}`
+      : diagram;
   }
-  return roots.map((root) => hierarchyText(root)).join("\n");
+  const body = roots.map((root) => hierarchyText(root)).join("\n");
+  return metadata.summary
+    ? `# Summary: ${JSON.stringify(metadata.summary)}\n${body}`
+    : body;
 }
 
 function hierarchyText(node: HierarchyExportNode, depth = 0): string {

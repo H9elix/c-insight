@@ -31,13 +31,28 @@ describe("hierarchy export", () => {
           relation: "call",
           direction: "callers",
           edgeDirection: "child-to-parent",
+          summary: { loadedNodes: 2, maximumLoadedDepth: 1 },
         },
         "json",
       ),
     );
     assert.equal(parsed.schemaVersion, 1);
     assert.equal(parsed.relation, "call");
+    assert.equal(parsed.summary.loadedNodes, 2);
     assert.deepEqual(parsed.roots[0].children[0].states, ["duplicate"]);
+  });
+
+  it("includes summaries in text and Mermaid without changing graph direction", () => {
+    const metadata = {
+      relation: "type" as const,
+      direction: "supertypes",
+      edgeDirection: "child-to-parent" as const,
+      summary: { loadedNodes: 2, truncatedBy: { maximumDepth: false } },
+    };
+    assert.match(renderHierarchyExport(roots, metadata, "text"), /^# Summary:/);
+    const mermaid = renderHierarchyExport(roots, metadata, "mermaid");
+    assert.match(mermaid, /^%% Summary:/);
+    assert.match(mermaid, /n1 --> n0/);
   });
 
   it("keeps semantic edge direction in Mermaid", () => {
