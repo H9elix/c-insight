@@ -1,4 +1,4 @@
-# C Insight 0.16.2 使用手册
+# C Insight 0.16.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1251,24 +1251,45 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 索引。C Insight 会过滤会产生全局命令冲突的 clangd execute-command 功能，
 但仍建议只保留实际需要的语义引擎。
 
-## 12. 当前限制
+## 12. 第二阶段语义增强与兼容性
+
+0.14.0–0.16.3 完成了第二阶段：
+
+- References：分类结论、置信度、稳定规则和来源证据；指针/引用参数副作用、
+  重载运算符、模板和宏来源；证据过滤、分组及版本化导出。
+- Call Hierarchy：Callers/Callees 精确分支恢复；显式函数指针和成员函数指针
+  调用的语法证据与未解析节点。
+- Type Hierarchy：关系和 clangd 方法证据；类型、声明、路径、深度及
+  duplicate/cycle 说明；本地过滤搜索和带统计的导出。
+
+兼容性约定：
+
+- Workspace Session 格式仍为版本 `1`。0.15.0 以前没有逐节点路径的 Call
+  Hierarchy 快照继续按最大已加载深度恢复。
+- 通用 Hierarchy JSON 仍为 `schemaVersion: 1`。新增的 `summary`、`kind`、
+  `relationship` 和 `evidence` 均为附加字段；旧的必要字段和边方向未改变。
+- References JSON 使用独立的 `c-insight.references` 版本 `1` 格式。
+- Type/Include Hierarchy 仍不写入 Workspace Session，符合此前备忘录决定。
+
+## 13. 当前限制
 
 - 主要面向单个本地工作区根目录。
 - Code Preview 复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与
   编辑器最终合成颜色存在细微差异。
 - 静态调用树无法完整解析运行时多态、所有函数指针、宏生成调用和动态分派。
-- References Read/Write 分类对复杂指针副作用、模板和重载运算符保持保守。
+- References 对跨过程指针目标、完整模板实例化链和编译器宏展开栈保持保守；
+  推断结果会显示证据和置信度。
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。
 - Include Hierarchy 不执行编译器或预处理器；编译器隐式平台头路径、宏生成的
   include 和条件编译的真实启用状态可能无法完整还原。
 
-## 13. 功能与窗口矩阵
+## 14. 功能与窗口矩阵
 
 | 功能/窗口 | 数据来源 | 自动更新 | Pin/Lock | 搜索 | 展开 | 导出 | Code Preview |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Context | clangd Definition、Declaration、Hover | 可见且 Follow Cursor 启用时 | 独立 Pin | — | — | — | 自动更新 |
 | Code Preview | 文档源码、VS Code Semantic Tokens | 跟随 Context 或显式选择 | 独立 Lock | 单击符号继续 Definition | 双向滚动加载源码 | 复制代码/路径 | 本窗口 |
-| References | clangd References、Document Highlight 与保守语法分类 | 仅窗口可见时查询详情 | 独立 Pin | 支持 | 分页、展开/折叠分组 | Text、JSON、列表 | 单击位置更新 |
+| References | clangd References、Highlight、Signature 与证据化语法分类 | 仅窗口可见时查询详情 | 独立 Pin | 文本、置信度、证据来源 | 分页；按类型、证据、置信度等分组 | 自描述 Text、版本化 JSON、列表 | 单击位置更新 |
 | Callers | clangd Incoming Call Hierarchy | 仅窗口可见时查询 | 与 Callees 共用 Pin | 已加载节点搜索、Caller Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击节点更新 |
 | Callees | clangd Outgoing Call Hierarchy | 仅窗口可见时查询 | 与 Callers 共用 Pin | 已加载节点搜索、Callee Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击定义或调用点更新 |
 | Navigation History | 所有显式/预览导航事件 | 导航时写入 | — | 来源过滤 | — | — | 单击记录恢复 |
@@ -1276,13 +1297,13 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 | Symbol Search | clangd Workspace Symbols | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击结果更新 |
 | Document Symbols | clangd Document Symbols | 窗口可见且活动文档变化时 | — | — | clangd 层级 | — | 单击符号更新 |
 | Project Diagnostics | clangd 状态、索引、数据库、编译命令和 diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | — |
-| Supertypes/Subtypes | clangd Type Hierarchy | 显式触发 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击类型更新 |
+| Supertypes/Subtypes | clangd Type Hierarchy 与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击类型更新 |
 | Includes/Included By | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击 Include 更新 |
 | Relationship Graph | Call、Type、Include 与 Definition 关系仓库 | 只在显式扩展时查询 | 面板生命周期 | 已加载图搜索 | 多关系、有界扩展 | Text、JSON、Mermaid | 单击节点更新 |
 
 `—` 表示该能力不适用于对应窗口，而不是功能异常。
 
-## 14. 状态持久化与配置生效矩阵
+## 15. 状态持久化与配置生效矩阵
 
 ### 14.1 状态保存位置
 
