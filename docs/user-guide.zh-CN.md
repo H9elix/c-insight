@@ -1,4 +1,4 @@
-# C Insight 0.14.3 使用手册
+# C Insight 0.14.4 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -273,6 +273,8 @@ evidence 的 `origin` 字段保存来源。该分析说明符号从哪个声明�
 | `directory` | 按目录和文件分组 |
 | `function` | 按引用所在函数分组 |
 | `type` | 按 Definition、Call、Read、Write 等引用类型分组 |
+| `confidence` | 按 Semantic、Syntax、Inferred、Unknown 置信度分组 |
+| `evidence` | 按最终分类规则的证据来源分组 |
 | `flat` | 不分组，显示平铺列表 |
 
 分组选择保存到工作区配置。
@@ -295,6 +297,8 @@ Change Reference Scope 提供：
 ### 搜索、分页和导出
 
 - Filter References：匹配源码、文件名、路径或引用分类。
+- Filter References by Confidence or Evidence：只保留指定置信度或包含指定证据
+  来源的引用；选择 All classifications 可清除该过滤。
 - Clear Reference Filter：清除搜索文本。
 - Load More References：再加载一个 `pageSize`。
 - Show All References：显示所有过滤后的引用。
@@ -305,6 +309,11 @@ Change Reference Scope 提供：
 
 源码行和部分分类会在节点可见时延迟加载，以降低大型工程开销。搜索和导出
 需要完整文本时会主动解析相关行。
+
+文本导出首行记录结果数、分组、范围和证据过滤条件。JSON 使用
+`c-insight.references`、版本 `1` 的导出结构，包含生成时间、活动过滤条件、
+结果总数和 `references` 数组；每条结果保留完整 classification/evidence，
+适合后续脚本处理。
 
 References 搜索文本和当前已显示数量与范围过滤相同：不写入工作区配置，但启用
 Workspace Session Restore 时会随工作区浏览快照恢复。
@@ -1005,7 +1014,7 @@ C Insight 默认管理：
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
 | `cInsight.references.pageSize` | number | `200` | 25–5000 | 每次添加到树中的引用数量 |
-| `cInsight.references.groupBy` | string | `"file"` | `"file"`、`"directory"`、`"function"`、`"type"`、`"flat"` | References 的持久化分组方式 |
+| `cInsight.references.groupBy` | string | `"file"` | `"file"`、`"directory"`、`"function"`、`"type"`、`"confidence"`、`"evidence"`、`"flat"` | References 的持久化分组方式 |
 | `cInsight.includeDeclarationInReferences` | boolean | `true` | `true` / `false` | 请求 References 时是否包含 Declaration |
 | `cInsight.includeSystemReferences` | boolean | `false` | `true` / `false` | 是否保留 `/usr/include` 和 `/usr/local/include` 下的引用 |
 | `cInsight.exclude` | string[] | `["/build/", "/generated/", "/third_party/"]` | 路径片段数组 | 只要标准化后的结果路径包含任一片段，就从 References 结果中过滤 |
@@ -1317,6 +1326,7 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 | Clear Reference Filter | `cInsight.references.clearSearch` | 命令面板 |
 | Change Reference Grouping | `cInsight.references.groupBy` | 命令面板；References 标题栏 |
 | Change Reference Scope | `cInsight.references.scope` | 命令面板；References 标题栏 |
+| Filter References by Confidence or Evidence | `cInsight.references.filterEvidence` | 命令面板；References 标题栏 |
 | Load More References | `cInsight.references.loadMore` | 命令面板 |
 | Show All References | `cInsight.references.showAll` | 命令面板 |
 | Copy Reference | `cInsight.references.copy` | 命令面板；树节点右键菜单 |

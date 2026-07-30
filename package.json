@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.14.3",
+  "version": "0.14.4",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -319,6 +319,11 @@
         "command": "cInsight.references.scope",
         "title": "C Insight: Change Reference Scope",
         "icon": "$(filter)"
+      },
+      {
+        "command": "cInsight.references.filterEvidence",
+        "title": "C Insight: Filter References by Confidence or Evidence",
+        "icon": "$(verified)"
       },
       {
         "command": "cInsight.references.loadMore",
@@ -709,6 +714,11 @@
           "command": "cInsight.references.scope",
           "when": "view == cInsight.references",
           "group": "navigation@3"
+        },
+        {
+          "command": "cInsight.references.filterEvidence",
+          "when": "view == cInsight.references",
+          "group": "navigation@4"
         },
         {
           "command": "cInsight.showIncomingCalls",
@@ -1274,6 +1284,8 @@
             "directory",
             "function",
             "type",
+            "confidence",
+            "evidence",
             "flat"
           ],
           "default": "file",

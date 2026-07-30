@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.4
+
+- Added a References filter for semantic/syntax/inferred/unknown confidence
+  and individual evidence sources.
+- Added Confidence and Evidence Source grouping modes.
+- Added a versioned JSON export envelope containing active filters, result
+  count, and fully structured classification evidence.
+- Added active grouping, scope, and evidence-filter metadata to text exports.
+
 ## 0.14.3
 
 - Added definition provenance for macro references, including the defining URI
