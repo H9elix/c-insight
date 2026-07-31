@@ -11,6 +11,7 @@ import {
   IncludeHierarchyRepository,
 } from "./includeHierarchyRepository";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import { writeExportWithinBudget } from "../utils/exportWriter";
 import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
@@ -192,10 +193,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       format === "mermaid" && target.path.toLowerCase().endsWith(".md")
         ? `\`\`\`mermaid\n${content}\n\`\`\`\n`
         : content;
-    await vscode.workspace.fs.writeFile(
-      target,
-      new TextEncoder().encode(rendered),
-    );
+    await writeExportWithinBudget(target, rendered);
   }
 
   dispose(): void {

@@ -154,12 +154,15 @@ workspace; scope filters are temporary.
 
 Only the first `cInsight.references.pageSize` results are added initially.
 Choose **Load More References** or **Show All References** for additional
-results. Source lines and Function Call classification are resolved only when
+results, up to `cInsight.references.maximumDisplayedResults`. Source lines and Function Call classification are resolved only when
 rows become visible, unless a source-text search or export explicitly needs
 all matching lines.
 
 Additional commands can copy one or all results, export text or JSON, open a
-plain-text result list, and expand or collapse groups.
+plain-text result list, and expand or collapse groups. Bulk output is bounded
+by `cInsight.export.maximumResults`; file exports also enforce
+`cInsight.export.maximumMegabytes`. Reference export preparation reports
+progress and can be cancelled.
 
 References has an independent Pin button. Callers and Callees each show a Pin
 button but share one synchronized Call Hierarchy pin state. Pinning blocks only
@@ -322,7 +325,11 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.analysis.maximumConcurrentRequests`
 - `cInsight.analysis.maximumBackgroundRequests`
 - `cInsight.references.pageSize`
+- `cInsight.references.maximumDisplayedResults`
+- `cInsight.references.detailRequestCacheSize`
 - `cInsight.references.groupBy`
+- `cInsight.export.maximumResults`
+- `cInsight.export.maximumMegabytes`
 - `cInsight.callHierarchy.defaultDepth`
 - `cInsight.callHierarchy.maximumDepth`
 - `cInsight.callHierarchy.maximumNodes`

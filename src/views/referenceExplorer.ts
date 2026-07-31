@@ -24,6 +24,7 @@ import {
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode } from "./treeNode";
 import type { ReferenceSessionState } from "../session/workspaceSession";
+import { encodeExportWithinBudget } from "../utils/exportBudget";
 
 type GroupMode =
   | "file"
@@ -363,12 +364,15 @@ export class ReferenceExplorer implements vscode.Disposable {
   }
 
   async loadMore(): Promise<void> {
-    this.displayedLimit += this.pageSize();
+    this.displayedLimit = Math.min(
+      this.maximumDisplayedResults(),
+      this.displayedLimit + this.pageSize(),
+    );
     await this.publish();
   }
 
   async showAll(): Promise<void> {
-    this.displayedLimit = Number.MAX_SAFE_INTEGER;
+    this.displayedLimit = this.maximumDisplayedResults();
     await this.publish();
   }
 
@@ -390,7 +394,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.scope = state.scope;
     this.restoredDisplayedLimit = Math.max(
       this.pageSize(),
-      state.displayedLimit,
+      Math.min(this.maximumDisplayedResults(), state.displayedLimit),
     );
     if (this.state === "ready") {
       this.displayedLimit = this.restoredDisplayedLimit;
@@ -413,10 +417,14 @@ export class ReferenceExplorer implements vscode.Disposable {
   }
 
   async copyAll(): Promise<void> {
-    const text = await this.renderText(this.filtered);
+    const records = this.filtered.slice(0, this.maximumExportResults());
+    const omitted = this.filtered.length - records.length;
+    const text = await this.renderText(records, omitted);
     await vscode.env.clipboard.writeText(text);
     void vscode.window.showInformationMessage(
-      `C Insight: Copied ${this.filtered.length} references.`,
+      omitted > 0
+        ? `C Insight: Copied ${records.length} references; omitted ${omitted} due to cInsight.export.maximumResults.`
+        : `C Insight: Copied ${records.length} references.`,
     );
   }
 
@@ -432,20 +440,70 @@ export class ReferenceExplorer implements vscode.Disposable {
     if (!uri) {
       return;
     }
-    const content =
-      format === "json"
-        ? JSON.stringify(await this.jsonRecords(this.filtered), null, 2)
-        : await this.renderText(this.filtered);
-    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+    const maximumResults = this.maximumExportResults();
+    const records = this.filtered.slice(0, maximumResults);
+    const omitted = this.filtered.length - records.length;
+    try {
+      const content = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `C Insight: Preparing ${format.toUpperCase()} reference export`,
+          cancellable: true,
+        },
+        async (progress, token) =>
+          format === "json"
+            ? JSON.stringify(
+                await this.jsonRecords(records, omitted, token, (completed) =>
+                  progress.report({
+                    message: `${completed} / ${records.length}`,
+                  }),
+                ),
+                null,
+                2,
+              )
+            : this.renderText(records, omitted, token, (completed) =>
+                progress.report({
+                  message: `${completed} / ${records.length}`,
+                }),
+              ),
+      );
+      const maximumMegabytes = vscode.workspace
+        .getConfiguration("cInsight.export")
+        .get<number>("maximumMegabytes", 64);
+      const encoded = encodeExportWithinBudget(content, maximumMegabytes);
+      if (!encoded.data) {
+        void vscode.window.showErrorMessage(
+          `C Insight: Export is ${formatBytes(encoded.bytes)}, exceeding the ${formatBytes(encoded.maximumBytes)} limit. Increase cInsight.export.maximumMegabytes or narrow the results.`,
+        );
+        return;
+      }
+      await vscode.workspace.fs.writeFile(uri, encoded.data);
+      if (omitted > 0) {
+        void vscode.window.showWarningMessage(
+          `C Insight: Exported the first ${records.length} references and omitted ${omitted} due to cInsight.export.maximumResults.`,
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof vscode.CancellationError)) {
+        throw error;
+      }
+    }
   }
 
   async openResultList(): Promise<void> {
-    const content = await this.renderText(this.filtered);
+    const records = this.filtered.slice(0, this.maximumExportResults());
+    const omitted = this.filtered.length - records.length;
+    const content = await this.renderText(records, omitted);
     const document = await vscode.workspace.openTextDocument({
       language: "text",
       content,
     });
     await vscode.window.showTextDocument(document, { preview: true });
+    if (omitted > 0) {
+      void vscode.window.showWarningMessage(
+        `C Insight: Opened the first ${records.length} references and omitted ${omitted} due to cInsight.export.maximumResults.`,
+      );
+    }
   }
 
   async expandAll(): Promise<void> {
@@ -566,9 +624,16 @@ export class ReferenceExplorer implements vscode.Disposable {
       this.provider.setRoots(this.withPinnedBanner(this.roots));
       return;
     }
-    const displayed = this.filtered.slice(0, this.displayedLimit);
+    const maximumDisplayed = this.maximumDisplayedResults();
+    const displayed = this.filtered.slice(
+      0,
+      Math.min(this.displayedLimit, maximumDisplayed),
+    );
     this.roots = this.group(displayed);
-    if (displayed.length < this.filtered.length) {
+    if (
+      displayed.length < this.filtered.length &&
+      displayed.length < maximumDisplayed
+    ) {
       this.roots.push({
         label: `Load more (${displayed.length} / ${this.filtered.length})`,
         description: `${this.filtered.length - displayed.length} remaining`,
@@ -578,11 +643,17 @@ export class ReferenceExplorer implements vscode.Disposable {
           title: "Load More References",
         },
       });
-    } else {
+    } else if (displayed.length === this.filtered.length) {
       this.roots.unshift({
         label: `${this.filtered.length} references`,
         description: this.summary(),
         icon: new vscode.ThemeIcon("references"),
+      });
+    } else {
+      this.roots.push({
+        label: `Display limit reached (${displayed.length} / ${this.filtered.length})`,
+        description: "narrow filters or raise maximumDisplayedResults",
+        icon: new vscode.ThemeIcon("warning"),
       });
     }
     this.provider.setRoots(this.withPinnedBanner(this.roots));
@@ -725,18 +796,40 @@ export class ReferenceExplorer implements vscode.Disposable {
     return `${record.location.uri.fsPath}:${record.location.range.start.line + 1}:${record.location.range.start.character + 1} [${referenceClassificationLabel(record.classification)}; confidence=${record.classification.confidence}; evidence=${evidence}] ${record.source?.trim() ?? ""}`;
   }
 
-  private async renderText(records: ReferenceRecord[]): Promise<string> {
-    const lines = await mapLimit(records, 8, (record) =>
-      this.renderRecord(record),
+  private async renderText(
+    records: ReferenceRecord[],
+    omitted = 0,
+    token?: vscode.CancellationToken,
+    report?: (completed: number) => void,
+  ): Promise<string> {
+    const lines = await mapLimit(
+      records,
+      8,
+      (record) => this.renderRecord(record),
+      token,
+      report,
     );
     return [
-      `# C Insight References · ${records.length} results · group=${this.groupMode} · scope=${this.scope} · evidenceFilter=${this.evidenceFilter}`,
+      `# C Insight References · ${records.length} results · omitted=${omitted} · group=${this.groupMode} · scope=${this.scope} · evidenceFilter=${this.evidenceFilter}`,
       ...lines,
     ].join("\n");
   }
 
-  private async jsonRecords(records: ReferenceRecord[]): Promise<unknown> {
-    await this.renderText(records);
+  private async jsonRecords(
+    records: ReferenceRecord[],
+    omitted = 0,
+    token?: vscode.CancellationToken,
+    report?: (completed: number) => void,
+  ): Promise<unknown> {
+    await mapLimit(
+      records,
+      8,
+      async (record) => {
+        await this.enhanceRecord(record);
+      },
+      token,
+      report,
+    );
     return {
       schema: "c-insight.references",
       version: 1,
@@ -748,6 +841,7 @@ export class ReferenceExplorer implements vscode.Disposable {
         grouping: this.groupMode,
       },
       count: records.length,
+      omitted,
       references: records.map((record) => ({
         uri: record.location.uri.toString(),
         path: record.location.uri.fsPath,
@@ -777,6 +871,24 @@ export class ReferenceExplorer implements vscode.Disposable {
     return vscode.workspace
       .getConfiguration("cInsight.references")
       .get<number>("pageSize", 200);
+  }
+
+  private maximumDisplayedResults(): number {
+    return vscode.workspace
+      .getConfiguration("cInsight.references")
+      .get<number>("maximumDisplayedResults", 10_000);
+  }
+
+  private detailRequestCacheSize(): number {
+    return vscode.workspace
+      .getConfiguration("cInsight.references")
+      .get<number>("detailRequestCacheSize", 2_000);
+  }
+
+  private maximumExportResults(): number {
+    return vscode.workspace
+      .getConfiguration("cInsight.export")
+      .get<number>("maximumResults", 50_000);
   }
 
   private withPinnedBanner(roots: TreeNode[]): TreeNode[] {
@@ -852,6 +964,10 @@ export class ReferenceExplorer implements vscode.Disposable {
         .documentHighlights(location.uri, location.range.start)
         .catch(() => []);
       this.highlightRequests.set(key, request);
+      trimMap(this.highlightRequests, this.detailRequestCacheSize());
+    } else {
+      this.highlightRequests.delete(key);
+      this.highlightRequests.set(key, request);
     }
     return request;
   }
@@ -867,6 +983,10 @@ export class ReferenceExplorer implements vscode.Disposable {
       request = this.analysis
         .activeParameterLabel(location.uri, location.range.start)
         .catch(() => undefined);
+      this.parameterRequests.set(key, request);
+      trimMap(this.parameterRequests, this.detailRequestCacheSize());
+    } else {
+      this.parameterRequests.delete(key);
       this.parameterRequests.set(key, request);
     }
     return request;
@@ -1081,19 +1201,43 @@ async function mapLimit<T, R>(
   values: T[],
   concurrency: number,
   mapper: (value: T) => Promise<R>,
+  token?: vscode.CancellationToken,
+  report?: (completed: number) => void,
 ): Promise<R[]> {
   const results = new Array<R>(values.length);
   let next = 0;
+  let completed = 0;
   const workers = Array.from(
     { length: Math.min(concurrency, values.length) },
     async () => {
       while (next < values.length) {
+        if (token?.isCancellationRequested) {
+          throw new vscode.CancellationError();
+        }
         const index = next;
         next += 1;
         results[index] = await mapper(values[index]);
+        completed += 1;
+        if (completed === values.length || completed % 100 === 0) {
+          report?.(completed);
+        }
       }
     },
   );
   await Promise.all(workers);
   return results;
+}
+
+function formatBytes(bytes: number): string {
+  return `${Math.round((bytes / 1024 / 1024) * 10) / 10} MiB`;
+}
+
+function trimMap<K, V>(values: Map<K, V>, maximumEntries: number): void {
+  while (values.size > maximumEntries) {
+    const oldest = values.keys().next().value as K | undefined;
+    if (oldest === undefined) {
+      return;
+    }
+    values.delete(oldest);
+  }
 }
