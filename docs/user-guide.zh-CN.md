@@ -1,4 +1,4 @@
-# C Insight 0.17.5 使用手册
+# C Insight 0.17.6 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -9,6 +9,13 @@
 - `clangd` 20 或更高版本。
 - 当前主要支持本地 C/C++ 工程和单个工作区根目录。
 - 实际工程强烈建议提供 `compile_commands.json`。
+
+开发者与维护者为 `youjinchun`，许可证为 MIT。当前尚未配置公开 Git 仓库、Issue
+或 Discussions 地址。C Insight 不包含遥测，也不会把源码上传到 C Insight 服务；
+完整边界见随扩展提供的 `PRIVACY.md` 与 `SECURITY.md`。
+
+命令面板执行 **C Insight: About** 可查看或复制插件版本、开发者、clangd 引擎、
+许可证、VS Code/平台/Remote 类型和隐私摘要，也可直接打开本使用手册。
 
 安装 VSIX 后，打开 C/C++ 工程并单击 Activity Bar 中的 **C Insight**
 图标。扩展会启动独立的 clangd 进程，不依赖微软 C/C++ 插件提供语义
@@ -1031,6 +1038,10 @@ clangd 自身进程的内存或内部索引队列。执行 Refresh Project Diagn
 最新快照。复制或导出的 Text/JSON Project Diagnostics 报告包含相同的 `runtime`
 数据；它只含方法名、数量和耗时，不记录源码、符号名或请求参数。
 
+Project Diagnostics 顶部的 `Extension information` 折叠分组显示插件版本、开发者、
+许可证、VS Code、Node、操作系统架构、Local/Remote 类型和 Production/Development/
+Test 运行模式。这些信息也会进入复制或导出的诊断报告，便于确认问题环境。
+
 ## 9. 全部配置参数
 
 可在 VS Code Settings UI 搜索 `C Insight`，或直接编辑工作区
@@ -1439,6 +1450,7 @@ clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结
 
 | 命令 | Command ID | 入口 |
 | --- | --- | --- |
+| About | `cInsight.about` | 命令面板 |
 | Show Relationship Graph | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
 | Show File Relationship Graph | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
 | Export Relationship Graph as Text | `cInsight.relationshipGraph.exportText` | 命令面板 |

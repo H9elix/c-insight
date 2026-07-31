@@ -14,6 +14,19 @@ and tooltips without overwhelming the result label.
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。
 
+## Developer and maintenance
+
+- Developer and maintainer: `youjinchun`
+- License: MIT
+- Semantic engine: clangd
+- Telemetry: none; C Insight does not upload source code
+- Public repository and issue tracker: not configured yet
+
+Use **C Insight: About** to inspect or copy the installed version and host
+information. Development requirements and quality gates are in
+`CONTRIBUTING.md`; disclosure guidance and data boundaries are in `SECURITY.md`
+and `PRIVACY.md`.
+
 ## MVP features
 
 - Go to definition and find references

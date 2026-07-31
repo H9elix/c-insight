@@ -80,6 +80,18 @@ describe("project diagnostics model", () => {
       schemaVersion: 1,
       generatedAt: "2026-07-29T00:00:00.000Z",
       workspaceTrusted: true,
+      extension: {
+        name: "C Insight",
+        version: "0.17.6",
+        developer: "youjinchun",
+        license: "MIT",
+        vscodeVersion: "1.130.0",
+        nodeVersion: "24.0.0",
+        platform: "linux",
+        architecture: "x64",
+        remoteName: "ssh-remote",
+        extensionMode: "test",
+      },
       clangd: {
         state: "ready",
         executable: "/usr/bin/clangd-20",
@@ -133,6 +145,9 @@ describe("project diagnostics model", () => {
       },
     });
     assert.match(text, /clangd: ready/);
+    assert.match(text, /Extension: C Insight 0\.17\.6/);
+    assert.match(text, /Developer: youjinchun/);
+    assert.match(text, /Host: linux x64 · ssh-remote · test/);
     assert.match(text, /Command source: inferred-candidate/);
     assert.match(text, /Candidate inferred from: \/workspace\/src\/api.c/);
     assert.match(text, /Line 3 \[error\]: 'config.h' file not found/);

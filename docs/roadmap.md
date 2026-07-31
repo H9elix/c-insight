@@ -29,6 +29,9 @@ shareable reports.
 Version 0.17.5 completed the third phase with a repeatable read-only clangd 20
 FFmpeg acceptance harness, full regression gates, packaged acceptance evidence,
 and a final documentation audit. Fourth-phase candidates remain deferred.
+Version 0.17.6 added maintainer metadata, packaged contributor/security/privacy
+policies, an About command, and diagnostic extension-host information. It does
+not reactivate deferred fourth-phase feature work.
 
 ## Deferred fourth phase
 
