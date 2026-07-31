@@ -25,6 +25,7 @@ import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import type { ReferenceSessionState } from "../session/workspaceSession";
 import { encodeExportWithinBudget } from "../utils/exportBudget";
+import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 
 type GroupMode =
   | "file"
@@ -84,6 +85,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   private pinnedSymbol?: string;
   private pinnedStale = false;
   private resultsStaleReason?: string;
+  private displayLimitReportedGeneration = -1;
   private reliability: AnalysisReliability = {
     level: "reliable",
     issues: [],
@@ -457,6 +459,10 @@ export class ReferenceExplorer implements vscode.Disposable {
     const maximumResults = this.maximumExportResults();
     const records = this.filtered.slice(0, maximumResults);
     const omitted = this.filtered.length - records.length;
+    if (omitted > 0) {
+      runtimeDiagnostics.increment("limits.references.bulkOutput");
+      runtimeDiagnostics.increment("limits.references.omittedRecords", omitted);
+    }
     try {
       const content = await vscode.window.withProgress(
         {
@@ -486,6 +492,7 @@ export class ReferenceExplorer implements vscode.Disposable {
         .get<number>("maximumMegabytes", 64);
       const encoded = encodeExportWithinBudget(content, maximumMegabytes);
       if (!encoded.data) {
+        runtimeDiagnostics.increment("limits.export.maximumMegabytes");
         void vscode.window.showErrorMessage(
           `C Insight: Export is ${formatBytes(encoded.bytes)}, exceeding the ${formatBytes(encoded.maximumBytes)} limit. Increase cInsight.export.maximumMegabytes or narrow the results.`,
         );
@@ -664,6 +671,10 @@ export class ReferenceExplorer implements vscode.Disposable {
         icon: new vscode.ThemeIcon("references"),
       });
     } else {
+      if (this.displayLimitReportedGeneration !== this.generation) {
+        this.displayLimitReportedGeneration = this.generation;
+        runtimeDiagnostics.increment("limits.references.display");
+      }
       this.roots.push(viewStatusNode(
         `Display limit reached (${displayed.length} / ${this.filtered.length})`,
         "limited",
@@ -980,7 +991,14 @@ export class ReferenceExplorer implements vscode.Disposable {
         .documentHighlights(location.uri, location.range.start)
         .catch(() => []);
       this.highlightRequests.set(key, request);
-      trimMap(this.highlightRequests, this.detailRequestCacheSize());
+      runtimeDiagnostics.increment(
+        "cache.references.highlightEvictions",
+        trimMap(this.highlightRequests, this.detailRequestCacheSize()),
+      );
+      runtimeDiagnostics.setGauge(
+        "cache.references.highlights",
+        this.highlightRequests.size,
+      );
     } else {
       this.highlightRequests.delete(key);
       this.highlightRequests.set(key, request);
@@ -1000,7 +1018,14 @@ export class ReferenceExplorer implements vscode.Disposable {
         .activeParameterLabel(location.uri, location.range.start)
         .catch(() => undefined);
       this.parameterRequests.set(key, request);
-      trimMap(this.parameterRequests, this.detailRequestCacheSize());
+      runtimeDiagnostics.increment(
+        "cache.references.parameterEvictions",
+        trimMap(this.parameterRequests, this.detailRequestCacheSize()),
+      );
+      runtimeDiagnostics.setGauge(
+        "cache.references.parameters",
+        this.parameterRequests.size,
+      );
     } else {
       this.parameterRequests.delete(key);
       this.parameterRequests.set(key, request);
@@ -1242,12 +1267,15 @@ function formatBytes(bytes: number): string {
   return `${Math.round((bytes / 1024 / 1024) * 10) / 10} MiB`;
 }
 
-function trimMap<K, V>(values: Map<K, V>, maximumEntries: number): void {
+function trimMap<K, V>(values: Map<K, V>, maximumEntries: number): number {
+  let evicted = 0;
   while (values.size > maximumEntries) {
     const oldest = values.keys().next().value as K | undefined;
     if (oldest === undefined) {
-      return;
+      return evicted;
     }
     values.delete(oldest);
+    evicted += 1;
   }
+  return evicted;
 }

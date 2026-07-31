@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { encodeExportWithinBudget } from "./exportBudget";
+import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 
 export async function writeExportWithinBudget(
   uri: vscode.Uri,
@@ -10,6 +11,7 @@ export async function writeExportWithinBudget(
     .get<number>("maximumMegabytes", 64);
   const encoded = encodeExportWithinBudget(content, maximumMegabytes);
   if (!encoded.data) {
+    runtimeDiagnostics.increment("limits.export.maximumMegabytes");
     void vscode.window.showErrorMessage(
       `C Insight: Export is ${formatBytes(encoded.bytes)}, exceeding the ${formatBytes(encoded.maximumBytes)} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.`,
     );

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.4
+
+- Added a Runtime Performance group to Project Diagnostics.
+- Reported semantic request queue depth, active and peak concurrency,
+  outcomes, coalescing, pre-dispatch cancellation, and latency statistics.
+- Added session counters for References display/bulk-output limits, omitted
+  records, oversized export rejection, and detail-cache eviction.
+- Reported current References detail-cache gauges and the configured request,
+  result, cache, and export resource limits.
+- Included the same runtime snapshot in text and JSON diagnostics reports.
+- Added deterministic runtime-counter and diagnostics-report coverage.
+
 ## 0.17.3
 
 - Added a shared semantic status model for idle, loading, empty, cancelled,

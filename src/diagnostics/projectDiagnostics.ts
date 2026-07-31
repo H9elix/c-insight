@@ -2,6 +2,8 @@ import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { ClangdManager } from "../clangd/clangdManager";
+import { AnalysisService } from "../analysis/analysisService";
+import { runtimeDiagnostics } from "./runtimeDiagnostics";
 import {
   CompilationDatabaseSelection,
   invalidateCompilationDatabaseResolution,
@@ -50,7 +52,10 @@ export class ProjectDiagnostics implements vscode.Disposable {
   readonly onDidRefresh = this.emitter.event;
   readonly onDidChangeReliability = this.reliabilityEmitter.event;
 
-  constructor(private readonly manager: ClangdManager) {}
+  constructor(
+    private readonly manager: ClangdManager,
+    private readonly analysis: AnalysisService,
+  ) {}
 
   async refresh(
     editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor,
@@ -344,6 +349,52 @@ export class ProjectDiagnostics implements vscode.Disposable {
     }
 
     roots.push(...diagnostics.nodes);
+    const scheduler = this.analysis.requestSchedulerStats();
+    const timing = this.analysis.requestTimingStats();
+    const runtime = runtimeDiagnostics.snapshot();
+    const runtimeLimits = configuredRuntimeLimits();
+    roots.push(
+      group("Runtime performance", "pulse", [
+        detail(
+          "Semantic request queue",
+          `${scheduler.active} active · ${scheduler.queued} queued · peak ${scheduler.peakActive}`,
+          scheduler.queued > 0 ? "clock" : "pass",
+        ),
+        detail(
+          "Request outcomes",
+          `${scheduler.completed} completed · ${scheduler.failed} failed · ${scheduler.coalesced} coalesced · ${scheduler.cancelledBeforeStart} cancelled before start`,
+          scheduler.failed > 0 ? "warning" : "pass",
+        ),
+        detail(
+          "Request latency",
+          `${timing.measured === 0 ? 0 : Math.round(timing.totalDurationMs / timing.measured)} ms average · ${Math.round(timing.maximumDurationMs)} ms maximum · ${timing.slow} slow`,
+          timing.slow > 0 ? "warning" : "dashboard",
+        ),
+        ...(timing.lastSlowMethod
+          ? [
+              detail(
+                "Last slow request",
+                `${timing.lastSlowMethod} · ${Math.round(timing.lastSlowDurationMs ?? 0)} ms`,
+                "clock",
+              ),
+            ]
+          : []),
+        ...Object.entries(runtime.counters).map(([name, value]) =>
+          detail(runtimeLabel(name), String(value), "warning"),
+        ),
+        ...Object.entries(runtime.gauges).map(([name, value]) =>
+          detail(runtimeLabel(name), String(value), "database"),
+        ),
+        group(
+          "Configured resource limits",
+          "settings-gear",
+          Object.entries(runtimeLimits).map(([name, value]) =>
+            detail(runtimeLabel(name), String(value), "symbol-number"),
+          ),
+          vscode.TreeItemCollapsibleState.Collapsed,
+        ),
+      ]),
+    );
     const progress = this.manager.currentIndexProgress;
     const report: ProjectDiagnosticsReport = {
       schemaVersion: 1,
@@ -395,6 +446,21 @@ export class ProjectDiagnostics implements vscode.Disposable {
           severity: diagnosticSeverityLabel(diagnostic.severity),
           message: diagnostic.message,
         })),
+      },
+      runtime: {
+        scheduler,
+        requests: {
+          measured: timing.measured,
+          averageDurationMs:
+            timing.measured === 0 ? 0 : timing.totalDurationMs / timing.measured,
+          maximumDurationMs: timing.maximumDurationMs,
+          slow: timing.slow,
+          lastSlowMethod: timing.lastSlowMethod,
+          lastSlowDurationMs: timing.lastSlowDurationMs,
+        },
+        counters: runtime.counters,
+        gauges: runtime.gauges,
+        limits: runtimeLimits,
       },
     };
     return { roots, reliability, report };
@@ -707,4 +773,56 @@ function diagnosticDetail(
 function normalizeFile(file: string): string {
   const normalized = path.normalize(file);
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function runtimeLabel(name: string): string {
+  const labels: Record<string, string> = {
+    "limits.references.display": "References display-limit hits",
+    "limits.references.bulkOutput": "References bulk-output limit hits",
+    "limits.references.omittedRecords": "References records omitted",
+    "limits.export.maximumMegabytes": "Oversized exports rejected",
+    "cache.references.highlightEvictions": "Highlight cache evictions",
+    "cache.references.parameterEvictions": "Parameter cache evictions",
+    "cache.references.highlights": "Highlight cache entries",
+    "cache.references.parameters": "Parameter cache entries",
+    "analysis.maximumConcurrentRequests": "Semantic request concurrency",
+    "analysis.maximumBackgroundRequests": "Background request concurrency",
+    "references.maximumDisplayedResults": "References displayed results",
+    "references.detailRequestCacheSize": "References detail cache entries",
+    "export.maximumResults": "References bulk-output records",
+    "export.maximumMegabytes": "Export encoded size (MiB)",
+  };
+  return labels[name] ?? name;
+}
+
+function configuredRuntimeLimits(): Record<string, number> {
+  const analysis = vscode.workspace.getConfiguration("cInsight.analysis");
+  const references = vscode.workspace.getConfiguration("cInsight.references");
+  const exportConfig = vscode.workspace.getConfiguration("cInsight.export");
+  return {
+    "analysis.maximumConcurrentRequests": analysis.get<number>(
+      "maximumConcurrentRequests",
+      8,
+    ),
+    "analysis.maximumBackgroundRequests": analysis.get<number>(
+      "maximumBackgroundRequests",
+      2,
+    ),
+    "references.maximumDisplayedResults": references.get<number>(
+      "maximumDisplayedResults",
+      10_000,
+    ),
+    "references.detailRequestCacheSize": references.get<number>(
+      "detailRequestCacheSize",
+      2_000,
+    ),
+    "export.maximumResults": exportConfig.get<number>(
+      "maximumResults",
+      50_000,
+    ),
+    "export.maximumMegabytes": exportConfig.get<number>(
+      "maximumMegabytes",
+      64,
+    ),
+  };
 }

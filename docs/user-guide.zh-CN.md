@@ -1,4 +1,4 @@
-# C Insight 0.17.3 使用手册
+# C Insight 0.17.4 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1013,6 +1013,23 @@ Insight 会根据 clangd 的 `I`、`W`、`E`、`V` 前缀重新分类：
 因此类似 `textDocument/hover`、`prepareCallHierarchy`、`Built preamble`、
 `ASTWorker building file` 的普通信息不需要当作故障。真正的 `error:`、
 连接关闭或进程启动失败才需要重点检查。
+
+### Runtime Performance 诊断
+
+Project Diagnostics 的 `Runtime performance` 分组提供当前扩展会话的只读快照：
+
+- 语义请求的 active、queued、peak active 数量；
+- submitted、completed、failed、coalesced 和排队期间取消数量；
+- 已实际发送请求的平均、最大耗时以及超过 1000 ms 的慢请求数量；
+- 最近一次慢请求的方法名和耗时；
+- References 显示/批量输出限制命中、被省略记录数、过大导出拒绝次数；
+- References 详情缓存当前条目数和 LRU 淘汰次数；
+- 当前生效的请求并发、References 显示/缓存及导出资源上限。
+
+计数从当前 Extension Host 会话启动时开始累计，重载窗口后清零；它们不包含
+clangd 自身进程的内存或内部索引队列。执行 Refresh Project Diagnostics 可取得
+最新快照。复制或导出的 Text/JSON Project Diagnostics 报告包含相同的 `runtime`
+数据；它只含方法名、数量和耗时，不记录源码、符号名或请求参数。
 
 ## 9. 全部配置参数
 
