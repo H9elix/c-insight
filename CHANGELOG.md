@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.2
+
+- Bounded the number of References rows materialized by paging and Show All.
+- Added cancellable, progress-reporting References exports with explicit
+  record-count and encoded-size limits; omitted records are reported in text
+  and JSON metadata.
+- Applied the record limit to Copy All and Open Result List so those commands
+  cannot bypass large-result protection.
+- Added encoded-size protection to Call, Type, Include, and Relationship Graph
+  file exports.
+- Bounded References detail-request caches with least-recently-used eviction.
+- Added unit coverage and complete configuration documentation for the new
+  resource limits.
+
 ## 0.17.1
 
 - Added a unified priority scheduler for clangd semantic requests with

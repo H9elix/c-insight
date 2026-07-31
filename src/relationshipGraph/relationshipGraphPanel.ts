@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { writeExportWithinBudget } from "../utils/exportWriter";
 import {
   DocumentSymbol,
   SymbolKind,
@@ -1791,7 +1792,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         : format === "mermaid"
           ? `\`\`\`mermaid\n${renderGraphMermaid(snapshot)}\n\`\`\`\n`
           : renderGraphText(snapshot);
-    await vscode.workspace.fs.writeFile(uri, Buffer.from(content, "utf8"));
+    await writeExportWithinBudget(uri, content);
     void vscode.window.showInformationMessage(
       `C Insight: Relationship Graph exported to ${uri.fsPath}`,
     );

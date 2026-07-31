@@ -49,6 +49,7 @@ import { CodePreviewProvider, PreviewMode } from "./codePreviewProvider";
 import { ReferenceExplorer } from "./referenceExplorer";
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode } from "./treeNode";
+import { writeExportWithinBudget } from "../utils/exportWriter";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -851,7 +852,7 @@ export class ViewRegistry implements vscode.Disposable {
       uri.path.toLocaleLowerCase().endsWith(".md")
         ? `\`\`\`mermaid\n${rendered}\n\`\`\`\n`
         : rendered;
-    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+    await writeExportWithinBudget(uri, content);
   }
 
   dispose(): void {

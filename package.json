@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1293,6 +1293,34 @@
           "minimum": 25,
           "maximum": 5000,
           "description": "Number of reference results added to the tree per page."
+        },
+        "cInsight.references.maximumDisplayedResults": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 100,
+          "maximum": 100000,
+          "description": "Maximum number of reference result tree nodes displayed at once, including Show All. Filtering and exports still operate on the full result set within their own limits."
+        },
+        "cInsight.references.detailRequestCacheSize": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Maximum per-kind LRU entries retained for References Document Highlight and Signature Help detail requests."
+        },
+        "cInsight.export.maximumResults": {
+          "type": "number",
+          "default": 50000,
+          "minimum": 1000,
+          "maximum": 500000,
+          "description": "Maximum number of records included in one References export. Results beyond the limit are omitted and reported in export metadata."
+        },
+        "cInsight.export.maximumMegabytes": {
+          "type": "number",
+          "default": 64,
+          "minimum": 1,
+          "maximum": 1024,
+          "description": "Maximum encoded size in MiB for References, Call, Type, or Include hierarchy exports. Oversized output is not written."
         },
         "cInsight.references.groupBy": {
           "type": "string",

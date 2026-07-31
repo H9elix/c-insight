@@ -17,6 +17,9 @@ consistency, diagnostics, and real FFmpeg acceptance measurements.
 Version 0.17.1 introduced priority-aware semantic request scheduling, bounded
 background concurrency, cancellation before dispatch, and safe coalescing
 within a shared cancellation scope.
+Version 0.17.2 bounded References tree materialization and detail caches,
+introduced cancellable record-limited References bulk output, and applied a
+shared encoded-size guard to all file exports.
 
 ## Deferred fourth phase
 

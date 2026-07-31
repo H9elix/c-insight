@@ -1,4 +1,4 @@
-# C Insight 0.17.0 使用手册
+# C Insight 0.17.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1063,6 +1063,8 @@ C Insight 默认管理：
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
 | `cInsight.references.pageSize` | number | `200` | 25–5000 | 每次添加到树中的引用数量 |
+| `cInsight.references.maximumDisplayedResults` | number | `10000` | 100–100000 | References 树中同时物化的最大结果数；Show All 也受此限制 |
+| `cInsight.references.detailRequestCacheSize` | number | `2000` | 100–50000 | Document Highlight 与 Signature Help 两类详情请求各自保留的 LRU 缓存条目上限 |
 | `cInsight.references.groupBy` | string | `"file"` | `"file"`、`"directory"`、`"function"`、`"type"`、`"confidence"`、`"evidence"`、`"flat"` | References 的持久化分组方式 |
 | `cInsight.includeDeclarationInReferences` | boolean | `true` | `true` / `false` | 请求 References 时是否包含 Declaration |
 | `cInsight.includeSystemReferences` | boolean | `false` | `true` / `false` | 是否保留 `/usr/include` 和 `/usr/local/include` 下的引用 |
@@ -1070,6 +1072,11 @@ C Insight 默认管理：
 
 `exclude` 是简单路径片段匹配，不是 glob。需要 Windows 兼容时，建议使用 `/`
 形式的片段，因为内部会先将反斜杠转换为 `/`。
+
+References 初始只物化 `pageSize` 条，Load More 分页增加，Show All 最多显示
+`maximumDisplayedResults` 条。过滤仍针对完整查询结果。Copy All、Open Result List
+和文件导出受 9.14 的记录数限制；文件导出显示可取消进度，超限的省略数量写入
+文本头或 JSON 的 `omitted` 字段。
 
 ### 9.5 Navigation History
 
@@ -1179,6 +1186,17 @@ Prepare 等交互请求优先于已排队的普通/后台工作；已开始的 L
 抢占。使用同一取消令牌、方法和参数的相同请求共享底层 Promise；不同取消作用域
 不会错误合并。排队期间取消的请求不会发送给 clangd。这两个配置在下一次请求
 进入调度器时生效。
+
+### 9.14 导出资源限制
+
+| 配置 | 类型 | 默认值 | 范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.export.maximumResults` | number | `50000` | 1000–500000 | References 单次导出、Copy All 或 Open Result List 最多处理的记录数；超出部分会明确报告 |
+| `cInsight.export.maximumMegabytes` | number | `64` | 1–1024 MiB | References、Call、Type、Include Hierarchy 和 Relationship Graph 文件导出的最大 UTF-8 编码大小；超限时不写文件 |
+
+大小限制在内容生成后、文件写入前检查，避免把过大的结果写入磁盘。References
+生成文本或 JSON 时可在通知进度中取消；其他层级本身已有节点上限，统一使用最终
+编码大小保护。
 
 ## 10. 配置示例
 
@@ -1355,6 +1373,7 @@ Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Inc
 | `cInsight.codePreview.*` | 清除语义令牌缓存并重新渲染当前预览；滚动容量对后续记录生效 |
 | `cInsight.analysis.*` | 下一次语义请求进入调度器时更新总并发和后台并发上限 |
 | `cInsight.references.*` | 下次查询/分组/分页时生效；分组立即刷新当前树 |
+| `cInsight.export.*` | 下一次批量输出或文件导出时生效；不会改变当前已加载的树或图 |
 | `cInsight.callHierarchy.*` | 清除调用请求缓存、标记结果 stale，并在后续查询或展开时生效 |
 | `cInsight.typeHierarchy.*` | 清除类型请求缓存并标记结果 stale |
 | `cInsight.includeHierarchy.*` | 使 Include 仓库失效；后续显式查询重新解析或建立索引 |

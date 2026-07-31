@@ -23,6 +23,7 @@ import {
   renderHierarchyExport,
 } from "../utils/hierarchyExport";
 import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import { writeExportWithinBudget } from "../utils/exportWriter";
 
 export type { TypeHierarchyDirection } from "./typeHierarchyRepository";
 
@@ -235,13 +236,11 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       },
       format,
     );
-    await vscode.workspace.fs.writeFile(
+    await writeExportWithinBudget(
       target,
-      new TextEncoder().encode(
-        format === "mermaid" && target.path.toLowerCase().endsWith(".md")
-          ? `\`\`\`mermaid\n${content}\n\`\`\`\n`
-          : content,
-      ),
+      format === "mermaid" && target.path.toLowerCase().endsWith(".md")
+        ? `\`\`\`mermaid\n${content}\n\`\`\`\n`
+        : content,
     );
   }
 
