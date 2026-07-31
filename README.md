@@ -319,6 +319,8 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.codePreview.maximumLoadedLines`
 - `cInsight.codePreview.restoreScrollPositions`
 - `cInsight.codePreview.maximumScrollPositions`
+- `cInsight.analysis.maximumConcurrentRequests`
+- `cInsight.analysis.maximumBackgroundRequests`
 - `cInsight.references.pageSize`
 - `cInsight.references.groupBy`
 - `cInsight.callHierarchy.defaultDepth`

@@ -1167,6 +1167,19 @@ C Insight 默认管理：
 `defaultDepth`、`maximumDepth`、`maximumNodes` 和 `maximumEdges` 已用于 Call
 Graph。布局和系统头开关要到后续 Type/Include Adapter 接入后才完整参与查询。
 
+### 9.13 语义请求调度
+
+| 配置 | 类型 | 默认值 | 范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.analysis.maximumConcurrentRequests` | number | `8` | 1–64 | C Insight 同时运行的 clangd 语义请求总数上限 |
+| `cInsight.analysis.maximumBackgroundRequests` | number | `2` | 1–16 | 总上限内允许并发运行的 Document Highlight、Document Symbols 等后台详情请求数 |
+
+调度器按 Interactive、Normal、Background 三档排队。Definition、Hover 和层级
+Prepare 等交互请求优先于已排队的普通/后台工作；已开始的 LSP 请求不会被强制
+抢占。使用同一取消令牌、方法和参数的相同请求共享底层 Promise；不同取消作用域
+不会错误合并。排队期间取消的请求不会发送给 clangd。这两个配置在下一次请求
+进入调度器时生效。
+
 ## 10. 配置示例
 
 ### 常规 CMake 工程
@@ -1321,7 +1334,7 @@ Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Inc
 
 ## 15. 状态持久化与配置生效矩阵
 
-### 14.1 状态保存位置
+### 15.1 状态保存位置
 
 | 状态 | 保存位置 | 作用域 | 重启后 |
 | --- | --- | --- | --- |
@@ -1334,12 +1347,13 @@ Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Inc
 | Type/Include Hierarchy 根和展开状态 | 扩展进程内状态 | 当前窗口运行期 | 不恢复 |
 | Relationship Graph 画布状态 | Graph 会话快照 | 当前工作区 | 仅退出时面板仍打开才恢复 |
 
-### 14.2 配置变更的生效方式
+### 15.2 配置变更的生效方式
 
 | 配置类别 | 生效方式 |
 | --- | --- |
 | `cInsight.clangd.*`、`compileCommandsDir`、`fallbackFlags`、`backgroundIndex` | 重启 clangd，相关结果标记 stale 并清理相应缓存 |
 | `cInsight.codePreview.*` | 清除语义令牌缓存并重新渲染当前预览；滚动容量对后续记录生效 |
+| `cInsight.analysis.*` | 下一次语义请求进入调度器时更新总并发和后台并发上限 |
 | `cInsight.references.*` | 下次查询/分组/分页时生效；分组立即刷新当前树 |
 | `cInsight.callHierarchy.*` | 清除调用请求缓存、标记结果 stale，并在后续查询或展开时生效 |
 | `cInsight.typeHierarchy.*` | 清除类型请求缓存并标记结果 stale |

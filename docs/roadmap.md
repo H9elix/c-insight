@@ -14,6 +14,9 @@ reference classification, graph construction/snapshotting, hierarchy export,
 and preview scrolling. Subsequent third-phase work will use this baseline while
 adding request scheduling, large-result resource controls, interaction
 consistency, diagnostics, and real FFmpeg acceptance measurements.
+Version 0.17.1 introduced priority-aware semantic request scheduling, bounded
+background concurrency, cancellation before dispatch, and safe coalescing
+within a shared cancellation scope.
 
 ## Deferred fourth phase
 

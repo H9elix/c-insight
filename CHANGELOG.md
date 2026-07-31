@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.1
+
+- Added a unified priority scheduler for clangd semantic requests with
+  interactive, normal, and background queues.
+- Added configurable total and background concurrency limits while reserving
+  capacity for foreground work.
+- Coalesced identical requests within the same cancellation scope and rejected
+  cancelled queued work before it reaches clangd.
+- Added scheduler counters for submitted, coalesced, started, completed,
+  failed, queued-cancelled, active, queued, and peak-active requests.
+- Added deterministic priority, concurrency, coalescing, and cancellation
+  tests plus complete configuration documentation.
+
 ## 0.17.0
 
 - Added a versioned, machine-readable large-workspace performance baseline.
