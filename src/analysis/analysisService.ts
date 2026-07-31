@@ -17,6 +17,11 @@ import {
 import { ClangdManager } from "../clangd/clangdManager";
 import { CallNode, LocationResult, LspSymbol } from "../models/types";
 import { callHierarchyKey } from "../utils/callHierarchy";
+import {
+  RequestPriority,
+  RequestScheduler,
+  RequestSchedulerStats,
+} from "./requestScheduler";
 
 interface PositionParams {
   textDocument: { uri: string };
@@ -31,12 +36,18 @@ interface SymbolDetails {
 }
 
 export class AnalysisService {
-  private readonly inFlight = new Map<string, Promise<unknown>>();
+  private readonly scheduler = new RequestScheduler();
+  private readonly tokenIds = new WeakMap<vscode.CancellationToken, number>();
+  private nextTokenId = 1;
 
   constructor(
     private readonly manager: ClangdManager,
     private readonly output?: vscode.OutputChannel,
   ) {}
+
+  requestSchedulerStats(): RequestSchedulerStats {
+    return this.scheduler.stats();
+  }
 
   async definition(
     uri: vscode.Uri,
@@ -292,28 +303,41 @@ export class AnalysisService {
     params: unknown,
     token?: vscode.CancellationToken,
   ): Promise<T> {
-    const client = this.manager.languageClient ?? (await this.manager.start());
-    if (token) {
-      return this.measure(
-        method,
-        client.sendRequest<T>(method, params, token),
-        token,
-      );
+    const configuration = vscode.workspace.getConfiguration(
+      "cInsight.analysis",
+    );
+    this.scheduler.setLimits(
+      configuration.get<number>("maximumConcurrentRequests", 8),
+      configuration.get<number>("maximumBackgroundRequests", 2),
+    );
+    const tokenKey = token ? `:token-${this.tokenId(token)}` : "";
+    const key = `${method}:${JSON.stringify(params)}${tokenKey}`;
+    return this.scheduler.schedule(
+      key,
+      requestPriority(method),
+      async () => {
+        const client =
+          this.manager.languageClient ?? (await this.manager.start());
+        return this.measure(
+          method,
+          token
+            ? client.sendRequest<T>(method, params, token)
+            : client.sendRequest<T>(method, params),
+          token,
+        );
+      },
+      token,
+    );
+  }
+
+  private tokenId(token: vscode.CancellationToken): number {
+    const existing = this.tokenIds.get(token);
+    if (existing !== undefined) {
+      return existing;
     }
-    const key = `${method}:${JSON.stringify(params)}`;
-    const existing = this.inFlight.get(key);
-    if (existing) {
-      return existing as Promise<T>;
-    }
-    const request = this.measure(method, client.sendRequest<T>(method, params));
-    this.inFlight.set(key, request);
-    try {
-      return await request;
-    } finally {
-      if (this.inFlight.get(key) === request) {
-        this.inFlight.delete(key);
-      }
-    }
+    const id = this.nextTokenId++;
+    this.tokenIds.set(token, id);
+    return id;
   }
 
   private async measure<T>(
@@ -361,6 +385,27 @@ export class AnalysisService {
       return this.toVsLocation(item);
     });
   }
+}
+
+function requestPriority(method: string): RequestPriority {
+  if (
+    method === "textDocument/definition" ||
+    method === "textDocument/declaration" ||
+    method === "textDocument/hover" ||
+    method === "textDocument/signatureHelp" ||
+    method === "textDocument/symbolInfo" ||
+    method === "textDocument/prepareCallHierarchy" ||
+    method === "textDocument/prepareTypeHierarchy"
+  ) {
+    return "interactive";
+  }
+  if (
+    method === "textDocument/documentHighlight" ||
+    method === "textDocument/documentSymbol"
+  ) {
+    return "background";
+  }
+  return "normal";
 }
 
 export class UnsupportedClangdFeatureError extends Error {

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -1272,6 +1272,20 @@
           "minimum": 10,
           "maximum": 1000,
           "description": "Maximum Code Preview target scroll positions retained for the current extension session."
+        },
+        "cInsight.analysis.maximumConcurrentRequests": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 64,
+          "description": "Maximum number of clangd semantic requests that C Insight may run concurrently. Interactive requests are dequeued before normal and background work."
+        },
+        "cInsight.analysis.maximumBackgroundRequests": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "Maximum concurrent background-detail requests within the total semantic request limit."
         },
         "cInsight.references.pageSize": {
           "type": "number",
