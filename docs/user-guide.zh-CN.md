@@ -1,4 +1,4 @@
-# C Insight 0.16.3 使用手册
+# C Insight 0.17.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1287,6 +1287,17 @@ Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Inc
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。
 - Include Hierarchy 不执行编译器或预处理器；编译器隐式平台头路径、宏生成的
   include 和条件编译的真实启用状态可能无法完整还原。
+
+### 大型工程性能基线
+
+源码仓库提供 `npm run benchmark`，用于运行 10 万条 References 分类、2 万节点
+关系图、1 万节点层级 JSON 导出和 10 万次 Code Preview 范围滚动。输出为
+`c-insight.performance-baseline` 版本 1 的 JSON，包含运行环境、耗时、宽松回归
+预算、近似堆变化和结果计数。完整命令、缩放和报告落盘方式见随扩展打包的
+`docs/performance-baseline.zh-CN.md`。
+
+该基线只验证宿主侧核心模型，不启动 clangd，也不替代 FFmpeg、Remote SSH、
+磁盘和 VS Code UI 的真实工程验收。
 
 ## 14. 功能与窗口矩阵
 

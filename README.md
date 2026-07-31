@@ -344,6 +344,15 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.relationshipGraph.includeSystemHeaders`
 - `cInsight.exclude`
 
+## Performance baseline
+
+Run `npm run benchmark` to produce the versioned synthetic large-workspace
+baseline. It covers 100,000 reference classifications, a 20,000-node
+relationship graph, a 10,000-node hierarchy export, and 100,000 Code Preview
+range updates. See `docs/performance-baseline.zh-CN.md` for scaling, JSON output,
+budgets, and interpretation. This model benchmark complements rather than
+replaces clangd and real-workspace acceptance testing.
+
 ## Known limitations
 
 - The first release supports one local workspace root.
