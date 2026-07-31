@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "publisher": "c-insight",
   "license": "MIT",
   "engines": {
@@ -27,6 +27,7 @@
     "CHANGELOG.md",
     "docs/user-guide.zh-CN.md",
     "docs/performance-baseline.zh-CN.md",
+    "docs/third-phase-acceptance.zh-CN.md",
     "LICENSE"
   ],
   "activationEvents": [
@@ -56,6 +57,7 @@
     "lint": "eslint src test --ext .ts",
     "benchmark": "npm run compile && node scripts/benchmark-large-workspace.mjs",
     "benchmark:observe": "npm run compile && C_INSIGHT_BENCHMARK_STRICT=0 node scripts/benchmark-large-workspace.mjs",
+    "acceptance:ffmpeg": "node scripts/acceptance-ffmpeg.mjs",
     "docs:commands": "node scripts/generate-command-reference.mjs",
     "test": "npm run compile && node --test dist/test/**/*.test.js",
     "test:unit": "npm run compile && node --test dist/test/unit/**/*.test.js",

@@ -1,4 +1,4 @@
-# C Insight 0.17.4 使用手册
+# C Insight 0.17.5 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1364,6 +1364,18 @@ Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Inc
 
 该基线只验证宿主侧核心模型，不启动 clangd，也不替代 FFmpeg、Remote SSH、
 磁盘和 VS Code UI 的真实工程验收。
+
+### FFmpeg 真实工程验收
+
+源码仓库提供 `npm run acceptance:ffmpeg`，默认以只读方式检查
+`/home/user/projects/FFmpeg`、根目录编译数据库和 `/usr/bin/clangd-20`。可用
+`C_INSIGHT_FFMPEG_ROOT` 与 `C_INSIGHT_FFMPEG_CLANGD` 覆盖路径，并把可选的第一个
+命令行参数作为 JSON 报告输出位置。它验证初始化、Document Symbols、Definition、
+References、Call Hierarchy 方法兼容性和 Hover。详细的第三阶段环境、实测结果及
+边界见 `docs/third-phase-acceptance.zh-CN.md`。
+
+clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结果；验收重点是
+请求成功并返回数组，而不是强制猜测静态目标。
 
 ## 14. 功能与窗口矩阵
 

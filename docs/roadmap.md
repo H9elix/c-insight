@@ -26,6 +26,9 @@ Call Hierarchy directions on the same expansion-failure behavior.
 Version 0.17.4 added centralized runtime observability for semantic scheduling,
 latency, caches, and resource-limit hits in Project Diagnostics and its
 shareable reports.
+Version 0.17.5 completed the third phase with a repeatable read-only clangd 20
+FFmpeg acceptance harness, full regression gates, packaged acceptance evidence,
+and a final documentation audit. Fourth-phase candidates remain deferred.
 
 ## Deferred fourth phase
 
