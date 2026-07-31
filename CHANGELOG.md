@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.3
+
+- Added a shared semantic status model for idle, loading, empty, cancelled,
+  stale, limited, failed, and successful view states.
+- Unified status icons and stable context values across References, Callers,
+  Callees, Type Hierarchy, and Include Hierarchy.
+- Added explicit idle guidance when Context and demand-driven navigation views
+  have not queried a symbol yet.
+- Kept error details in descriptions and tooltips instead of producing
+  unbounded primary row labels.
+- Aligned incoming and outgoing Call Hierarchy expansion failure handling.
+- Added unit coverage and user-guide documentation for the status contract.
+
 ## 0.17.2
 
 - Bounded the number of References rows materialized by paging and Show All.

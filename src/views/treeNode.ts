@@ -2,6 +2,10 @@ import * as vscode from "vscode";
 import { CallNode, LocationResult } from "../models/types";
 import type { NavigationMode } from "../history/navigationHistoryModel";
 import type { TypeHierarchyEvidence } from "../utils/typeHierarchy";
+import {
+  ViewStatusKind,
+  viewStatusPresentation,
+} from "../utils/viewStatusModel";
 
 export interface TreeNode {
   id?: string;
@@ -30,6 +34,24 @@ export interface TreeNode {
   typeKind?: string;
   typeDepth?: number;
   typePath?: string[];
+}
+
+export function viewStatusNode(
+  label: string,
+  kind: ViewStatusKind,
+  options: Pick<TreeNode, "description" | "tooltip" | "command"> & {
+    contextValue?: string;
+  } = {},
+): TreeNode {
+  const presentation = viewStatusPresentation(kind);
+  return {
+    label,
+    description: options.description,
+    tooltip: options.tooltip,
+    command: options.command,
+    icon: new vscode.ThemeIcon(presentation.icon),
+    contextValue: options.contextValue ?? presentation.contextValue,
+  };
 }
 
 export class MutableTreeProvider

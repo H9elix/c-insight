@@ -22,7 +22,7 @@ import {
   referenceTypeGroup,
 } from "./referenceModel";
 import { SourceLineCache } from "./sourceLineCache";
-import { MutableTreeProvider, TreeNode } from "./treeNode";
+import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import type { ReferenceSessionState } from "../session/workspaceSession";
 import { encodeExportWithinBudget } from "../utils/exportBudget";
 
@@ -96,6 +96,11 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.groupMode = vscode.workspace
       .getConfiguration("cInsight.references")
       .get<GroupMode>("groupBy", "file");
+    this.provider.setRoots([
+      viewStatusNode("Place the cursor on a C/C++ symbol", "idle", {
+        description: "open References or run Find All References to query",
+      }),
+    ]);
   }
 
   attachTreeView(treeView: vscode.TreeView<TreeNode>): void {
@@ -148,7 +153,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.loadingStarted = performance.now();
     this.provider.setRoots(
       this.withPinnedBanner([
-        statusNode("Querying references…", "loading~spin"),
+        viewStatusNode("Querying references…", "loading"),
       ]),
     );
   }
@@ -159,7 +164,9 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.loadingStarted = undefined;
     this.provider.setRoots(
       this.withPinnedBanner([
-        statusNode("References query cancelled", "circle-slash"),
+        viewStatusNode("References query cancelled", "cancelled", {
+          description: "previous results were replaced",
+        }),
       ]),
     );
   }
@@ -171,7 +178,10 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.errorMessage = String(error);
     this.provider.setRoots(
       this.withPinnedBanner([
-        statusNode(`References query failed: ${this.errorMessage}`, "error"),
+        viewStatusNode("References query failed", "error", {
+          description: this.errorMessage,
+          tooltip: this.errorMessage,
+        }),
       ]),
     );
   }
@@ -182,7 +192,11 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.filtered = [];
     this.roots = [];
     this.state = "idle";
-    this.provider.clear();
+    this.provider.setRoots([
+      viewStatusNode("Place the cursor on a C/C++ symbol", "idle", {
+        description: "open References or run Find All References to query",
+      }),
+    ]);
   }
 
   setPinned(pinned: boolean, symbolName?: string): void {
@@ -620,7 +634,7 @@ export class ReferenceExplorer implements vscode.Disposable {
             ? "No references found"
             : "No references found yet — results may be incomplete"
           : "No references match the current filters";
-      this.roots = [statusNode(reason, "info")];
+      this.roots = [viewStatusNode(reason, "empty")];
       this.provider.setRoots(this.withPinnedBanner(this.roots));
       return;
     }
@@ -650,11 +664,13 @@ export class ReferenceExplorer implements vscode.Disposable {
         icon: new vscode.ThemeIcon("references"),
       });
     } else {
-      this.roots.push({
-        label: `Display limit reached (${displayed.length} / ${this.filtered.length})`,
+      this.roots.push(viewStatusNode(
+        `Display limit reached (${displayed.length} / ${this.filtered.length})`,
+        "limited",
+        {
         description: "narrow filters or raise maximumDisplayedResults",
-        icon: new vscode.ThemeIcon("warning"),
-      });
+        },
+      ));
     }
     this.provider.setRoots(this.withPinnedBanner(this.roots));
   }
@@ -1031,17 +1047,11 @@ export class ReferenceExplorer implements vscode.Disposable {
 }
 
 function staleNode(reason: string): TreeNode {
-  return {
-    label: "Results are stale",
+  return viewStatusNode("Results are stale", "stale", {
     description: reason,
     tooltip: `These results predate: ${reason}. Run the query again to refresh them.`,
-    icon: new vscode.ThemeIcon("history"),
     contextValue: "analysisStaleStatus",
-  };
-}
-
-function statusNode(label: string, icon: string): TreeNode {
-  return { label, icon: new vscode.ThemeIcon(icon) };
+  });
 }
 
 function referenceIcon(

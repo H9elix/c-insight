@@ -10,7 +10,11 @@ import {
   IncludeHierarchyDirection,
   IncludeHierarchyRepository,
 } from "./includeHierarchyRepository";
-import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import {
+  MutableTreeProvider,
+  TreeNode,
+  viewStatusNode,
+} from "../views/treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 import {
   hierarchyExpansionMessage,
@@ -433,7 +437,14 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     );
     const provider = this.provider(direction);
     provider.setRoots([
-      statusNode(message.label, message.description),
+      viewStatusNode(
+        message.label,
+        reason === "cancelled" ? "cancelled" : "limited",
+        {
+          description: message.description,
+          contextValue: "hierarchyExpansionStatus",
+        },
+      ),
       ...provider
         .getRoots()
         .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
@@ -450,11 +461,9 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       }
       this.stale[current] = true;
       this.provider(current).setRoots([
-        {
-          label: "Include hierarchy is stale",
+        viewStatusNode("Include hierarchy is stale", "stale", {
           description: `run Show ${directionLabel(current)} again`,
-          icon: new vscode.ThemeIcon("history"),
-        },
+        }),
         ...this.provider(current).getRoots(),
       ]);
     }
@@ -597,26 +606,14 @@ function commandNode(label: string, command: string): TreeNode {
 }
 
 function limitNode(): TreeNode {
-  return {
-    label: "Include hierarchy node limit reached",
-    icon: new vscode.ThemeIcon("warning"),
-  };
-}
-
-function statusNode(label: string, description: string): TreeNode {
-  return {
-    label,
-    description,
-    icon: new vscode.ThemeIcon("info"),
-    contextValue: "hierarchyExpansionStatus",
-  };
+  return viewStatusNode("Include hierarchy node limit reached", "limited");
 }
 
 function errorNode(error: unknown): TreeNode {
-  return {
-    label: `Include hierarchy failed: ${String(error)}`,
-    icon: new vscode.ThemeIcon("error"),
-  };
+  return viewStatusNode("Include hierarchy failed", "error", {
+    description: String(error),
+    tooltip: String(error),
+  });
 }
 
 function includeExportNode(node: TreeNode): HierarchyExportNode {

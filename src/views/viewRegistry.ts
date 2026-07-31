@@ -48,7 +48,7 @@ import { shouldUpdatePinnedView } from "../utils/viewPin";
 import { CodePreviewProvider, PreviewMode } from "./codePreviewProvider";
 import { ReferenceExplorer } from "./referenceExplorer";
 import { SourceLineCache } from "./sourceLineCache";
-import { MutableTreeProvider, TreeNode } from "./treeNode";
+import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 
 export class ViewRegistry implements vscode.Disposable {
@@ -120,6 +120,19 @@ export class ViewRegistry implements vscode.Disposable {
       this.sourceLines,
     );
     this.references = this.referenceExplorer.provider;
+    this.context.setRoots([
+      viewStatusNode("Place the cursor on a C/C++ symbol", "idle"),
+    ]);
+    this.callers.setRoots([
+      viewStatusNode("Place the cursor on a callable symbol", "idle", {
+        description: "open Callers or run Show Incoming Calls to query",
+      }),
+    ]);
+    this.callees.setRoots([
+      viewStatusNode("Place the cursor on a callable symbol", "idle", {
+        description: "open Callees or run Show Outgoing Calls to query",
+      }),
+    ]);
     const providers: Array<[string, MutableTreeProvider]> = [
       ["cInsight.context", this.context],
       ["cInsight.references", this.references],
@@ -539,14 +552,24 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   clearContext(): void {
-    this.context.clear();
+    this.context.setRoots([
+      viewStatusNode("Place the cursor on a C/C++ symbol", "idle"),
+    ]);
     this.preview.clear();
     if (!this.referencesPinned) {
       this.referenceExplorer.clear();
     }
     if (!this.callHierarchyPinned) {
-      this.callers.clear();
-      this.callees.clear();
+      this.callers.setRoots([
+        viewStatusNode("Place the cursor on a callable symbol", "idle", {
+          description: "open Callers or run Show Incoming Calls to query",
+        }),
+      ]);
+      this.callees.setRoots([
+        viewStatusNode("Place the cursor on a callable symbol", "idle", {
+          description: "open Callees or run Show Outgoing Calls to query",
+        }),
+      ]);
       this.callRootSignature = "";
     }
   }
@@ -965,12 +988,14 @@ export class ViewRegistry implements vscode.Disposable {
     const provider =
       direction === "incoming" ? this.callers : this.callees;
     provider.setRoots([
-      {
-        label: message.label,
-        description: message.description,
-        icon: new vscode.ThemeIcon("info"),
+      viewStatusNode(
+        message.label,
+        reason === "cancelled" ? "cancelled" : "limited",
+        {
+          description: message.description,
         contextValue: "hierarchyExpansionStatus",
-      },
+        },
+      ),
       ...provider
         .getRoots()
         .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
@@ -1077,13 +1102,11 @@ export class ViewRegistry implements vscode.Disposable {
       });
     }
     if (this.callResultsStaleReason) {
-      banners.push({
-        label: "Results are stale",
+      banners.push(viewStatusNode("Results are stale", "stale", {
         description: this.callResultsStaleReason,
         tooltip: `These results predate: ${this.callResultsStaleReason}. Run the query again to refresh them.`,
-        icon: new vscode.ThemeIcon("history"),
         contextValue: "analysisStaleStatus",
-      });
+      }));
     }
     return [...banners, ...roots];
   }
@@ -1108,13 +1131,12 @@ export class ViewRegistry implements vscode.Disposable {
 
   private noCallsNode(direction: "incoming" | "outgoing"): TreeNode {
     const noun = direction === "incoming" ? "callers" : "callees";
-    return {
-      label:
+    return viewStatusNode(
         this.reliability.level === "reliable"
           ? `No ${noun} found`
           : `No ${noun} found yet — results may be incomplete`,
-      icon: new vscode.ThemeIcon("info"),
-    };
+      "empty",
+    );
   }
 
   private maximumCallNodes(): number {
@@ -1175,22 +1197,28 @@ export class ViewRegistry implements vscode.Disposable {
             }
             const lineage = [...ancestors, node.key];
             if (direction === "incoming") {
-              const calls = await this.callRepository.incoming(
-                node,
-                this.callExpansion?.token,
-              );
-              const remaining = this.callTreeState[direction].remaining(
-                this.maximumCallNodes(),
-              );
-              const children = calls.slice(0, remaining).map((call) =>
-                this.incomingNode(call, lineage, direction, depth + 1),
-              );
-              if (children.length < calls.length) {
-                children.push(limitNode("Call hierarchy node limit reached"));
+              try {
+                const calls = await this.callRepository.incoming(
+                  node,
+                  this.callExpansion?.token,
+                );
+                const remaining = this.callTreeState[direction].remaining(
+                  this.maximumCallNodes(),
+                );
+                const children = calls.slice(0, remaining).map((call) =>
+                  this.incomingNode(call, lineage, direction, depth + 1),
+                );
+                if (children.length < calls.length) {
+                  children.push(
+                    limitNode("Call hierarchy node limit reached"),
+                  );
+                }
+                return children.length > 0
+                  ? children
+                  : [this.noCallsNode("incoming")];
+              } catch (error) {
+                return [this.callQueryError("Callers", error)];
               }
-              return children.length > 0
-                ? children
-                : [this.noCallsNode("incoming")];
             }
             try {
               const calls = await this.callRepository.outgoing(
@@ -1220,20 +1248,24 @@ export class ViewRegistry implements vscode.Disposable {
                 ? [...children, ...unresolved]
                 : [this.noCallsNode("outgoing")];
             } catch (error) {
-              return [
-                {
-                  label:
-                    error instanceof UnsupportedClangdFeatureError
-                      ? error.message
-                      : `Callees query failed: ${String(error)}`,
-                  icon: new vscode.ThemeIcon("warning"),
-                  tooltip:
-                    "Set cInsight.clangd.path to a clangd 20+ executable and restart clangd.",
-                },
-              ];
+              return [this.callQueryError("Callees", error)];
             }
           },
     };
+  }
+
+  private callQueryError(noun: "Callers" | "Callees", error: unknown): TreeNode {
+    const unsupported = error instanceof UnsupportedClangdFeatureError;
+    return viewStatusNode(
+      unsupported ? error.message : `${noun} query failed`,
+      "error",
+      {
+        description: unsupported ? "clangd 20 or newer is required" : String(error),
+        tooltip: unsupported
+          ? "Set cInsight.clangd.path to a clangd 20+ executable and restart clangd."
+          : String(error),
+      },
+    );
   }
 
   private incomingNode(
@@ -1436,12 +1468,10 @@ function hasPathOrDescendant(paths: Set<string>, candidate: string): boolean {
 }
 
 function limitNode(label: string): TreeNode {
-  return {
-    label,
-    icon: new vscode.ThemeIcon("warning"),
+  return viewStatusNode(label, "limited", {
     tooltip:
       "Adjust cInsight.callHierarchy.maximumDepth or maximumNodes if needed.",
-  };
+  });
 }
 
 function flattenLoadedCallNodes(roots: TreeNode[]): TreeNode[] {

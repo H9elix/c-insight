@@ -22,7 +22,11 @@ import {
   hierarchyNodeStates,
   renderHierarchyExport,
 } from "../utils/hierarchyExport";
-import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import {
+  MutableTreeProvider,
+  TreeNode,
+  viewStatusNode,
+} from "../views/treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 
 export type { TypeHierarchyDirection } from "./typeHierarchyRepository";
@@ -63,19 +67,16 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   ): Promise<void> {
     this.stopExpansion();
     this.provider(direction).setRoots([
-      {
-        label: "Querying type hierarchy…",
-        icon: new vscode.ThemeIcon("loading~spin"),
-      },
+      viewStatusNode("Querying type hierarchy…", "loading"),
     ]);
     try {
       const roots = await this.repository.prepare(uri, position);
       if (roots.length === 0) {
         this.provider(direction).setRoots([
-          {
-            label: "No type hierarchy is available at the cursor",
-            icon: new vscode.ThemeIcon("info"),
-          },
+          viewStatusNode(
+            "No type hierarchy is available at the cursor",
+            "empty",
+          ),
         ]);
         return;
       }
@@ -87,10 +88,10 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       );
     } catch (error) {
       this.provider(direction).setRoots([
-        {
-          label: `Type hierarchy query failed: ${String(error)}`,
-          icon: new vscode.ThemeIcon("error"),
-        },
+        viewStatusNode("Type hierarchy query failed", "error", {
+          description: String(error),
+          tooltip: String(error),
+        }),
       ]);
     }
   }
@@ -451,7 +452,14 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     );
     const provider = this.provider(direction);
     provider.setRoots([
-      statusNode(message.label, message.description),
+      viewStatusNode(
+        message.label,
+        reason === "cancelled" ? "cancelled" : "limited",
+        {
+          description: message.description,
+          contextValue: "hierarchyExpansionStatus",
+        },
+      ),
       ...provider
         .getRoots()
         .filter((node) => node.contextValue !== "hierarchyExpansionStatus"),
@@ -465,11 +473,13 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     this.stale = true;
     for (const direction of ["supertypes", "subtypes"] as const) {
       this.provider(direction).setRoots([
-        {
-          label: `Type hierarchy for ${this.rootName ?? "type"} is stale`,
+        viewStatusNode(
+          `Type hierarchy for ${this.rootName ?? "type"} is stale`,
+          "stale",
+          {
           description: "run Show Type Hierarchy again",
-          icon: new vscode.ThemeIcon("history"),
-        },
+          },
+        ),
         ...this.provider(direction).getRoots(),
       ]);
     }
@@ -478,10 +488,10 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   private publishEmpty(): void {
     for (const direction of ["supertypes", "subtypes"] as const) {
       this.provider(direction).setRoots([
-        {
-          label: `Place the cursor on a C++ type and show ${label(direction)}`,
-          icon: new vscode.ThemeIcon("info"),
-        },
+        viewStatusNode(
+          `Place the cursor on a C++ type and show ${label(direction)}`,
+          "idle",
+        ),
       ]);
     }
   }
@@ -586,26 +596,14 @@ function typeIcon(kind: number): string {
 }
 
 function emptyNode(direction: TypeHierarchyDirection): TreeNode {
-  return {
-    label: direction === "supertypes" ? "No supertypes" : "No subtypes",
-    icon: new vscode.ThemeIcon("circle-outline"),
-  };
+  return viewStatusNode(
+    direction === "supertypes" ? "No supertypes" : "No subtypes",
+    "empty",
+  );
 }
 
 function limitNode(): TreeNode {
-  return {
-    label: "Type hierarchy node limit reached",
-    icon: new vscode.ThemeIcon("warning"),
-  };
-}
-
-function statusNode(label: string, description: string): TreeNode {
-  return {
-    label,
-    description,
-    icon: new vscode.ThemeIcon("info"),
-    contextValue: "hierarchyExpansionStatus",
-  };
+  return viewStatusNode("Type hierarchy node limit reached", "limited");
 }
 
 function typeExportNode(node: TreeNode): HierarchyExportNode {
