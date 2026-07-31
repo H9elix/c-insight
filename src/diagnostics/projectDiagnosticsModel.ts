@@ -53,6 +53,30 @@ export interface ProjectDiagnosticsReport {
       message: string;
     }>;
   };
+  runtime?: {
+    scheduler: {
+      submitted: number;
+      coalesced: number;
+      started: number;
+      completed: number;
+      failed: number;
+      cancelledBeforeStart: number;
+      active: number;
+      queued: number;
+      peakActive: number;
+    };
+    requests: {
+      measured: number;
+      averageDurationMs: number;
+      maximumDurationMs: number;
+      slow: number;
+      lastSlowMethod?: string;
+      lastSlowDurationMs?: number;
+    };
+    counters: Record<string, number>;
+    gauges: Record<string, number>;
+    limits: Record<string, number>;
+  };
 }
 
 export type DiagnosticsReportRedaction =
@@ -187,6 +211,31 @@ export function renderProjectDiagnosticsText(
     lines.push(
       `Line ${diagnostic.line} [${diagnostic.severity}]: ${diagnostic.message}`,
     );
+  }
+  if (report.runtime) {
+    const scheduler = report.runtime.scheduler;
+    const requests = report.runtime.requests;
+    lines.push(
+      "",
+      "Runtime performance:",
+      `Scheduler: ${scheduler.active} active, ${scheduler.queued} queued, peak ${scheduler.peakActive}`,
+      `Requests: ${scheduler.submitted} submitted, ${scheduler.completed} completed, ${scheduler.failed} failed, ${scheduler.coalesced} coalesced, ${scheduler.cancelledBeforeStart} cancelled before start`,
+      `Timing: ${requests.measured} measured, ${Math.round(requests.averageDurationMs)} ms average, ${Math.round(requests.maximumDurationMs)} ms maximum, ${requests.slow} slow`,
+    );
+    if (requests.lastSlowMethod) {
+      lines.push(
+        `Last slow request: ${requests.lastSlowMethod} (${Math.round(requests.lastSlowDurationMs ?? 0)} ms)`,
+      );
+    }
+    for (const [name, value] of Object.entries(report.runtime.counters)) {
+      lines.push(`Counter ${name}: ${value}`);
+    }
+    for (const [name, value] of Object.entries(report.runtime.gauges)) {
+      lines.push(`Gauge ${name}: ${value}`);
+    }
+    for (const [name, value] of Object.entries(report.runtime.limits)) {
+      lines.push(`Limit ${name}: ${value}`);
+    }
   }
   return `${lines.join("\n")}\n`;
 }

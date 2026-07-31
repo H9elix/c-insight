@@ -107,11 +107,39 @@ describe("project diagnostics model", () => {
           { line: 3, severity: "error", message: "'config.h' file not found" },
         ],
       },
+      runtime: {
+        scheduler: {
+          submitted: 12,
+          coalesced: 2,
+          started: 10,
+          completed: 8,
+          failed: 1,
+          cancelledBeforeStart: 1,
+          active: 0,
+          queued: 0,
+          peakActive: 3,
+        },
+        requests: {
+          measured: 9,
+          averageDurationMs: 125,
+          maximumDurationMs: 1200,
+          slow: 1,
+          lastSlowMethod: "workspace/symbol",
+          lastSlowDurationMs: 1200,
+        },
+        counters: { "limits.references.display": 1 },
+        gauges: { "cache.references.highlights": 7 },
+        limits: { "analysis.maximumConcurrentRequests": 8 },
+      },
     });
     assert.match(text, /clangd: ready/);
     assert.match(text, /Command source: inferred-candidate/);
     assert.match(text, /Candidate inferred from: \/workspace\/src\/api.c/);
     assert.match(text, /Line 3 \[error\]: 'config.h' file not found/);
+    assert.match(text, /Scheduler: 0 active, 0 queued, peak 3/);
+    assert.match(text, /Last slow request: workspace\/symbol \(1200 ms\)/);
+    assert.match(text, /Counter limits.references.display: 1/);
+    assert.match(text, /Limit analysis.maximumConcurrentRequests: 8/);
   });
 
   it("redacts paths and optionally definitions in exported reports", () => {

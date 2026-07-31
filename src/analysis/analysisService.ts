@@ -23,6 +23,15 @@ import {
   RequestSchedulerStats,
 } from "./requestScheduler";
 
+export interface RequestTimingStats {
+  measured: number;
+  totalDurationMs: number;
+  maximumDurationMs: number;
+  slow: number;
+  lastSlowMethod?: string;
+  lastSlowDurationMs?: number;
+}
+
 interface PositionParams {
   textDocument: { uri: string };
   position: Position;
@@ -39,6 +48,12 @@ export class AnalysisService {
   private readonly scheduler = new RequestScheduler();
   private readonly tokenIds = new WeakMap<vscode.CancellationToken, number>();
   private nextTokenId = 1;
+  private readonly timing: RequestTimingStats = {
+    measured: 0,
+    totalDurationMs: 0,
+    maximumDurationMs: 0,
+    slow: 0,
+  };
 
   constructor(
     private readonly manager: ClangdManager,
@@ -47,6 +62,10 @@ export class AnalysisService {
 
   requestSchedulerStats(): RequestSchedulerStats {
     return this.scheduler.stats();
+  }
+
+  requestTimingStats(): RequestTimingStats {
+    return { ...this.timing };
   }
 
   async definition(
@@ -350,7 +369,16 @@ export class AnalysisService {
       return await request;
     } finally {
       const elapsed = performance.now() - started;
+      this.timing.measured += 1;
+      this.timing.totalDurationMs += elapsed;
+      this.timing.maximumDurationMs = Math.max(
+        this.timing.maximumDurationMs,
+        elapsed,
+      );
       if (elapsed >= 1_000 && !token?.isCancellationRequested) {
+        this.timing.slow += 1;
+        this.timing.lastSlowMethod = method;
+        this.timing.lastSlowDurationMs = elapsed;
         this.output?.appendLine(
           `Slow clangd request: ${method} ${Math.round(elapsed)} ms`,
         );

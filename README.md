@@ -193,6 +193,11 @@ files. Headers show a same-directory source candidate as diagnostic guidance
 without claiming it is clangd's actual inferred command. The complete report
 can be copied or exported as versioned JSON or plain text.
 
+The `Runtime Performance` group exposes a session-scoped snapshot of semantic
+request queueing and latency, request outcomes, cache occupancy and eviction,
+resource-limit hits, and configured safety limits. Copied and exported reports
+include the same snapshot without request parameters or source content.
+
 When `cInsight.compileCommandsDir` is empty, C Insight searches the workspace
 root and common build directories before searching other workspace locations.
 The selected directory is passed to clangd automatically. Use **C Insight:

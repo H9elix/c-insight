@@ -23,6 +23,9 @@ shared encoded-size guard to all file exports.
 Version 0.17.3 unified idle, loading, empty, cancelled, stale, limited, and
 error presentation across the demand-driven navigation trees and aligned both
 Call Hierarchy directions on the same expansion-failure behavior.
+Version 0.17.4 added centralized runtime observability for semantic scheduling,
+latency, caches, and resource-limit hits in Project Diagnostics and its
+shareable reports.
 
 ## Deferred fourth phase
 
