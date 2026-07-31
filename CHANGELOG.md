@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0
+
+- Added a versioned, machine-readable large-workspace performance baseline.
+- Added deterministic high-volume scenarios for reference classification,
+  relationship graph construction/snapshotting, hierarchy JSON export, and
+  Code Preview range scrolling.
+- Added deliberately broad regression budgets, optional observation mode, a
+  scalable workload, runtime metadata, result counters, and JSON file output.
+- Added a packaged Chinese performance-baseline guide defining execution,
+  interpretation, and the boundary between model and real-workspace tests.
+
 ## 0.16.3
 
 - Completed the second-phase regression and documentation audit across

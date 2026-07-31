@@ -7,6 +7,14 @@ Hierarchy, and Type Hierarchy semantic-evidence, restoration, search, and
 export work. Version 0.16.3 completed compatibility regression and user-guide
 auditing. The deferred items below remain deliberately outside this phase.
 
+## Third phase performance and reliability
+
+Version 0.17.0 established a versioned synthetic large-workspace baseline for
+reference classification, graph construction/snapshotting, hierarchy export,
+and preview scrolling. Subsequent third-phase work will use this baseline while
+adding request scheduling, large-result resource controls, interaction
+consistency, diagnostics, and real FFmpeg acceptance measurements.
+
 ## Deferred fourth phase
 
 Do not implement the fourth-phase feature work until the user explicitly
