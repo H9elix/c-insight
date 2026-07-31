@@ -372,6 +372,12 @@ range updates. See `docs/performance-baseline.zh-CN.md` for scaling, JSON output
 budgets, and interpretation. This model benchmark complements rather than
 replaces clangd and real-workspace acceptance testing.
 
+Run `npm run acceptance:ffmpeg` for the read-only clangd 20 and compilation
+database acceptance harness. Override the checkout and executable with
+`C_INSIGHT_FFMPEG_ROOT` and `C_INSIGHT_FFMPEG_CLANGD`; optionally pass a JSON
+output path after `--`. See `docs/third-phase-acceptance.zh-CN.md` for the
+recorded environment, timings, interpretation, and acceptance boundaries.
+
 ## Known limitations
 
 - The first release supports one local workspace root.

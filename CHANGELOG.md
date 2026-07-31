@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.5
+
+- Added a repeatable, read-only clangd 20 acceptance harness for a configured
+  FFmpeg checkout and compilation database.
+- Validated clangd initialization, document symbols, definition, references,
+  call-hierarchy preparation/outgoing protocol support, and hover against
+  `libavcodec/bsf/noise.c`.
+- Added a packaged Chinese third-phase acceptance report with environment,
+  timings, interpretation, commands, and explicit boundaries.
+- Completed the feature/configuration/view documentation audit and retained
+  all fourth-phase candidates as deferred memo items.
+- Completed the third-phase automatic regression, benchmark, packaging, and
+  Extension Host acceptance gates.
+
 ## 0.17.4
 
 - Added a Runtime Performance group to Project Diagnostics.
