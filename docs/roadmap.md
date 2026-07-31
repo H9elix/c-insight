@@ -7,6 +7,28 @@ Hierarchy, and Type Hierarchy semantic-evidence, restoration, search, and
 export work. Version 0.16.3 completed compatibility regression and user-guide
 auditing. The deferred items below remain deliberately outside this phase.
 
+## Deferred fourth phase
+
+Do not implement the fourth-phase feature work until the user explicitly
+reactivates it. Keep the following items as memo-only candidates while the
+third phase focuses on large-workspace validation, performance, resource
+control, interaction consistency, and diagnostics:
+
+- A complete semantic context menu in Code Preview for Definition,
+  Declaration, References, Callers/Callees, Type Hierarchy, bookmarks, and
+  editor navigation.
+- Include analysis improvements covering compiler builtin paths and bounded,
+  conservative conditional-preprocessor evaluation.
+- Type/Include workspace-session restoration, subject to the safety rules in
+  the dedicated restoration memo below.
+- Cross-procedural pointer/data-flow analysis, complete template instantiation
+  chains, and compiler macro-expansion stacks.
+- Optional Microsoft C/C++ extension engine support, only if a stable public
+  API and a clear user need make coexistence practical.
+
+Replanning or third-phase completion does not implicitly authorize these
+features. They remain deferred until explicitly requested.
+
 ## Deferred Code Preview ideas
 
 The following features were intentionally excluded from 0.5.0 and may be
