@@ -19,6 +19,8 @@ and tooltips without overwhelming the result label.
 - Developer and maintainer: `youjinchun`
 - License: MIT
 - Semantic engine: clangd
+- Experimental engine work: 0.18.0 contains an isolated Microsoft C/C++
+  provider feasibility probe; the shipping extension still uses clangd only
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -26,6 +28,9 @@ Use **C Insight: About** to inspect or copy the installed version and host
 information. Development requirements and quality gates are in
 `CONTRIBUTING.md`; disclosure guidance and data boundaries are in `SECURITY.md`
 and `PRIVACY.md`.
+
+Microsoft-provider probe design, reproducible commands, results, and API
+boundaries are documented in `docs/microsoft-provider-probe.zh-CN.md`.
 
 ## MVP features
 

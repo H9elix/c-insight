@@ -27,6 +27,8 @@ async function main(): Promise<void> {
 
   await runTests({
     version: process.env.C_INSIGHT_VSCODE_TEST_VERSION ?? "1.130.0",
+    vscodeExecutablePath:
+      process.env.C_INSIGHT_VSCODE_EXECUTABLE_PATH || undefined,
     extensionDevelopmentPath,
     extensionTestsPath,
     launchArgs: [

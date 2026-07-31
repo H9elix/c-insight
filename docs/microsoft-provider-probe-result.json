@@ -1,0 +1,106 @@
+{
+  "schema": "c-insight.microsoft-provider-probe",
+  "version": 1,
+  "generatedAt": "2026-07-31T17:09:50.648Z",
+  "environment": {
+    "vscode": "1.130.0",
+    "extensionId": "ms-vscode.cpptools",
+    "extensionVersion": "1.32.2",
+    "extensionExportsGetApi": true,
+    "workspace": "basic-cpp"
+  },
+  "isolation": {
+    "cInsightLoaded": false,
+    "note": "Only the Microsoft C/C++ development extension is loaded; provider aggregation with other semantic extensions is tested separately."
+  },
+  "limitations": {
+    "directSemanticApi": false,
+    "providerSelection": false,
+    "inFlightCancellationToken": false
+  },
+  "results": [
+    {
+      "name": "definition",
+      "available": true,
+      "durationMs": 1416.88,
+      "count": 1,
+      "uniqueLocations": 1
+    },
+    {
+      "name": "declaration",
+      "available": true,
+      "durationMs": 3,
+      "count": 1,
+      "uniqueLocations": 1
+    },
+    {
+      "name": "references",
+      "available": true,
+      "durationMs": 407.11,
+      "count": 2,
+      "uniqueLocations": 2
+    },
+    {
+      "name": "hover",
+      "durationMs": 6.88,
+      "available": true,
+      "count": 1
+    },
+    {
+      "name": "document-highlights",
+      "durationMs": 3.15,
+      "available": true,
+      "count": 2,
+      "detail": "kinds=0"
+    },
+    {
+      "name": "document-symbols",
+      "durationMs": 0.67,
+      "available": true,
+      "count": 2
+    },
+    {
+      "name": "workspace-symbols",
+      "durationMs": 2.72,
+      "available": true,
+      "count": 2
+    },
+    {
+      "name": "signature-help",
+      "durationMs": 3.94,
+      "available": true,
+      "count": 1
+    },
+    {
+      "name": "prepare-call-hierarchy",
+      "available": true,
+      "durationMs": 2.94,
+      "count": 1
+    },
+    {
+      "name": "incoming-calls",
+      "durationMs": 404.89,
+      "available": true,
+      "count": 1
+    },
+    {
+      "name": "outgoing-calls",
+      "durationMs": 4.76,
+      "available": true,
+      "count": 2
+    },
+    {
+      "name": "semantic-tokens",
+      "durationMs": 1.26,
+      "available": true,
+      "count": 14,
+      "detail": "tokenTypes=23"
+    },
+    {
+      "name": "public-type-hierarchy-command",
+      "available": false,
+      "durationMs": 0,
+      "detail": "editor.showTypeHierarchy,editor.refocusTypeHierarchy,editor.closeTypeHierarchy"
+    }
+  ]
+}

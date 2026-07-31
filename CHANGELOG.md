@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.0
+
+- Added an isolated Microsoft C/C++ provider feasibility probe that exercises
+  VS Code's public definition, declaration, references, hover, highlight,
+  symbol, signature-help, Call Hierarchy, and semantic-token commands.
+- Added a machine-readable probe report with provider isolation, environment,
+  timing, result counts, and explicit public-API limitations.
+- Documented the boundary between the Microsoft C/C++ configuration API and
+  semantic provider commands, including provider-selection, cancellation, and
+  Type Hierarchy constraints.
+- Kept clangd as the only production engine; this release establishes evidence
+  and an implementation boundary for a later opt-in Microsoft adapter.
+
 ## 0.17.6
 
 - Added `youjinchun` as the extension developer and maintainer metadata.

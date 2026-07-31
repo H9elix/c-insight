@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.6",
+  "version": "0.18.0",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -31,6 +31,8 @@
     "docs/user-guide.zh-CN.md",
     "docs/performance-baseline.zh-CN.md",
     "docs/third-phase-acceptance.zh-CN.md",
+    "docs/microsoft-provider-probe.zh-CN.md",
+    "docs/microsoft-provider-probe-result.json",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "PRIVACY.md",
@@ -71,6 +73,7 @@
     "test:integration": "npm run compile && node --test dist/test/integration/**/*.test.js",
     "test:e2e": "npm run build && node dist/test/e2e/runTest.js",
     "test:e2e:xvfb": "xvfb-run -a npm run test:e2e",
+    "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
     "package": "npm run build && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
