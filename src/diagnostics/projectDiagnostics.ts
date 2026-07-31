@@ -55,6 +55,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
   constructor(
     private readonly manager: ClangdManager,
     private readonly analysis: AnalysisService,
+    private readonly context: vscode.ExtensionContext,
   ) {}
 
   async refresh(
@@ -181,7 +182,21 @@ export class ProjectDiagnostics implements vscode.Disposable {
       missingIncludes: currentMissingIncludes,
     });
 
+    const extension = extensionInformation(this.context);
+
     const roots: TreeNode[] = [
+      group("Extension information", "extensions", [
+        detail("Version", extension.version, "versions"),
+        detail("Developer", extension.developer, "account"),
+        detail("License", extension.license, "law"),
+        detail("VS Code", extension.vscodeVersion, "code"),
+        detail("Node", extension.nodeVersion, "server-process"),
+        detail(
+          "Host",
+          `${extension.platform} ${extension.architecture} · ${extension.remoteName ?? "local"} · ${extension.extensionMode}`,
+          "remote",
+        ),
+      ], vscode.TreeItemCollapsibleState.Collapsed),
       group(
         `clangd: ${state}`,
         state === "ready"
@@ -400,6 +415,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       workspaceTrusted: vscode.workspace.isTrusted,
+      extension,
       clangd: {
         state,
         executable:
@@ -824,5 +840,38 @@ function configuredRuntimeLimits(): Record<string, number> {
       "maximumMegabytes",
       64,
     ),
+  };
+}
+
+function extensionInformation(
+  context: vscode.ExtensionContext,
+): NonNullable<ProjectDiagnosticsReport["extension"]> {
+  const manifest = context.extension.packageJSON as {
+    displayName?: string;
+    name?: string;
+    version?: string;
+    author?: string | { name?: string };
+    license?: string;
+  };
+  const developer =
+    typeof manifest.author === "string"
+      ? manifest.author
+      : manifest.author?.name ?? "youjinchun";
+  const extensionModes: Record<number, string> = {
+    [vscode.ExtensionMode.Production]: "production",
+    [vscode.ExtensionMode.Development]: "development",
+    [vscode.ExtensionMode.Test]: "test",
+  };
+  return {
+    name: manifest.displayName ?? manifest.name ?? "C Insight",
+    version: manifest.version ?? "unknown",
+    developer,
+    license: manifest.license ?? "MIT",
+    vscodeVersion: vscode.version,
+    nodeVersion: process.versions.node,
+    platform: process.platform,
+    architecture: process.arch,
+    remoteName: vscode.env.remoteName,
+    extensionMode: extensionModes[context.extensionMode] ?? "unknown",
   };
 }

@@ -50,6 +50,47 @@ export function registerCommands(
     context.subscriptions.push(vscode.commands.registerCommand(id, callback));
   };
 
+  register("cInsight.about", async () => {
+    const manifest = context.extension.packageJSON as {
+      displayName?: string;
+      name?: string;
+      version?: string;
+      author?: string | { name?: string };
+      license?: string;
+    };
+    const developer =
+      typeof manifest.author === "string"
+        ? manifest.author
+        : manifest.author?.name ?? "youjinchun";
+    const details = [
+      `Version: ${manifest.version ?? "unknown"}`,
+      `Developer: ${developer}`,
+      "Semantic engine: clangd",
+      `License: ${manifest.license ?? "MIT"}`,
+      `VS Code: ${vscode.version}`,
+      `Platform: ${process.platform} ${process.arch}`,
+      `Remote: ${vscode.env.remoteName ?? "local"}`,
+      "Telemetry: disabled; source code is not uploaded by C Insight",
+    ].join("\n");
+    const action = await vscode.window.showInformationMessage(
+      manifest.displayName ?? manifest.name ?? "C Insight",
+      { modal: true, detail: details },
+      "Copy Information",
+      "Open User Guide",
+    );
+    if (action === "Copy Information") {
+      await vscode.env.clipboard.writeText(
+        `${manifest.displayName ?? "C Insight"}\n${details}\n`,
+      );
+    } else if (action === "Open User Guide") {
+      const guide = vscode.Uri.joinPath(
+        context.extensionUri,
+        "docs/user-guide.zh-CN.md",
+      );
+      await vscode.commands.executeCommand("markdown.showPreview", guide);
+    }
+  });
+
   register("cInsight.openLocation", async (value: unknown) => {
     const candidate = value as LocationResult & {
       location?: LocationResult;

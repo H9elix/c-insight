@@ -23,6 +23,18 @@ export interface ProjectDiagnosticsReport {
   schemaVersion: 1;
   generatedAt: string;
   workspaceTrusted: boolean;
+  extension?: {
+    name: string;
+    version: string;
+    developer: string;
+    license: string;
+    vscodeVersion: string;
+    nodeVersion: string;
+    platform: string;
+    architecture: string;
+    remoteName?: string;
+    extensionMode: string;
+  };
   clangd: {
     state: string;
     executable: string;
@@ -149,6 +161,19 @@ export function renderProjectDiagnosticsText(
     "C Insight Project Diagnostics",
     `Generated: ${report.generatedAt}`,
     `Workspace trusted: ${report.workspaceTrusted}`,
+  ];
+  if (report.extension) {
+    lines.push(
+      "",
+      `Extension: ${report.extension.name} ${report.extension.version}`,
+      `Developer: ${report.extension.developer}`,
+      `License: ${report.extension.license}`,
+      `VS Code: ${report.extension.vscodeVersion}`,
+      `Node: ${report.extension.nodeVersion}`,
+      `Host: ${report.extension.platform} ${report.extension.architecture} · ${report.extension.remoteName ?? "local"} · ${report.extension.extensionMode}`,
+    );
+  }
+  lines.push(
     "",
     `clangd: ${report.clangd.state}`,
     `Executable: ${report.clangd.executable}`,
@@ -156,7 +181,7 @@ export function renderProjectDiagnosticsText(
     `Background index: ${report.clangd.indexStatus}${report.clangd.indexProgress ? ` (${report.clangd.indexProgress})` : ""}`,
     "",
     `Compilation database: ${report.compilationDatabase.path ?? "not found"}`,
-  ];
+  );
   if (report.compilationDatabase.source) {
     lines.push(`Database source: ${report.compilationDatabase.source}`);
   }

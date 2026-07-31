@@ -2,8 +2,11 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "publisher": "c-insight",
+  "author": {
+    "name": "youjinchun"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.95.0"
@@ -28,6 +31,9 @@
     "docs/user-guide.zh-CN.md",
     "docs/performance-baseline.zh-CN.md",
     "docs/third-phase-acceptance.zh-CN.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "PRIVACY.md",
     "LICENSE"
   ],
   "activationEvents": [
@@ -43,6 +49,7 @@
     "onView:cInsight.subtypes",
     "onView:cInsight.includes",
     "onView:cInsight.includedBy",
+    "onCommand:cInsight.about",
     "onCommand:cInsight.relationshipGraph.show",
     "onCommand:cInsight.relationshipGraph.showFile",
     "onCommand:cInsight.relationshipGraph.exportText",
@@ -81,6 +88,10 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "cInsight.about",
+        "title": "C Insight: About"
+      },
       {
         "command": "cInsight.relationshipGraph.show",
         "title": "C Insight: Show Relationship Graph",

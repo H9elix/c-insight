@@ -65,7 +65,7 @@ export async function activate(
     callRepository,
   );
   const controller = new ContextController(analysis, views, output);
-  const projectDiagnostics = new ProjectDiagnostics(manager, analysis);
+  const projectDiagnostics = new ProjectDiagnostics(manager, analysis, context);
   workspaceSession = new WorkspaceSessionManager(context, {
     capture: () => ({
       history: vscode.workspace

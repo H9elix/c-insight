@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.6
+
+- Added `youjinchun` as the extension developer and maintainer metadata.
+- Added a C Insight: About command with copyable version, engine, license,
+  environment, remote-host, and privacy information plus a user-guide action.
+- Added an Extension Information group to Project Diagnostics and its text/JSON
+  reports.
+- Added packaged contribution, security, and privacy policies without inventing
+  repository or issue links that have not been selected yet.
+- Updated the license notice, README, generated command reference, and Chinese
+  user guide.
+
 ## 0.17.5
 
 - Added a repeatable, read-only clangd 20 acceptance harness for a configured
