@@ -5,6 +5,11 @@ starts and manages its own `clangd` process and keeps symbol context, source
 previews, references, callers, callees, and document symbols visible in a
 dedicated activity-bar container.
 
+Demand-driven tree views use a shared status contract for idle, loading,
+empty, cancelled, stale, limited, and failed operations. Idle rows explain how
+to trigger the first query; failure details remain available in descriptions
+and tooltips without overwhelming the result label.
+
 完整中文说明见随扩展发布的 `docs/user-guide.zh-CN.md`。
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。

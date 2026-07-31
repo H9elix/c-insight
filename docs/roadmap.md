@@ -20,6 +20,9 @@ within a shared cancellation scope.
 Version 0.17.2 bounded References tree materialization and detail caches,
 introduced cancellable record-limited References bulk output, and applied a
 shared encoded-size guard to all file exports.
+Version 0.17.3 unified idle, loading, empty, cancelled, stale, limited, and
+error presentation across the demand-driven navigation trees and aligned both
+Call Hierarchy directions on the same expansion-failure behavior.
 
 ## Deferred fourth phase
 
