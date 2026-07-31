@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "C Insight Microsoft Probe",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/src"
+      ],
+      "compilerPath": "/usr/bin/g++",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}

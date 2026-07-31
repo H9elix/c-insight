@@ -32,6 +32,10 @@ and a final documentation audit. Fourth-phase candidates remain deferred.
 Version 0.17.6 added maintainer metadata, packaged contributor/security/privacy
 policies, an About command, and diagnostic extension-host information. It does
 not reactivate deferred fourth-phase feature work.
+Version 0.18.0 reactivated only the optional Microsoft C/C++ engine
+investigation. It adds an isolated, repeatable provider probe and records the
+public-API boundary; it does not switch C Insight away from clangd. A production
+adapter remains conditional on the probe evidence and explicit follow-up work.
 
 ## Deferred fourth phase
 
@@ -49,8 +53,9 @@ control, interaction consistency, and diagnostics:
   the dedicated restoration memo below.
 - Cross-procedural pointer/data-flow analysis, complete template instantiation
   chains, and compiler macro-expansion stacks.
-- Optional Microsoft C/C++ extension engine support, only if a stable public
-  API and a clear user need make coexistence practical.
+- Production Microsoft C/C++ engine support beyond the 0.18.0 feasibility
+  probe, only if the public provider surface and coexistence constraints make
+  the adapter practical.
 
 Replanning or third-phase completion does not implicitly authorize these
 features. They remain deferred until explicitly requested.
