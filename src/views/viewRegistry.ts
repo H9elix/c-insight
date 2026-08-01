@@ -1155,8 +1155,14 @@ export class ViewRegistry implements vscode.Disposable {
 
   private noCallsNode(direction: "incoming" | "outgoing"): TreeNode {
     const noun = direction === "incoming" ? "callers" : "callees";
+    const referencesBasedMicrosoftCallers =
+      direction === "incoming" &&
+      this.analysis.analysisEngine === "microsoft" &&
+      this.callRepository.incomingMode() === "references";
     return viewStatusNode(
-        this.reliability.level === "reliable"
+        referencesBasedMicrosoftCallers
+          ? "No callers found by References-based analysis — results may be incomplete"
+          : this.reliability.level === "reliable"
           ? `No ${noun} found`
           : `No ${noun} found yet — results may be incomplete`,
       "empty",
