@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { DocumentSymbol, SymbolInformation } from "vscode-languageclient/node";
-import { enclosingCaller } from "../../src/callHierarchy/microsoftCallerFallbackModel";
+import {
+  enclosingCaller,
+  microsoftEmptyCallersMessage,
+} from "../../src/callHierarchy/microsoftCallerFallbackModel";
 
 const range = (startLine: number, endLine: number) => ({
   start: { line: startLine, character: 0 },
@@ -64,6 +67,17 @@ describe("Microsoft reference-based Callers", () => {
     assert.equal(
       enclosingCaller("file:///caller.cpp", { line: 10, character: 0 }, [interfaceSymbol]),
       undefined,
+    );
+  });
+
+  it("distinguishes no references from references that cannot be mapped", () => {
+    assert.match(
+      microsoftEmptyCallersMessage({ references: 0, unmappedReferences: 0 }),
+      /results may be incomplete/,
+    );
+    assert.equal(
+      microsoftEmptyCallersMessage({ references: 2, unmappedReferences: 2 }),
+      "2 references found, but enclosing caller functions could not be identified",
     );
   });
 });

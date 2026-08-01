@@ -12,6 +12,7 @@ import {
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
+import { microsoftEmptyCallersMessage } from "../callHierarchy/microsoftCallerFallbackModel";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import type {
   CallHierarchySessionState,
@@ -1153,7 +1154,10 @@ export class ViewRegistry implements vscode.Disposable {
       );
   }
 
-  private noCallsNode(direction: "incoming" | "outgoing"): TreeNode {
+  private noCallsNode(
+    direction: "incoming" | "outgoing",
+    node?: CallNode,
+  ): TreeNode {
     const noun = direction === "incoming" ? "callers" : "callees";
     const referencesBasedMicrosoftCallers =
       direction === "incoming" &&
@@ -1161,7 +1165,9 @@ export class ViewRegistry implements vscode.Disposable {
       this.callRepository.incomingMode() === "references";
     return viewStatusNode(
         referencesBasedMicrosoftCallers
-          ? "No callers found by References-based analysis — results may be incomplete"
+          ? microsoftEmptyCallersMessage(
+              node ? this.callRepository.incomingEvidence(node) : undefined,
+            )
           : this.reliability.level === "reliable"
           ? `No ${noun} found`
           : `No ${noun} found yet — results may be incomplete`,
@@ -1245,7 +1251,7 @@ export class ViewRegistry implements vscode.Disposable {
                 }
                 return children.length > 0
                   ? children
-                  : [this.noCallsNode("incoming")];
+                  : [this.noCallsNode("incoming", node)];
               } catch (error) {
                 return [this.callQueryError("Callers", error)];
               }

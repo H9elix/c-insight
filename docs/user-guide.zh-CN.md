@@ -1,4 +1,4 @@
-# C Insight 0.18.9 使用手册
+# C Insight 0.18.10 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -385,9 +385,13 @@ Microsoft References 回退结果会显示 `References-based` 提示。它属于
 普通直接调用通常可以识别，但宏展开、函数指针以及 Provider 未返回的引用可能
 缺失。可将 `cInsight.microsoft.callersMode` 改为 `native` 使用 cpptools 原生
 Incoming Calls（已知对部分跨文件符号存在崩溃风险），或设为 `disabled` 禁用。
-因此该模式查询为空时固定显示 `No callers found by References-based analysis —
-results may be incomplete`，不会把 Provider 没有提供足够证据误报成“确认没有
-调用者”。
+因此该模式查询为空时不会把 Provider 没有提供足够证据误报成“确认没有调用者”：
+
+- References 查询没有返回调用证据时显示 `No callers found by Microsoft
+  References query — results may be incomplete`。
+- References 已返回位置，但无法映射到外层函数时显示找到的引用数量以及
+  `enclosing caller functions could not be identified`。这通常表示 Provider 的
+  Document Symbols 缺失、范围或类型不兼容，而不表示没有调用者。
 0.18.8 还兼容 cpptools 将 C 函数以扁平 `Interface` 类型返回的情况：仅当符号名
 具有函数参数列表且其完整源码范围包含引用位置时，才将其识别为外层调用函数，
 避免误把真正的接口或类型符号当作 Caller。

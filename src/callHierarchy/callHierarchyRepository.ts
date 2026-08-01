@@ -8,11 +8,15 @@ import { AnalysisService } from "../analysis/analysisService";
 import { CallNode } from "../models/types";
 import { LruPromiseCache } from "../utils/lruPromiseCache";
 import { callHierarchyKey } from "../utils/callHierarchy";
-import { enclosingCaller } from "./microsoftCallerFallbackModel";
+import {
+  enclosingCaller,
+  MicrosoftCallerEvidence,
+} from "./microsoftCallerFallbackModel";
 
 export type CallDirection = "incoming" | "outgoing";
 
 export class CallHierarchyRepository {
+  private readonly microsoftIncomingEvidence = new Map<string, MicrosoftCallerEvidence>();
   private readonly incomingCache: LruPromiseCache<
     CallHierarchyIncomingCall[]
   >;
@@ -68,12 +72,17 @@ export class CallHierarchyRepository {
     return this.microsoftIncomingMode();
   }
 
+  incomingEvidence(node: CallNode): MicrosoftCallerEvidence | undefined {
+    return this.microsoftIncomingEvidence.get(node.key);
+  }
+
   invalidate(): void {
     const size = configuredCacheSize();
     this.incomingCache.resize(size);
     this.outgoingCache.resize(size);
     this.incomingCache.clear();
     this.outgoingCache.clear();
+    this.microsoftIncomingEvidence.clear();
   }
 
   private microsoftIncomingMode(): "references" | "native" | "disabled" {
@@ -103,6 +112,7 @@ export class CallHierarchyRepository {
     const maximumNodes = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
       .get<number>("maximumNodes", 2_000);
+    let unmappedReferences = 0;
     for (const reference of references) {
       if (token?.isCancellationRequested) throw new vscode.CancellationError();
       const uri = reference.uri.toString();
@@ -119,7 +129,10 @@ export class CallHierarchyRepository {
         },
         symbols,
       );
-      if (!item) continue;
+      if (!item) {
+        unmappedReferences += 1;
+        continue;
+      }
       const key = callHierarchyKey(item);
       const existing = callers.get(key);
       const range = {
@@ -138,6 +151,10 @@ export class CallHierarchyRepository {
         callers.set(key, { item, ranges: [range] });
       }
     }
+    this.microsoftIncomingEvidence.set(node.key, {
+      references: references.length,
+      unmappedReferences,
+    });
     return [...callers.values()].map(({ item, ranges }) => ({
       from: item,
       fromRanges: ranges,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.10
+
+- Distinguished a Microsoft References query that returned no caller evidence
+  from references that were returned but could not be mapped to enclosing
+  functions, making empty Callers diagnostics actionable.
+
+
 ## 0.18.9
 
 - Added a one-time notice when Microsoft C/C++ is selected, identifying the
