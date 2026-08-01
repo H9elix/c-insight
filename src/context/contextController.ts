@@ -7,7 +7,7 @@ import {
 import { SymbolContext, ViewUpdateIntent } from "../models/types";
 import { ViewRegistry } from "../views/viewRegistry";
 import {
-  cursorQueryDemand,
+  cursorQueryDemandForEngine,
   CursorQueryDemand,
 } from "./navigationDemand";
 
@@ -229,7 +229,13 @@ export class ContextController implements vscode.Disposable {
   ): Promise<void> {
     const cancellation = new vscode.CancellationTokenSource();
     this.cancellation = cancellation;
-    const demand = cursorQueryDemand(this.views.navigationVisibility);
+    // cpptools Call Hierarchy is substantially heavier than the other public
+    // providers. Microsoft mode only prepares roots for visible hierarchy
+    // views and lets tree expansion request one direction at a time.
+    const demand = cursorQueryDemandForEngine(
+      this.views.navigationVisibility,
+      this.analysis.analysisEngine,
+    );
     if (!demand.active) {
       cancellation.dispose();
       this.cancellation = undefined;
@@ -298,13 +304,17 @@ export class ContextController implements vscode.Disposable {
               cancellation.token,
             )
           : [],
-        demand.incomingCount && base.callRoots[0]
+        demand.incomingCount &&
+        this.analysis.analysisEngine !== "microsoft" &&
+        base.callRoots[0]
           ? this.analysis
               .incomingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
-        demand.outgoingCount && base.callRoots[0]
+        demand.outgoingCount &&
+        this.analysis.analysisEngine !== "microsoft" &&
+        base.callRoots[0]
           ? this.analysis
               .outgoingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)

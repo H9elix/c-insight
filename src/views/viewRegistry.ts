@@ -357,7 +357,7 @@ export class ViewRegistry implements vscode.Disposable {
         context.qualifiedName ?? context.name ?? "Symbol",
         "context",
       );
-    } else if (this.preview.visible) {
+    } else if (this.preview.visible && !this.preview.hasLocation) {
       this.preview.clear();
     }
     if (

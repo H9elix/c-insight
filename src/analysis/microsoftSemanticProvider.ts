@@ -15,6 +15,7 @@ import {
 } from "./microsoftProviderStatus";
 
 export class MicrosoftSemanticProvider {
+  private callHierarchyTail: Promise<void> = Promise.resolve();
   private readonly callItems = new Map<string, vscode.CallHierarchyItem>();
   async activate(): Promise<void> {
     const resource = vscode.window.activeTextEditor?.document.uri;
@@ -79,12 +80,14 @@ export class MicrosoftSemanticProvider {
     uri: vscode.Uri,
     position: vscode.Position,
   ): Promise<CallNode[]> {
-    const values =
-      (await vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
+    const values = await this.serialCallHierarchy(() => {
+      this.callItems.clear();
+      return vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
         "vscode.prepareCallHierarchy",
         uri,
         position,
-      )) ?? [];
+      );
+    }) ?? [];
     return values.map((value) => {
       const raw = toLspCallItem(value);
       const key = callHierarchyKey(raw);
@@ -94,28 +97,36 @@ export class MicrosoftSemanticProvider {
   }
 
   async incomingCalls(node: CallNode): Promise<CallHierarchyIncomingCall[]> {
-    const values =
-      (await vscode.commands.executeCommand<vscode.CallHierarchyIncomingCall[]>(
+    const values = await this.serialCallHierarchy(() =>
+      vscode.commands.executeCommand<vscode.CallHierarchyIncomingCall[]>(
         "vscode.provideIncomingCalls",
         this.callItems.get(node.key) ?? toVsCallItem(node.raw),
-      )) ?? [];
+      ),
+    ) ?? [];
     return values.map((value) => {
       const from = toLspCallItem(value.from);
       this.callItems.set(callHierarchyKey(from), value.from);
-      return { from, fromRanges: value.fromRanges.map(toLspRange) };
+      return {
+        from,
+        fromRanges: value.fromRanges.map(toLspRange),
+      };
     });
   }
 
   async outgoingCalls(node: CallNode): Promise<CallHierarchyOutgoingCall[]> {
-    const values =
-      (await vscode.commands.executeCommand<vscode.CallHierarchyOutgoingCall[]>(
+    const values = await this.serialCallHierarchy(() =>
+      vscode.commands.executeCommand<vscode.CallHierarchyOutgoingCall[]>(
         "vscode.provideOutgoingCalls",
         this.callItems.get(node.key) ?? toVsCallItem(node.raw),
-      )) ?? [];
+      ),
+    ) ?? [];
     return values.map((value) => {
       const to = toLspCallItem(value.to);
       this.callItems.set(callHierarchyKey(to), value.to);
-      return { to, fromRanges: value.fromRanges.map(toLspRange) };
+      return {
+        to,
+        fromRanges: value.fromRanges.map(toLspRange),
+      };
     });
   }
 
@@ -169,6 +180,23 @@ export class MicrosoftSemanticProvider {
             range: value.targetSelectionRange ?? value.targetRange,
           },
     );
+  }
+
+  private async serialCallHierarchy<T>(action: () => PromiseLike<T>): Promise<T> {
+    const previous = this.callHierarchyTail;
+    let release!: () => void;
+    this.callHierarchyTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous.catch(() => undefined);
+    try {
+      return await action();
+    } catch (error) {
+      this.callItems.clear();
+      throw error;
+    } finally {
+      release();
+    }
   }
 }
 

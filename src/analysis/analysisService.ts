@@ -121,6 +121,10 @@ export class AnalysisService {
     };
   }
 
+  get analysisEngine(): AnalysisEngine {
+    return this.engine;
+  }
+
   async definition(
     uri: vscode.Uri,
     position: vscode.Position,

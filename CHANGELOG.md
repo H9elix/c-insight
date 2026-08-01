@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.4
+
+- Serialized Microsoft C/C++ Call Hierarchy commands to avoid concurrent
+  `prepare`, incoming, and outgoing work in the cpptools native process.
+- Stopped eager Microsoft Callers/Callees count queries and prepared Call
+  Hierarchy only while its views are visible or a hierarchy command is run.
+- Scoped Microsoft Call Hierarchy item caching to the current prepared root and
+  cleared it after Provider failures, preventing reuse after a cpptools crash.
+- Kept the last valid Code Preview visible when a transient Provider failure or
+  empty definition result occurs.
+
+
 ## 0.18.3
 
 - Added per-method semantic request timing, outcome, failure, and cancellation

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cursorQueryDemand } from "../../src/context/navigationDemand";
+import {
+  cursorQueryDemand,
+  cursorQueryDemandForEngine,
+} from "../../src/context/navigationDemand";
 
 const hidden = {
   context: false,
@@ -55,5 +58,21 @@ describe("navigation visibility query demand", () => {
     assert.equal(context.hover, true);
     assert.equal(context.symbolInfo, true);
     assert.equal(context.references, false);
+  });
+
+  it("demand-gates Microsoft Call Hierarchy and avoids eager counts", () => {
+    const context = cursorQueryDemandForEngine(
+      { ...hidden, context: true },
+      "microsoft",
+    );
+    assert.equal(context.callRoots, false);
+
+    const hierarchy = cursorQueryDemandForEngine(
+      { ...hidden, context: true, callers: true, callees: true },
+      "microsoft",
+    );
+    assert.equal(hierarchy.callRoots, true);
+    assert.equal(hierarchy.incomingCount, false);
+    assert.equal(hierarchy.outgoingCount, false);
   });
 });
