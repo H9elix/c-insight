@@ -118,6 +118,10 @@ LLVM's `clangd.enable` does not support Workspace Folder writes. The quick fix
 now uses the supported Workspace target, names the exact single-folder
 `.vscode/settings.json` URI or shared multi-root scope before confirmation,
 reports write failures, and keeps failed restore records for retry.
+Version 0.18.21 removes the competing notifications seen when Microsoft startup
+itself rejects an active LLVM clangd Provider. That path now shows one targeted
+failure with a reversible **Disable LLVM clangd for This Workspace** action;
+unrelated Microsoft startup failures retain their own settings guidance.
 
 ## Deferred fourth phase
 

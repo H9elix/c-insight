@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
-  "version": "0.18.20",
+  "version": "0.18.21",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"

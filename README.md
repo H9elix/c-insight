@@ -48,7 +48,8 @@ and tooltips without overwhelming the result label.
   between Extension Host suites; 0.18.19 makes provider conflicts depend on
   effective language-service settings and adds reversible, workspace-scoped
   conflict resolution; 0.18.20 writes LLVM's window-scoped setting through the
-  supported Workspace target and reports the exact local/WSL/SSH destination
+  supported Workspace target and reports the exact local/WSL/SSH destination;
+  0.18.21 folds that action into a single Microsoft-startup conflict prompt
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

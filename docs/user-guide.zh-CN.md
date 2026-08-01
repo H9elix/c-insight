@@ -1,4 +1,4 @@
-# C Insight 0.18.20 使用手册
+# C Insight 0.18.21 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -76,6 +76,14 @@ VS Code 不允许把它写入 Workspace Folder，因此不能进一步缩小到�
 `C_Cpp.intelliSenseEngine=disabled` 或 `clangd.enable=false`，全部成功后才提示
 Reload Window；失败时显示错误并提供 Open Workspace Settings。工作区设置可能被
 Git 跟踪并影响使用该工程的其他成员，确认前应留意设置文件变更。
+
+Microsoft 引擎启动检查若确认 LLVM clangd 仍启用，不会再同时弹出普通 Provider
+警告和通用启动失败，而只显示一条专用错误。选择 **Disable LLVM clangd for This
+Workspace** 会按上述目标写入 `clangd.enable=false`、记录原值并提示 Reload
+Window。这个设置只关闭 LLVM clangd 扩展的语言服务；Microsoft 模式本来就不会
+启动 C Insight 自己管理的 clangd，也不会删除系统中的 clangd 可执行文件。其他
+Microsoft 启动失败仍打开对应的 Microsoft C/C++ 设置，不会建议无关的 clangd
+修改。
 
 快捷关闭会在当前工作区状态中记录原来的目标层级值。执行
 **C Insight: Restore Provider Settings** 时，只有仍保持 C Insight 写入值的设置才

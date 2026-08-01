@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.21
+
+- Replaced concurrent generic Provider-conflict and Microsoft startup-failure
+  notifications with one Microsoft-specific LLVM clangd conflict prompt.
+- Added **Disable LLVM clangd for This Workspace** directly to that startup
+  failure. It writes `clangd.enable=false` through the supported Workspace
+  target, records the prior value for safe restore, and then offers Reload
+  Window.
+- Kept other Microsoft startup failures on the existing engine-specific
+  settings path instead of suggesting an unrelated clangd change.
+
 ## 0.18.20
 
 - Fixed **Disable for This Workspace** failing because LLVM clangd declares
