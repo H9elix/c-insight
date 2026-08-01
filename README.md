@@ -49,7 +49,8 @@ and tooltips without overwhelming the result label.
   effective language-service settings and adds reversible, workspace-scoped
   conflict resolution; 0.18.20 writes LLVM's window-scoped setting through the
   supported Workspace target and reports the exact local/WSL/SSH destination;
-  0.18.21 folds that action into a single Microsoft-startup conflict prompt
+  0.18.21 folds that action into a single Microsoft-startup conflict prompt;
+  0.18.22 removes the reciprocal clangd-mode cpptools activation race
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

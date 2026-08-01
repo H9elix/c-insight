@@ -243,8 +243,34 @@ export async function activate(
   );
   let documentSymbolsTimer: NodeJS.Timeout | undefined;
   let compilationDatabaseTimer: NodeJS.Timeout | undefined;
+  let providerConflictTimer: NodeJS.Timeout | undefined;
   let indexWasRunning = false;
   let documentSymbolsGeneration = 0;
+  const providerConflictPromptState: ProviderConflictPromptState = {
+    inFlight: false,
+    warned: new Set<string>(),
+  };
+  const scheduleProviderConflictCheck = (
+    editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor,
+    delay = 250,
+  ): void => {
+    if (providerConflictTimer) {
+      clearTimeout(providerConflictTimer);
+      providerConflictTimer = undefined;
+    }
+    if (engine !== "clangd" || !editor || !isCppDocument(editor.document)) {
+      return;
+    }
+    providerConflictTimer = setTimeout(() => {
+      providerConflictTimer = undefined;
+      void warnAboutConflicts(
+        context,
+        engine,
+        editor.document.uri,
+        providerConflictPromptState,
+      );
+    }, delay);
+  };
   const scheduleDocumentSymbols = (
     editor: vscode.TextEditor | undefined,
     delay: number,
@@ -601,6 +627,7 @@ export async function activate(
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       scheduleDocumentSymbols(editor, 0);
+      scheduleProviderConflictCheck(editor);
       void projectDiagnostics.refresh(editor);
     }),
     views.onDidChangeNavigationVisibility((id) => {
@@ -653,8 +680,22 @@ export async function activate(
       if (compilationDatabaseTimer) {
         clearTimeout(compilationDatabaseTimer);
       }
+      if (providerConflictTimer) {
+        clearTimeout(providerConflictTimer);
+      }
+    }),
+    vscode.extensions.onDidChange(() => {
+      providerConflictPromptState.warned.clear();
+      scheduleProviderConflictCheck(undefined, 0);
     }),
     vscode.workspace.onDidChangeConfiguration(async (event) => {
+      if (
+        event.affectsConfiguration("C_Cpp.intelliSenseEngine") ||
+        event.affectsConfiguration("clangd.enable")
+      ) {
+        providerConflictPromptState.warned.clear();
+        scheduleProviderConflictCheck(undefined, 0);
+      }
       if (event.affectsConfiguration("cInsight.codePreview")) {
         views.preview.refresh();
       }
@@ -748,13 +789,6 @@ export async function activate(
   await projectDiagnostics.refresh();
 
   registerProviderSettingRestore(context);
-  if (engine === "clangd") {
-    void warnAboutConflicts(
-      context,
-      engine,
-      vscode.window.activeTextEditor?.document.uri,
-    );
-  }
   try {
     if (engine === "microsoft") {
       await new MicrosoftSemanticProvider().activate();
@@ -778,6 +812,7 @@ export async function activate(
       views,
       output,
     );
+    scheduleProviderConflictCheck(undefined, 0);
   } catch (error) {
     if (engine === "microsoft") {
       manager.failExternalEngine();
@@ -909,6 +944,7 @@ async function warnAboutConflicts(
   context: vscode.ExtensionContext,
   engine: "clangd" | "microsoft",
   resource?: vscode.Uri,
+  promptState?: ProviderConflictPromptState,
 ): Promise<void> {
   if (context.workspaceState.get<boolean>("ignoredProviderConflict")) {
     return;
@@ -922,7 +958,7 @@ async function warnAboutConflicts(
       .getConfiguration("clangd", resource)
       .get<boolean>("enable", true),
     microsoftCppActive: Boolean(
-      vscode.extensions.getExtension(MICROSOFT_CPP_EXTENSION_ID)?.isActive,
+      vscode.extensions.getExtension(MICROSOFT_CPP_EXTENSION_ID),
     ),
     microsoftIntelliSenseEngine: vscode.workspace
       .getConfiguration("C_Cpp", resource)
@@ -931,39 +967,58 @@ async function warnAboutConflicts(
   if (conflicts.length === 0) {
     return;
   }
-  const action = await vscode.window.showWarningMessage(
-    `C Insight detected active C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing. ` +
-      workspaceSettingTargetDescription(),
-    ...(vscode.workspace.workspaceFolders?.length
-      ? ["Disable for This Workspace"]
-      : []),
-    "Open Settings",
-    "Ignore for Workspace",
-  );
-  if (action === "Disable for This Workspace") {
-    try {
-      await disableConflictingProviders(context, conflicts);
-    } catch (error) {
-      const followUp = await vscode.window.showErrorMessage(
-        `C Insight could not update the workspace Provider settings: ${String(error)}`,
-        "Open Workspace Settings",
-      );
-      if (followUp === "Open Workspace Settings") {
-        await vscode.commands.executeCommand(
-          "workbench.action.openWorkspaceSettingsFile",
-        );
-      }
-    }
-  } else if (action === "Open Settings") {
-    await vscode.commands.executeCommand(
-      "workbench.action.openSettings",
-      conflicts.includes(MICROSOFT_CPP_EXTENSION_ID)
-        ? "C_Cpp.intelliSenseEngine"
-        : "clangd.enable",
-    );
-  } else if (action === "Ignore for Workspace") {
-    await context.workspaceState.update("ignoredProviderConflict", true);
+  const fingerprint = conflicts.join("|");
+  if (promptState?.inFlight || promptState?.warned.has(fingerprint)) {
+    return;
   }
+  if (promptState) {
+    promptState.inFlight = true;
+    promptState.warned.add(fingerprint);
+  }
+  try {
+    const action = await vscode.window.showWarningMessage(
+      `C Insight detected enabled C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing. ` +
+        workspaceSettingTargetDescription(),
+      ...(vscode.workspace.workspaceFolders?.length
+        ? ["Disable for This Workspace"]
+        : []),
+      "Open Settings",
+      "Ignore for Workspace",
+    );
+    if (action === "Disable for This Workspace") {
+      try {
+        await disableConflictingProviders(context, conflicts);
+      } catch (error) {
+        const followUp = await vscode.window.showErrorMessage(
+          `C Insight could not update the workspace Provider settings: ${String(error)}`,
+          "Open Workspace Settings",
+        );
+        if (followUp === "Open Workspace Settings") {
+          await vscode.commands.executeCommand(
+            "workbench.action.openWorkspaceSettingsFile",
+          );
+        }
+      }
+    } else if (action === "Open Settings") {
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        conflicts.includes(MICROSOFT_CPP_EXTENSION_ID)
+          ? "C_Cpp.intelliSenseEngine"
+          : "clangd.enable",
+      );
+    } else if (action === "Ignore for Workspace") {
+      await context.workspaceState.update("ignoredProviderConflict", true);
+    }
+  } finally {
+    if (promptState) {
+      promptState.inFlight = false;
+    }
+  }
+}
+
+interface ProviderConflictPromptState {
+  inFlight: boolean;
+  warned: Set<string>;
 }
 
 type ProviderSettingSection = "C_Cpp" | "clangd";

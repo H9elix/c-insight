@@ -122,6 +122,11 @@ Version 0.18.21 removes the competing notifications seen when Microsoft startup
 itself rejects an active LLVM clangd Provider. That path now shows one targeted
 failure with a reversible **Disable LLVM clangd for This Workspace** action;
 unrelated Microsoft startup failures retain their own settings guidance.
+Version 0.18.22 fixes the reciprocal activation race in clangd mode: cpptools
+availability plus its effective IntelliSense setting is checked for active
+C/C++ documents without forcing activation. Editor, configuration, and
+extension-list changes re-run the check, with session-level prompt
+deduplication.
 
 ## Deferred fourth phase
 
