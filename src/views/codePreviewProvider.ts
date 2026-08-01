@@ -143,7 +143,12 @@ export class CodePreviewProvider
       mode,
       title: title ?? previewModeLabel(mode),
     };
-    this.navigationHistory.record(location, mode, next.title, source);
+    const sameTarget = this.state?.mode === mode &&
+      this.state.location.uri.toString() === location.uri.toString() &&
+      this.state.location.range.isEqual(location.range);
+    if (!sameTarget) {
+      this.navigationHistory.record(location, mode, next.title, source);
+    }
     this.state = next;
     await this.render();
   }

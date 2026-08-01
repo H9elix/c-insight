@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.5
+
+- Decoupled cursor-follow Definition requests from slower Context and Call
+  Hierarchy work so Code Preview updates as soon as its definition resolves.
+- Prevented repeated Context enrichment from duplicating the same Code Preview
+  target in Navigation History.
+
+
 ## 0.18.4
 
 - Serialized Microsoft C/C++ Call Hierarchy commands to avoid concurrent
