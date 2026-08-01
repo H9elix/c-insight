@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { DocumentSymbol } from "vscode-languageclient/node";
+import type { DocumentSymbol, SymbolInformation } from "vscode-languageclient/node";
 import { enclosingCaller } from "../../src/callHierarchy/microsoftCallerFallbackModel";
 
 const range = (startLine: number, endLine: number) => ({
@@ -39,6 +39,30 @@ describe("Microsoft reference-based Callers", () => {
     };
     assert.equal(
       enclosingCaller("file:///caller.c", { line: 5, character: 0 }, [variable]),
+      undefined,
+    );
+  });
+
+  it("recognizes cpptools flat C functions reported as Interface", () => {
+    const functionSymbol: SymbolInformation = {
+      name: "decode_read(DecodeContext *, int)",
+      kind: 11,
+      location: { uri: "file:///caller.c", range: range(35, 63) },
+    };
+    assert.equal(
+      enclosingCaller("file:///caller.c", { line: 42, character: 8 }, [functionSymbol])?.name,
+      functionSymbol.name,
+    );
+  });
+
+  it("does not treat a real Interface symbol as a caller", () => {
+    const interfaceSymbol: SymbolInformation = {
+      name: "DecoderInterface",
+      kind: 11,
+      location: { uri: "file:///caller.cpp", range: range(1, 20) },
+    };
+    assert.equal(
+      enclosingCaller("file:///caller.cpp", { line: 10, character: 0 }, [interfaceSymbol]),
       undefined,
     );
   });

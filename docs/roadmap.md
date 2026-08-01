@@ -59,6 +59,11 @@ Version 0.18.7 removes the empty-preview retention and synthetic automatic-root
 workarounds after strict regression proved them unnecessary. Native root
 preparation is restored for Callees compatibility, while safe Callers expansion
 and semantic-token timeout fallback remain in force.
+Version 0.18.8 fixes the remaining safe-Callers mapping gap: cpptools can return
+flat C function symbols with the `Interface` kind despite providing a function
+signature and full body range. A narrowly scoped compatibility rule now maps
+those references to their enclosing function, covered by the real FFmpeg host
+regression.
 
 ## Deferred fourth phase
 

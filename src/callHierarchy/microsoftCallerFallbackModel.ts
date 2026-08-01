@@ -7,6 +7,7 @@ import type {
 } from "vscode-languageclient/node";
 
 const callableKinds = new Set([6, 9, 12]); // Method, Constructor, Function
+const microsoftFunctionKind = 11; // cpptools may expose C functions as Interface.
 
 export function enclosingCaller(
   uri: string,
@@ -29,7 +30,7 @@ function collectCallables(
   if ("location" in symbol) {
     if (
       symbol.location.uri === uri &&
-      callableKinds.has(symbol.kind) &&
+      isFlatCallable(symbol) &&
       contains(symbol.location.range, position)
     ) {
       output.push({
@@ -58,6 +59,15 @@ function collectCallables(
   for (const child of symbol.children ?? []) {
     collectCallables(uri, position, child, output);
   }
+}
+
+function isFlatCallable(symbol: SymbolInformation): boolean {
+  if (callableKinds.has(symbol.kind)) return true;
+  // The Microsoft C/C++ provider currently reports some C functions returned
+  // by DocumentSymbolProvider as Interface (11). Restrict compatibility to a
+  // flat symbol whose display name ends in a parameter list, so a real
+  // interface/type symbol is not mistaken for a caller.
+  return symbol.kind === microsoftFunctionKind && /\([^()]*\)\s*$/.test(symbol.name);
 }
 
 function contains(range: Range, position: Position): boolean {

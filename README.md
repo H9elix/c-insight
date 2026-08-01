@@ -27,7 +27,8 @@ and tooltips without overwhelming the result label.
   crash-containment improvements; 0.18.5 decouples Code Preview and provides a
   References-based Microsoft Callers fallback; 0.18.6 prevents semantic-token
   rendering from blocking cross-file Preview navigation; 0.18.7 removes the
-  disproven defensive workarounds while retaining those fixes
+  disproven defensive workarounds while retaining those fixes; 0.18.8 handles
+  cpptools' non-standard C function symbol kind in the safe Callers mapping
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

@@ -403,6 +403,61 @@ export async function activate(
         const callers = await callRepository.incoming(roots[0]);
         return { roots: roots.length, callers: callers.length };
       }),
+      vscode.commands.registerCommand("cInsight.test.referenceDiagnostics", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !isCppDocument(editor.document)) return undefined;
+        const definitions = await analysis.definition(
+          editor.document.uri,
+          editor.selection.active,
+        );
+        const fromCursor = await analysis.references(
+          editor.document.uri,
+          editor.selection.active,
+          false,
+        );
+        const definition = definitions[0];
+        const fromDefinition = definition
+          ? await analysis.references(
+              definition.uri,
+              definition.range.start,
+              false,
+            )
+          : [];
+        const firstReference = fromDefinition[0] ?? fromCursor[0];
+        const symbols = firstReference
+          ? await analysis.documentSymbols(firstReference.uri)
+          : [];
+        return {
+          definition: definition
+            ? `${definition.uri}:${definition.range.start.line + 1}`
+            : undefined,
+          fromCursor: fromCursor.length,
+          fromDefinition: fromDefinition.length,
+          cursorSamples: fromCursor.slice(0, 5).map((location) =>
+            `${location.uri}:${location.range.start.line + 1}`,
+          ),
+          definitionSamples: fromDefinition.slice(0, 5).map((location) =>
+            `${location.uri}:${location.range.start.line + 1}`,
+          ),
+          symbols: symbols.slice(0, 12).map((symbol) =>
+            "location" in symbol
+              ? {
+                  form: "SymbolInformation",
+                  name: symbol.name,
+                  kind: symbol.kind,
+                  start: symbol.location.range.start.line + 1,
+                  end: symbol.location.range.end.line + 1,
+                }
+              : {
+                  form: "DocumentSymbol",
+                  name: symbol.name,
+                  kind: symbol.kind,
+                  start: symbol.range.start.line + 1,
+                  end: symbol.range.end.line + 1,
+                },
+          ),
+        };
+      }),
     );
   }
   context.subscriptions.push(
