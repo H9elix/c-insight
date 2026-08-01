@@ -1,4 +1,4 @@
-# C Insight 0.18.15 使用手册
+# C Insight 0.18.16 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -462,6 +462,20 @@ Search Loaded Callers/Callees 只搜索已经加载进树的节点，不触发�
 Text、JSON、Mermaid 导出同样只导出已加载内容。Find Caller/Callee Path 会按配置的
 深度、路径数和访问节点数上限按需查询。上述搜索、导出、路径限制和会话兼容性由
 无模态窗口依赖的模型测试覆盖；Pin、刷新、展开和失效由真实 Extension Host 覆盖。
+
+### 4.7 Microsoft 请求与资源控制
+
+显式 Show Incoming Calls 或 Show Outgoing Calls 属于方向限定请求，只准备当前函数的
+Call Hierarchy 根，不再附带执行无关的 References 查询；如果 References 窗口已有
+结果，也不会因这次未请求 References 而被清空。真正展开 Callers 时，References-
+based 模式仍会为被展开节点按需查询 References。
+
+光标跟随继续分为 `followCursorDelay` 基础防抖和 `followCursorDetailsDelay` 详情延迟。
+0.18.16 的真实 FFmpeg 回归会在所有导航窗口可见时连续移动光标 20 次，要求最终
+最多产生一个有界语义查询周期、References 最多一次、Definition 最多两次（基础
+Definition 加 References 排除定义的后处理），并且调度队列最终无 active/queued
+任务。多窗口峰值并发、取消、按方法耗时和 Call Hierarchy 缓存命中仍可在 Project
+Diagnostics 的 Runtime performance 中查看。
 
 Callees 对应 clangd Outgoing Calls，回答“当前函数调用了哪些函数”。
 

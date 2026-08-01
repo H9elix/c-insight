@@ -343,6 +343,81 @@ export async function run(): Promise<void> {
     (runtime.counters["microsoft.preview.semanticTokens.completed"] ?? 0) +
       (runtime.counters["microsoft.preview.lexicalFallback"] ?? 0) >= 1,
   );
+
+  callerEditor.selection = new vscode.Selection(localPosition, localPosition);
+  await waitForSchedulerIdle();
+  const beforeManualOutgoing = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
+  const afterManualOutgoing = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  assert.equal(
+    counter(afterManualOutgoing, "microsoft.navigation.references.queries"),
+    counter(beforeManualOutgoing, "microsoft.navigation.references.queries"),
+    "Show Outgoing Calls should not issue an unrelated References query",
+  );
+
+  const schedulerBefore = await vscode.commands.executeCommand<{
+    scheduler: { submitted: number };
+  }>("cInsight.test.navigationState");
+  const runtimeBefore = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  const rapidPositions = [
+    symbolPosition(document, "decode_read"),
+    symbolPosition(document, "ds_run"),
+    symbolPosition(document, "ds_free"),
+    symbolPosition(document, "ds_open"),
+  ];
+  for (let index = 0; index < 20; index += 1) {
+    const next = rapidPositions[index % rapidPositions.length];
+    callerEditor.selection = new vscode.Selection(next, next);
+  }
+  await waitForSchedulerIdle();
+  const schedulerAfter = await vscode.commands.executeCommand<{
+    scheduler: { submitted: number; active: number; queued: number };
+  }>("cInsight.test.navigationState");
+  const runtimeAfter = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  assert.ok(
+    schedulerAfter.scheduler.submitted - schedulerBefore.scheduler.submitted <= 10,
+    "20 rapid cursor moves should debounce to at most one semantic query cycle",
+  );
+  assert.ok(
+    counter(runtimeAfter, "microsoft.navigation.references.queries") -
+      counter(runtimeBefore, "microsoft.navigation.references.queries") <= 1,
+  );
+  assert.ok(
+    counter(runtimeAfter, "microsoft.navigation.definition.queries") -
+      counter(runtimeBefore, "microsoft.navigation.definition.queries") <= 2,
+  );
+  assert.equal(schedulerAfter.scheduler.active, 0);
+  assert.equal(schedulerAfter.scheduler.queued, 0);
+}
+
+function counter(
+  snapshot: { counters: Record<string, number> },
+  name: string,
+): number {
+  return snapshot.counters[name] ?? 0;
+}
+
+async function waitForSchedulerIdle(): Promise<void> {
+  let idleSince: number | undefined;
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<{
+      scheduler: { active: number; queued: number };
+    }>("cInsight.test.navigationState");
+    if (state.scheduler.active !== 0 || state.scheduler.queued !== 0) {
+      idleSince = undefined;
+      return undefined;
+    }
+    idleSince ??= Date.now();
+    return Date.now() - idleSince >= 1_000 ? state : undefined;
+  }, 60_000);
 }
 
 function symbolPosition(document: vscode.TextDocument, symbol: string): vscode.Position {

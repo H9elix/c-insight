@@ -92,6 +92,11 @@ session compatibility without automating modal pickers.
 Version 0.18.15 fixes transient Call Hierarchy banner identity so repeated
 Pin/Unpin rebuilding retains exactly one Microsoft Callers mode row and never
 converts or accumulates it as ordinary tree data.
+Version 0.18.16 applies measured Microsoft resource controls: explicit
+direction-only Call Hierarchy refresh no longer requests or clears References,
+and a real FFmpeg rapid-cursor regression bounds 20 moves to one debounced
+semantic cycle with an empty scheduler afterward. Existing multi-view, depth,
+timing, and cache evidence remain part of the same host regression.
 
 ## Deferred fourth phase
 
