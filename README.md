@@ -32,7 +32,8 @@ and tooltips without overwhelming the result label.
   0.18.9 clarifies approximate empty Callers results and identifies the active
   Microsoft semantic provider to the user; 0.18.10 distinguishes absent
   References evidence from references that cannot be mapped to caller functions;
-  0.18.11 exposes those loaded-node evidence totals in Project Diagnostics
+  0.18.11 exposes those loaded-node evidence totals in Project Diagnostics;
+  0.18.12 adds symmetric native Callees outcomes, counts, and latency evidence
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

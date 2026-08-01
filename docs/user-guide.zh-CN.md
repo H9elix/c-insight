@@ -1,4 +1,4 @@
-# C Insight 0.18.11 使用手册
+# C Insight 0.18.12 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -412,6 +412,20 @@ Hierarchy 配置导致查询缓存失效时，这些计数会从零重新累计�
 - `No callers found yet — results may be incomplete`：工程或索引条件受限。
 
 ### 4.5 Callees
+
+Callees 回答“当前函数调用了哪些函数”。Microsoft 模式继续使用 cpptools 原生
+Outgoing Calls；0.18.12 尚未增加推测性回退，而是先记录真实 Provider 行为。
+已经展开查询过的节点会累计显示在 **Project Diagnostics → Microsoft C/C++
+Provider → Callees evidence (loaded nodes)** 中：
+
+- `Queried nodes`：实际派发过原生 Outgoing Calls 的不同节点数；缓存命中不重复计数。
+- `Successful`、`Failed`、`Cancelled`：最后一次节点查询的结果分类。
+- `Empty results`：成功返回但没有 Callee 的节点数；它与失败分开统计。
+- `Callee functions`：成功查询返回的 Callee 数量总和。
+- `Average duration`、`Maximum duration`：这些节点查询的平均和最长耗时。
+
+同一证据也写入 Project Diagnostics 文本/JSON 报告；Call Hierarchy 缓存失效时
+清零。这里统计的是当前缓存周期内已加载节点，不代表整个工作区的全部 Callees。
 
 Callees 对应 clangd Outgoing Calls，回答“当前函数调用了哪些函数”。
 

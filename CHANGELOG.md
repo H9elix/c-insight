@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.12
+
+- Added per-node Microsoft native Callees evidence for completed, failed,
+  cancelled, and empty Outgoing Calls queries, including returned callee counts
+  and average/maximum duration.
+- Added aggregated loaded-node Callees evidence to Project Diagnostics and its
+  text/JSON exports, resetting it with the Call Hierarchy cache.
+- Extended the real FFmpeg Extension Host regression to require a successful,
+  non-empty native Callees query for `decode_read` and validate its evidence.
+
+
 ## 0.18.11
 
 - Added loaded-node Microsoft Callers evidence to Project Diagnostics and its
