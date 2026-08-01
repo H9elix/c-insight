@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "publisher": "H9elix",
   "author": {
     "name": "youjinchun"
@@ -169,6 +169,10 @@
       {
         "command": "cInsight.restartClangd",
         "title": "C Insight: Restart clangd"
+      },
+      {
+        "command": "cInsight.restoreProviderSettings",
+        "title": "C Insight: Restore Provider Settings"
       },
       {
         "command": "cInsight.diagnostics.refresh",

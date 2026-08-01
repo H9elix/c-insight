@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.7
+
+- Backported the post-split competing-Provider reliability fixes without
+  adding the optional Microsoft analysis engine.
+- Detects enabled Microsoft IntelliSense and external LLVM clangd services for
+  active C/C++ documents without relying on activation timing, and rechecks
+  after editor, setting, or extension-list changes.
+- Added a confirmed, reversible Workspace quick fix for
+  `C_Cpp.intelliSenseEngine=disabled` and `clangd.enable=false`, with exact
+  local/WSL/SSH targets, write-failure feedback, and safe restore behavior.
+
 ## 0.17.6
 
 - Added `youjinchun` as the extension developer and maintainer metadata.

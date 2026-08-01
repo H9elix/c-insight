@@ -32,6 +32,10 @@ and a final documentation audit. Fourth-phase candidates remain deferred.
 Version 0.17.6 added maintainer metadata, packaged contributor/security/privacy
 policies, an About command, and diagnostic extension-host information. It does
 not reactivate deferred fourth-phase feature work.
+Version 0.17.7 is the clangd-only maintenance backport of later Provider
+conflict reliability work. It detects effective competing services without an
+activation race and adds confirmed, reversible Workspace settings changes; it
+does not include the optional Microsoft analysis-engine adapter.
 
 ## Deferred fourth phase
 

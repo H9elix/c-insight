@@ -18,7 +18,9 @@ and tooltips without overwhelming the result label.
 
 - Developer and maintainer: `youjinchun`
 - License: MIT
-- Semantic engine: clangd
+- Semantic engine: managed clangd only; 0.17.7 includes reversible Workspace
+  conflict handling for competing Microsoft IntelliSense and LLVM clangd
+  services without adding Microsoft as an analysis engine
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

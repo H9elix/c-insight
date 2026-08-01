@@ -1,4 +1,4 @@
-# C Insight 0.17.6 使用手册
+# C Insight 0.17.7 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -28,6 +28,37 @@
   "cInsight.clangd.path": "/usr/bin/clangd-20"
 }
 ```
+
+### 1.1 竞争 Provider 与最小影响配置
+
+本分支始终使用 C Insight 自己管理的 clangd，不支持把 Microsoft C/C++ 选作分析
+引擎。活动编辑器是 C/C++ 时，如果 Microsoft IntelliSense 或外部 LLVM clangd
+扩展的语言服务仍启用，编辑器导航、补全、诊断和通过 VS Code Provider 获取的
+Code Preview 语义令牌可能出现重复或混合来源。
+
+C Insight 根据有效配置判断服务，而不只检查扩展瞬时的 `isActive`：
+
+- `C_Cpp.intelliSenseEngine=disabled` 时不把 Microsoft C/C++ 视为冲突。
+- `clangd.enable=false` 时不把 LLVM clangd 扩展视为冲突。
+
+检测会在活动编辑器、上述配置或扩展列表变化后重新执行，并对同一组提示去重。
+选择 **Disable for This Workspace** 会经确认后在 Workspace 作用域写入相应值，
+不会修改本地或远程 User Settings：
+
+```json
+{
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.enable": false
+}
+```
+
+单文件夹本地、WSL 或 SSH 窗口写入工程 `.vscode/settings.json`；多根窗口由于
+`clangd.enable` 不支持 Workspace Folder 作用域，写入共享 `.code-workspace`
+settings。提示会显示准确目标，写入失败会提供 Open Workspace Settings。
+
+**C Insight: Restore Provider Settings** 只恢复 C Insight 记录且仍保持其写入值的
+设置；用户后来手动修改过的值会跳过，失败记录会保留以便重试。修改或恢复后均需
+执行 Reload Window。
 
 ## 2. 推荐的首次使用流程
 
@@ -1468,6 +1499,7 @@ clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结
 | Unpin Callers and Callees | `cInsight.unpinCallHierarchy` | 命令面板；Callers 标题栏；Callees 标题栏 |
 | Refresh | `cInsight.refresh` | 命令面板；窗口标题栏 |
 | Restart clangd | `cInsight.restartClangd` | 命令面板 |
+| Restore Provider Settings | `cInsight.restoreProviderSettings` | 命令面板 |
 | Refresh Project Diagnostics | `cInsight.diagnostics.refresh` | 命令面板；Project Diagnostics 标题栏 |
 | Open Project Diagnostics | `cInsight.openProjectDiagnostics` | 命令面板 |
 | Show clangd Log | `cInsight.diagnostics.showClangdLog` | 命令面板；Project Diagnostics 标题栏 |
