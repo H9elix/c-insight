@@ -198,6 +198,45 @@ export async function run(): Promise<void> {
   assert.equal(callees.evidence.empty, 0);
   assert.equal(callees.evidence.callees, callees.callees);
   assert.ok(callees.evidence.maximumDurationMs > 0);
+
+  const headerSymbol = symbolPosition(document, "DecodeContext");
+  callerEditor.selection = new vscode.Selection(headerSymbol, headerSymbol);
+  const headerDefinitions = await waitFor(async () => {
+    const result = await vscode.commands.executeCommand<DefinitionLocation[]>(
+      "cInsight.test.definitionAtCursor",
+    );
+    return result[0] ? result : undefined;
+  }, 30_000);
+  assert.match(headerDefinitions[0].uri.fsPath, /decode_simple\.h$/);
+
+  const macro = symbolPosition(document, "AVERROR_EOF");
+  callerEditor.selection = new vscode.Selection(macro, macro);
+  const macroDefinitions = await waitFor(async () => {
+    const result = await vscode.commands.executeCommand<DefinitionLocation[]>(
+      "cInsight.test.definitionAtCursor",
+    );
+    return result[0] ? result : undefined;
+  }, 30_000);
+  assert.match(macroDefinitions[0].uri.fsPath, /libavutil\/error\.h$/);
+
+  const noSymbol = new vscode.Position(17, 0);
+  callerEditor.selection = new vscode.Selection(noSymbol, noSymbol);
+  const noDefinitions = await vscode.commands.executeCommand<DefinitionLocation[]>(
+    "cInsight.test.definitionAtCursor",
+  );
+  assert.deepEqual(noDefinitions, []);
+
+  const runtime = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  assert.ok(runtime.counters["microsoft.navigation.definition.queries"] >= 3);
+  assert.ok(runtime.counters["microsoft.navigation.definition.locations"] >= 2);
+  assert.ok(runtime.counters["microsoft.navigation.definition.empty"] >= 1);
+  assert.ok(runtime.counters["microsoft.navigation.references.queries"] >= 1);
+  assert.ok(
+    (runtime.counters["microsoft.preview.semanticTokens.completed"] ?? 0) +
+      (runtime.counters["microsoft.preview.lexicalFallback"] ?? 0) >= 1,
+  );
 }
 
 function symbolPosition(document: vscode.TextDocument, symbol: string): vscode.Position {

@@ -27,6 +27,7 @@ import {
   configuredAnalysisEngine,
 } from "./analysisEngine";
 import { MicrosoftSemanticProvider } from "./microsoftSemanticProvider";
+import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 
 export interface RequestTimingStats {
   measured: number;
@@ -131,8 +132,10 @@ export class AnalysisService {
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
     if (this.engine === "microsoft") {
-      return this.microsoftRequest(`definition:${uri}:${position.line}:${position.character}`, token, () =>
-        this.microsoft.definition(uri, position),
+      return this.observedMicrosoftLocations("definition", token, () =>
+        this.microsoftRequest(`definition:${uri}:${position.line}:${position.character}`, token, () =>
+          this.microsoft.definition(uri, position),
+        ),
       );
     }
     const result = await this.request<Location | Location[] | LocationLink[] | null>(
@@ -149,8 +152,10 @@ export class AnalysisService {
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
     if (this.engine === "microsoft") {
-      return this.microsoftRequest(`declaration:${uri}:${position.line}:${position.character}`, token, () =>
-        this.microsoft.declaration(uri, position),
+      return this.observedMicrosoftLocations("declaration", token, () =>
+        this.microsoftRequest(`declaration:${uri}:${position.line}:${position.character}`, token, () =>
+          this.microsoft.declaration(uri, position),
+        ),
       );
     }
     const result = await this.request<Location | Location[] | LocationLink[] | null>(
@@ -168,23 +173,33 @@ export class AnalysisService {
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
     if (this.engine === "microsoft") {
-      const locations = await this.microsoftRequest(`references:${uri}:${position.line}:${position.character}`, token, () =>
-        this.microsoft.references(uri, position),
-      );
-      if (includeDeclaration) return locations;
-      const declarations = await this.declaration(uri, position, token);
-      const definitions = await this.definition(uri, position, token);
-      const excluded = new Set(
-        [...declarations, ...definitions].map(
-          (item) => `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
+      const locations = await this.observedMicrosoftLocations("references", token, () =>
+        this.microsoftRequest(`references:${uri}:${position.line}:${position.character}`, token, () =>
+          this.microsoft.references(uri, position),
         ),
       );
-      return locations.filter(
-        (item) =>
-          !excluded.has(
-            `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
+      if (includeDeclaration) return locations;
+      try {
+        const declarations = await this.declaration(uri, position, token);
+        const definitions = await this.definition(uri, position, token);
+        const excluded = new Set(
+          [...declarations, ...definitions].map(
+            (item) => `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
           ),
-      );
+        );
+        const filtered = locations.filter(
+          (item) =>
+            !excluded.has(
+              `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
+            ),
+        );
+        runtimeDiagnostics.increment("microsoft.navigation.references.postProcessing.completed");
+        runtimeDiagnostics.increment("microsoft.navigation.references.postProcessing.outputLocations", filtered.length);
+        return filtered;
+      } catch (error) {
+        runtimeDiagnostics.increment("microsoft.navigation.references.postProcessing.failed");
+        throw error;
+      }
     }
     const result = await this.request<Location[] | null>(
       "textDocument/references",
@@ -520,6 +535,29 @@ export class AnalysisService {
       },
       token,
     );
+  }
+
+  private async observedMicrosoftLocations(
+    operation: "definition" | "declaration" | "references",
+    token: vscode.CancellationToken | undefined,
+    request: () => Promise<LocationResult[]>,
+  ): Promise<LocationResult[]> {
+    const prefix = `microsoft.navigation.${operation}`;
+    runtimeDiagnostics.increment(`${prefix}.queries`);
+    try {
+      const locations = await request();
+      if (locations.length === 0) {
+        runtimeDiagnostics.increment(`${prefix}.empty`);
+      } else {
+        runtimeDiagnostics.increment(`${prefix}.locations`, locations.length);
+      }
+      return locations;
+    } catch (error) {
+      runtimeDiagnostics.increment(
+        `${prefix}.${token?.isCancellationRequested || isCancellationError(error) ? "cancelled" : "failed"}`,
+      );
+      throw error;
+    }
   }
 
   private tokenId(token: vscode.CancellationToken): number {

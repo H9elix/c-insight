@@ -8,6 +8,7 @@ import {
 } from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
 import type { PreviewSessionState } from "../session/workspaceSession";
+import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 import {
   expandPreviewRange,
   PreviewLoadDirection,
@@ -598,7 +599,10 @@ export class CodePreviewProvider
       this.semanticTokens.delete(key);
       this.semanticTokens.set(key, entry);
     } else {
-      const promise = requestSemanticTokens(document);
+      const promise = requestSemanticTokens(
+        document,
+        this.analysis.analysisEngine === "microsoft",
+      );
       const created: SemanticTokenCacheEntry = { promise };
       entry = created;
       this.semanticTokens.set(key, created);
@@ -612,9 +616,16 @@ export class CodePreviewProvider
     }
     this.trimSemanticTokenCache();
     const result = await entry.promise;
-    return result
-      ? decodeSemanticTokens(result.data, result.legend, startLine, endLine)
-      : undefined;
+    if (!result) return undefined;
+    try {
+      return decodeSemanticTokens(result.data, result.legend, startLine, endLine);
+    } catch {
+      if (this.analysis.analysisEngine === "microsoft") {
+        runtimeDiagnostics.increment("microsoft.preview.semanticTokens.postProcessingFailed");
+        runtimeDiagnostics.increment("microsoft.preview.lexicalFallback");
+      }
+      return undefined;
+    }
   }
 
   private trimSemanticTokenCache(): void {
@@ -765,7 +776,9 @@ function highlightPreviewLine(
 
 async function requestSemanticTokens(
   document: vscode.TextDocument,
+  microsoft: boolean,
 ): Promise<SemanticTokenDocument | undefined> {
+  if (microsoft) runtimeDiagnostics.increment("microsoft.preview.semanticTokens.queries");
   try {
     const request = Promise.all([
       vscode.commands.executeCommand<vscode.SemanticTokensLegend | undefined>(
@@ -782,10 +795,21 @@ async function requestSemanticTokens(
       .get<number>("semanticTokenTimeout", 1_500);
     const [legend, tokens] = await settleWithin(request, timeout);
     if (!legend || !tokens) {
+      if (microsoft) {
+        runtimeDiagnostics.increment("microsoft.preview.semanticTokens.empty");
+        runtimeDiagnostics.increment("microsoft.preview.lexicalFallback");
+      }
       return undefined;
     }
+    if (microsoft) runtimeDiagnostics.increment("microsoft.preview.semanticTokens.completed");
     return { data: tokens.data, legend };
-  } catch {
+  } catch (error) {
+    if (microsoft) {
+      runtimeDiagnostics.increment(
+        `microsoft.preview.semanticTokens.${String(error).includes("timed out") ? "timeout" : "failed"}`,
+      );
+      runtimeDiagnostics.increment("microsoft.preview.lexicalFallback");
+    }
     return undefined;
   }
 }

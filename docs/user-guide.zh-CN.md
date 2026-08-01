@@ -1,4 +1,4 @@
-# C Insight 0.18.12 使用手册
+# C Insight 0.18.13 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -61,6 +61,22 @@ clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
   请求并丢弃过期结果，但不能保证终止微软扩展内部已经开始的工作。
 - References 的 Read/Write 证据取决于 Document Highlights；若微软 Provider
   只返回 Text，C Insight 会使用保守的语法推断并降低证据强度。
+
+Microsoft 模式会在 **Project Diagnostics → Microsoft C/C++ Provider →
+References and Code Preview evidence** 中区分以下阶段：
+
+- `definition/declaration/references.queries`、`.locations`、`.empty`、
+  `.failed`、`.cancelled`：Provider 查询及其原始结果。
+- `references.postProcessing.completed`、`.outputLocations`、`.failed`：C Insight
+  排除定义/声明位置后的 References 后处理；因此可以区分 Provider 无结果与
+  C Insight 后处理失败。
+- `semanticTokens.completed`、`.empty`、`.timeout`、`.failed`：Code Preview
+  语义令牌 Provider 的结果。
+- `semanticTokens.postProcessingFailed`：令牌已返回，但 C Insight 解码失败。
+- `lexicalFallback`：语义令牌为空、超时或失败后，Preview 已改用词法着色。
+
+这些值是当前扩展宿主进程中的累计运行证据，也包含在 Project Diagnostics 的
+文本/JSON 报告 `runtime.counters` 中；它们不是工作区静态索引总量。
 
 ## 2. 推荐的首次使用流程
 

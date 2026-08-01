@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.13
+
+- Added Microsoft Definition, Declaration, and References evidence counters for
+  queries, returned locations, empty results, failures, and cancellations, plus
+  References post-processing output/failure evidence.
+- Added Code Preview semantic-token evidence for completion, empty results,
+  timeout, Provider failure, post-processing failure, and lexical fallback.
+- Exposed the new evidence in a dedicated Project Diagnostics subgroup and the
+  existing text/JSON runtime evidence.
+- Extended the real FFmpeg regression across a cross-file function, a header
+  type, a macro definition, a no-symbol empty result, and Preview colouring or
+  lexical fallback.
+
+
 ## 0.18.12
 
 - Added per-node Microsoft native Callees evidence for completed, failed,
