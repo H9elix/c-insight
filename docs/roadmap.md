@@ -46,6 +46,9 @@ prevented semantic session state from crossing engine boundaries.
 Version 0.18.3 adds engine-labelled, per-method semantic request timing and
 outcome evidence, separates Microsoft Provider activation latency, and exposes
 the results through Project Diagnostics and shareable reports.
+Version 0.18.4 serializes and demand-gates Microsoft Call Hierarchy work,
+invalidates Provider-owned hierarchy items after failures, and preserves the
+last successful Code Preview through transient Provider interruptions.
 
 ## Deferred fourth phase
 

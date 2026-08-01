@@ -23,7 +23,8 @@ and tooltips without overwhelming the result label.
 - Microsoft integration: 0.18.0 contains the isolated feasibility evidence;
   0.18.1 adds the opt-in production adapter, 0.18.2 validates its effective
   configuration and known Provider conflicts, and 0.18.3 adds per-query
-  performance observability
+  performance observability; 0.18.4 contains cpptools Call Hierarchy load and
+  crash-containment improvements
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

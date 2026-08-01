@@ -41,3 +41,16 @@ export function cursorQueryDemand(
     outgoingCount: visibility.context && visibility.callees,
   };
 }
+
+export function cursorQueryDemandForEngine(
+  visibility: NavigationVisibility,
+  engine: "clangd" | "microsoft",
+): CursorQueryDemand {
+  const demand = cursorQueryDemand(visibility);
+  if (engine === "microsoft") {
+    demand.callRoots = visibility.callers || visibility.callees;
+    demand.incomingCount = false;
+    demand.outgoingCount = false;
+  }
+  return demand;
+}

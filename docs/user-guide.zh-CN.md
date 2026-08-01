@@ -1,4 +1,4 @@
-# C Insight 0.18.3 使用手册
+# C Insight 0.18.4 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1397,7 +1397,11 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Include 会话恢复、
 跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器，0.18.2 增加
 配置/冲突验证、引擎诊断和跨引擎语义会话隔离，0.18.3 增加按查询类型划分的
-性能与结果统计；尚未支持的
+性能与结果统计；0.18.4 将 Microsoft Call Hierarchy 查询改为串行、按窗口需求
+触发，并在 Provider 失败后丢弃旧层级条目。由于 cpptools 是独立的原生进程，
+C Insight 可以降低并发压力和避免复用失效对象，但无法捕获或修复其内部
+SIGSEGV；若仍发生，应将 cpptools 输出的调用栈提交到 Microsoft vscode-cpptools
+问题跟踪器。尚未支持的
 Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API 的能力边界。
 探测方法、实测结果和接入边界见 `docs/microsoft-provider-probe.zh-CN.md`。
 
