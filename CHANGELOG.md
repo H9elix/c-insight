@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.15
+
+- Fixed repeated Callers/Callees Pin and Unpin actions accumulating duplicate
+  `Microsoft Callers: References-based` status rows.
+- Assigned the Microsoft Callers mode banner a dedicated tree context identity
+  and excluded old instances whenever transient Call Hierarchy banners are
+  rebuilt.
+- Added a real Microsoft Extension Host regression that toggles Pin/Unpin three
+  times, requires exactly one Microsoft mode row and no stale Pin row, and
+  verifies the call root remains intact.
+
+
 ## 0.18.14
 
 - Added strict Microsoft Call Hierarchy interaction regression coverage for

@@ -89,6 +89,9 @@ refresh, both directions expand to depth one, session depth is captured, and
 cache invalidation clears incoming/outgoing state. Existing pure-model gates
 continue to cover loaded search, all export formats, bounded path search, and
 session compatibility without automating modal pickers.
+Version 0.18.15 fixes transient Call Hierarchy banner identity so repeated
+Pin/Unpin rebuilding retains exactly one Microsoft Callers mode row and never
+converts or accumulates it as ordinary tree data.
 
 ## Deferred fourth phase
 

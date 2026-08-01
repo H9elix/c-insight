@@ -496,6 +496,8 @@ export class ViewRegistry implements vscode.Disposable {
     pinnedStale: boolean;
     incomingRoots: string[];
     outgoingRoots: string[];
+    incomingLabels: string[];
+    outgoingLabels: string[];
     loadedIncoming: number;
     loadedOutgoing: number;
     incomingCache: { hits: number; misses: number };
@@ -514,6 +516,8 @@ export class ViewRegistry implements vscode.Disposable {
       outgoingRoots: this.callees.getRoots()
         .filter((node) => node.callNode && node.callDepth === 0)
         .map((node) => node.label),
+      incomingLabels: this.callers.getRoots().map((node) => node.label),
+      outgoingLabels: this.callees.getRoots().map((node) => node.label),
       loadedIncoming: flattenLoadedCallNodes(this.callers.getRoots()).length,
       loadedOutgoing: flattenLoadedCallNodes(this.callees.getRoots()).length,
       incomingCache: this.callRepository.stats("incoming"),
@@ -1164,6 +1168,7 @@ export class ViewRegistry implements vscode.Disposable {
         icon: new vscode.ThemeIcon(
           mode === "references" ? "shield" : mode === "native" ? "warning" : "circle-slash",
         ),
+        contextValue: "microsoftCallersModeStatus",
       });
     }
     if (this.callHierarchyPinned) {
@@ -1199,6 +1204,7 @@ export class ViewRegistry implements vscode.Disposable {
       .filter(
         (node) =>
           node.contextValue !== "callHierarchyPinStatus" &&
+          node.contextValue !== "microsoftCallersModeStatus" &&
           node.contextValue !== "analysisStaleStatus" &&
           node.contextValue !== "hierarchyExpansionStatus",
       );

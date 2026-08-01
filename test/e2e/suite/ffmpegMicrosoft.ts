@@ -47,6 +47,8 @@ interface CallInteractionState {
   pinnedSymbol?: string;
   incomingRoots: string[];
   outgoingRoots: string[];
+  incomingLabels: string[];
+  outgoingLabels: string[];
   loadedIncoming: number;
   loadedOutgoing: number;
   incomingCache: { hits: number; misses: number };
@@ -223,6 +225,25 @@ export async function run(): Promise<void> {
       ? state
       : undefined;
   }, 30_000);
+  for (let index = 0; index < 3; index += 1) {
+    await vscode.commands.executeCommand("cInsight.pinCallHierarchy");
+    await vscode.commands.executeCommand("cInsight.unpinCallHierarchy");
+  }
+  const repeatedPinState = await vscode.commands.executeCommand<CallInteractionState>(
+    "cInsight.test.callHierarchyState",
+  );
+  assert.equal(
+    repeatedPinState.incomingLabels.filter((label) =>
+      label.startsWith("Microsoft Callers:"),
+    ).length,
+    1,
+  );
+  assert.equal(
+    repeatedPinState.incomingLabels.filter((label) => label.startsWith("Pinned:"))
+      .length,
+    0,
+  );
+  assert.deepEqual(repeatedPinState.outgoingRoots, initialHierarchy.outgoingRoots);
   await vscode.commands.executeCommand("cInsight.pinCallHierarchy");
   const dsFree = symbolPosition(document, "ds_free");
   callerEditor.selection = new vscode.Selection(dsFree, dsFree);

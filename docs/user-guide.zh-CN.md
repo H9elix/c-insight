@@ -1,4 +1,4 @@
-# C Insight 0.18.14 使用手册
+# C Insight 0.18.15 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -448,6 +448,9 @@ Provider → Callees evidence (loaded nodes)** 中：
 Callers 与 Callees 继续共用 Pin 状态：Pin 后光标移动不会替换两棵树，但显式执行
 Show Incoming/Outgoing Calls 或 Refresh 仍允许更新到当前符号。0.18.14 的真实
 FFmpeg Extension Host 回归覆盖了 Pin、自动更新阻止、Pin 状态下手动刷新和 Unpin。
+`Microsoft Callers: References-based` 是 Callers 的模式状态行，不是查询数据。
+0.18.15 为它增加独立身份；每次 Pin/Unpin 重建临时状态行前都会移除旧实例，因此
+连续切换不会产生多行 Microsoft Callers，也不会把原来的 Pinned 行错误转换成它。
 
 Expand to Depth 对两个方向分别查询和缓存；incoming/outgoing 缓存彼此独立。已加载
 深度和精确展开路径继续写入 Workspace Session。分析配置、Call Hierarchy 配置或
