@@ -55,6 +55,10 @@ fallback, avoiding the confirmed cpptools Incoming Calls crash path.
 Version 0.18.6 bounds semantic-token rendering latency, falls back to lexical
 highlighting, avoids native automatic Call Hierarchy roots in Microsoft safe
 mode, and verifies exact FFmpeg Preview targets including in-preview clicks.
+Version 0.18.7 removes the empty-preview retention and synthetic automatic-root
+workarounds after strict regression proved them unnecessary. Native root
+preparation is restored for Callees compatibility, while safe Callers expansion
+and semantic-token timeout fallback remain in force.
 
 ## Deferred fourth phase
 

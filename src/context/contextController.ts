@@ -176,7 +176,6 @@ export class ContextController implements vscode.Disposable {
     token: vscode.CancellationToken,
     demand: CursorQueryDemand,
     definitionRequest?: Promise<LocationResult[]>,
-    safeMicrosoftCallRoot = false,
   ): Promise<SymbolContext | undefined> {
     const [definitions, declarations, callRoots, hover, symbolInfo] =
       await Promise.all([
@@ -187,13 +186,7 @@ export class ContextController implements vscode.Disposable {
           ? this.analysis.declaration(uri, position, token)
           : [],
         demand.callRoots
-          ? safeMicrosoftCallRoot
-            ? (definitionRequest ?? Promise.resolve([])).then((definitions) =>
-                definitions[0]
-                  ? [this.syntheticCallRoot(uri, position, definitions[0])]
-                  : [],
-              )
-            : this.analysis.prepareCallHierarchy(uri, position, token).catch(() => [])
+          ? this.analysis.prepareCallHierarchy(uri, position, token).catch(() => [])
           : [],
         demand.hover
           ? this.analysis.hover(uri, position, token).catch(() => undefined)
@@ -279,10 +272,6 @@ export class ContextController implements vscode.Disposable {
         cancellation.token,
         demand,
         definitionRequest,
-        this.analysis.analysisEngine === "microsoft" &&
-          vscode.workspace
-            .getConfiguration("cInsight.microsoft")
-            .get<string>("callersMode", "references") === "references",
       );
       if (!base) {
         return;
@@ -402,26 +391,6 @@ export class ContextController implements vscode.Disposable {
     this.cancellation = undefined;
   }
 
-  private syntheticCallRoot(
-    sourceUri: vscode.Uri,
-    position: vscode.Position,
-    definition: LocationResult,
-  ) {
-    const document = vscode.workspace.textDocuments.find(
-      (candidate) => candidate.uri.toString() === sourceUri.toString(),
-    );
-    const wordRange = document?.getWordRangeAtPosition(position);
-    const name = document && wordRange
-      ? document.getText(wordRange)
-      : "function";
-    return this.analysis.callNode({
-      name,
-      kind: vscode.SymbolKind.Function,
-      uri: definition.uri.toString(),
-      range: toProtocolRange(definition.range),
-      selectionRange: toProtocolRange(definition.range),
-    });
-  }
 
   private schedule(
     document: vscode.TextDocument,
@@ -455,13 +424,6 @@ export class ContextController implements vscode.Disposable {
       void this.resolveCursor(document.uri, position, generation, intent);
     }, delay);
   }
-}
-
-function toProtocolRange(range: vscode.Range) {
-  return {
-    start: { line: range.start.line, character: range.start.character },
-    end: { line: range.end.line, character: range.end.character },
-  };
 }
 
 function fullDemand(): CursorQueryDemand {

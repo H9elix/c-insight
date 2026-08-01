@@ -88,10 +88,6 @@ export class CodePreviewProvider
     return this.view?.visible ?? false;
   }
 
-  get hasLocation(): boolean {
-    return this.state !== undefined;
-  }
-
   constructor(
     private readonly analysis: AnalysisService,
     private readonly navigationHistory: NavigationHistoryExplorer,

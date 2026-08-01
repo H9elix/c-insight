@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.7
+
+- Removed two defensive changes that strict FFmpeg reproduction proved were
+  unrelated to the Code Preview hang.
+- Restored clearing an unlocked Code Preview for a confirmed empty
+  Definition/Declaration result, preventing stale code from appearing to
+  describe the current cursor.
+- Restored Microsoft automatic roots from native `prepareCallHierarchy` so
+  Callees retain Provider-owned root identity; References-based Callers still
+  avoid native Incoming Calls during expansion.
+- Re-ran the exact FFmpeg in-preview click regression with all navigation views
+  visible and native root preparation enabled; semantic-token timeout fallback
+  remained the sufficient Code Preview fix.
+
+
 ## 0.18.6
 
 - Fixed Code Preview navigation hanging after Definition had already resolved
