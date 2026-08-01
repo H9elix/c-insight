@@ -1,8 +1,8 @@
 {
   "name": "c-insight",
   "displayName": "C Insight",
-  "description": "Source Insight-style C/C++ navigation powered by clangd.",
-  "version": "0.18.0",
+  "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
+  "version": "0.18.1",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -74,6 +74,7 @@
     "test:e2e": "npm run build && node dist/test/e2e/runTest.js",
     "test:e2e:xvfb": "xvfb-run -a npm run test:e2e",
     "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
+    "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
     "package": "npm run build && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
@@ -1158,6 +1159,19 @@
     "configuration": {
       "title": "C Insight",
       "properties": {
+        "cInsight.engine": {
+          "type": "string",
+          "enum": [
+            "clangd",
+            "microsoft"
+          ],
+          "enumDescriptions": [
+            "Start and manage C Insight's bundled clangd client.",
+            "Use the installed Microsoft C/C++ extension through public VS Code Provider commands."
+          ],
+          "default": "clangd",
+          "description": "Semantic analysis engine. Changing this setting requires Reload Window."
+        },
         "cInsight.clangd.path": {
           "type": "string",
           "default": "",

@@ -1,4 +1,4 @@
-# C Insight 0.18.0 使用手册
+# C Insight 0.18.1 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -6,7 +6,8 @@
 ## 1. 运行要求
 
 - VS Code 1.95 或更高版本。
-- `clangd` 20 或更高版本。
+- 使用默认引擎时需要 `clangd` 20 或更高版本；使用微软引擎时需要在相同的
+  Local/Remote 扩展宿主中安装 Microsoft C/C++（`ms-vscode.cpptools`）。
 - 当前主要支持本地 C/C++ 工程和单个工作区根目录。
 - 实际工程强烈建议提供 `compile_commands.json`。
 
@@ -14,12 +15,12 @@
 或 Discussions 地址。C Insight 不包含遥测，也不会把源码上传到 C Insight 服务；
 完整边界见随扩展提供的 `PRIVACY.md` 与 `SECURITY.md`。
 
-命令面板执行 **C Insight: About** 可查看或复制插件版本、开发者、clangd 引擎、
+命令面板执行 **C Insight: About** 可查看或复制插件版本、开发者、分析引擎、
 许可证、VS Code/平台/Remote 类型和隐私摘要，也可直接打开本使用手册。
 
 安装 VSIX 后，打开 C/C++ 工程并单击 Activity Bar 中的 **C Insight**
-图标。扩展会启动独立的 clangd 进程，不依赖微软 C/C++ 插件提供语义
-结果。
+图标。默认模式会启动独立的 clangd 进程；也可显式选择已安装的微软 C/C++
+Provider。两种模式不会同时由 C Insight 启动。
 
 如果 clangd 不在 `PATH` 中，可设置：
 
@@ -28,6 +29,33 @@
   "cInsight.clangd.path": "/usr/bin/clangd-20"
 }
 ```
+
+要使用微软 C/C++ 引擎，先确认 Microsoft C/C++ 扩展安装在 C Insight 所在的
+同一个扩展宿主中；Remote SSH 场景必须安装在远端。然后在工作区设置中写入：
+
+```json
+{
+  "cInsight.engine": "microsoft"
+}
+```
+
+执行 **Developer: Reload Window** 后生效。微软模式不会启动 C Insight 自带的
+clangd；Definition、Declaration、References、Hover、Signature Help、Document/
+Workspace Symbols、Callers、Callees 和 Code Preview 语义令牌通过 VS Code 公共
+Provider 命令获得。Includes/Included By 仍由 C Insight 自己解析文件。
+
+微软模式的明确限制：
+
+- Type Hierarchy 暂不可用，因为 VS Code 没有公开稳定的 Type Hierarchy Provider
+  执行命令；窗口会显示查询失败原因，不会伪造结果。
+- 不显示 clangd 版本、进程日志或 clangd 后台索引进度；微软扩展的进程和索引
+  生命周期由该扩展管理。
+- VS Code Provider 命令不能指定某个 Provider。请不要再启用其他会注册 C/C++
+  语义 Provider 的扩展，以免结果被聚合。
+- 已派发给微软 Provider 的查询没有公开的中途取消参数。C Insight 仍会取消排队
+  请求并丢弃过期结果，但不能保证终止微软扩展内部已经开始的工作。
+- References 的 Read/Write 证据取决于 Document Highlights；若微软 Provider
+  只返回 Text，C Insight 会使用保守的语法推断并降低证据强度。
 
 ## 2. 推荐的首次使用流程
 
@@ -816,7 +844,7 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - Reset Layout：恢复默认缩放和位置。
 - Collapse Branch：隐藏当前节点向远离根方向延伸的已加载分支；只改变画布
   可见性，不删除节点、关系或查询缓存。
-- Expand Branch：重新显示当前节点已折叠的分支，不会重新查询 clangd 或文件。
+- Expand Branch：重新显示当前节点已折叠的分支，不会重新查询语义引擎或文件。
 - Call、Inheritance、Include、Definition：过滤对应边。Call 使用
   蓝色实线、Inheritance 使用紫色虚线、Include 使用绿色
   点线、Definition 使用橙色点划线；循环或递归关系使用错误色强调，工具栏中
@@ -849,7 +877,7 @@ struct 或 interface 时，使用标准 Type Hierarchy 建立类型根。两者�
 - `cycle`：节点参与当前已发现的递归或循环关系。
 - `unresolved`：Include 目标未能解析，不能继续展开。
 - `collapsed`：分支仅在画布中隐藏，数据仍然保留。
-- `revalidated`：从静态会话恢复后，已按当前位置重新取得 clangd 节点。
+- `revalidated`：从静态会话恢复后，已按当前位置重新取得当前语义引擎节点。
 - `missing`：保存的位置对应文件已经不存在，不能预览或继续导航。
 
 综合关系操作位于节点右键菜单，且都需要用户明确执行：
@@ -1051,6 +1079,7 @@ Test 运行模式。这些信息也会进入复制或导出的诊断报告，便
 
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
+| `cInsight.engine` | string | `"clangd"` | `"clangd"`、`"microsoft"` | 选择语义分析引擎；修改后必须 Reload Window |
 | `cInsight.clangd.path` | string | `""` | 可执行文件路径 | 空值从 `PATH` 自动寻找 `clangd-22`、`clangd-21`、`clangd-20`、`clangd`；明确路径用于固定版本 |
 | `cInsight.clangd.arguments` | string[] | `[]` | 任意 clangd CLI 参数数组 | 附加在 C Insight 管理参数之后；错误或重复参数可能导致 clangd 启动失败 |
 | `cInsight.clangd.logLevel` | string | `"info"` | `"error"`、`"info"`、`"verbose"` | 控制传给 clangd 的日志等级 |
@@ -1058,7 +1087,8 @@ Test 运行模式。这些信息也会进入复制或导出的诊断报告，便
 | `cInsight.fallbackFlags` | string[] | `["-std=c++17"]` | 编译参数数组 | 当前文件没有编译命令时，通过 clangd initialization options 使用的后备参数 |
 | `cInsight.backgroundIndex` | boolean | `true` | `true` / `false` | 启用或关闭 clangd `--background-index` |
 
-上述配置变化会重启 clangd。`clangd.arguments` 中不需要添加 `--stdio`。
+`cInsight.engine` 变化会提示 Reload Window。其余 clangd 配置只在 clangd 模式
+生效并触发 clangd 重启；`clangd.arguments` 中不需要添加 `--stdio`。
 C Insight 默认管理：
 
 ```text
@@ -1352,9 +1382,9 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 
 第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括
 Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Include 会话恢复、
-跨过程数据流。微软 C/C++ 引擎仅重新启用了 0.18.0 可行性探测；当前发布版仍只
-使用 clangd，尚未提供引擎切换。探测方法、能力边界和后续接入条件见
-`docs/microsoft-provider-probe.zh-CN.md`。
+跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器；尚未支持的
+Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API 的能力边界。
+探测方法、实测结果和接入边界见 `docs/microsoft-provider-probe.zh-CN.md`。
 
 - 主要面向单个本地工作区根目录。
 - Code Preview 复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与

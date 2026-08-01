@@ -3,6 +3,10 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { ClangdManager } from "../clangd/clangdManager";
 import { AnalysisService } from "../analysis/analysisService";
+import {
+  AnalysisEngine,
+  configuredAnalysisEngine,
+} from "../analysis/analysisEngine";
 import { runtimeDiagnostics } from "./runtimeDiagnostics";
 import {
   CompilationDatabaseSelection,
@@ -56,6 +60,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
     private readonly manager: ClangdManager,
     private readonly analysis: AnalysisService,
     private readonly context: vscode.ExtensionContext,
+    private readonly engine: AnalysisEngine = configuredAnalysisEngine(),
   ) {}
 
   async refresh(
@@ -141,6 +146,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
     const installation = this.manager.clangdInstallation;
     const state = this.manager.currentState;
     const config = readConfiguration();
+    config.engine = this.engine;
     const databaseSelection = await resolveCompilationDatabase();
     this.databaseSelection = databaseSelection;
     const databasePath = databaseSelection?.path;
@@ -176,9 +182,11 @@ export class ProjectDiagnostics implements vscode.Disposable {
       clangdState: state,
       indexStatus: this.manager.currentIndexProgress.status,
       indexPercentage: this.manager.currentIndexProgress.percentage,
-      hasCompilationDatabase: Boolean(database),
-      currentSourceFile: currentIsSource,
-      hasCompileCommand: Boolean(entry),
+      hasCompilationDatabase:
+        config.engine === "microsoft" ? true : Boolean(database),
+      currentSourceFile:
+        config.engine === "microsoft" ? false : currentIsSource,
+      hasCompileCommand: config.engine === "microsoft" ? true : Boolean(entry),
       missingIncludes: currentMissingIncludes,
     });
 
@@ -198,13 +206,22 @@ export class ProjectDiagnostics implements vscode.Disposable {
         ),
       ], vscode.TreeItemCollapsibleState.Collapsed),
       group(
-        `clangd: ${state}`,
+        `${config.engine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd"}: ${state}`,
         state === "ready"
           ? "pass-filled"
           : state === "failed"
             ? "error"
             : "sync",
-        [
+        config.engine === "microsoft"
+          ? [
+              detail("Extension", "ms-vscode.cpptools", "extensions"),
+              detail(
+                "Index progress",
+                "Managed by Microsoft C/C++; not exposed through the public Provider API",
+                "info",
+              ),
+            ]
+          : [
           detail(
             "Executable",
             installation?.command || config.clangdPath || "Auto-detect",
@@ -215,9 +232,11 @@ export class ProjectDiagnostics implements vscode.Disposable {
             installation?.version ?? "Not located yet",
             "versions",
           ),
-        ],
+            ],
       ),
-      indexProgressNode(this.manager.currentIndexProgress),
+      ...(config.engine === "clangd"
+        ? [indexProgressNode(this.manager.currentIndexProgress)]
+        : []),
       group(
         databasePath
           ? "Compilation database: found"
@@ -415,13 +434,21 @@ export class ProjectDiagnostics implements vscode.Disposable {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       workspaceTrusted: vscode.workspace.isTrusted,
+      analysisEngine: config.engine,
       extension,
       clangd: {
         state,
         executable:
-          installation?.command || config.clangdPath || "Auto-detect",
-        version: installation?.version,
-        indexStatus: progress.status,
+          config.engine === "microsoft"
+            ? "ms-vscode.cpptools"
+            : installation?.command || config.clangdPath || "Auto-detect",
+        version:
+          config.engine === "microsoft"
+            ? vscode.extensions.getExtension("ms-vscode.cpptools")?.packageJSON
+                .version
+            : installation?.version,
+        indexStatus:
+          config.engine === "microsoft" ? "not-exposed" : progress.status,
         indexProgress:
           progress.completed !== undefined && progress.total !== undefined
             ? `${progress.completed} / ${progress.total} files`

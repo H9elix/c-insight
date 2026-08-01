@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.1
+
+- Added the explicit `cInsight.engine` setting with `clangd` as the compatible
+  default and `microsoft` as an opt-in provider-backed engine.
+- Added a Microsoft semantic adapter for definitions, declarations,
+  references, hover, signature help, highlights, document/workspace symbols,
+  and incoming/outgoing Call Hierarchy.
+- Prevented C Insight from starting its own clangd process in Microsoft mode
+  and validated that `ms-vscode.cpptools` is installed in the current extension
+  host.
+- Added explicit Type Hierarchy degradation because VS Code exposes no stable
+  public Type Hierarchy execution command.
+- Preserved stale-result cancellation at C Insight's request boundary while
+  documenting that already-dispatched Microsoft Provider work cannot be
+  cancelled through the public commands.
+
 ## 0.18.0
 
 - Added an isolated Microsoft C/C++ provider feasibility probe that exercises

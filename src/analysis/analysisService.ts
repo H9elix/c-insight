@@ -22,6 +22,11 @@ import {
   RequestScheduler,
   RequestSchedulerStats,
 } from "./requestScheduler";
+import {
+  AnalysisEngine,
+  configuredAnalysisEngine,
+} from "./analysisEngine";
+import { MicrosoftSemanticProvider } from "./microsoftSemanticProvider";
 
 export interface RequestTimingStats {
   measured: number;
@@ -45,6 +50,7 @@ interface SymbolDetails {
 }
 
 export class AnalysisService {
+  private readonly microsoft = new MicrosoftSemanticProvider();
   private readonly scheduler = new RequestScheduler();
   private readonly tokenIds = new WeakMap<vscode.CancellationToken, number>();
   private nextTokenId = 1;
@@ -58,6 +64,7 @@ export class AnalysisService {
   constructor(
     private readonly manager: ClangdManager,
     private readonly output?: vscode.OutputChannel,
+    private readonly engine: AnalysisEngine = configuredAnalysisEngine(),
   ) {}
 
   requestSchedulerStats(): RequestSchedulerStats {
@@ -73,6 +80,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`definition:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.definition(uri, position),
+      );
+    }
     const result = await this.request<Location | Location[] | LocationLink[] | null>(
       "textDocument/definition",
       this.positionParams(uri, position),
@@ -86,6 +98,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`declaration:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.declaration(uri, position),
+      );
+    }
     const result = await this.request<Location | Location[] | LocationLink[] | null>(
       "textDocument/declaration",
       this.positionParams(uri, position),
@@ -100,6 +117,25 @@ export class AnalysisService {
     includeDeclaration: boolean,
     token?: vscode.CancellationToken,
   ): Promise<LocationResult[]> {
+    if (this.engine === "microsoft") {
+      const locations = await this.microsoftRequest(`references:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.references(uri, position),
+      );
+      if (includeDeclaration) return locations;
+      const declarations = await this.declaration(uri, position, token);
+      const definitions = await this.definition(uri, position, token);
+      const excluded = new Set(
+        [...declarations, ...definitions].map(
+          (item) => `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
+        ),
+      );
+      return locations.filter(
+        (item) =>
+          !excluded.has(
+            `${item.uri}:${item.range.start.line}:${item.range.start.character}`,
+          ),
+      );
+    }
     const result = await this.request<Location[] | null>(
       "textDocument/references",
       {
@@ -116,6 +152,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<string | undefined> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`hover:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.hover(uri, position),
+      );
+    }
     const result = await this.request<Hover | null>(
       "textDocument/hover",
       this.positionParams(uri, position),
@@ -141,6 +182,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<string | undefined> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`signatureHelp:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.activeParameterLabel(uri, position),
+      );
+    }
     const result = await this.request<SignatureHelp | null>(
       "textDocument/signatureHelp",
       this.positionParams(uri, position),
@@ -168,6 +214,9 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<SymbolDetails | undefined> {
+    if (this.engine === "microsoft") {
+      return undefined;
+    }
     const result = await this.request<SymbolDetails[] | null>(
       "textDocument/symbolInfo",
       this.positionParams(uri, position),
@@ -181,6 +230,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<CallNode[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`prepareCallHierarchy:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.prepareCallHierarchy(uri, position),
+      );
+    }
     const items = await this.request<CallHierarchyItem[] | CallHierarchyItem | null>(
       "textDocument/prepareCallHierarchy",
       this.positionParams(uri, position),
@@ -194,6 +248,11 @@ export class AnalysisService {
     node: CallNode,
     token?: vscode.CancellationToken,
   ): Promise<CallHierarchyIncomingCall[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`incomingCalls:${node.key}`, token, () =>
+        this.microsoft.incomingCalls(node),
+      );
+    }
     return (
       (await this.request<CallHierarchyIncomingCall[] | null>(
         "callHierarchy/incomingCalls",
@@ -207,6 +266,11 @@ export class AnalysisService {
     node: CallNode,
     token?: vscode.CancellationToken,
   ): Promise<CallHierarchyOutgoingCall[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`outgoingCalls:${node.key}`, token, () =>
+        this.microsoft.outgoingCalls(node),
+      );
+    }
     if (!this.manager.supportsOutgoingCalls) {
       const version =
         this.manager.clangdInstallation?.version ?? "unknown clangd version";
@@ -224,6 +288,11 @@ export class AnalysisService {
   }
 
   async documentSymbols(uri: vscode.Uri): Promise<LspSymbol[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`documentSymbols:${uri}`, undefined, () =>
+        this.microsoft.documentSymbols(uri),
+      );
+    }
     return (
       (await this.request<Array<DocumentSymbol | SymbolInformation> | null>(
         "textDocument/documentSymbol",
@@ -237,6 +306,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<DocumentHighlight[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`documentHighlights:${uri}:${position.line}:${position.character}`, token, () =>
+        this.microsoft.documentHighlights(uri, position),
+      );
+    }
     return (
       (await this.request<DocumentHighlight[] | null>(
         "textDocument/documentHighlight",
@@ -247,6 +321,11 @@ export class AnalysisService {
   }
 
   async workspaceSymbols(query: string): Promise<SymbolInformation[]> {
+    if (this.engine === "microsoft") {
+      return this.microsoftRequest(`workspaceSymbols:${query}`, undefined, () =>
+        this.microsoft.workspaceSymbols(query),
+      );
+    }
     return (
       (await this.request<SymbolInformation[] | null>("workspace/symbol", {
         query,
@@ -259,6 +338,11 @@ export class AnalysisService {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<TypeHierarchyItem[]> {
+    if (this.engine === "microsoft") {
+      throw new UnsupportedEngineFeatureError(
+        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+      );
+    }
     return (
       (await this.request<TypeHierarchyItem[] | null>(
         "textDocument/prepareTypeHierarchy",
@@ -272,6 +356,11 @@ export class AnalysisService {
     item: TypeHierarchyItem,
     token?: vscode.CancellationToken,
   ): Promise<TypeHierarchyItem[]> {
+    if (this.engine === "microsoft") {
+      throw new UnsupportedEngineFeatureError(
+        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+      );
+    }
     return (
       (await this.request<TypeHierarchyItem[] | null>(
         "typeHierarchy/supertypes",
@@ -285,6 +374,11 @@ export class AnalysisService {
     item: TypeHierarchyItem,
     token?: vscode.CancellationToken,
   ): Promise<TypeHierarchyItem[]> {
+    if (this.engine === "microsoft") {
+      throw new UnsupportedEngineFeatureError(
+        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+      );
+    }
     return (
       (await this.request<TypeHierarchyItem[] | null>(
         "typeHierarchy/subtypes",
@@ -349,6 +443,32 @@ export class AnalysisService {
     );
   }
 
+  private async microsoftRequest<T>(
+    method: string,
+    token: vscode.CancellationToken | undefined,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    const configuration = vscode.workspace.getConfiguration("cInsight.analysis");
+    this.scheduler.setLimits(
+      configuration.get<number>("maximumConcurrentRequests", 8),
+      configuration.get<number>("maximumBackgroundRequests", 2),
+    );
+    const operation = method.split(":", 1)[0];
+    const tokenKey = token ? `:token-${this.tokenId(token)}` : "";
+    return this.scheduler.schedule(
+      `microsoft:${method}${tokenKey}`,
+      requestPriority(`textDocument/${operation}`),
+      async () => {
+        if (token?.isCancellationRequested) throw new vscode.CancellationError();
+        await this.microsoft.activate();
+        const result = await this.measure(`microsoft/${operation}`, action(), token);
+        if (token?.isCancellationRequested) throw new vscode.CancellationError();
+        return result;
+      },
+      token,
+    );
+  }
+
   private tokenId(token: vscode.CancellationToken): number {
     const existing = this.tokenIds.get(token);
     if (existing !== undefined) {
@@ -380,7 +500,7 @@ export class AnalysisService {
         this.timing.lastSlowMethod = method;
         this.timing.lastSlowDurationMs = elapsed;
         this.output?.appendLine(
-          `Slow clangd request: ${method} ${Math.round(elapsed)} ms`,
+          `Slow ${this.engine === "microsoft" ? "Microsoft Provider" : "clangd"} request: ${method} ${Math.round(elapsed)} ms`,
         );
       }
     }
@@ -440,5 +560,12 @@ export class UnsupportedClangdFeatureError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "UnsupportedClangdFeatureError";
+  }
+}
+
+export class UnsupportedEngineFeatureError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnsupportedEngineFeatureError";
   }
 }

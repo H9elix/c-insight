@@ -65,6 +65,12 @@ export class ClangdManager implements vscode.Disposable {
     this.clangdOutput.show(true);
   }
 
+  useMicrosoftProvider(): void {
+    this.installation = undefined;
+    this.setIndexProgress(initialIndexProgress(false));
+    this.setState("ready");
+  }
+
   async start(): Promise<LanguageClient> {
     if (this.client?.state === State.Running) {
       return this.client;

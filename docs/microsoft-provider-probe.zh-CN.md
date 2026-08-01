@@ -84,11 +84,10 @@ Incoming Calls 约 0.4 秒。
 
 ## 生产接入建议
 
-后续 0.18.1 若继续实施，应先抽象统一语义引擎接口，再增加显式选择的
-`microsoft` 适配器。第一批只覆盖 Definition、References、Hover、Symbols 和
-Call Hierarchy；Type Hierarchy、clangd 状态/索引诊断及依赖 clangd 扩展协议的
-功能应显示为不支持，而不是静默伪造结果。默认引擎仍为 clangd，且配置变更后
-应提示 Reload Window。
+0.18.1 已按探测边界加入显式选择的 `microsoft` 适配器，覆盖 Definition、
+Declaration、References、Hover、Signature Help、Highlights、Symbols 和 Call
+Hierarchy。Type Hierarchy 显示为不支持；clangd 状态、索引和进程操作不会被
+伪装成微软能力。默认引擎仍为 clangd，配置变更后提示 Reload Window。
 
 本探测不是微软扩展兼容性承诺。每次提高最低支持版本或微软扩展改变 Provider
 行为时，都应重新运行探测并保留报告。
