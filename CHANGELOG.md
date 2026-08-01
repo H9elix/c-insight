@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.6
+
+- Fixed Code Preview navigation hanging after Definition had already resolved
+  by bounding the wait for whole-document semantic tokens and falling back to
+  lexical highlighting after 1500 ms by default.
+- Added `cInsight.codePreview.semanticTokenTimeout` with a 100–10000 ms range;
+  semantic colouring can no longer block source rendering indefinitely.
+- In Microsoft References-based Callers mode, built automatic hierarchy roots
+  from the resolved Definition instead of calling native
+  `prepareCallHierarchy`, avoiding another cpptools queue blocker.
+- Strengthened the FFmpeg Extension Host regression to clear restored Preview
+  state, verify exact URI/line equality, exercise all visible navigation views,
+  and simulate clicking `avcodec_receive_frame` inside Code Preview.
+
+
 ## 0.18.5
 
 - Decoupled cursor-follow Definition requests from slower Context and Call

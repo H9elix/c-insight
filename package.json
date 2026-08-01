@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
-  "version": "0.18.5",
+  "version": "0.18.6",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -1273,6 +1273,13 @@
           "type": "boolean",
           "default": true,
           "description": "Use the active VS Code semantic token provider to color symbols in Code Preview, with lexical highlighting as a fallback."
+        },
+        "cInsight.codePreview.semanticTokenTimeout": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "Maximum milliseconds Code Preview waits for semantic tokens before rendering immediately with lexical highlighting."
         },
         "cInsight.codePreview.semanticTokenCacheSize": {
           "type": "number",

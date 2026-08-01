@@ -4,6 +4,15 @@ import * as vscode from "vscode";
 interface PreviewState {
   uri: string;
   title: string;
+  range: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
+}
+
+interface DefinitionLocation {
+  uri: vscode.Uri;
+  range: vscode.Range;
 }
 
 interface CallerProbe {
@@ -28,18 +37,109 @@ export async function run(): Promise<void> {
   assert.ok(workspace);
   const uri = vscode.Uri.joinPath(workspace, "tools", "decode_simple.c");
   const document = await vscode.workspace.openTextDocument(uri);
-  const editor = await vscode.window.showTextDocument(document);
+  await vscode.window.showTextDocument(document);
   const position = symbolPosition(document, "avcodec_receive_frame");
-  editor.selection = new vscode.Selection(position, position);
   await vscode.commands.executeCommand("cInsight.preview.focus");
+  const activeEditor = await vscode.window.showTextDocument(document);
+  activeEditor.selection = new vscode.Selection(position, position);
 
-  const preview = await waitFor(async () => {
-    const state = await vscode.commands.executeCommand<PreviewState | undefined>(
-      "cInsight.test.previewState",
+  const definitions = await waitFor(async () => {
+    const result = await vscode.commands.executeCommand<DefinitionLocation[]>(
+      "cInsight.test.definitionAtCursor",
     );
-    return state && state.uri !== uri.toString() ? state : undefined;
-  }, 30_000);
-  assert.match(preview.uri, /libavcodec\/(?:avcodec\.c|avcodec\.h)$/);
+    return result[0] ? result : undefined;
+  }, 180_000);
+  const localPosition = symbolPosition(document, "decode_read");
+  activeEditor.selection = new vscode.Selection(localPosition, localPosition);
+  await vscode.commands.executeCommand("cInsight.test.clearPreview");
+  assert.equal(
+    await vscode.commands.executeCommand("cInsight.test.previewState"),
+    undefined,
+  );
+  activeEditor.selection = new vscode.Selection(position, position);
+
+  let preview: PreviewState;
+  try {
+    preview = await waitFor(async () => {
+      const state = await vscode.commands.executeCommand<PreviewState | undefined>(
+        "cInsight.test.previewState",
+      );
+      return state?.uri === definitions[0].uri.toString() &&
+        state.range.start.line === definitions[0].range.start.line
+        ? state
+        : undefined;
+    }, 30_000);
+  } catch (error) {
+    const state = await vscode.commands.executeCommand("cInsight.test.previewState");
+    const timing = await vscode.commands.executeCommand("cInsight.test.requestTiming");
+    throw new Error(
+      `${String(error)}; preview=${JSON.stringify(state)}; definition=${definitions[0].uri}:${definitions[0].range.start.line + 1}; timing=${JSON.stringify(timing)}`,
+    );
+  }
+  assert.equal(preview.uri, definitions[0].uri.toString());
+  assert.equal(preview.range.start.line, definitions[0].range.start.line);
+
+  await vscode.commands.executeCommand("cInsight.context.focus");
+  await vscode.commands.executeCommand("cInsight.callers.focus");
+  await vscode.commands.executeCommand("cInsight.callees.focus");
+  await vscode.commands.executeCommand("cInsight.preview.focus");
+  const multiViewEditor = await vscode.window.showTextDocument(document);
+  multiViewEditor.selection = new vscode.Selection(localPosition, localPosition);
+  await vscode.commands.executeCommand("cInsight.test.clearPreview");
+  multiViewEditor.selection = new vscode.Selection(position, position);
+  try {
+    await waitFor(async () => {
+      const state = await vscode.commands.executeCommand<PreviewState | undefined>(
+        "cInsight.test.previewState",
+      );
+      return state?.uri === definitions[0].uri.toString() &&
+        state.range.start.line === definitions[0].range.start.line
+        ? state
+        : undefined;
+    }, 30_000);
+  } catch (error) {
+    const navigation = await vscode.commands.executeCommand(
+      "cInsight.test.navigationState",
+    );
+    const timing = await vscode.commands.executeCommand("cInsight.test.requestTiming");
+    throw new Error(
+      `Multi-view preview failed: ${String(error)}; navigation=${JSON.stringify(navigation)}; timing=${JSON.stringify(timing)}`,
+    );
+  }
+
+  await vscode.commands.executeCommand(
+    "cInsight.previewLocation",
+    { uri, range: new vscode.Range(position, position) },
+    "reference",
+    "avcodec_receive_frame call",
+    "selection",
+  );
+  const callSitePreview = await vscode.commands.executeCommand<PreviewState>(
+    "cInsight.test.previewState",
+  );
+  assert.equal(callSitePreview.uri, uri.toString());
+  const beforeClick = await vscode.commands.executeCommand(
+    "cInsight.test.navigationState",
+  );
+  console.log(`C Insight state before Preview click: ${JSON.stringify(beforeClick)}`);
+  await Promise.race([
+    vscode.commands.executeCommand(
+      "cInsight.test.followPreviewDefinition",
+      position.line,
+      position.character,
+    ),
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error(
+        `Preview click timed out; before=${JSON.stringify(beforeClick)}`,
+      )),
+      15_000,
+    )),
+  ]);
+  const clickedPreview = await vscode.commands.executeCommand<PreviewState>(
+    "cInsight.test.previewState",
+  );
+  assert.equal(clickedPreview.uri, definitions[0].uri.toString());
+  assert.equal(clickedPreview.range.start.line, definitions[0].range.start.line);
 
   const callerEditor = await vscode.window.showTextDocument(document);
   callerEditor.selection = new vscode.Selection(position, position);

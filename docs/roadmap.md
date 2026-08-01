@@ -52,6 +52,9 @@ last successful Code Preview through transient Provider interruptions.
 Version 0.18.5 decouples Code Preview Definition completion from Context
 enrichment and defaults Microsoft Callers expansion to a References-based
 fallback, avoiding the confirmed cpptools Incoming Calls crash path.
+Version 0.18.6 bounds semantic-token rendering latency, falls back to lexical
+highlighting, avoids native automatic Call Hierarchy roots in Microsoft safe
+mode, and verifies exact FFmpeg Preview targets including in-preview clicks.
 
 ## Deferred fourth phase
 

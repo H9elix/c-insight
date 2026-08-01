@@ -337,6 +337,28 @@ export async function activate(
       vscode.commands.registerCommand("cInsight.test.previewState", () =>
         views.preview.sessionState(),
       ),
+      vscode.commands.registerCommand("cInsight.test.clearPreview", () =>
+        views.preview.clear(),
+      ),
+      vscode.commands.registerCommand("cInsight.test.definitionAtCursor", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !isCppDocument(editor.document)) return [];
+        return analysis.definition(editor.document.uri, editor.selection.active);
+      }),
+      vscode.commands.registerCommand("cInsight.test.requestTiming", () =>
+        analysis.requestTimingStats(),
+      ),
+      vscode.commands.registerCommand("cInsight.test.navigationState", () => ({
+        visibility: views.navigationVisibility,
+        preview: views.preview.sessionState(),
+        scheduler: analysis.requestSchedulerStats(),
+        timing: analysis.requestTimingStats(),
+      })),
+      vscode.commands.registerCommand(
+        "cInsight.test.followPreviewDefinition",
+        (line: number, character: number) =>
+          views.preview.followDefinition(new vscode.Position(line, character)),
+      ),
       vscode.commands.registerCommand("cInsight.test.referenceBasedCallers", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || !isCppDocument(editor.document)) return undefined;
