@@ -30,7 +30,8 @@ and tooltips without overwhelming the result label.
   disproven defensive workarounds while retaining those fixes; 0.18.8 handles
   cpptools' non-standard C function symbol kind in the safe Callers mapping;
   0.18.9 clarifies approximate empty Callers results and identifies the active
-  Microsoft semantic provider to the user
+  Microsoft semantic provider to the user; 0.18.10 distinguishes absent
+  References evidence from references that cannot be mapped to caller functions
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

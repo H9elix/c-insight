@@ -68,6 +68,9 @@ Version 0.18.9 makes empty References-based Callers evidence explicitly
 non-conclusive and adds a one-time Microsoft-engine notice explaining that the
 Microsoft C/C++ language service (cpptools) supplies semantic queries rather
 than compilation, with performance and results that may differ from clangd.
+Version 0.18.10 records References-based expansion evidence per call node and
+distinguishes a query with no returned references from returned references that
+could not be mapped to enclosing caller functions.
 
 ## Deferred fourth phase
 

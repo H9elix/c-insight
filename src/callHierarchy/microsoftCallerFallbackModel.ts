@@ -9,6 +9,20 @@ import type {
 const callableKinds = new Set([6, 9, 12]); // Method, Constructor, Function
 const microsoftFunctionKind = 11; // cpptools may expose C functions as Interface.
 
+export interface MicrosoftCallerEvidence {
+  references: number;
+  unmappedReferences: number;
+}
+
+export function microsoftEmptyCallersMessage(
+  evidence: MicrosoftCallerEvidence | undefined,
+): string {
+  if (evidence && evidence.references > 0) {
+    return `${evidence.references} reference${evidence.references === 1 ? "" : "s"} found, but enclosing caller functions could not be identified`;
+  }
+  return "No callers found by Microsoft References query — results may be incomplete";
+}
+
 export function enclosingCaller(
   uri: string,
   position: Position,
