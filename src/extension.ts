@@ -7,6 +7,10 @@ import { AnalysisService } from "./analysis/analysisService";
 import { configuredAnalysisEngine } from "./analysis/analysisEngine";
 import { MicrosoftSemanticProvider } from "./analysis/microsoftSemanticProvider";
 import {
+  microsoftProviderStatus,
+  MicrosoftProviderConfigurationError,
+} from "./analysis/microsoftProviderStatus";
+import {
   activeProviderConflicts,
   LLVM_CLANGD_EXTENSION_ID,
   MICROSOFT_CPP_EXTENSION_ID,
@@ -744,11 +748,13 @@ export async function activate(
   await projectDiagnostics.refresh();
 
   registerProviderSettingRestore(context);
-  void warnAboutConflicts(
-    context,
-    engine,
-    vscode.window.activeTextEditor?.document.uri,
-  );
+  if (engine === "clangd") {
+    void warnAboutConflicts(
+      context,
+      engine,
+      vscode.window.activeTextEditor?.document.uri,
+    );
+  }
   try {
     if (engine === "microsoft") {
       await new MicrosoftSemanticProvider().activate();
@@ -778,19 +784,79 @@ export async function activate(
     }
     output.appendLine(`${engine} startup failed: ${String(error)}`);
     await projectDiagnostics.refresh();
-    void vscode.window.showErrorMessage(
-      `C Insight could not start the ${engine} analysis engine. ${String(error)}`,
-      "Open Settings",
-    ).then((action) => {
-      if (action === "Open Settings") {
-        void vscode.commands.executeCommand(
-          "workbench.action.openSettings",
-          engine === "clangd"
-            ? "cInsight.clangd.path"
-            : "C_Cpp.intelliSenseEngine",
+    if (engine === "microsoft") {
+      await handleMicrosoftStartupFailure(
+        context,
+        error,
+        vscode.window.activeTextEditor?.document.uri,
+      );
+    } else {
+      void showAnalysisEngineStartupFailure(engine, error);
+    }
+  }
+}
+
+async function handleMicrosoftStartupFailure(
+  context: vscode.ExtensionContext,
+  error: unknown,
+  resource?: vscode.Uri,
+): Promise<void> {
+  if (
+    error instanceof MicrosoftProviderConfigurationError &&
+    error.state === "ambiguous"
+  ) {
+    const status = microsoftProviderStatus(resource);
+    if (status.conflicts.includes(LLVM_CLANGD_EXTENSION_ID)) {
+      const action = await vscode.window.showErrorMessage(
+        "C Insight could not start the Microsoft analysis engine because the LLVM clangd extension is also enabled. " +
+          workspaceSettingTargetDescription(),
+        ...(vscode.workspace.workspaceFolders?.length
+          ? ["Disable LLVM clangd for This Workspace"]
+          : []),
+        "Open Workspace Settings",
+      );
+      if (action === "Disable LLVM clangd for This Workspace") {
+        try {
+          await disableConflictingProviders(context, [
+            LLVM_CLANGD_EXTENSION_ID,
+          ]);
+        } catch (writeError) {
+          const followUp = await vscode.window.showErrorMessage(
+            `C Insight could not update clangd.enable in Workspace settings: ${String(writeError)}`,
+            "Open Workspace Settings",
+          );
+          if (followUp === "Open Workspace Settings") {
+            await vscode.commands.executeCommand(
+              "workbench.action.openWorkspaceSettingsFile",
+            );
+          }
+        }
+      } else if (action === "Open Workspace Settings") {
+        await vscode.commands.executeCommand(
+          "workbench.action.openWorkspaceSettingsFile",
         );
       }
-    });
+      return;
+    }
+  }
+  await showAnalysisEngineStartupFailure("microsoft", error);
+}
+
+async function showAnalysisEngineStartupFailure(
+  engine: "clangd" | "microsoft",
+  error: unknown,
+): Promise<void> {
+  const action = await vscode.window.showErrorMessage(
+    `C Insight could not start the ${engine} analysis engine. ${String(error)}`,
+    "Open Settings",
+  );
+  if (action === "Open Settings") {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      engine === "clangd"
+        ? "cInsight.clangd.path"
+        : "C_Cpp.intelliSenseEngine",
+    );
   }
 }
 
