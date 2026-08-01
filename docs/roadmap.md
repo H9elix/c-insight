@@ -71,6 +71,9 @@ than compilation, with performance and results that may differ from clangd.
 Version 0.18.10 records References-based expansion evidence per call node and
 distinguishes a query with no returned references from returned references that
 could not be mapped to enclosing caller functions.
+Version 0.18.11 aggregates that evidence into Project Diagnostics and exported
+reports, including queried nodes, total/mapped/unmapped references, and resolved
+caller functions. It also shortens the one-time Microsoft-engine notice.
 
 ## Deferred fourth phase
 

@@ -80,6 +80,14 @@ describe("project diagnostics model", () => {
       schemaVersion: 1,
       generatedAt: "2026-07-29T00:00:00.000Z",
       workspaceTrusted: true,
+      microsoftCallers: {
+        mode: "references",
+        queriedNodes: 3,
+        references: 7,
+        mappedReferences: 5,
+        unmappedReferences: 2,
+        callerFunctions: 4,
+      },
       extension: {
         name: "C Insight",
         version: "0.17.6",
@@ -177,6 +185,10 @@ describe("project diagnostics model", () => {
     assert.match(text, /Method workspace\/symbol: 2 measured, 700 ms average/);
     assert.match(text, /Counter limits.references.display: 1/);
     assert.match(text, /Limit analysis.maximumConcurrentRequests: 8/);
+    assert.match(
+      text,
+      /Microsoft Callers evidence: 3 queried nodes, 7 references, 5 mapped references, 2 unmapped references, 4 caller functions/,
+    );
   });
 
   it("redacts paths and optionally definitions in exported reports", () => {

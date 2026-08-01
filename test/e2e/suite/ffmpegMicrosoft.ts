@@ -18,6 +18,13 @@ interface DefinitionLocation {
 interface CallerProbe {
   roots: number;
   callers: number;
+  evidence: {
+    queriedNodes: number;
+    references: number;
+    mappedReferences: number;
+    unmappedReferences: number;
+    callerFunctions: number;
+  };
 }
 
 export async function run(): Promise<void> {
@@ -155,6 +162,13 @@ export async function run(): Promise<void> {
   assert.ok(callers.roots > 0);
   assert.ok(Number.isInteger(callers.callers));
   assert.ok(callers.callers > 0, "Microsoft reference-based Callers should find decode_read");
+  assert.deepEqual(callers.evidence, {
+    queriedNodes: 1,
+    references: 1,
+    mappedReferences: 1,
+    unmappedReferences: 0,
+    callerFunctions: 1,
+  });
 }
 
 function symbolPosition(document: vscode.TextDocument, symbol: string): vscode.Position {

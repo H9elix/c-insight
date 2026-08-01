@@ -15,6 +15,14 @@ import {
 
 export type CallDirection = "incoming" | "outgoing";
 
+export interface MicrosoftCallerEvidenceStats {
+  queriedNodes: number;
+  references: number;
+  mappedReferences: number;
+  unmappedReferences: number;
+  callerFunctions: number;
+}
+
 export class CallHierarchyRepository {
   private readonly microsoftIncomingEvidence = new Map<string, MicrosoftCallerEvidence>();
   private readonly incomingCache: LruPromiseCache<
@@ -74,6 +82,23 @@ export class CallHierarchyRepository {
 
   incomingEvidence(node: CallNode): MicrosoftCallerEvidence | undefined {
     return this.microsoftIncomingEvidence.get(node.key);
+  }
+
+  microsoftCallerEvidenceStats(): MicrosoftCallerEvidenceStats {
+    const result: MicrosoftCallerEvidenceStats = {
+      queriedNodes: this.microsoftIncomingEvidence.size,
+      references: 0,
+      mappedReferences: 0,
+      unmappedReferences: 0,
+      callerFunctions: 0,
+    };
+    for (const evidence of this.microsoftIncomingEvidence.values()) {
+      result.references += evidence.references;
+      result.mappedReferences += evidence.mappedReferences;
+      result.unmappedReferences += evidence.unmappedReferences;
+      result.callerFunctions += evidence.callerFunctions;
+    }
+    return result;
   }
 
   invalidate(): void {
@@ -153,7 +178,9 @@ export class CallHierarchyRepository {
     }
     this.microsoftIncomingEvidence.set(node.key, {
       references: references.length,
+      mappedReferences: references.length - unmappedReferences,
       unmappedReferences,
+      callerFunctions: callers.size,
     });
     return [...callers.values()].map(({ item, ranges }) => ({
       from: item,

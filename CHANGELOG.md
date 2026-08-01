@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.11
+
+- Added loaded-node Microsoft Callers evidence to Project Diagnostics and its
+  text/JSON exports: queried nodes, References, mapped and unmapped references,
+  and resolved caller functions.
+- Shortened the one-time Microsoft engine notice by removing the explanation
+  about which queries it handles and that it is not a compiler.
+
+
 ## 0.18.10
 
 - Distinguished a Microsoft References query that returned no caller evidence

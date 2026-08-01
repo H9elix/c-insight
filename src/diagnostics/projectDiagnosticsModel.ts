@@ -33,6 +33,14 @@ export interface ProjectDiagnosticsReport {
     conflicts: string[];
     detail: string;
   };
+  microsoftCallers?: {
+    mode: string;
+    queriedNodes: number;
+    references: number;
+    mappedReferences: number;
+    unmappedReferences: number;
+    callerFunctions: number;
+  };
   extension?: {
     name: string;
     version: string;
@@ -217,6 +225,12 @@ export function renderProjectDiagnosticsText(
       `C_Cpp.intelliSenseEngine: ${report.microsoftProvider.intelliSenseEngine}`,
       `Known Provider conflicts: ${report.microsoftProvider.conflicts.join(", ") || "none"}`,
       `Provider evidence: ${report.microsoftProvider.detail}`,
+    );
+  }
+  if (report.microsoftCallers) {
+    lines.push(
+      `Microsoft Callers mode: ${report.microsoftCallers.mode}`,
+      `Microsoft Callers evidence: ${report.microsoftCallers.queriedNodes} queried nodes, ${report.microsoftCallers.references} references, ${report.microsoftCallers.mappedReferences} mapped references, ${report.microsoftCallers.unmappedReferences} unmapped references, ${report.microsoftCallers.callerFunctions} caller functions`,
     );
   }
   if (report.compilationDatabase.source) {
