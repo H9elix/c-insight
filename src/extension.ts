@@ -6,6 +6,11 @@ import {
 import { AnalysisService } from "./analysis/analysisService";
 import { configuredAnalysisEngine } from "./analysis/analysisEngine";
 import { MicrosoftSemanticProvider } from "./analysis/microsoftSemanticProvider";
+import {
+  activeProviderConflicts,
+  LLVM_CLANGD_EXTENSION_ID,
+  MICROSOFT_CPP_EXTENSION_ID,
+} from "./analysis/providerConflictModel";
 import { ClangdManager } from "./clangd/clangdManager";
 import { ClangdLogOutputChannel } from "./clangd/clangdLog";
 import { BookmarkExplorer } from "./bookmarks/bookmarkExplorer";
@@ -738,7 +743,12 @@ export async function activate(
   );
   await projectDiagnostics.refresh();
 
-  void warnAboutConflicts(context, engine);
+  registerProviderSettingRestore(context);
+  void warnAboutConflicts(
+    context,
+    engine,
+    vscode.window.activeTextEditor?.document.uri,
+  );
   try {
     if (engine === "microsoft") {
       await new MicrosoftSemanticProvider().activate();
@@ -832,24 +842,192 @@ async function updateDocumentSymbols(
 async function warnAboutConflicts(
   context: vscode.ExtensionContext,
   engine: "clangd" | "microsoft",
+  resource?: vscode.Uri,
 ): Promise<void> {
   if (context.workspaceState.get<boolean>("ignoredProviderConflict")) {
     return;
   }
-  const conflicts = [
-    "llvm-vs-code-extensions.vscode-clangd",
-    ...(engine === "clangd" ? ["ms-vscode.cpptools"] : []),
-  ].filter((id) => vscode.extensions.getExtension(id)?.isActive);
+  const conflicts = activeProviderConflicts({
+    engine,
+    llvmClangdActive: Boolean(
+      vscode.extensions.getExtension(LLVM_CLANGD_EXTENSION_ID)?.isActive,
+    ),
+    llvmClangdEnabled: vscode.workspace
+      .getConfiguration("clangd", resource)
+      .get<boolean>("enable", true),
+    microsoftCppActive: Boolean(
+      vscode.extensions.getExtension(MICROSOFT_CPP_EXTENSION_ID)?.isActive,
+    ),
+    microsoftIntelliSenseEngine: vscode.workspace
+      .getConfiguration("C_Cpp", resource)
+      .get<string>("intelliSenseEngine", "default"),
+  });
   if (conflicts.length === 0) {
     return;
   }
   const action = await vscode.window.showWarningMessage(
     `C Insight detected active C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing.`,
+    ...(vscode.workspace.workspaceFolders?.length
+      ? ["Disable for This Workspace"]
+      : []),
+    "Open Settings",
     "Ignore for Workspace",
   );
-  if (action === "Ignore for Workspace") {
+  if (action === "Disable for This Workspace") {
+    await disableConflictingProviders(context, conflicts, resource);
+  } else if (action === "Open Settings") {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      conflicts.includes(MICROSOFT_CPP_EXTENSION_ID)
+        ? "C_Cpp.intelliSenseEngine"
+        : "clangd.enable",
+    );
+  } else if (action === "Ignore for Workspace") {
     await context.workspaceState.update("ignoredProviderConflict", true);
   }
+}
+
+type ProviderSettingSection = "C_Cpp" | "clangd";
+type ProviderSettingKey = "intelliSenseEngine" | "enable";
+type ProviderSettingValue = string | boolean | undefined;
+type StoredConfigurationTarget = "workspace" | "workspaceFolder";
+
+interface ProviderSettingChange {
+  section: ProviderSettingSection;
+  key: ProviderSettingKey;
+  target: StoredConfigurationTarget;
+  resource?: string;
+  previousValue: ProviderSettingValue;
+  appliedValue: Exclude<ProviderSettingValue, undefined>;
+}
+
+const providerSettingChangesKey = "providerSettingChanges";
+
+async function disableConflictingProviders(
+  context: vscode.ExtensionContext,
+  conflicts: string[],
+  resource?: vscode.Uri,
+): Promise<void> {
+  const folder = resource
+    ? vscode.workspace.getWorkspaceFolder(resource)
+    : undefined;
+  const target: StoredConfigurationTarget = folder
+    ? "workspaceFolder"
+    : "workspace";
+  const configurationTarget = folder
+    ? vscode.ConfigurationTarget.WorkspaceFolder
+    : vscode.ConfigurationTarget.Workspace;
+  const scopedResource = folder?.uri ?? resource;
+  const existing = context.workspaceState.get<ProviderSettingChange[]>(
+    providerSettingChangesKey,
+    [],
+  );
+  const changes = [...existing];
+  const apply = async (
+    section: ProviderSettingSection,
+    key: ProviderSettingKey,
+    value: Exclude<ProviderSettingValue, undefined>,
+  ): Promise<void> => {
+    const configuration = vscode.workspace.getConfiguration(
+      section,
+      scopedResource,
+    );
+    const inspected = configuration.inspect<ProviderSettingValue>(key);
+    const previousValue = targetValue(inspected, target);
+    const shouldRecord = !changes.some((item) =>
+      item.section === section && item.key === key &&
+      item.target === target && item.resource === folder?.uri.toString());
+    if (shouldRecord) {
+      changes.push({
+        section,
+        key,
+        target,
+        resource: folder?.uri.toString(),
+        previousValue,
+        appliedValue: value,
+      });
+    }
+    await configuration.update(key, value, configurationTarget);
+    if (shouldRecord) {
+      await context.workspaceState.update(providerSettingChangesKey, changes);
+    }
+  };
+  if (conflicts.includes(MICROSOFT_CPP_EXTENSION_ID)) {
+    await apply("C_Cpp", "intelliSenseEngine", "disabled");
+  }
+  if (conflicts.includes(LLVM_CLANGD_EXTENSION_ID)) {
+    await apply("clangd", "enable", false);
+  }
+  const action = await vscode.window.showInformationMessage(
+    "C Insight disabled competing language services only for this workspace. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely.",
+    "Reload Window",
+  );
+  if (action === "Reload Window") {
+    await vscode.commands.executeCommand("workbench.action.reloadWindow");
+  }
+}
+
+function registerProviderSettingRestore(
+  context: vscode.ExtensionContext,
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "cInsight.restoreProviderSettings",
+      () => restoreProviderSettings(context),
+    ),
+  );
+}
+
+async function restoreProviderSettings(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const changes = context.workspaceState.get<ProviderSettingChange[]>(
+    providerSettingChangesKey,
+    [],
+  );
+  let restored = 0;
+  let skipped = 0;
+  for (const change of changes) {
+    const resource = change.resource
+      ? vscode.Uri.parse(change.resource)
+      : undefined;
+    const configuration = vscode.workspace.getConfiguration(
+      change.section,
+      resource,
+    );
+    const current = targetValue(
+      configuration.inspect<ProviderSettingValue>(change.key),
+      change.target,
+    );
+    if (current !== change.appliedValue) {
+      skipped += 1;
+      continue;
+    }
+    await configuration.update(
+      change.key,
+      change.previousValue,
+      change.target === "workspaceFolder"
+        ? vscode.ConfigurationTarget.WorkspaceFolder
+        : vscode.ConfigurationTarget.Workspace,
+    );
+    restored += 1;
+  }
+  await context.workspaceState.update(providerSettingChangesKey, undefined);
+  void vscode.window.showInformationMessage(
+    `C Insight restored ${restored} provider setting(s)` +
+      (skipped ? `; skipped ${skipped} setting(s) changed after C Insight configured them.` : ".") +
+      " Reload Window to apply the change.",
+  );
+}
+
+function targetValue(
+  inspected: ReturnType<vscode.WorkspaceConfiguration["inspect"]>,
+  target: StoredConfigurationTarget,
+): ProviderSettingValue {
+  if (!inspected) return undefined;
+  return target === "workspaceFolder"
+    ? inspected.workspaceFolderValue as ProviderSettingValue
+    : inspected.workspaceValue as ProviderSettingValue;
 }
 
 async function showMicrosoftEngineNotice(

@@ -108,6 +108,11 @@ Callers, native Callees, interaction state, caches, and bounded request demand.
 The acceptance report records the supported public-API boundary, while the
 standard clangd host suite now selects and restores its engine independently of
 previous Microsoft test-profile state.
+Version 0.18.19 removes provider-conflict false positives for disabled
+Microsoft IntelliSense and disabled LLVM clangd language services. Its optional
+quick fix requires confirmation, writes only the narrowest current workspace
+scope, records prior values, and restores them only if the user has not changed
+the setting afterward.
 
 ## Deferred fourth phase
 

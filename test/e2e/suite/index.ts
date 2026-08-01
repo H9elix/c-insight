@@ -94,6 +94,7 @@ async function runClangdAcceptance(): Promise<void> {
     "cInsight.unpinReferences",
     "cInsight.pinCallHierarchy",
     "cInsight.unpinCallHierarchy",
+    "cInsight.restoreProviderSettings",
     "cInsight.diagnostics.refresh",
     "cInsight.openProjectDiagnostics",
     "cInsight.history.preview",
