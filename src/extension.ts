@@ -687,6 +687,7 @@ export async function activate(
       await new MicrosoftSemanticProvider().activate();
       manager.useMicrosoftProvider();
       output.appendLine("Analysis engine: Microsoft C/C++ Provider");
+      void showMicrosoftEngineNotice(context);
     } else {
       await manager.start();
     }
@@ -792,4 +793,15 @@ async function warnAboutConflicts(
   if (action === "Ignore for Workspace") {
     await context.workspaceState.update("ignoredProviderConflict", true);
   }
+}
+
+async function showMicrosoftEngineNotice(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const key = "microsoftEngineSemanticProviderNoticeShown";
+  if (context.globalState.get<boolean>(key)) return;
+  await context.globalState.update(key, true);
+  void vscode.window.showInformationMessage(
+    "C Insight 当前使用 Microsoft C/C++ language service (cpptools) 作为语义分析提供方，负责定义、引用和调用关系等查询，而不是作为编译器。其性能和查询结果可能与 clangd 不同。",
+  );
 }

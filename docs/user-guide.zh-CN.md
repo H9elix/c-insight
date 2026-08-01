@@ -1,4 +1,4 @@
-# C Insight 0.18.8 使用手册
+# C Insight 0.18.9 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -43,6 +43,11 @@ Provider。两种模式不会同时由 C Insight 启动。
 clangd；Definition、Declaration、References、Hover、Signature Help、Document/
 Workspace Symbols、Callers、Callees 和 Code Preview 语义令牌通过 VS Code 公共
 Provider 命令获得。Includes/Included By 仍由 C Insight 自己解析文件。
+
+该模式第一次成功启用时会显示一次提示，说明 **Microsoft C/C++ language service
+(cpptools)** 是 C Insight 的语义分析提供方，负责上述导航查询而不是充当编译器；
+它的性能和查询结果可能与 clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
+全局状态中，后续启动不再重复弹出；本地和远程扩展宿主的状态彼此独立。
 
 微软模式的明确限制：
 
@@ -380,6 +385,9 @@ Microsoft References 回退结果会显示 `References-based` 提示。它属于
 普通直接调用通常可以识别，但宏展开、函数指针以及 Provider 未返回的引用可能
 缺失。可将 `cInsight.microsoft.callersMode` 改为 `native` 使用 cpptools 原生
 Incoming Calls（已知对部分跨文件符号存在崩溃风险），或设为 `disabled` 禁用。
+因此该模式查询为空时固定显示 `No callers found by References-based analysis —
+results may be incomplete`，不会把 Provider 没有提供足够证据误报成“确认没有
+调用者”。
 0.18.8 还兼容 cpptools 将 C 函数以扁平 `Interface` 类型返回的情况：仅当符号名
 具有函数参数列表且其完整源码范围包含引用位置时，才将其识别为外层调用函数，
 避免误把真正的接口或类型符号当作 Caller。

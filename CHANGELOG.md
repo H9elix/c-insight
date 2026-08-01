@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.9
+
+- Added a one-time notice when Microsoft C/C++ is selected, identifying the
+  Microsoft C/C++ language service (cpptools) as C Insight's semantic analysis
+  provider and noting that performance and results may differ from clangd.
+- Changed an empty References-based Microsoft Callers result to explicitly say
+  that no callers were found by the approximate analysis and that results may
+  be incomplete, instead of presenting it as a conclusive empty result.
+
+
 ## 0.18.8
 
 - Fixed Microsoft References-based Callers returning `No callers found` even

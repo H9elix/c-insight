@@ -64,6 +64,10 @@ flat C function symbols with the `Interface` kind despite providing a function
 signature and full body range. A narrowly scoped compatibility rule now maps
 those references to their enclosing function, covered by the real FFmpeg host
 regression.
+Version 0.18.9 makes empty References-based Callers evidence explicitly
+non-conclusive and adds a one-time Microsoft-engine notice explaining that the
+Microsoft C/C++ language service (cpptools) supplies semantic queries rather
+than compilation, with performance and results that may differ from clangd.
 
 ## Deferred fourth phase
 
