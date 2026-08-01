@@ -205,6 +205,12 @@ export class ProjectDiagnostics implements vscode.Disposable {
       .get<string>("callersMode", "references");
     const callerEvidence = this.callRepository?.microsoftCallerEvidenceStats();
     const calleeEvidence = this.callRepository?.microsoftCalleeEvidenceStats();
+    const microsoftNavigationEvidence = Object.entries(
+      runtimeDiagnostics.snapshot().counters,
+    ).filter(([name]) =>
+      name.startsWith("microsoft.navigation.") ||
+      name.startsWith("microsoft.preview.")
+    );
 
     const roots: TreeNode[] = [
       group("Extension information", "extensions", [
@@ -296,6 +302,26 @@ export class ProjectDiagnostics implements vscode.Disposable {
                         detail("Average duration", `${Math.round(calleeEvidence.averageDurationMs)} ms`, "dashboard"),
                         detail("Maximum duration", `${Math.round(calleeEvidence.maximumDurationMs)} ms`, "clock"),
                       ],
+                      vscode.TreeItemCollapsibleState.Collapsed,
+                    ),
+                  ]
+                : []),
+              ...(microsoftNavigationEvidence.length > 0
+                ? [
+                    group(
+                      "References and Code Preview evidence",
+                      "preview",
+                      microsoftNavigationEvidence.map(([name, value]) =>
+                        detail(
+                          name.replace(/^microsoft\.(?:navigation|preview)\./, ""),
+                          String(value),
+                          name.endsWith(".failed") || name.endsWith("postProcessingFailed")
+                            ? "error"
+                            : name.endsWith(".timeout") || name.endsWith(".empty") || name.endsWith("lexicalFallback")
+                              ? "warning"
+                              : "pass",
+                        ),
+                      ),
                       vscode.TreeItemCollapsibleState.Collapsed,
                     ),
                   ]

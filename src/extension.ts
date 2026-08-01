@@ -11,6 +11,7 @@ import { isCppDocument } from "./configuration/configuration";
 import { ContextController } from "./context/contextController";
 import { ProjectDiagnostics } from "./diagnostics/projectDiagnostics";
 import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
+import { runtimeDiagnostics } from "./diagnostics/runtimeDiagnostics";
 import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
 import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
 import {
@@ -348,6 +349,9 @@ export async function activate(
       }),
       vscode.commands.registerCommand("cInsight.test.requestTiming", () =>
         analysis.requestTimingStats(),
+      ),
+      vscode.commands.registerCommand("cInsight.test.runtimeDiagnostics", () =>
+        runtimeDiagnostics.snapshot(),
       ),
       vscode.commands.registerCommand("cInsight.test.navigationState", () => ({
         visibility: views.navigationVisibility,

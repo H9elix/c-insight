@@ -33,7 +33,9 @@ and tooltips without overwhelming the result label.
   Microsoft semantic provider to the user; 0.18.10 distinguishes absent
   References evidence from references that cannot be mapped to caller functions;
   0.18.11 exposes those loaded-node evidence totals in Project Diagnostics;
-  0.18.12 adds symmetric native Callees outcomes, counts, and latency evidence
+  0.18.12 adds symmetric native Callees outcomes, counts, and latency evidence;
+  0.18.13 distinguishes Microsoft navigation empties/failures and Preview
+  semantic-token completion, timeout, failure, and lexical fallback
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

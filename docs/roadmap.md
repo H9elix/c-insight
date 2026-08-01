@@ -78,6 +78,11 @@ Version 0.18.12 instruments Microsoft native Outgoing Calls per loaded node,
 including success, failure, cancellation, empty results, returned callees, and
 latency. The evidence is exposed through Project Diagnostics and verified by a
 non-empty real FFmpeg `decode_read` Callees query before any fallback is added.
+Version 0.18.13 instruments Microsoft Definition, Declaration, References, and
+Code Preview semantic-token stages so Provider empty/failure/cancellation,
+References post-processing, Preview timeout/failure, and lexical fallback are
+separate evidence. Real FFmpeg coverage includes cross-file, header, macro, and
+no-symbol cases.
 
 ## Deferred fourth phase
 
