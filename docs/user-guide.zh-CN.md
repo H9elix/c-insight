@@ -1,4 +1,4 @@
-# C Insight 0.18.5 使用手册
+# C Insight 0.18.6 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -232,7 +232,9 @@ Code Preview 默认通过 VS Code Document Semantic Tokens 命令复用当前 C/
 文档已注册的语义令牌提供器。使用 C Insight 自带 clangd 时，函数、方法、变量、
 参数、类型、命名空间和宏等分类来自同一 clangd；关键字、字符串、数字和注释等
 未被语义令牌覆盖的区间继续使用轻量词法高亮。语义请求暂不可用时会自动退回
-纯词法高亮，不影响预览和导航。
+纯词法高亮，不影响预览和导航。语义令牌提供器超过
+`cInsight.codePreview.semanticTokenTimeout` 仍未返回时也会执行相同回退，避免
+大型跨文件目标的着色请求阻塞 Definition 预览。
 
 Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成后的全部
 `semanticTokenColors`，因此 Code Preview 使用当前主题公开的 VS Code 颜色变量
@@ -1142,6 +1144,7 @@ C Insight 默认管理：
 | `cInsight.codePreview.linesBefore` | number | `6` | 0–100 | 目标行之前显示的源码行数 |
 | `cInsight.codePreview.linesAfter` | number | `8` | 0–100 | 目标行之后显示的源码行数 |
 | `cInsight.codePreview.semanticHighlighting` | boolean | `true` | `true` / `false` | 是否使用当前 VS Code 语义令牌提供器着色符号；关闭后只使用词法高亮 |
+| `cInsight.codePreview.semanticTokenTimeout` | number | `1500` | 100–10000 | 等待语义令牌的最长毫秒数；超时后立即使用词法高亮显示，不阻塞 Preview 导航 |
 | `cInsight.codePreview.semanticTokenCacheSize` | number | `32` | 1–256 | 内存中最多保留的按文档及其版本区分的语义令牌结果数 |
 | `cInsight.codePreview.semanticTokenCacheMaximumMegabytes` | number | `16` | 1–256 | 已完成语义令牌缓存允许占用的近似总内存 MiB；与条目数限制同时生效 |
 | `cInsight.codePreview.incrementalLoading` | boolean | `true` | `true` / `false` | 滚动到 Code Preview 上下边缘时是否继续加载源码 |

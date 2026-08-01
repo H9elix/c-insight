@@ -239,7 +239,7 @@ export class CodePreviewProvider
       case "previewDefinition": {
         const position = this.validPosition(message);
         if (position) {
-          await this.previewDefinition(position);
+          await this.followDefinition(position);
         }
         break;
       }
@@ -323,7 +323,7 @@ export class CodePreviewProvider
     return new vscode.Position(line, character);
   }
 
-  private async previewDefinition(position: vscode.Position): Promise<void> {
+  async followDefinition(position: vscode.Position): Promise<void> {
     if (!this.rendered) {
       return;
     }
@@ -771,7 +771,7 @@ async function requestSemanticTokens(
   document: vscode.TextDocument,
 ): Promise<SemanticTokenDocument | undefined> {
   try {
-    const [legend, tokens] = await Promise.all([
+    const request = Promise.all([
       vscode.commands.executeCommand<vscode.SemanticTokensLegend | undefined>(
         "vscode.provideDocumentSemanticTokensLegend",
         document.uri,
@@ -781,12 +781,33 @@ async function requestSemanticTokens(
         document.uri,
       ),
     ]);
+    const timeout = vscode.workspace
+      .getConfiguration("cInsight.codePreview")
+      .get<number>("semanticTokenTimeout", 1_500);
+    const [legend, tokens] = await settleWithin(request, timeout);
     if (!legend || !tokens) {
       return undefined;
     }
     return { data: tokens.data, legend };
   } catch {
     return undefined;
+  }
+}
+
+async function settleWithin<T>(request: PromiseLike<T>, timeout: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(request),
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Semantic tokens timed out after ${timeout} ms`)),
+          timeout,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
