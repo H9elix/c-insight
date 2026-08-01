@@ -118,13 +118,13 @@ export class ContextController implements vscode.Disposable {
           config.includeDeclarationInReferences,
           cancellation.token,
         ),
-        base.callRoots[0]
+        this.analysis.analysisEngine !== "microsoft" && base.callRoots[0]
           ? this.analysis
               .incomingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
-        base.callRoots[0]
+        this.analysis.analysisEngine !== "microsoft" && base.callRoots[0]
           ? this.analysis
               .outgoingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
