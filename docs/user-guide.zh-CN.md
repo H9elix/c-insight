@@ -1,4 +1,4 @@
-# C Insight 0.18.2 使用手册
+# C Insight 0.18.3 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1261,14 +1261,20 @@ Graph。布局和系统头开关要到后续 Type/Include Adapter 接入后才�
 
 | 配置 | 类型 | 默认值 | 范围 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.analysis.maximumConcurrentRequests` | number | `8` | 1–64 | C Insight 同时运行的 clangd 语义请求总数上限 |
+| `cInsight.analysis.maximumConcurrentRequests` | number | `8` | 1–64 | C Insight 同时运行的语义引擎请求总数上限 |
 | `cInsight.analysis.maximumBackgroundRequests` | number | `2` | 1–16 | 总上限内允许并发运行的 Document Highlight、Document Symbols 等后台详情请求数 |
+| `cInsight.analysis.slowRequestThreshold` | number | `1000` | 100–60000 | 语义查询被计入并输出为慢查询的耗时阈值，单位为毫秒；同时适用于 clangd 和 Microsoft Provider |
 
 调度器按 Interactive、Normal、Background 三档排队。Definition、Hover 和层级
 Prepare 等交互请求优先于已排队的普通/后台工作；已开始的 LSP 请求不会被强制
 抢占。使用同一取消令牌、方法和参数的相同请求共享底层 Promise；不同取消作用域
-不会错误合并。排队期间取消的请求不会发送给 clangd。这两个配置在下一次请求
+不会错误合并。排队期间取消的请求不会发送给分析引擎。这些配置在下一次请求
 进入调度器时生效。
+
+PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求、按方法
+汇总的次数/平均值/最大值/失败/取消数量。Microsoft 模式还会单独显示 Provider
+激活耗时，从而区分扩展启动等待与 Definition、References、Callers 等查询自身
+的耗时。统计仅保存在当前 Extension Host 会话，不上传源码或遥测数据。
 
 ### 9.14 导出资源限制
 
@@ -1390,7 +1396,8 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括
 Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Include 会话恢复、
 跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器，0.18.2 增加
-配置/冲突验证、引擎诊断和跨引擎语义会话隔离；尚未支持的
+配置/冲突验证、引擎诊断和跨引擎语义会话隔离，0.18.3 增加按查询类型划分的
+性能与结果统计；尚未支持的
 Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API 的能力边界。
 探测方法、实测结果和接入边界见 `docs/microsoft-provider-probe.zh-CN.md`。
 

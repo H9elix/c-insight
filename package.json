@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -1308,7 +1308,7 @@
           "default": 8,
           "minimum": 1,
           "maximum": 64,
-          "description": "Maximum number of clangd semantic requests that C Insight may run concurrently. Interactive requests are dequeued before normal and background work."
+          "description": "Maximum number of semantic-engine requests that C Insight may run concurrently. Interactive requests are dequeued before normal and background work."
         },
         "cInsight.analysis.maximumBackgroundRequests": {
           "type": "number",
@@ -1316,6 +1316,13 @@
           "minimum": 1,
           "maximum": 16,
           "description": "Maximum concurrent background-detail requests within the total semantic request limit."
+        },
+        "cInsight.analysis.slowRequestThreshold": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 60000,
+          "description": "Duration in milliseconds after which a completed or failed semantic-engine request is counted and logged as slow."
         },
         "cInsight.references.pageSize": {
           "type": "number",

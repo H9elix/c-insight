@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.3
+
+- Added per-method semantic request timing, outcome, failure, and cancellation
+  statistics for both clangd and Microsoft C/C++ Provider modes.
+- Added the most recent semantic request and per-method breakdown to Project
+  Diagnostics and exported text/JSON reports.
+- Measured Microsoft Provider activation separately so slow Provider startup
+  can be distinguished from the semantic command itself.
+- Added `cInsight.analysis.slowRequestThreshold` to configure slow-request
+  logging and counting, with a default of 1000 ms.
+- Generalized the semantic concurrency setting description for both engines.
+
 ## 0.18.2
 
 - Renamed lifecycle output to `Analysis engine state` and renamed the Project

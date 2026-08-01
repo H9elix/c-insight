@@ -138,6 +138,26 @@ describe("project diagnostics model", () => {
           slow: 1,
           lastSlowMethod: "workspace/symbol",
           lastSlowDurationMs: 1200,
+          failed: 1,
+          cancelled: 1,
+          providerActivationDurationMs: 40,
+          last: {
+            method: "workspace/symbol",
+            engine: "clangd",
+            outcome: "completed",
+            durationMs: 1200,
+            completedAt: "2026-08-01T00:00:00.000Z",
+          },
+          byMethod: {
+            "workspace/symbol": {
+              measured: 2,
+              completed: 2,
+              failed: 0,
+              cancelled: 0,
+              averageDurationMs: 700,
+              maximumDurationMs: 1200,
+            },
+          },
         },
         counters: { "limits.references.display": 1 },
         gauges: { "cache.references.highlights": 7 },
@@ -153,6 +173,8 @@ describe("project diagnostics model", () => {
     assert.match(text, /Line 3 \[error\]: 'config.h' file not found/);
     assert.match(text, /Scheduler: 0 active, 0 queued, peak 3/);
     assert.match(text, /Last slow request: workspace\/symbol \(1200 ms\)/);
+    assert.match(text, /Last semantic request: workspace\/symbol \[clangd\/completed\] 1200 ms/);
+    assert.match(text, /Method workspace\/symbol: 2 measured, 700 ms average/);
     assert.match(text, /Counter limits.references.display: 1/);
     assert.match(text, /Limit analysis.maximumConcurrentRequests: 8/);
   });
