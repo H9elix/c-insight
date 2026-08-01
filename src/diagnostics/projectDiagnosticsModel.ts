@@ -94,6 +94,25 @@ export interface ProjectDiagnosticsReport {
       slow: number;
       lastSlowMethod?: string;
       lastSlowDurationMs?: number;
+      failed: number;
+      cancelled: number;
+      providerActivationDurationMs: number;
+      last?: {
+        method: string;
+        engine: "clangd" | "microsoft";
+        outcome: "completed" | "failed" | "cancelled";
+        durationMs: number;
+        providerActivationDurationMs?: number;
+        completedAt: string;
+      };
+      byMethod: Record<string, {
+        measured: number;
+        completed: number;
+        failed: number;
+        cancelled: number;
+        averageDurationMs: number;
+        maximumDurationMs: number;
+      }>;
     };
     counters: Record<string, number>;
     gauges: Record<string, number>;
@@ -264,10 +283,21 @@ export function renderProjectDiagnosticsText(
       `Scheduler: ${scheduler.active} active, ${scheduler.queued} queued, peak ${scheduler.peakActive}`,
       `Requests: ${scheduler.submitted} submitted, ${scheduler.completed} completed, ${scheduler.failed} failed, ${scheduler.coalesced} coalesced, ${scheduler.cancelledBeforeStart} cancelled before start`,
       `Timing: ${requests.measured} measured, ${Math.round(requests.averageDurationMs)} ms average, ${Math.round(requests.maximumDurationMs)} ms maximum, ${requests.slow} slow`,
+      `Outcomes: ${requests.failed} failed, ${requests.cancelled} cancelled`,
     );
     if (requests.lastSlowMethod) {
       lines.push(
         `Last slow request: ${requests.lastSlowMethod} (${Math.round(requests.lastSlowDurationMs ?? 0)} ms)`,
+      );
+    }
+    if (requests.last) {
+      lines.push(
+        `Last semantic request: ${requests.last.method} [${requests.last.engine}/${requests.last.outcome}] ${Math.round(requests.last.durationMs)} ms${requests.last.providerActivationDurationMs === undefined ? "" : `; Provider activation ${Math.round(requests.last.providerActivationDurationMs)} ms`}`,
+      );
+    }
+    for (const [method, value] of Object.entries(requests.byMethod)) {
+      lines.push(
+        `Method ${method}: ${value.measured} measured, ${Math.round(value.averageDurationMs)} ms average, ${Math.round(value.maximumDurationMs)} ms maximum, ${value.failed} failed, ${value.cancelled} cancelled`,
       );
     }
     for (const [name, value] of Object.entries(report.runtime.counters)) {

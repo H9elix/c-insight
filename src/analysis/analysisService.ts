@@ -35,6 +35,33 @@ export interface RequestTimingStats {
   slow: number;
   lastSlowMethod?: string;
   lastSlowDurationMs?: number;
+  failed: number;
+  cancelled: number;
+  providerActivationDurationMs: number;
+  last?: RequestTimingEntry;
+  byMethod: Record<string, RequestMethodTiming>;
+}
+
+export interface RequestTimingEntry {
+  method: string;
+  engine: AnalysisEngine;
+  outcome: "completed" | "failed" | "cancelled";
+  durationMs: number;
+  providerActivationDurationMs?: number;
+  completedAt: string;
+}
+
+export interface RequestMethodTiming {
+  measured: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  averageDurationMs: number;
+  maximumDurationMs: number;
+}
+
+interface MutableMethodTiming extends Omit<RequestMethodTiming, "averageDurationMs"> {
+  totalDurationMs: number;
 }
 
 interface PositionParams {
@@ -59,7 +86,12 @@ export class AnalysisService {
     totalDurationMs: 0,
     maximumDurationMs: 0,
     slow: 0,
+    failed: 0,
+    cancelled: 0,
+    providerActivationDurationMs: 0,
+    byMethod: {},
   };
+  private readonly methodTiming = new Map<string, MutableMethodTiming>();
 
   constructor(
     private readonly manager: ClangdManager,
@@ -72,7 +104,21 @@ export class AnalysisService {
   }
 
   requestTimingStats(): RequestTimingStats {
-    return { ...this.timing };
+    return {
+      ...this.timing,
+      last: this.timing.last ? { ...this.timing.last } : undefined,
+      byMethod: Object.fromEntries(
+        [...this.methodTiming].map(([method, value]) => [method, {
+          measured: value.measured,
+          completed: value.completed,
+          failed: value.failed,
+          cancelled: value.cancelled,
+          averageDurationMs:
+            value.measured === 0 ? 0 : value.totalDurationMs / value.measured,
+          maximumDurationMs: value.maximumDurationMs,
+        }]),
+      ),
+    };
   }
 
   async definition(
@@ -431,13 +477,9 @@ export class AnalysisService {
       async () => {
         const client =
           this.manager.languageClient ?? (await this.manager.start());
-        return this.measure(
-          method,
-          token
-            ? client.sendRequest<T>(method, params, token)
-            : client.sendRequest<T>(method, params),
-          token,
-        );
+        return this.measure(method, () => token
+          ? client.sendRequest<T>(method, params, token)
+          : client.sendRequest<T>(method, params), token);
       },
       token,
     );
@@ -460,8 +502,15 @@ export class AnalysisService {
       requestPriority(`textDocument/${operation}`),
       async () => {
         if (token?.isCancellationRequested) throw new vscode.CancellationError();
+        const activationStarted = performance.now();
         await this.microsoft.activate();
-        const result = await this.measure(`microsoft/${operation}`, action(), token);
+        const activationDurationMs = performance.now() - activationStarted;
+        const result = await this.measure(
+          `microsoft/${operation}`,
+          action,
+          token,
+          activationDurationMs,
+        );
         if (token?.isCancellationRequested) throw new vscode.CancellationError();
         return result;
       },
@@ -481,12 +530,19 @@ export class AnalysisService {
 
   private async measure<T>(
     method: string,
-    request: Promise<T>,
+    request: () => Promise<T>,
     token?: vscode.CancellationToken,
+    providerActivationDurationMs = 0,
   ): Promise<T> {
     const started = performance.now();
+    let outcome: RequestTimingEntry["outcome"] = "completed";
     try {
-      return await request;
+      return await request();
+    } catch (error) {
+      outcome = token?.isCancellationRequested || isCancellationError(error)
+        ? "cancelled"
+        : "failed";
+      throw error;
     } finally {
       const elapsed = performance.now() - started;
       this.timing.measured += 1;
@@ -495,7 +551,31 @@ export class AnalysisService {
         this.timing.maximumDurationMs,
         elapsed,
       );
-      if (elapsed >= 1_000 && !token?.isCancellationRequested) {
+      this.timing.providerActivationDurationMs += providerActivationDurationMs;
+      if (outcome === "failed") this.timing.failed += 1;
+      if (outcome === "cancelled") this.timing.cancelled += 1;
+      const methodTiming = this.methodTiming.get(method) ?? {
+        measured: 0, completed: 0, failed: 0, cancelled: 0,
+        totalDurationMs: 0, maximumDurationMs: 0,
+      };
+      methodTiming.measured += 1;
+      methodTiming[outcome] += 1;
+      methodTiming.totalDurationMs += elapsed;
+      methodTiming.maximumDurationMs = Math.max(methodTiming.maximumDurationMs, elapsed);
+      this.methodTiming.set(method, methodTiming);
+      this.timing.last = {
+        method,
+        engine: this.engine,
+        outcome,
+        durationMs: elapsed,
+        providerActivationDurationMs:
+          providerActivationDurationMs > 0 ? providerActivationDurationMs : undefined,
+        completedAt: new Date().toISOString(),
+      };
+      const slowThresholdMs = vscode.workspace
+        .getConfiguration("cInsight.analysis")
+        .get<number>("slowRequestThreshold", 1_000);
+      if (elapsed >= slowThresholdMs && outcome !== "cancelled") {
         this.timing.slow += 1;
         this.timing.lastSlowMethod = method;
         this.timing.lastSlowDurationMs = elapsed;
@@ -533,6 +613,11 @@ export class AnalysisService {
       return this.toVsLocation(item);
     });
   }
+}
+
+function isCancellationError(error: unknown): boolean {
+  return error instanceof vscode.CancellationError ||
+    (error instanceof Error && /cancel(?:led|ed)/i.test(error.message));
 }
 
 function requestPriority(method: string): RequestPriority {

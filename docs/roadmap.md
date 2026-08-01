@@ -43,6 +43,9 @@ mode.
 Version 0.18.2 made that adapter fail closed for disabled or known-ambiguous
 Provider environments, added engine-specific diagnostics evidence, and
 prevented semantic session state from crossing engine boundaries.
+Version 0.18.3 adds engine-labelled, per-method semantic request timing and
+outcome evidence, separates Microsoft Provider activation latency, and exposes
+the results through Project Diagnostics and shareable reports.
 
 ## Deferred fourth phase
 

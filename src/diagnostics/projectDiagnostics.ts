@@ -451,6 +451,19 @@ export class ProjectDiagnostics implements vscode.Disposable {
           `${timing.measured === 0 ? 0 : Math.round(timing.totalDurationMs / timing.measured)} ms average · ${Math.round(timing.maximumDurationMs)} ms maximum · ${timing.slow} slow`,
           timing.slow > 0 ? "warning" : "dashboard",
         ),
+        ...(timing.last
+          ? [
+              detail(
+                "Last semantic request",
+                `${timing.last.method} · ${timing.last.outcome} · ${Math.round(timing.last.durationMs)} ms${timing.last.providerActivationDurationMs === undefined ? "" : ` · Provider activation ${Math.round(timing.last.providerActivationDurationMs)} ms`}`,
+                timing.last.outcome === "failed"
+                  ? "error"
+                  : timing.last.outcome === "cancelled"
+                    ? "circle-slash"
+                    : "pulse",
+              ),
+            ]
+          : []),
         ...(timing.lastSlowMethod
           ? [
               detail(
@@ -460,6 +473,18 @@ export class ProjectDiagnostics implements vscode.Disposable {
               ),
             ]
           : []),
+        group(
+          "Semantic requests by method",
+          "list-tree",
+          Object.entries(timing.byMethod).map(([method, value]) =>
+            detail(
+              method,
+              `${value.measured} requests · ${Math.round(value.averageDurationMs)} ms average · ${Math.round(value.maximumDurationMs)} ms maximum · ${value.failed} failed · ${value.cancelled} cancelled`,
+              value.failed > 0 ? "warning" : "dashboard",
+            ),
+          ),
+          vscode.TreeItemCollapsibleState.Collapsed,
+        ),
         ...Object.entries(runtime.counters).map(([name, value]) =>
           detail(runtimeLabel(name), String(value), "warning"),
         ),
@@ -548,6 +573,11 @@ export class ProjectDiagnostics implements vscode.Disposable {
           slow: timing.slow,
           lastSlowMethod: timing.lastSlowMethod,
           lastSlowDurationMs: timing.lastSlowDurationMs,
+          failed: timing.failed,
+          cancelled: timing.cancelled,
+          providerActivationDurationMs: timing.providerActivationDurationMs,
+          last: timing.last,
+          byMethod: timing.byMethod,
         },
         counters: runtime.counters,
         gauges: runtime.gauges,
