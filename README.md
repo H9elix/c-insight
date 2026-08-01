@@ -47,7 +47,8 @@ and tooltips without overwhelming the result label.
   the staged fixture and real-FFmpeg acceptance and isolates engine selection
   between Extension Host suites; 0.18.19 makes provider conflicts depend on
   effective language-service settings and adds reversible, workspace-scoped
-  conflict resolution
+  conflict resolution; 0.18.20 writes LLVM's window-scoped setting through the
+  supported Workspace target and reports the exact local/WSL/SSH destination
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

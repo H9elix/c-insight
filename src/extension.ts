@@ -866,7 +866,8 @@ async function warnAboutConflicts(
     return;
   }
   const action = await vscode.window.showWarningMessage(
-    `C Insight detected active C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing.`,
+    `C Insight detected active C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing. ` +
+      workspaceSettingTargetDescription(),
     ...(vscode.workspace.workspaceFolders?.length
       ? ["Disable for This Workspace"]
       : []),
@@ -874,7 +875,19 @@ async function warnAboutConflicts(
     "Ignore for Workspace",
   );
   if (action === "Disable for This Workspace") {
-    await disableConflictingProviders(context, conflicts, resource);
+    try {
+      await disableConflictingProviders(context, conflicts);
+    } catch (error) {
+      const followUp = await vscode.window.showErrorMessage(
+        `C Insight could not update the workspace Provider settings: ${String(error)}`,
+        "Open Workspace Settings",
+      );
+      if (followUp === "Open Workspace Settings") {
+        await vscode.commands.executeCommand(
+          "workbench.action.openWorkspaceSettingsFile",
+        );
+      }
+    }
   } else if (action === "Open Settings") {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
@@ -906,18 +919,9 @@ const providerSettingChangesKey = "providerSettingChanges";
 async function disableConflictingProviders(
   context: vscode.ExtensionContext,
   conflicts: string[],
-  resource?: vscode.Uri,
 ): Promise<void> {
-  const folder = resource
-    ? vscode.workspace.getWorkspaceFolder(resource)
-    : undefined;
-  const target: StoredConfigurationTarget = folder
-    ? "workspaceFolder"
-    : "workspace";
-  const configurationTarget = folder
-    ? vscode.ConfigurationTarget.WorkspaceFolder
-    : vscode.ConfigurationTarget.Workspace;
-  const scopedResource = folder?.uri ?? resource;
+  const target: StoredConfigurationTarget = "workspace";
+  const configurationTarget = vscode.ConfigurationTarget.Workspace;
   const existing = context.workspaceState.get<ProviderSettingChange[]>(
     providerSettingChangesKey,
     [],
@@ -928,21 +932,17 @@ async function disableConflictingProviders(
     key: ProviderSettingKey,
     value: Exclude<ProviderSettingValue, undefined>,
   ): Promise<void> => {
-    const configuration = vscode.workspace.getConfiguration(
-      section,
-      scopedResource,
-    );
+    const configuration = vscode.workspace.getConfiguration(section);
     const inspected = configuration.inspect<ProviderSettingValue>(key);
     const previousValue = targetValue(inspected, target);
     const shouldRecord = !changes.some((item) =>
       item.section === section && item.key === key &&
-      item.target === target && item.resource === folder?.uri.toString());
+      item.target === target && item.resource === undefined);
     if (shouldRecord) {
       changes.push({
         section,
         key,
         target,
-        resource: folder?.uri.toString(),
         previousValue,
         appliedValue: value,
       });
@@ -959,7 +959,7 @@ async function disableConflictingProviders(
     await apply("clangd", "enable", false);
   }
   const action = await vscode.window.showInformationMessage(
-    "C Insight disabled competing language services only for this workspace. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely.",
+    "C Insight updated the Workspace settings for competing language services. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely.",
     "Reload Window",
   );
   if (action === "Reload Window") {
@@ -987,6 +987,8 @@ async function restoreProviderSettings(
   );
   let restored = 0;
   let skipped = 0;
+  let failed = 0;
+  const retained: ProviderSettingChange[] = [];
   for (const change of changes) {
     const resource = change.resource
       ? vscode.Uri.parse(change.resource)
@@ -1003,21 +1005,41 @@ async function restoreProviderSettings(
       skipped += 1;
       continue;
     }
-    await configuration.update(
-      change.key,
-      change.previousValue,
-      change.target === "workspaceFolder"
-        ? vscode.ConfigurationTarget.WorkspaceFolder
-        : vscode.ConfigurationTarget.Workspace,
-    );
-    restored += 1;
+    try {
+      await configuration.update(
+        change.key,
+        change.previousValue,
+        change.target === "workspaceFolder"
+          ? vscode.ConfigurationTarget.WorkspaceFolder
+          : vscode.ConfigurationTarget.Workspace,
+      );
+      restored += 1;
+    } catch {
+      failed += 1;
+      retained.push(change);
+    }
   }
-  await context.workspaceState.update(providerSettingChangesKey, undefined);
+  await context.workspaceState.update(
+    providerSettingChangesKey,
+    retained.length ? retained : undefined,
+  );
   void vscode.window.showInformationMessage(
     `C Insight restored ${restored} provider setting(s)` +
       (skipped ? `; skipped ${skipped} setting(s) changed after C Insight configured them.` : ".") +
+      (failed ? ` ${failed} setting(s) could not be restored and remain recorded.` : "") +
       " Reload Window to apply the change.",
   );
+}
+
+function workspaceSettingTargetDescription(): string {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  if (folders.length === 1) {
+    return `The quick fix will update Workspace settings (${vscode.Uri.joinPath(folders[0].uri, ".vscode", "settings.json").toString(true)}).`;
+  }
+  if (folders.length > 1) {
+    return "The quick fix will update the shared multi-root Workspace settings because clangd.enable does not support Workspace Folder scope.";
+  }
+  return "Open Settings to configure the language services manually.";
 }
 
 function targetValue(

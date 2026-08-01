@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.20
+
+- Fixed **Disable for This Workspace** failing because LLVM clangd declares
+  `clangd.enable` at Workspace scope and VS Code rejects Workspace Folder
+  writes for that setting.
+- Made the quick fix use supported Workspace settings. A single-folder local,
+  WSL, or SSH window writes `.vscode/settings.json`; a multi-root window writes
+  the shared `.code-workspace` settings because a narrower scope is unavailable.
+- Added the exact target to the confirmation text, surfaced configuration write
+  failures with an Open Workspace Settings action, and retained failed restore
+  records for a later retry.
+
 ## 0.18.19
 
 - Made competing-provider detection configuration-aware: an active Microsoft

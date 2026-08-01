@@ -113,6 +113,11 @@ Microsoft IntelliSense and disabled LLVM clangd language services. Its optional
 quick fix requires confirmation, writes only the narrowest current workspace
 scope, records prior values, and restores them only if the user has not changed
 the setting afterward.
+Version 0.18.20 corrects the scope assumption discovered in real WSL use:
+LLVM's `clangd.enable` does not support Workspace Folder writes. The quick fix
+now uses the supported Workspace target, names the exact single-folder
+`.vscode/settings.json` URI or shared multi-root scope before confirmation,
+reports write failures, and keeps failed restore records for retry.
 
 ## Deferred fourth phase
 
