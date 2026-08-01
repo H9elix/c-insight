@@ -26,7 +26,8 @@ and tooltips without overwhelming the result label.
   performance observability; 0.18.4 contains cpptools Call Hierarchy load and
   crash-containment improvements; 0.18.5 decouples Code Preview and provides a
   References-based Microsoft Callers fallback; 0.18.6 prevents semantic-token
-  rendering from blocking cross-file Preview navigation
+  rendering from blocking cross-file Preview navigation; 0.18.7 removes the
+  disproven defensive workarounds while retaining those fixes
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
