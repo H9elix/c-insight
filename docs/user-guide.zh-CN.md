@@ -1,4 +1,4 @@
-# C Insight 0.18.13 使用手册
+# C Insight 0.18.14 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -442,6 +442,23 @@ Provider → Callees evidence (loaded nodes)** 中：
 
 同一证据也写入 Project Diagnostics 文本/JSON 报告；Call Hierarchy 缓存失效时
 清零。这里统计的是当前缓存周期内已加载节点，不代表整个工作区的全部 Callees。
+
+### 4.6 Microsoft Call Hierarchy 交互一致性
+
+Callers 与 Callees 继续共用 Pin 状态：Pin 后光标移动不会替换两棵树，但显式执行
+Show Incoming/Outgoing Calls 或 Refresh 仍允许更新到当前符号。0.18.14 的真实
+FFmpeg Extension Host 回归覆盖了 Pin、自动更新阻止、Pin 状态下手动刷新和 Unpin。
+
+Expand to Depth 对两个方向分别查询和缓存；incoming/outgoing 缓存彼此独立。已加载
+深度和精确展开路径继续写入 Workspace Session。分析配置、Call Hierarchy 配置或
+源码变化触发失效时会停止展开并清空两个方向的请求缓存及 Microsoft 查询证据。
+若展开期间恰好发生树根刷新，已经成功加载的数据和精确展开路径仍会保留；界面
+节点的 `reveal` 属于尽力展示，不会再反向导致语义查询失败。
+
+Search Loaded Callers/Callees 只搜索已经加载进树的节点，不触发新 Provider 查询；
+Text、JSON、Mermaid 导出同样只导出已加载内容。Find Caller/Callee Path 会按配置的
+深度、路径数和访问节点数上限按需查询。上述搜索、导出、路径限制和会话兼容性由
+无模态窗口依赖的模型测试覆盖；Pin、刷新、展开和失效由真实 Extension Host 覆盖。
 
 Callees 对应 clangd Outgoing Calls，回答“当前函数调用了哪些函数”。
 

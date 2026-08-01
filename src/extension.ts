@@ -353,6 +353,17 @@ export async function activate(
       vscode.commands.registerCommand("cInsight.test.runtimeDiagnostics", () =>
         runtimeDiagnostics.snapshot(),
       ),
+      vscode.commands.registerCommand("cInsight.test.callHierarchyState", () =>
+        views.callHierarchyInteractionState(),
+      ),
+      vscode.commands.registerCommand(
+        "cInsight.test.expandCallHierarchy",
+        (direction: "incoming" | "outgoing", depth: number) =>
+          views.expandCallHierarchyToDepth(direction, depth),
+      ),
+      vscode.commands.registerCommand("cInsight.test.invalidateCallHierarchy", () =>
+        views.invalidateCallHierarchy(),
+      ),
       vscode.commands.registerCommand("cInsight.test.navigationState", () => ({
         visibility: views.navigationVisibility,
         preview: views.preview.sessionState(),

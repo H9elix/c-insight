@@ -83,6 +83,12 @@ Code Preview semantic-token stages so Provider empty/failure/cancellation,
 References post-processing, Preview timeout/failure, and lexical fallback are
 separate evidence. Real FFmpeg coverage includes cross-file, header, macro, and
 no-symbol cases.
+Version 0.18.14 validates Microsoft Call Hierarchy interaction consistency in a
+real Extension Host: shared Pin state blocks cursor updates but permits explicit
+refresh, both directions expand to depth one, session depth is captured, and
+cache invalidation clears incoming/outgoing state. Existing pure-model gates
+continue to cover loaded search, all export formats, bounded path search, and
+session compatibility without automating modal pickers.
 
 ## Deferred fourth phase
 
