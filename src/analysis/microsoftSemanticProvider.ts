@@ -9,10 +9,16 @@ import type {
 } from "vscode-languageclient/node";
 import { CallNode, LocationResult, LspSymbol } from "../models/types";
 import { callHierarchyKey } from "../utils/callHierarchy";
+import {
+  assertMicrosoftProviderUsable,
+  microsoftProviderStatus,
+} from "./microsoftProviderStatus";
 
 export class MicrosoftSemanticProvider {
   private readonly callItems = new Map<string, vscode.CallHierarchyItem>();
   async activate(): Promise<void> {
+    const resource = vscode.window.activeTextEditor?.document.uri;
+    assertMicrosoftProviderUsable(microsoftProviderStatus(resource));
     const extension = vscode.extensions.getExtension("ms-vscode.cpptools");
     if (!extension) {
       throw new MicrosoftProviderUnavailableError(
@@ -20,6 +26,7 @@ export class MicrosoftSemanticProvider {
       );
     }
     await extension.activate();
+    assertMicrosoftProviderUsable(microsoftProviderStatus(resource));
   }
 
   definition(uri: vscode.Uri, position: vscode.Position): Promise<LocationResult[]> {

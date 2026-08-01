@@ -71,6 +71,12 @@ export class ClangdManager implements vscode.Disposable {
     this.setState("ready");
   }
 
+  failExternalEngine(): void {
+    this.installation = undefined;
+    this.setIndexProgress(initialIndexProgress(false));
+    this.setState("failed");
+  }
+
   async start(): Promise<LanguageClient> {
     if (this.client?.state === State.Running) {
       return this.client;
@@ -257,7 +263,7 @@ export class ClangdManager implements vscode.Disposable {
       return;
     }
     this.state = state;
-    this.output.appendLine(`clangd state: ${state}`);
+    this.output.appendLine(`Analysis engine state: ${state}`);
     this.stateEmitter.fire(state);
   }
 }

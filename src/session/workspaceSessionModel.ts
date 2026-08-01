@@ -61,6 +61,7 @@ export interface WorkspaceSessionSnapshot {
   format: "c-insight-workspace-session";
   version: 1;
   savedAt: number;
+  engine?: "clangd" | "microsoft";
   history?: HistorySessionState;
   preview?: PreviewSessionState;
   references?: ReferenceSessionState;
@@ -149,6 +150,9 @@ export function parseWorkspaceSession(
     version: 1,
     savedAt: value.savedAt,
   };
+  if (value.engine === "clangd" || value.engine === "microsoft") {
+    snapshot.engine = value.engine;
+  }
   if (
     isRecord(value.history) &&
     Array.isArray(value.history.entries) &&
@@ -205,6 +209,29 @@ export function parseWorkspaceSession(
     snapshot.relationshipGraph = relationshipGraph;
   }
   return snapshot;
+}
+
+export function sessionForAnalysisEngine(
+  input: WorkspaceSessionSnapshot,
+  engine: "clangd" | "microsoft",
+): { snapshot: WorkspaceSessionSnapshot; dropped: string[] } {
+  const snapshot = structuredClone(input);
+  const savedEngine = snapshot.engine ?? "clangd";
+  snapshot.engine = engine;
+  if (savedEngine === engine) return { snapshot, dropped: [] };
+  const dropped: string[] = [];
+  for (const [label, key] of [
+    ["Code Preview", "preview"],
+    ["References", "references"],
+    ["Call Hierarchy", "callHierarchy"],
+    ["Relationship Graph", "relationshipGraph"],
+  ] as const) {
+    if (snapshot[key] !== undefined) {
+      snapshot[key] = undefined;
+      dropped.push(label);
+    }
+  }
+  return { snapshot, dropped };
 }
 
 function isStringArrayWithin(value: unknown, maximum: number): boolean {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   boundWorkspaceSessionSnapshot,
+  sessionForAnalysisEngine,
   parseWorkspaceSession,
   WORKSPACE_SESSION_VERSION,
 } from "../../src/session/workspaceSessionModel";
@@ -170,5 +171,45 @@ describe("workspace session snapshot", () => {
     );
     assert.equal(result.snapshot.history?.entries.length, 20);
     assert.equal(result.snapshot.history?.currentId, 100);
+  });
+
+  it("drops semantic state restored under a different analysis engine", () => {
+    const result = sessionForAnalysisEngine(
+      {
+        format: "c-insight-workspace-session",
+        version: 1,
+        savedAt: 100,
+        engine: "clangd",
+        history: { entries: [], filter: "" },
+        preview: {
+          uri: "file:///workspace/main.c",
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 1 },
+          },
+          mode: "definition",
+          title: "main",
+          locked: false,
+        },
+        references: { query: "main", scope: "all", displayedLimit: 100 },
+        callHierarchy: {
+          uri: "file:///workspace/main.c",
+          position: { line: 0, character: 0 },
+          incomingDepth: 1,
+          outgoingDepth: 1,
+        },
+      },
+      "microsoft",
+    );
+    assert.equal(result.snapshot.engine, "microsoft");
+    assert.ok(result.snapshot.history);
+    assert.equal(result.snapshot.preview, undefined);
+    assert.equal(result.snapshot.references, undefined);
+    assert.equal(result.snapshot.callHierarchy, undefined);
+    assert.deepEqual(result.dropped, [
+      "Code Preview",
+      "References",
+      "Call Hierarchy",
+    ]);
   });
 });

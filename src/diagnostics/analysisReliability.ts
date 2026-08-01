@@ -19,6 +19,7 @@ export interface AnalysisReliability {
 
 export interface ReliabilityInputs {
   clangdState: string;
+  engineLabel?: string;
   indexStatus: "disabled" | "idle" | "indexing";
   indexPercentage?: number;
   hasCompilationDatabase: boolean;
@@ -36,7 +37,7 @@ export function evaluateReliability(
   if (unavailable) {
     issues.push({
       code: "clangd-not-ready",
-      message: `clangd is ${inputs.clangdState}; navigation results may be unavailable`,
+      message: `${inputs.engineLabel ?? "clangd"} is ${inputs.clangdState}; navigation results may be unavailable`,
     });
   }
   if (inputs.indexStatus === "indexing") {

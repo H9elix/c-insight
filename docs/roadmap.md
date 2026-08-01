@@ -40,6 +40,9 @@ Version 0.18.1 implemented the first opt-in production adapter for the proven
 public Provider surface. clangd remains the default; Type Hierarchy and
 clangd-specific lifecycle/index evidence intentionally degrade in Microsoft
 mode.
+Version 0.18.2 made that adapter fail closed for disabled or known-ambiguous
+Provider environments, added engine-specific diagnostics evidence, and
+prevented semantic session state from crossing engine boundaries.
 
 ## Deferred fourth phase
 

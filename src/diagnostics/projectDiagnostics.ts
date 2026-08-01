@@ -7,6 +7,7 @@ import {
   AnalysisEngine,
   configuredAnalysisEngine,
 } from "../analysis/analysisEngine";
+import { microsoftProviderStatus } from "../analysis/microsoftProviderStatus";
 import { runtimeDiagnostics } from "./runtimeDiagnostics";
 import {
   CompilationDatabaseSelection,
@@ -161,6 +162,10 @@ export class ProjectDiagnostics implements vscode.Disposable {
     }
     const document =
       editor && isCppDocument(editor.document) ? editor.document : undefined;
+    const microsoftStatus =
+      config.engine === "microsoft"
+        ? microsoftProviderStatus(document?.uri)
+        : undefined;
     const entry = document
       ? database?.entries.get(normalizeFile(document.uri.fsPath))
       : undefined;
@@ -180,6 +185,8 @@ export class ProjectDiagnostics implements vscode.Disposable {
       : 0;
     const reliability = evaluateReliability({
       clangdState: state,
+      engineLabel:
+        config.engine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd",
       indexStatus: this.manager.currentIndexProgress.status,
       indexPercentage: this.manager.currentIndexProgress.percentage,
       hasCompilationDatabase:
@@ -215,6 +222,32 @@ export class ProjectDiagnostics implements vscode.Disposable {
         config.engine === "microsoft"
           ? [
               detail("Extension", "ms-vscode.cpptools", "extensions"),
+              detail(
+                "Provider status",
+                microsoftStatus?.state ?? "unavailable",
+                microsoftStatus?.state === "verified"
+                  ? "pass"
+                  : microsoftStatus?.state === "ambiguous"
+                    ? "warning"
+                    : "error",
+              ),
+              detail(
+                "C_Cpp.intelliSenseEngine",
+                microsoftStatus?.intelliSenseEngine ?? "unknown",
+                microsoftStatus?.intelliSenseEngine === "default"
+                  ? "pass"
+                  : "error",
+              ),
+              detail(
+                "Known Provider conflicts",
+                microsoftStatus?.conflicts.join(", ") || "None active",
+                microsoftStatus?.conflicts.length ? "warning" : "pass",
+              ),
+              detail(
+                "Status evidence",
+                microsoftStatus?.detail ?? "Microsoft Provider status unavailable",
+                "info",
+              ),
               detail(
                 "Index progress",
                 "Managed by Microsoft C/C++; not exposed through the public Provider API",
@@ -331,20 +364,34 @@ export class ProjectDiagnostics implements vscode.Disposable {
               : [
                   detail(
                     "Compile command",
-                    isSource
+                    config.engine === "microsoft" && isSource
+                      ? "No exact entry for this source file; Microsoft C/C++ uses its base C_Cpp.default.* or c_cpp_properties.json configuration"
+                      : isSource
                       ? "No entry for this source file; clangd is using fallback flags"
                       : inferredEntry
                         ? "Header command is inferred by clangd; the candidate below is diagnostic guidance, not a confirmed clangd choice"
                         : "Header commands are inferred by clangd from a related source file",
                     isSource ? "warning" : "info",
                   ),
-                  actionDetail(
-                    "Fallback flags",
-                    config.fallbackFlags.join(" ") || "None",
-                    "settings-gear",
-                    "workbench.action.openSettings",
-                    ["cInsight.fallbackFlags"],
-                  ),
+                  ...(config.engine === "microsoft"
+                    ? [
+                        actionDetail(
+                          "Microsoft base configuration",
+                          "Open C/C++ settings",
+                          "settings-gear",
+                          "workbench.action.openSettings",
+                          ["C_Cpp.default"],
+                        ),
+                      ]
+                    : [
+                        actionDetail(
+                          "Fallback flags",
+                          config.fallbackFlags.join(" ") || "None",
+                          "settings-gear",
+                          "workbench.action.openSettings",
+                          ["cInsight.fallbackFlags"],
+                        ),
+                      ]),
                   ...(inferredEntry
                     ? [
                         actionDetail(
@@ -435,6 +482,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
       generatedAt: new Date().toISOString(),
       workspaceTrusted: vscode.workspace.isTrusted,
       analysisEngine: config.engine,
+      microsoftProvider: microsoftStatus,
       extension,
       clangd: {
         state,
@@ -636,8 +684,8 @@ function diagnosticNodes(document?: vscode.TextDocument): {
   return {
     nodes: [group(
       problemCount === 0
-        ? "clangd diagnostics: no problems"
-        : `clangd diagnostics: ${counts.errors} errors, ${counts.warnings} warnings`,
+        ? "Language diagnostics: no problems"
+        : `Language diagnostics: ${counts.errors} errors, ${counts.warnings} warnings`,
       counts.errors > 0 ? "error" : counts.warnings > 0 ? "warning" : "pass",
       [
         detail("Errors", String(counts.errors), "error"),
@@ -654,7 +702,7 @@ function diagnosticNodes(document?: vscode.TextDocument): {
           : [
               detail(
                 "Current file",
-                "No clangd diagnostics",
+                "No language diagnostics",
                 "pass",
               ),
             ]),
