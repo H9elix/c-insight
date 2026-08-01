@@ -4,6 +4,11 @@ import {
   MicrosoftProviderState,
   MicrosoftProviderStatus,
 } from "./microsoftProviderStatusModel";
+import {
+  activeProviderConflicts,
+  LLVM_CLANGD_EXTENSION_ID,
+  MICROSOFT_CPP_EXTENSION_ID,
+} from "./providerConflictModel";
 export type {
   MicrosoftProviderInputs,
   MicrosoftProviderState,
@@ -11,18 +16,24 @@ export type {
 } from "./microsoftProviderStatusModel";
 export { deriveMicrosoftProviderStatus } from "./microsoftProviderStatusModel";
 
-const KNOWN_CONFLICTS = ["llvm-vs-code-extensions.vscode-clangd"];
-
 export function microsoftProviderStatus(
   resource?: vscode.Uri,
 ): MicrosoftProviderStatus {
-  const extension = vscode.extensions.getExtension("ms-vscode.cpptools");
+  const extension = vscode.extensions.getExtension(MICROSOFT_CPP_EXTENSION_ID);
   const intelliSenseEngine = vscode.workspace
     .getConfiguration("C_Cpp", resource)
     .get<string>("intelliSenseEngine", "default");
-  const conflicts = KNOWN_CONFLICTS.filter(
-    (id) => vscode.extensions.getExtension(id)?.isActive,
-  );
+  const conflicts = activeProviderConflicts({
+    engine: "microsoft",
+    llvmClangdActive: Boolean(
+      vscode.extensions.getExtension(LLVM_CLANGD_EXTENSION_ID)?.isActive,
+    ),
+    llvmClangdEnabled: vscode.workspace
+      .getConfiguration("clangd", resource)
+      .get<boolean>("enable", true),
+    microsoftCppActive: Boolean(extension?.isActive),
+    microsoftIntelliSenseEngine: intelliSenseEngine,
+  });
   return deriveMicrosoftProviderStatus({
     extensionInstalled: Boolean(extension),
     extensionActive: Boolean(extension?.isActive),

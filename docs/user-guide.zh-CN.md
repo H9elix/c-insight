@@ -1,4 +1,4 @@
-# C Insight 0.18.18 使用手册
+# C Insight 0.18.19 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -48,6 +48,31 @@ Provider 命令获得。Includes/Included By 仍由 C Insight 自己解析文件
 (cpptools)** 是 C Insight 的语义分析提供方，并且它的性能和查询结果可能与
 clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
 全局状态中，后续启动不再重复弹出；本地和远程扩展宿主的状态彼此独立。
+
+### Provider 冲突与最小影响配置
+
+C Insight 只把实际启用的语言服务视为冲突，而不只判断扩展是否已激活：
+
+- `ms-vscode.cpptools` 已激活，但当前资源的
+  `C_Cpp.intelliSenseEngine` 为 `disabled` 时，不视为冲突。
+- `llvm-vs-code-extensions.vscode-clangd` 已激活，但当前资源的
+  `clangd.enable` 为 `false` 时，不视为冲突。
+
+因此，`C_Cpp.intelliSenseEngine=disabled` 只关闭 Microsoft IntelliSense，不能
+关闭 LLVM clangd 扩展。C Insight 使用自带 clangd 引擎时若 LLVM clangd 也启用，
+仍会正确提示该扩展可能造成重复导航和索引。
+
+冲突提示提供 **Disable for This Workspace**、**Open Settings** 和
+**Ignore for Workspace**。快捷关闭不会修改本地或远程的全局用户设置：优先写入
+当前 C/C++ 文件所属的 Workspace Folder；没有所属文件夹时才写入 Workspace。它按冲突类型设置
+`C_Cpp.intelliSenseEngine=disabled` 或 `clangd.enable=false`，然后提示 Reload
+Window。工作区设置通常位于 `.vscode/settings.json` 或 `.code-workspace`，可能被
+Git 跟踪并影响使用该工程的其他成员，确认前应留意设置文件变更。
+
+快捷关闭会在当前工作区状态中记录原来的目标层级值。执行
+**C Insight: Restore Provider Settings** 时，只有仍保持 C Insight 写入值的设置才
+会恢复；用户之后手动修改过的设置会跳过，避免覆盖新选择。恢复后同样需要 Reload
+Window。
 
 微软模式的明确限制：
 
@@ -1633,6 +1658,7 @@ Code Preview、References-based Callers、原生 Callees、Pin/Unpin、懒加载
 | Unpin Callers and Callees | `cInsight.unpinCallHierarchy` | 命令面板；Callers 标题栏；Callees 标题栏 |
 | Refresh | `cInsight.refresh` | 命令面板；窗口标题栏 |
 | Restart clangd | `cInsight.restartClangd` | 命令面板 |
+| Restore Provider Settings | `cInsight.restoreProviderSettings` | 命令面板 |
 | Refresh Project Diagnostics | `cInsight.diagnostics.refresh` | 命令面板；Project Diagnostics 标题栏 |
 | Open Project Diagnostics | `cInsight.openProjectDiagnostics` | 命令面板 |
 | Show clangd Log | `cInsight.diagnostics.showClangdLog` | 命令面板；Project Diagnostics 标题栏 |

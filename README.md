@@ -45,7 +45,9 @@ and tooltips without overwhelming the result label.
   0.18.17 unifies Microsoft engine naming and removes clangd-only lifecycle
   actions and evidence wording from Microsoft-mode surfaces; 0.18.18 records
   the staged fixture and real-FFmpeg acceptance and isolates engine selection
-  between Extension Host suites
+  between Extension Host suites; 0.18.19 makes provider conflicts depend on
+  effective language-service settings and adds reversible, workspace-scoped
+  conflict resolution
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

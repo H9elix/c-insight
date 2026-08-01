@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.19
+
+- Made competing-provider detection configuration-aware: an active Microsoft
+  C/C++ extension with `C_Cpp.intelliSenseEngine=disabled`, or an active LLVM
+  clangd extension with `clangd.enable=false`, is no longer reported as an
+  effective semantic conflict.
+- Added an explicitly confirmed **Disable for This Workspace** action that
+  writes only the current workspace-folder/workspace settings and never changes
+  global user or remote-user configuration.
+- Added **C Insight: Restore Provider Settings**. It restores recorded prior
+  values only when the setting still equals the value written by C Insight, so
+  later user changes are not overwritten.
+
 ## 0.18.18
 
 - Completed the staged Microsoft C/C++ engine acceptance across the isolated
