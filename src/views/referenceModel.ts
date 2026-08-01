@@ -157,7 +157,7 @@ export function enhanceReferenceClassification(
         : {
             source: "clangd-result",
             rule: `role.${role}`,
-            summary: `The location matches a clangd ${role} result.`,
+            summary: `The location matches an analysis-engine ${role} result.`,
           };
     return classified(
       role,
@@ -198,14 +198,14 @@ export function enhanceReferenceClassification(
     return classified(role, macro, "inferred", classificationEvidence, {
       source: "clangd-signature",
       rule: "effect.mutable-reference-argument",
-      summary: `clangd maps the argument to mutable reference parameter “${evidence.parameterLabel}”.`,
+      summary: `Signature Help maps the argument to mutable reference parameter “${evidence.parameterLabel}”.`,
     }, "readwrite", "reference-write", template);
   }
   if (parameterEffect === "pointee-write") {
     return classified(role, macro, "inferred", classificationEvidence, {
       source: "clangd-signature",
       rule: "effect.mutable-pointer-argument",
-      summary: `clangd maps the argument to pointer parameter “${evidence.parameterLabel}”, which permits writing the pointed-to object.`,
+      summary: `Signature Help maps the argument to pointer parameter “${evidence.parameterLabel}”, which permits writing the pointed-to object.`,
     }, "read", "pointee-write", template);
   }
   // LSP DocumentHighlightKind.Read = 2, Write = 3.
@@ -213,14 +213,14 @@ export function enhanceReferenceClassification(
     return classified(role, macro, "semantic", classificationEvidence, {
       source: "clangd-highlight",
       rule: "access.highlight-read",
-      summary: "clangd Document Highlight classifies the occurrence as a read.",
+      summary: "Document Highlight classifies the occurrence as a read.",
     }, "read", undefined, template);
   }
   if (evidence.highlightKind === 3) {
     return classified(role, macro, "semantic", classificationEvidence, {
       source: "clangd-highlight",
       rule: "access.highlight-write",
-      summary: "clangd Document Highlight classifies the occurrence as a write.",
+      summary: "Document Highlight classifies the occurrence as a write.",
     }, "write", undefined, template);
   }
   if (source && isSimpleWrite(source, character)) {

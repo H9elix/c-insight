@@ -222,7 +222,7 @@ export function renderProjectDiagnosticsText(
   }
   lines.push(
     "",
-    `${report.analysisEngine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd"}: ${report.clangd.state}`,
+    `${report.analysisEngine === "microsoft" ? "Microsoft C/C++ language service (cpptools)" : "clangd"}: ${report.clangd.state}`,
     `Executable: ${report.clangd.executable}`,
     `Version: ${report.clangd.version ?? "unknown"}`,
     `${report.analysisEngine === "microsoft" ? "Provider index" : "Background index"}: ${report.clangd.indexStatus}${report.clangd.indexProgress ? ` (${report.clangd.indexProgress})` : ""}`,
@@ -231,7 +231,7 @@ export function renderProjectDiagnosticsText(
   );
   if (report.microsoftProvider) {
     lines.push(
-      `Microsoft Provider status: ${report.microsoftProvider.state}`,
+      `Microsoft C/C++ status: ${report.microsoftProvider.state}`,
       `C_Cpp.intelliSenseEngine: ${report.microsoftProvider.intelliSenseEngine}`,
       `Known Provider conflicts: ${report.microsoftProvider.conflicts.join(", ") || "none"}`,
       `Provider evidence: ${report.microsoftProvider.detail}`,

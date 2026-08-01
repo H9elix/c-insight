@@ -522,7 +522,7 @@ export function registerCommands(
   register("cInsight.restartClangd", async () => {
     if (engine === "microsoft") {
       void vscode.window.showInformationMessage(
-        "C Insight is using the Microsoft C/C++ Provider. Reload Window to restart that extension host.",
+        "C Insight is using the Microsoft C/C++ language service (cpptools). Reload Window to restart that extension host.",
       );
       return;
     }

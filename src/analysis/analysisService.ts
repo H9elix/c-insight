@@ -405,7 +405,7 @@ export class AnalysisService {
   ): Promise<TypeHierarchyItem[]> {
     if (this.engine === "microsoft") {
       throw new UnsupportedEngineFeatureError(
-        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+        "Type Hierarchy is not available through the public API exposed by the Microsoft C/C++ language service (cpptools).",
       );
     }
     return (
@@ -423,7 +423,7 @@ export class AnalysisService {
   ): Promise<TypeHierarchyItem[]> {
     if (this.engine === "microsoft") {
       throw new UnsupportedEngineFeatureError(
-        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+        "Type Hierarchy is not available through the public API exposed by the Microsoft C/C++ language service (cpptools).",
       );
     }
     return (
@@ -441,7 +441,7 @@ export class AnalysisService {
   ): Promise<TypeHierarchyItem[]> {
     if (this.engine === "microsoft") {
       throw new UnsupportedEngineFeatureError(
-        "Type Hierarchy is not available through the public Microsoft C/C++ Provider API.",
+        "Type Hierarchy is not available through the public API exposed by the Microsoft C/C++ language service (cpptools).",
       );
     }
     return (
@@ -622,7 +622,7 @@ export class AnalysisService {
         this.timing.lastSlowMethod = method;
         this.timing.lastSlowDurationMs = elapsed;
         this.output?.appendLine(
-          `Slow ${this.engine === "microsoft" ? "Microsoft Provider" : "clangd"} request: ${method} ${Math.round(elapsed)} ms`,
+          `Slow ${this.engine === "microsoft" ? "Microsoft C/C++" : "clangd"} request: ${method} ${Math.round(elapsed)} ms`,
         );
       }
     }

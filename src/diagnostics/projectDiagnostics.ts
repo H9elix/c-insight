@@ -9,6 +9,7 @@ import {
   configuredAnalysisEngine,
 } from "../analysis/analysisEngine";
 import { microsoftProviderStatus } from "../analysis/microsoftProviderStatus";
+import { analysisEngineDisplayName } from "../analysis/enginePresentation";
 import { runtimeDiagnostics } from "./runtimeDiagnostics";
 import {
   CompilationDatabaseSelection,
@@ -187,8 +188,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
       : 0;
     const reliability = evaluateReliability({
       clangdState: state,
-      engineLabel:
-        config.engine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd",
+      engineLabel: analysisEngineDisplayName(config.engine),
       indexStatus: this.manager.currentIndexProgress.status,
       indexPercentage: this.manager.currentIndexProgress.percentage,
       hasCompilationDatabase:
@@ -226,7 +226,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
         ),
       ], vscode.TreeItemCollapsibleState.Collapsed),
       group(
-        `${config.engine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd"}: ${state}`,
+        `${analysisEngineDisplayName(config.engine)}: ${state}`,
         state === "ready"
           ? "pass-filled"
           : state === "failed"
@@ -258,7 +258,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
               ),
               detail(
                 "Status evidence",
-                microsoftStatus?.detail ?? "Microsoft Provider status unavailable",
+                microsoftStatus?.detail ?? "Microsoft C/C++ status unavailable",
                 "info",
               ),
               detail(

@@ -18,7 +18,8 @@ and tooltips without overwhelming the result label.
 
 - Developer and maintainer: `youjinchun`
 - License: MIT
-- Semantic engines: clangd by default; Microsoft C/C++ Provider is available
+- Semantic engines: clangd by default; Microsoft C/C++ language service
+  (cpptools) is available
   as an explicit opt-in mode
 - Microsoft integration: 0.18.0 contains the isolated feasibility evidence;
   0.18.1 adds the opt-in production adapter, 0.18.2 validates its effective
@@ -40,7 +41,9 @@ and tooltips without overwhelming the result label.
   and session evidence while retaining search/export/path model coverage;
   0.18.15 prevents Microsoft Callers mode banners from accumulating across
   repeated Pin/Unpin actions; 0.18.16 removes unrelated References work from
-  direction-only hierarchy refreshes and bounds rapid-cursor query demand
+  direction-only hierarchy refreshes and bounds rapid-cursor query demand;
+  0.18.17 unifies Microsoft engine naming and removes clangd-only lifecycle
+  actions and evidence wording from Microsoft-mode surfaces
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -60,7 +63,8 @@ References-based Callers path without invoking native Incoming Calls.
 
 - Go to definition and find references
 - Explicit `cInsight.engine` selection between managed clangd and the installed
-  Microsoft C/C++ Provider; changing engines requires Reload Window
+  Microsoft C/C++ language service (cpptools); changing engines requires
+  Reload Window
 - Shared Code Preview with highlighted definition, declaration, reference,
   caller, callee definition, and call-site snippets
 - Incoming and outgoing call trees with lazy loading and recursion detection
