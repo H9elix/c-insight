@@ -37,7 +37,9 @@ and tooltips without overwhelming the result label.
   0.18.13 distinguishes Microsoft navigation empties/failures and Preview
   semantic-token completion, timeout, failure, and lexical fallback; 0.18.14
   verifies Microsoft Pin/manual-refresh, depth expansion, cache invalidation,
-  and session evidence while retaining search/export/path model coverage
+  and session evidence while retaining search/export/path model coverage;
+  0.18.15 prevents Microsoft Callers mode banners from accumulating across
+  repeated Pin/Unpin actions
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
