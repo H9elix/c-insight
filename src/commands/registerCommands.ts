@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
+import { AnalysisEngine } from "../analysis/analysisEngine";
 import { ClangdManager } from "../clangd/clangdManager";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import {
@@ -41,6 +42,7 @@ export function registerCommands(
   typeHierarchy: TypeHierarchyExplorer,
   includeHierarchy: IncludeHierarchyExplorer,
   workspaceSession: WorkspaceSessionManager,
+  engine: AnalysisEngine,
   restoreWorkspaceSession: () => Promise<boolean>,
 ): void {
   const register = (
@@ -65,7 +67,7 @@ export function registerCommands(
     const details = [
       `Version: ${manifest.version ?? "unknown"}`,
       `Developer: ${developer}`,
-      "Semantic engine: clangd",
+      `Semantic engine: ${engine}`,
       `License: ${manifest.license ?? "MIT"}`,
       `VS Code: ${vscode.version}`,
       `Platform: ${process.platform} ${process.arch}`,
@@ -518,6 +520,12 @@ export function registerCommands(
   }
 
   register("cInsight.restartClangd", async () => {
+    if (engine === "microsoft") {
+      void vscode.window.showInformationMessage(
+        "C Insight is using the Microsoft C/C++ Provider. Reload Window to restart that extension host.",
+      );
+      return;
+    }
     try {
       await vscode.window.withProgress(
         {

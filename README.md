@@ -18,9 +18,10 @@ and tooltips without overwhelming the result label.
 
 - Developer and maintainer: `youjinchun`
 - License: MIT
-- Semantic engine: clangd
-- Experimental engine work: 0.18.0 contains an isolated Microsoft C/C++
-  provider feasibility probe; the shipping extension still uses clangd only
+- Semantic engines: clangd by default; Microsoft C/C++ Provider is available
+  as an explicit opt-in mode
+- Microsoft integration: 0.18.0 contains the isolated feasibility evidence;
+  0.18.1 adds the opt-in production adapter
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -35,6 +36,8 @@ boundaries are documented in `docs/microsoft-provider-probe.zh-CN.md`.
 ## MVP features
 
 - Go to definition and find references
+- Explicit `cInsight.engine` selection between managed clangd and the installed
+  Microsoft C/C++ Provider; changing engines requires Reload Window
 - Shared Code Preview with highlighted definition, declaration, reference,
   caller, callee definition, and call-site snippets
 - Incoming and outgoing call trees with lazy loading and recursion detection

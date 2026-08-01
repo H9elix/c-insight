@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 import { AnalysisService } from "./analysis/analysisService";
+import { configuredAnalysisEngine } from "./analysis/analysisEngine";
+import { MicrosoftSemanticProvider } from "./analysis/microsoftSemanticProvider";
 import { ClangdManager } from "./clangd/clangdManager";
 import { ClangdLogOutputChannel } from "./clangd/clangdLog";
 import { BookmarkExplorer } from "./bookmarks/bookmarkExplorer";
@@ -38,7 +40,8 @@ export async function activate(
     output,
     new ClangdLogOutputChannel(clangdOutput),
   );
-  const analysis = new AnalysisService(manager, output);
+  const engine = configuredAnalysisEngine();
+  const analysis = new AnalysisService(manager, output, engine);
   const callRepository = new CallHierarchyRepository(analysis);
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
@@ -65,7 +68,12 @@ export async function activate(
     callRepository,
   );
   const controller = new ContextController(analysis, views, output);
-  const projectDiagnostics = new ProjectDiagnostics(manager, analysis, context);
+  const projectDiagnostics = new ProjectDiagnostics(
+    manager,
+    analysis,
+    context,
+    engine,
+  );
   workspaceSession = new WorkspaceSessionManager(context, {
     capture: () => ({
       history: vscode.workspace
@@ -312,6 +320,7 @@ export async function activate(
     typeHierarchy,
     includeHierarchy,
     workspaceSession,
+    engine,
     () => restoreWithProgress(),
   );
   context.subscriptions.push(
@@ -478,6 +487,7 @@ export async function activate(
       }
       if (
         [
+          "cInsight.engine",
           "cInsight.clangd.path",
           "cInsight.clangd.arguments",
           "cInsight.clangd.logLevel",
@@ -489,10 +499,23 @@ export async function activate(
         views.markResultsStale("the analysis configuration changed");
         projectDiagnostics.invalidateCompilationDatabase();
         includeHierarchy.invalidate();
-        await manager?.restart().catch((error: unknown) => {
-          output.appendLine(`Configuration restart failed: ${String(error)}`);
-        });
-        controller.refresh();
+        if (event.affectsConfiguration("cInsight.engine")) {
+          void vscode.window
+            .showInformationMessage(
+              "C Insight analysis engine changed. Reload the window to apply it.",
+              "Reload Window",
+            )
+            .then((choice) => {
+              if (choice === "Reload Window") {
+                void vscode.commands.executeCommand("workbench.action.reloadWindow");
+              }
+            });
+        } else if (engine === "clangd") {
+          await manager?.restart().catch((error: unknown) => {
+            output.appendLine(`Configuration restart failed: ${String(error)}`);
+          });
+          controller.refresh();
+        }
       }
     }),
   );
@@ -516,9 +539,15 @@ export async function activate(
   );
   await projectDiagnostics.refresh();
 
-  void warnAboutConflicts(context);
+  void warnAboutConflicts(context, engine);
   try {
-    await manager.start();
+    if (engine === "microsoft") {
+      await new MicrosoftSemanticProvider().activate();
+      manager.useMicrosoftProvider();
+      output.appendLine("Analysis engine: Microsoft C/C++ Provider");
+    } else {
+      await manager.start();
+    }
     await projectDiagnostics.refresh();
     if (initialSession) {
       await restoreWithProgress(initialSession).catch((error: unknown) => {
@@ -534,16 +563,16 @@ export async function activate(
       output,
     );
   } catch (error) {
-    output.appendLine(`clangd startup failed: ${String(error)}`);
+    output.appendLine(`${engine} startup failed: ${String(error)}`);
     await projectDiagnostics.refresh();
     void vscode.window.showErrorMessage(
-      `C Insight could not start clangd. Check C Insight: clangd output. ${String(error)}`,
+      `C Insight could not start the ${engine} analysis engine. ${String(error)}`,
       "Open Settings",
     ).then((action) => {
       if (action === "Open Settings") {
         void vscode.commands.executeCommand(
           "workbench.action.openSettings",
-          "cInsight.clangd.path",
+          engine === "clangd" ? "cInsight.clangd.path" : "cInsight.engine",
         );
       }
     });
@@ -597,13 +626,14 @@ async function updateDocumentSymbols(
 
 async function warnAboutConflicts(
   context: vscode.ExtensionContext,
+  engine: "clangd" | "microsoft",
 ): Promise<void> {
   if (context.workspaceState.get<boolean>("ignoredProviderConflict")) {
     return;
   }
   const conflicts = [
     "llvm-vs-code-extensions.vscode-clangd",
-    "ms-vscode.cpptools",
+    ...(engine === "clangd" ? ["ms-vscode.cpptools"] : []),
   ].filter((id) => vscode.extensions.getExtension(id)?.isActive);
   if (conflicts.length === 0) {
     return;

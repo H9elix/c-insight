@@ -36,6 +36,10 @@ Version 0.18.0 reactivated only the optional Microsoft C/C++ engine
 investigation. It adds an isolated, repeatable provider probe and records the
 public-API boundary; it does not switch C Insight away from clangd. A production
 adapter remains conditional on the probe evidence and explicit follow-up work.
+Version 0.18.1 implemented the first opt-in production adapter for the proven
+public Provider surface. clangd remains the default; Type Hierarchy and
+clangd-specific lifecycle/index evidence intentionally degrade in Microsoft
+mode.
 
 ## Deferred fourth phase
 
@@ -53,9 +57,9 @@ control, interaction consistency, and diagnostics:
   the dedicated restoration memo below.
 - Cross-procedural pointer/data-flow analysis, complete template instantiation
   chains, and compiler macro-expansion stacks.
-- Production Microsoft C/C++ engine support beyond the 0.18.0 feasibility
-  probe, only if the public provider surface and coexistence constraints make
-  the adapter practical.
+- Microsoft C/C++ feature parity beyond the 0.18.1 public-Provider adapter,
+  only where a stable public API exists; do not depend on private commands to
+  imitate clangd-only Type Hierarchy, indexing, or protocol evidence.
 
 Replanning or third-phase completion does not implicitly authorize these
 features. They remain deferred until explicitly requested.

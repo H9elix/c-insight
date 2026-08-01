@@ -23,6 +23,7 @@ export interface ProjectDiagnosticsReport {
   schemaVersion: 1;
   generatedAt: string;
   workspaceTrusted: boolean;
+  analysisEngine?: "clangd" | "microsoft";
   extension?: {
     name: string;
     version: string;
@@ -175,7 +176,7 @@ export function renderProjectDiagnosticsText(
   }
   lines.push(
     "",
-    `clangd: ${report.clangd.state}`,
+    `${report.analysisEngine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd"}: ${report.clangd.state}`,
     `Executable: ${report.clangd.executable}`,
     `Version: ${report.clangd.version ?? "unknown"}`,
     `Background index: ${report.clangd.indexStatus}${report.clangd.indexProgress ? ` (${report.clangd.indexProgress})` : ""}`,

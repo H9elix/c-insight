@@ -2,6 +2,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 export interface CInsightConfiguration {
+  engine: "clangd" | "microsoft";
   clangdPath: string;
   clangdArguments: string[];
   clangdLogLevel: "error" | "info" | "verbose";
@@ -29,6 +30,7 @@ function resolveWorkspacePath(value: string): string {
 export function readConfiguration(): CInsightConfiguration {
   const config = vscode.workspace.getConfiguration("cInsight");
   return {
+    engine: config.get<"clangd" | "microsoft">("engine", "clangd"),
     clangdPath: resolveWorkspacePath(config.get<string>("clangd.path", "")),
     clangdArguments: config.get<string[]>("clangd.arguments", []),
     clangdLogLevel: config.get<"error" | "info" | "verbose">(

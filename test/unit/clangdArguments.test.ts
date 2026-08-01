@@ -5,6 +5,7 @@ import type { CInsightConfiguration } from "../../src/configuration/configuratio
 
 function configuration(): CInsightConfiguration {
   return {
+    engine: "clangd",
     clangdPath: "clangd",
     clangdArguments: [],
     clangdLogLevel: "info",
