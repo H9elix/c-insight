@@ -97,6 +97,11 @@ direction-only Call Hierarchy refresh no longer requests or clears References,
 and a real FFmpeg rapid-cursor regression bounds 20 moves to one debounced
 semantic cycle with an empty scheduler afterward. Existing multi-view, depth,
 timing, and cache evidence remain part of the same host regression.
+Version 0.18.17 completes the engine-presentation audit: Microsoft mode is
+consistently named Microsoft C/C++ language service (cpptools), its empty
+Context and compilation-database lifecycle actions no longer suggest restarting
+clangd, and shared References evidence explanations no longer attribute
+Provider results to clangd while stable evidence identifiers remain compatible.
 
 ## Deferred fourth phase
 

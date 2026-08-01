@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.17
+
+- Standardized user-visible Microsoft engine naming as **Microsoft C/C++
+  language service (cpptools)** in output, Project Diagnostics, reports, and
+  lifecycle guidance.
+- Made the Context welcome action engine-specific instead of offering Restart
+  clangd while Microsoft mode is selected.
+- Changed compilation-database notifications in Microsoft mode to offer Reload
+  Window when results remain stale; they no longer restart C Insight's dormant
+  clangd manager.
+- Generalized References evidence summaries for semantic results, Document
+  Highlight, and Signature Help so Microsoft results are not mislabeled as
+  clangd evidence. Stable evidence-source identifiers remain compatible.
+
 ## 0.18.16
 
 - Removed an unrelated Microsoft References query from explicit Show Incoming

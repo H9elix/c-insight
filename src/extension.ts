@@ -1,4 +1,8 @@
 import * as vscode from "vscode";
+import {
+  analysisEngineDisplayName,
+  compilationDatabaseChangePresentation,
+} from "./analysis/enginePresentation";
 import { AnalysisService } from "./analysis/analysisService";
 import { configuredAnalysisEngine } from "./analysis/analysisEngine";
 import { MicrosoftSemanticProvider } from "./analysis/microsoftSemanticProvider";
@@ -276,9 +280,13 @@ export async function activate(
           return;
         }
         views.markResultsStale("the compilation database changed");
+        const presentation = compilationDatabaseChangePresentation(
+          engine,
+          change,
+        );
         const action = await vscode.window.showInformationMessage(
-          `C Insight: The active compilation database was ${change}. Restart clangd to reload all compile commands?`,
-          "Restart clangd",
+          presentation.message,
+          presentation.primaryAction,
           "Later",
         );
         if (action === "Restart clangd") {
@@ -291,6 +299,8 @@ export async function activate(
           );
           controller.refresh();
           await projectDiagnostics.refresh();
+        } else if (action === "Reload Window") {
+          await vscode.commands.executeCommand("workbench.action.reloadWindow");
         }
       })().catch((error: unknown) => {
         output.appendLine(
@@ -733,7 +743,7 @@ export async function activate(
     if (engine === "microsoft") {
       await new MicrosoftSemanticProvider().activate();
       manager.useMicrosoftProvider();
-      output.appendLine("Analysis engine: Microsoft C/C++ Provider");
+      output.appendLine(`Analysis engine: ${analysisEngineDisplayName(engine)}`);
       void showMicrosoftEngineNotice(context);
     } else {
       await manager.start();

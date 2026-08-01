@@ -1,4 +1,4 @@
-# C Insight 0.18.16 使用手册
+# C Insight 0.18.17 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -62,7 +62,7 @@ clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
 - References 的 Read/Write 证据取决于 Document Highlights；若微软 Provider
   只返回 Text，C Insight 会使用保守的语法推断并降低证据强度。
 
-Microsoft 模式会在 **Project Diagnostics → Microsoft C/C++ Provider →
+Microsoft 模式会在 **Project Diagnostics → Microsoft C/C++ language service (cpptools) →
 References and Code Preview evidence** 中区分以下阶段：
 
 - `definition/declaration/references.queries`、`.locations`、`.empty`、
@@ -276,7 +276,7 @@ References 显示当前符号的所有引用，并尝试分类为：
 - Other Reference
 - Macro 相关引用
 
-分类优先使用 clangd Document Highlight，再结合保守的源码语法判断。对于
+分类优先使用当前分析引擎提供的 Document Highlight，再结合保守的源码语法判断。对于
 指针副作用、模板、重载运算符、宏展开等复杂情况，分类可能显示推断置信度，
 而不会假装结果绝对准确。
 
@@ -289,7 +289,10 @@ References 显示当前符号的所有引用，并尝试分类为：
 - Rule：稳定的规则标识，例如 `access.highlight-read`。
 - Summary：该规则为何得出当前结论的说明。
 
-文本导出使用紧凑的 `来源:规则` 形式；JSON 导出在 `classification.evidence`
+其中三个以 `clangd-` 开头的来源名是为保持已有导出兼容而保留的稳定内部标识；
+在 Microsoft 模式下，其说明分别代表当前分析引擎的语义结果、Document
+Highlight 和 Signature Help，并不表示后台又启动了 clangd。文本导出使用紧凑的
+`来源:规则` 形式；JSON 导出在 `classification.evidence`
 中保留完整的 `source`、`rule` 和 `summary`，便于脚本审计或后续分析。一个宏
 引用可能同时包含“宏来源”和“读写类型”两条证据。
 
@@ -297,7 +300,7 @@ References 显示当前符号的所有引用，并尝试分类为：
 
 - `Read · Pointee Write`：读取指针值，但写入的是所指对象，不表示指针变量本身
   被赋值。直接的 `*pointer = ...` 或 `pointer->field = ...` 使用语法置信度。
-- `Read/Write · Reference Write (inferred)`：clangd Signature Help 表明实参
+- `Read/Write · Reference Write (inferred)`：当前分析引擎的 Signature Help 表明实参
   对应可变 `T&` 参数，调用可能通过引用修改对象。
 - `Read · Pointee Write (inferred)`：实参对应可变 `T*` 参数，参数类型允许被调
   函数修改所指对象。
@@ -410,7 +413,7 @@ Incoming Calls（已知对部分跨文件符号存在崩溃风险），或设为
   Document Symbols 缺失、范围或类型不兼容，而不表示没有调用者。
 
 上述证据会按已经查询过的 Callers 节点累计显示在 **Project Diagnostics →
-Microsoft C/C++ Provider → Callers evidence (loaded nodes)** 中，包括 Queried
+Microsoft C/C++ language service (cpptools) → Callers evidence (loaded nodes)** 中，包括 Queried
 nodes、References、Mapped references、Unmapped references 和 Caller functions。
 复制或导出的 Project Diagnostics 文本/JSON 也包含同一组数据。刷新或修改 Call
 Hierarchy 配置导致查询缓存失效时，这些计数会从零重新累计；它不是整个工作区的
@@ -702,7 +705,7 @@ Project Diagnostics 用于排查“为什么导航结果不准确或不可用”
 - Export Project Diagnostics as JSON
 
 命令面板还可执行 **Export Project Diagnostics as Text**。复制和导出报告包含
-引擎状态；clangd 状态/版本或 Microsoft Provider 证据；索引状态、编译数据库、
+引擎状态；clangd 状态/版本或 Microsoft C/C++ language service (cpptools) 证据；索引状态、编译数据库、
 当前文件命令拆解、回退配置以及当前文件 diagnostics。JSON 使用带
 `schemaVersion` 的结构化格式，适合
 脚本处理或提交问题；文本格式适合直接粘贴。
@@ -1097,6 +1100,11 @@ render` 诊断；同类提示五秒内最多记录一次。关闭 Relationship G
 旧结果不会被删除，仍可预览、搜索和导出。重新执行对应的 References 或 Call
 Hierarchy 查询后清除 stale。
 
+活动 `compile_commands.json` 发生变化时，clangd 模式会询问是否重启 clangd 以
+重新载入全部编译命令；Microsoft 模式不会启动或重启 clangd，而是在结果仍然
+stale 时提供 **Reload Window**。Microsoft C/C++ 是否实际读取该数据库，仍取决于
+其自身的 `compileCommands` 等配置。
+
 ## 7. 快捷键与编辑器菜单
 
 | 操作 | 快捷键 |
@@ -1364,7 +1372,7 @@ Graph。布局和系统头开关要到后续 Type/Include Adapter 接入后才�
 | --- | --- | --- | --- | --- |
 | `cInsight.analysis.maximumConcurrentRequests` | number | `8` | 1–64 | C Insight 同时运行的语义引擎请求总数上限 |
 | `cInsight.analysis.maximumBackgroundRequests` | number | `2` | 1–16 | 总上限内允许并发运行的 Document Highlight、Document Symbols 等后台详情请求数 |
-| `cInsight.analysis.slowRequestThreshold` | number | `1000` | 100–60000 | 语义查询被计入并输出为慢查询的耗时阈值，单位为毫秒；同时适用于 clangd 和 Microsoft Provider |
+| `cInsight.analysis.slowRequestThreshold` | number | `1000` | 100–60000 | 语义查询被计入并输出为慢查询的耗时阈值，单位为毫秒；同时适用于 clangd 和 Microsoft C/C++ language service (cpptools) |
 
 调度器按 Interactive、Normal、Background 三档排队。Definition、Hover 和层级
 Prepare 等交互请求优先于已排队的普通/后台工作；已开始的 LSP 请求不会被强制
