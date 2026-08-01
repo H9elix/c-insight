@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.18
+
+- Completed the staged Microsoft C/C++ engine acceptance across the isolated
+  provider fixture and the real FFmpeg workspace, covering Preview,
+  References-based Callers, native Callees, hierarchy interaction, cache and
+  resource evidence.
+- Added a packaged Chinese acceptance report with reproducible commands,
+  measured outcomes, supported boundaries, and interpretation guidance.
+- Made the standard Extension Host regression explicitly select clangd and
+  restore the previous test-profile setting, preventing a prior Microsoft run
+  from changing which engine the clangd suite exercises.
+
 ## 0.18.17
 
 - Standardized user-visible Microsoft engine naming as **Microsoft C/C++

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
-  "version": "0.18.17",
+  "version": "0.18.18",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -31,6 +31,7 @@
     "docs/user-guide.zh-CN.md",
     "docs/performance-baseline.zh-CN.md",
     "docs/third-phase-acceptance.zh-CN.md",
+    "docs/microsoft-engine-acceptance.zh-CN.md",
     "docs/microsoft-provider-probe.zh-CN.md",
     "docs/microsoft-provider-probe-result.json",
     "CONTRIBUTING.md",

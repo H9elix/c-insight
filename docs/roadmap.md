@@ -102,6 +102,12 @@ consistently named Microsoft C/C++ language service (cpptools), its empty
 Context and compilation-database lifecycle actions no longer suggest restarting
 clangd, and shared References evidence explanations no longer attribute
 Provider results to clangd while stable evidence identifiers remain compatible.
+Version 0.18.18 closes the staged Microsoft-engine acceptance with isolated
+fixture and real FFmpeg Extension Host evidence for navigation, Preview, safe
+Callers, native Callees, interaction state, caches, and bounded request demand.
+The acceptance report records the supported public-API boundary, while the
+standard clangd host suite now selects and restores its engine independently of
+previous Microsoft test-profile state.
 
 ## Deferred fourth phase
 

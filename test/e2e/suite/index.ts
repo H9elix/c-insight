@@ -4,6 +4,25 @@ import * as vscode from "vscode";
 const extensionId = "c-insight.c-insight";
 
 export async function run(): Promise<void> {
+  const configuration = vscode.workspace.getConfiguration("cInsight");
+  const previousEngine = configuration.inspect<string>("engine")?.globalValue;
+  await configuration.update(
+    "engine",
+    "clangd",
+    vscode.ConfigurationTarget.Global,
+  );
+  try {
+    await runClangdAcceptance();
+  } finally {
+    await configuration.update(
+      "engine",
+      previousEngine,
+      vscode.ConfigurationTarget.Global,
+    );
+  }
+}
+
+async function runClangdAcceptance(): Promise<void> {
   const extension = vscode.extensions.getExtension(extensionId);
   assert.ok(extension, `${extensionId} was not loaded in the Extension Host`);
   await extension.activate();
