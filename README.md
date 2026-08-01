@@ -43,7 +43,9 @@ and tooltips without overwhelming the result label.
   repeated Pin/Unpin actions; 0.18.16 removes unrelated References work from
   direction-only hierarchy refreshes and bounds rapid-cursor query demand;
   0.18.17 unifies Microsoft engine naming and removes clangd-only lifecycle
-  actions and evidence wording from Microsoft-mode surfaces
+  actions and evidence wording from Microsoft-mode surfaces; 0.18.18 records
+  the staged fixture and real-FFmpeg acceptance and isolates engine selection
+  between Extension Host suites
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -54,6 +56,9 @@ and `PRIVACY.md`.
 
 Microsoft-provider probe design, reproducible commands, results, and API
 boundaries are documented in `docs/microsoft-provider-probe.zh-CN.md`.
+The completed staged engine acceptance, real FFmpeg evidence, and remaining
+public-API boundaries are documented in
+`docs/microsoft-engine-acceptance.zh-CN.md`.
 The optional `npm run test:e2e:ffmpeg:microsoft` gate opens the workspace from
 `C_INSIGHT_FFMPEG_WORKSPACE` (default `/home/user/projects/FFmpeg`) in an
 isolated Extension Host and verifies cross-file Code Preview plus the safe

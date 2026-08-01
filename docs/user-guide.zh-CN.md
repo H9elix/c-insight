@@ -1,4 +1,4 @@
-# C Insight 0.18.17 使用手册
+# C Insight 0.18.18 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1547,19 +1547,25 @@ References、Call Hierarchy 方法兼容性和 Hover。详细的第三阶段环�
 clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结果；验收重点是
 请求成功并返回数组，而不是强制猜测静态目标。
 
+Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
+`npm run test:e2e:microsoft` 和 `npm run test:e2e:ffmpeg:microsoft`。后者覆盖跨文件
+Code Preview、References-based Callers、原生 Callees、Pin/Unpin、懒加载、缓存和
+资源证据；完整环境、结果及公开 API 边界见
+`docs/microsoft-engine-acceptance.zh-CN.md`。
+
 ## 14. 功能与窗口矩阵
 
 | 功能/窗口 | 数据来源 | 自动更新 | Pin/Lock | 搜索 | 展开 | 导出 | Code Preview |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Context | clangd Definition、Declaration、Hover | 可见且 Follow Cursor 启用时 | 独立 Pin | — | — | — | 自动更新 |
+| Context | 当前分析引擎的 Definition、Declaration、Hover | 可见且 Follow Cursor 启用时 | 独立 Pin | — | — | — | 自动更新 |
 | Code Preview | 文档源码、VS Code Semantic Tokens | 跟随 Context 或显式选择 | 独立 Lock | 单击符号继续 Definition | 双向滚动加载源码 | 复制代码/路径 | 本窗口 |
-| References | clangd References、Highlight、Signature 与证据化语法分类 | 仅窗口可见时查询详情 | 独立 Pin | 文本、置信度、证据来源 | 分页；按类型、证据、置信度等分组 | 自描述 Text、版本化 JSON、列表 | 单击位置更新 |
-| Callers | clangd Incoming Call Hierarchy | 仅窗口可见时查询 | 与 Callees 共用 Pin | 已加载节点搜索、Caller Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击节点更新 |
-| Callees | clangd Outgoing Call Hierarchy | 仅窗口可见时查询 | 与 Callers 共用 Pin | 已加载节点搜索、Callee Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击定义或调用点更新 |
+| References | 当前分析引擎的 References、Highlight、Signature 与证据化语法分类 | 仅窗口可见时查询详情 | 独立 Pin | 文本、置信度、证据来源 | 分页；按类型、证据、置信度等分组 | 自描述 Text、版本化 JSON、列表 | 单击位置更新 |
+| Callers | clangd Incoming Call Hierarchy；Microsoft 模式默认使用 References-based 近似结果 | 仅窗口可见时查询 | 与 Callees 共用 Pin | 已加载节点搜索、Caller Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击节点更新 |
+| Callees | 当前分析引擎的 Outgoing Call Hierarchy | 仅窗口可见时查询 | 与 Callers 共用 Pin | 已加载节点搜索、Callee Path | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击定义或调用点更新 |
 | Navigation History | 所有显式/预览导航事件 | 导航时写入 | — | 来源过滤 | — | — | 单击记录恢复 |
 | Bookmarks | 用户保存的位置与标识符 | 文档修改后尝试重定位 | — | 支持 | 分组 | JSON 导入/导出 | 单击书签更新 |
-| Symbol Search | clangd Workspace Symbols | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击结果更新 |
-| Document Symbols | clangd Document Symbols | 窗口可见且活动文档变化时 | — | — | clangd 层级 | — | 单击符号更新 |
+| Symbol Search | 当前分析引擎的 Workspace Symbols | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击结果更新 |
+| Document Symbols | 当前分析引擎的 Document Symbols | 窗口可见且活动文档变化时 | — | — | Provider 层级 | — | 单击符号更新 |
 | Project Diagnostics | 引擎/Provider 状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | — |
 | Supertypes/Subtypes | clangd Type Hierarchy 与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击类型更新 |
 | Includes/Included By | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击 Include 更新 |
