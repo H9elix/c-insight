@@ -12,6 +12,11 @@ import {
   enclosingCaller,
   MicrosoftCallerEvidence,
 } from "./microsoftCallerFallbackModel";
+import {
+  MicrosoftCalleeEvidence,
+  MicrosoftCalleeEvidenceStats,
+  summarizeMicrosoftCalleeEvidence,
+} from "./microsoftCalleeEvidenceModel";
 
 export type CallDirection = "incoming" | "outgoing";
 
@@ -25,6 +30,7 @@ export interface MicrosoftCallerEvidenceStats {
 
 export class CallHierarchyRepository {
   private readonly microsoftIncomingEvidence = new Map<string, MicrosoftCallerEvidence>();
+  private readonly microsoftOutgoingEvidence = new Map<string, MicrosoftCalleeEvidence>();
   private readonly incomingCache: LruPromiseCache<
     CallHierarchyIncomingCall[]
   >;
@@ -66,7 +72,9 @@ export class CallHierarchyRepository {
     token?: vscode.CancellationToken,
   ): Promise<CallHierarchyOutgoingCall[]> {
     return this.outgoingCache.getOrCreate(node.key, () =>
-      this.analysis.outgoingCalls(node, token),
+      this.analysis.analysisEngine === "microsoft"
+        ? this.observedMicrosoftOutgoing(node, token)
+        : this.analysis.outgoingCalls(node, token),
     );
   }
 
@@ -101,6 +109,10 @@ export class CallHierarchyRepository {
     return result;
   }
 
+  microsoftCalleeEvidenceStats(): MicrosoftCalleeEvidenceStats {
+    return summarizeMicrosoftCalleeEvidence(this.microsoftOutgoingEvidence.values());
+  }
+
   invalidate(): void {
     const size = configuredCacheSize();
     this.incomingCache.resize(size);
@@ -108,6 +120,7 @@ export class CallHierarchyRepository {
     this.incomingCache.clear();
     this.outgoingCache.clear();
     this.microsoftIncomingEvidence.clear();
+    this.microsoftOutgoingEvidence.clear();
   }
 
   private microsoftIncomingMode(): "references" | "native" | "disabled" {
@@ -115,6 +128,32 @@ export class CallHierarchyRepository {
     return vscode.workspace
       .getConfiguration("cInsight.microsoft")
       .get<"references" | "native" | "disabled">("callersMode", "references");
+  }
+
+  private async observedMicrosoftOutgoing(
+    node: CallNode,
+    token?: vscode.CancellationToken,
+  ): Promise<CallHierarchyOutgoingCall[]> {
+    const started = performance.now();
+    try {
+      const calls = await this.analysis.outgoingCalls(node, token);
+      this.microsoftOutgoingEvidence.set(node.key, {
+        outcome: "completed",
+        calls: calls.length,
+        durationMs: performance.now() - started,
+      });
+      return calls;
+    } catch (error) {
+      this.microsoftOutgoingEvidence.set(node.key, {
+        outcome:
+          token?.isCancellationRequested || error instanceof vscode.CancellationError
+            ? "cancelled"
+            : "failed",
+        calls: 0,
+        durationMs: performance.now() - started,
+      });
+      throw error;
+    }
   }
 
   private async referenceBasedIncoming(

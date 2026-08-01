@@ -88,6 +88,16 @@ describe("project diagnostics model", () => {
         unmappedReferences: 2,
         callerFunctions: 4,
       },
+      microsoftCallees: {
+        queriedNodes: 2,
+        successful: 1,
+        failed: 1,
+        cancelled: 0,
+        empty: 0,
+        callees: 3,
+        averageDurationMs: 250,
+        maximumDurationMs: 400,
+      },
       extension: {
         name: "C Insight",
         version: "0.17.6",
@@ -188,6 +198,10 @@ describe("project diagnostics model", () => {
     assert.match(
       text,
       /Microsoft Callers evidence: 3 queried nodes, 7 references, 5 mapped references, 2 unmapped references, 4 caller functions/,
+    );
+    assert.match(
+      text,
+      /Microsoft Callees evidence: 2 queried nodes, 1 successful, 1 failed, 0 cancelled, 0 empty, 3 callees, 250 ms average, 400 ms maximum/,
     );
   });
 

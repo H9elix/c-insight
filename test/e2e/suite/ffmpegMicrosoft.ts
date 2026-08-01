@@ -27,6 +27,21 @@ interface CallerProbe {
   };
 }
 
+interface CalleeProbe {
+  roots: number;
+  callees: number;
+  evidence: {
+    queriedNodes: number;
+    successful: number;
+    failed: number;
+    cancelled: number;
+    empty: number;
+    callees: number;
+    averageDurationMs: number;
+    maximumDurationMs: number;
+  };
+}
+
 export async function run(): Promise<void> {
   const engine = vscode.workspace.getConfiguration("cInsight");
   const microsoft = vscode.workspace.getConfiguration("cInsight.microsoft");
@@ -169,6 +184,20 @@ export async function run(): Promise<void> {
     unmappedReferences: 0,
     callerFunctions: 1,
   });
+
+  callerEditor.selection = new vscode.Selection(localPosition, localPosition);
+  const callees = await vscode.commands.executeCommand<CalleeProbe>(
+    "cInsight.test.microsoftCallees",
+  );
+  assert.ok(callees.roots > 0);
+  assert.ok(callees.callees > 0, "Microsoft native Callees should find decode_read calls");
+  assert.equal(callees.evidence.queriedNodes, 1);
+  assert.equal(callees.evidence.successful, 1);
+  assert.equal(callees.evidence.failed, 0);
+  assert.equal(callees.evidence.cancelled, 0);
+  assert.equal(callees.evidence.empty, 0);
+  assert.equal(callees.evidence.callees, callees.callees);
+  assert.ok(callees.evidence.maximumDurationMs > 0);
 }
 
 function symbolPosition(document: vscode.TextDocument, symbol: string): vscode.Position {

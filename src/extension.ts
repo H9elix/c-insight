@@ -469,6 +469,27 @@ export async function activate(
           ),
         };
       }),
+      vscode.commands.registerCommand("cInsight.test.microsoftCallees", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !isCppDocument(editor.document)) return undefined;
+        const roots = await callRepository.prepare(
+          editor.document.uri,
+          editor.selection.active,
+        );
+        if (!roots[0]) {
+          return {
+            roots: 0,
+            callees: 0,
+            evidence: callRepository.microsoftCalleeEvidenceStats(),
+          };
+        }
+        const callees = await callRepository.outgoing(roots[0]);
+        return {
+          roots: roots.length,
+          callees: callees.length,
+          evidence: callRepository.microsoftCalleeEvidenceStats(),
+        };
+      }),
     );
   }
   context.subscriptions.push(

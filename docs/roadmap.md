@@ -74,6 +74,10 @@ could not be mapped to enclosing caller functions.
 Version 0.18.11 aggregates that evidence into Project Diagnostics and exported
 reports, including queried nodes, total/mapped/unmapped references, and resolved
 caller functions. It also shortens the one-time Microsoft-engine notice.
+Version 0.18.12 instruments Microsoft native Outgoing Calls per loaded node,
+including success, failure, cancellation, empty results, returned callees, and
+latency. The evidence is exposed through Project Diagnostics and verified by a
+non-empty real FFmpeg `decode_read` Callees query before any fallback is added.
 
 ## Deferred fourth phase
 

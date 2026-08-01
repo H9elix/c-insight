@@ -204,6 +204,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
       .getConfiguration("cInsight.microsoft")
       .get<string>("callersMode", "references");
     const callerEvidence = this.callRepository?.microsoftCallerEvidenceStats();
+    const calleeEvidence = this.callRepository?.microsoftCalleeEvidenceStats();
 
     const roots: TreeNode[] = [
       group("Extension information", "extensions", [
@@ -275,6 +276,25 @@ export class ProjectDiagnostics implements vscode.Disposable {
                         detail("Mapped references", String(callerEvidence.mappedReferences), "pass"),
                         detail("Unmapped references", String(callerEvidence.unmappedReferences), callerEvidence.unmappedReferences > 0 ? "warning" : "pass"),
                         detail("Caller functions", String(callerEvidence.callerFunctions), "symbol-method"),
+                      ],
+                      vscode.TreeItemCollapsibleState.Collapsed,
+                    ),
+                  ]
+                : []),
+              ...(calleeEvidence
+                ? [
+                    group(
+                      "Callees evidence (loaded nodes)",
+                      "type-hierarchy-sub",
+                      [
+                        detail("Queried nodes", String(calleeEvidence.queriedNodes), "list-tree"),
+                        detail("Successful", String(calleeEvidence.successful), "pass"),
+                        detail("Failed", String(calleeEvidence.failed), calleeEvidence.failed > 0 ? "error" : "pass"),
+                        detail("Cancelled", String(calleeEvidence.cancelled), calleeEvidence.cancelled > 0 ? "circle-slash" : "pass"),
+                        detail("Empty results", String(calleeEvidence.empty), "circle-outline"),
+                        detail("Callee functions", String(calleeEvidence.callees), "symbol-method"),
+                        detail("Average duration", `${Math.round(calleeEvidence.averageDurationMs)} ms`, "dashboard"),
+                        detail("Maximum duration", `${Math.round(calleeEvidence.maximumDurationMs)} ms`, "clock"),
                       ],
                       vscode.TreeItemCollapsibleState.Collapsed,
                     ),
@@ -539,6 +559,8 @@ export class ProjectDiagnostics implements vscode.Disposable {
         config.engine === "microsoft" && callerEvidence
           ? { mode: callersMode, ...callerEvidence }
           : undefined,
+      microsoftCallees:
+        config.engine === "microsoft" ? calleeEvidence : undefined,
       extension,
       clangd: {
         state,

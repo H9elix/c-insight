@@ -41,6 +41,16 @@ export interface ProjectDiagnosticsReport {
     unmappedReferences: number;
     callerFunctions: number;
   };
+  microsoftCallees?: {
+    queriedNodes: number;
+    successful: number;
+    failed: number;
+    cancelled: number;
+    empty: number;
+    callees: number;
+    averageDurationMs: number;
+    maximumDurationMs: number;
+  };
   extension?: {
     name: string;
     version: string;
@@ -231,6 +241,11 @@ export function renderProjectDiagnosticsText(
     lines.push(
       `Microsoft Callers mode: ${report.microsoftCallers.mode}`,
       `Microsoft Callers evidence: ${report.microsoftCallers.queriedNodes} queried nodes, ${report.microsoftCallers.references} references, ${report.microsoftCallers.mappedReferences} mapped references, ${report.microsoftCallers.unmappedReferences} unmapped references, ${report.microsoftCallers.callerFunctions} caller functions`,
+    );
+  }
+  if (report.microsoftCallees) {
+    lines.push(
+      `Microsoft Callees evidence: ${report.microsoftCallees.queriedNodes} queried nodes, ${report.microsoftCallees.successful} successful, ${report.microsoftCallees.failed} failed, ${report.microsoftCallees.cancelled} cancelled, ${report.microsoftCallees.empty} empty, ${report.microsoftCallees.callees} callees, ${Math.round(report.microsoftCallees.averageDurationMs)} ms average, ${Math.round(report.microsoftCallees.maximumDurationMs)} ms maximum`,
     );
   }
   if (report.compilationDatabase.source) {
