@@ -4,7 +4,7 @@ import {
   isCppDocument,
   readConfiguration,
 } from "../configuration/configuration";
-import { SymbolContext, ViewUpdateIntent } from "../models/types";
+import { LocationResult, SymbolContext, ViewUpdateIntent } from "../models/types";
 import { ViewRegistry } from "../views/viewRegistry";
 import {
   cursorQueryDemandForEngine,
@@ -175,11 +175,12 @@ export class ContextController implements vscode.Disposable {
     generation: number,
     token: vscode.CancellationToken,
     demand: CursorQueryDemand,
+    definitionRequest?: Promise<LocationResult[]>,
   ): Promise<SymbolContext | undefined> {
     const [definitions, declarations, callRoots, hover, symbolInfo] =
       await Promise.all([
         demand.definitions
-          ? this.analysis.definition(uri, position, token)
+          ? definitionRequest ?? this.analysis.definition(uri, position, token)
           : [],
         demand.declarations
           ? this.analysis.declaration(uri, position, token)
@@ -242,12 +243,35 @@ export class ContextController implements vscode.Disposable {
       return;
     }
     try {
+      const definitionRequest = demand.definitions
+        ? this.analysis.definition(uri, position, cancellation.token).catch((error) => {
+            if (!cancellation.token.isCancellationRequested) {
+              this.output.appendLine(`Definition preview query failed: ${String(error)}`);
+            }
+            return [];
+          })
+        : Promise.resolve([]);
+      void definitionRequest.then((definitions) => {
+        if (
+          definitions[0] &&
+          generation === this.generation &&
+          !cancellation.token.isCancellationRequested
+        ) {
+          void this.views.preview.showLocation(
+            definitions[0],
+            "definition",
+            "Definition",
+            "context",
+          );
+        }
+      });
       const base = await this.resolveBase(
         uri,
         position,
         generation,
         cancellation.token,
         demand,
+        definitionRequest,
       );
       if (!base) {
         return;

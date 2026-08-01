@@ -184,6 +184,10 @@ Code Preview 是共享源码预览窗口，可显示：
 - Callee Definition
 - Callee Call Site
 
+光标跟随时，Definition 使用独立请求并在返回后立即更新 Code Preview，不再
+等待 Declaration、Hover 或 Call Hierarchy。后续 Context 查询变慢、排队、取消
+或失败，不会撤销已经成功显示的预览位置。
+
 目标符号会突出显示，并显示目标前后的源码行。长代码行可以横向滚动，滚动条
 位于预览代码区域底部。
 
