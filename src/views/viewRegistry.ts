@@ -364,6 +364,7 @@ export class ViewRegistry implements vscode.Disposable {
     if (
       (this.isViewVisible("cInsight.references") ||
         intent.manualReferences) &&
+      (context.referencesRequested || intent.manualReferences) &&
       shouldUpdatePinnedView(
         this.referencesPinned,
         intent.manualReferences,

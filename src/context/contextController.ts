@@ -100,24 +100,27 @@ export class ContextController implements vscode.Disposable {
     const cancellation = new vscode.CancellationTokenSource();
     this.cancellation = cancellation;
     const config = readConfiguration();
+    const demand = manualDemand(intent);
     try {
       const base = await this.resolveBase(
         uri,
         position,
         generation,
         cancellation.token,
-        manualDemand(intent),
+        demand,
       );
       if (!base || generation !== this.generation) {
         return undefined;
       }
       const [references, incomingCount, outgoingCount] = await Promise.all([
-        this.analysis.references(
-          uri,
-          position,
-          config.includeDeclarationInReferences,
-          cancellation.token,
-        ),
+        demand.references
+          ? this.analysis.references(
+              uri,
+              position,
+              config.includeDeclarationInReferences,
+              cancellation.token,
+            )
+          : [],
         this.analysis.analysisEngine !== "microsoft" && base.callRoots[0]
           ? this.analysis
               .incomingCalls(base.callRoots[0], cancellation.token)
@@ -140,9 +143,9 @@ export class ContextController implements vscode.Disposable {
         incomingCount,
         outgoingCount,
         detailsPending: false,
-        referencesRequested: true,
-        incomingRequested: true,
-        outgoingRequested: true,
+        referencesRequested: demand.references,
+        incomingRequested: demand.incomingCount,
+        outgoingRequested: demand.outgoingCount,
       };
       this.current = { uri, position };
       this.views.updateContext(context, intent);

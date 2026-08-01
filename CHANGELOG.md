@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.16
+
+- Removed an unrelated Microsoft References query from explicit Show Incoming
+  Calls and Show Outgoing Calls requests; direction-specific manual refresh now
+  obeys its declared semantic demand.
+- Prevented direction-only Call Hierarchy refreshes from clearing or replacing
+  an already displayed References result that was not requested.
+- Added real FFmpeg resource regressions requiring 20 rapid cursor moves to
+  debounce to one bounded semantic cycle, no leftover active/queued work, and
+  no extra References query during Show Outgoing Calls.
+- Retained multi-view and depth-expansion measurements for scheduler peak,
+  request outcomes, per-method timing, and independent hierarchy cache hits.
+
+
 ## 0.18.15
 
 - Fixed repeated Callers/Callees Pin and Unpin actions accumulating duplicate

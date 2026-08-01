@@ -39,7 +39,8 @@ and tooltips without overwhelming the result label.
   verifies Microsoft Pin/manual-refresh, depth expansion, cache invalidation,
   and session evidence while retaining search/export/path model coverage;
   0.18.15 prevents Microsoft Callers mode banners from accumulating across
-  repeated Pin/Unpin actions
+  repeated Pin/Unpin actions; 0.18.16 removes unrelated References work from
+  direction-only hierarchy refreshes and bounds rapid-cursor query demand
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
