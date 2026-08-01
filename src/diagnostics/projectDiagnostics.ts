@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { ClangdManager } from "../clangd/clangdManager";
 import { AnalysisService } from "../analysis/analysisService";
+import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
 import {
   AnalysisEngine,
   configuredAnalysisEngine,
@@ -62,6 +63,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
     private readonly analysis: AnalysisService,
     private readonly context: vscode.ExtensionContext,
     private readonly engine: AnalysisEngine = configuredAnalysisEngine(),
+    private readonly callRepository?: CallHierarchyRepository,
   ) {}
 
   async refresh(
@@ -198,6 +200,10 @@ export class ProjectDiagnostics implements vscode.Disposable {
     });
 
     const extension = extensionInformation(this.context);
+    const callersMode = vscode.workspace
+      .getConfiguration("cInsight.microsoft")
+      .get<string>("callersMode", "references");
+    const callerEvidence = this.callRepository?.microsoftCallerEvidenceStats();
 
     const roots: TreeNode[] = [
       group("Extension information", "extensions", [
@@ -255,11 +261,25 @@ export class ProjectDiagnostics implements vscode.Disposable {
               ),
               detail(
                 "Callers mode",
-                vscode.workspace
-                  .getConfiguration("cInsight.microsoft")
-                  .get<string>("callersMode", "references"),
+                callersMode,
                 "shield",
               ),
+              ...(callersMode === "references" && callerEvidence
+                ? [
+                    group(
+                      "Callers evidence (loaded nodes)",
+                      "references",
+                      [
+                        detail("Queried nodes", String(callerEvidence.queriedNodes), "list-tree"),
+                        detail("References", String(callerEvidence.references), "references"),
+                        detail("Mapped references", String(callerEvidence.mappedReferences), "pass"),
+                        detail("Unmapped references", String(callerEvidence.unmappedReferences), callerEvidence.unmappedReferences > 0 ? "warning" : "pass"),
+                        detail("Caller functions", String(callerEvidence.callerFunctions), "symbol-method"),
+                      ],
+                      vscode.TreeItemCollapsibleState.Collapsed,
+                    ),
+                  ]
+                : []),
             ]
           : [
           detail(
@@ -515,6 +535,10 @@ export class ProjectDiagnostics implements vscode.Disposable {
       workspaceTrusted: vscode.workspace.isTrusted,
       analysisEngine: config.engine,
       microsoftProvider: microsoftStatus,
+      microsoftCallers:
+        config.engine === "microsoft" && callerEvidence
+          ? { mode: callersMode, ...callerEvidence }
+          : undefined,
       extension,
       clangd: {
         state,

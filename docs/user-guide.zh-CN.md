@@ -1,4 +1,4 @@
-# C Insight 0.18.10 使用手册
+# C Insight 0.18.11 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -45,8 +45,8 @@ Workspace Symbols、Callers、Callees 和 Code Preview 语义令牌通过 VS Cod
 Provider 命令获得。Includes/Included By 仍由 C Insight 自己解析文件。
 
 该模式第一次成功启用时会显示一次提示，说明 **Microsoft C/C++ language service
-(cpptools)** 是 C Insight 的语义分析提供方，负责上述导航查询而不是充当编译器；
-它的性能和查询结果可能与 clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
+(cpptools)** 是 C Insight 的语义分析提供方，并且它的性能和查询结果可能与
+clangd 不同。提示状态保存在当前 VS Code 扩展宿主的
 全局状态中，后续启动不再重复弹出；本地和远程扩展宿主的状态彼此独立。
 
 微软模式的明确限制：
@@ -392,6 +392,13 @@ Incoming Calls（已知对部分跨文件符号存在崩溃风险），或设为
 - References 已返回位置，但无法映射到外层函数时显示找到的引用数量以及
   `enclosing caller functions could not be identified`。这通常表示 Provider 的
   Document Symbols 缺失、范围或类型不兼容，而不表示没有调用者。
+
+上述证据会按已经查询过的 Callers 节点累计显示在 **Project Diagnostics →
+Microsoft C/C++ Provider → Callers evidence (loaded nodes)** 中，包括 Queried
+nodes、References、Mapped references、Unmapped references 和 Caller functions。
+复制或导出的 Project Diagnostics 文本/JSON 也包含同一组数据。刷新或修改 Call
+Hierarchy 配置导致查询缓存失效时，这些计数会从零重新累计；它不是整个工作区的
+静态索引总量。
 0.18.8 还兼容 cpptools 将 C 函数以扁平 `Interface` 类型返回的情况：仅当符号名
 具有函数参数列表且其完整源码范围包含引用位置时，才将其识别为外层调用函数，
 避免误把真正的接口或类型符号当作 Caller。

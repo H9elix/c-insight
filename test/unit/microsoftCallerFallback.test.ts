@@ -72,11 +72,21 @@ describe("Microsoft reference-based Callers", () => {
 
   it("distinguishes no references from references that cannot be mapped", () => {
     assert.match(
-      microsoftEmptyCallersMessage({ references: 0, unmappedReferences: 0 }),
+      microsoftEmptyCallersMessage({
+        references: 0,
+        mappedReferences: 0,
+        unmappedReferences: 0,
+        callerFunctions: 0,
+      }),
       /results may be incomplete/,
     );
     assert.equal(
-      microsoftEmptyCallersMessage({ references: 2, unmappedReferences: 2 }),
+      microsoftEmptyCallersMessage({
+        references: 2,
+        mappedReferences: 0,
+        unmappedReferences: 2,
+        callerFunctions: 0,
+      }),
       "2 references found, but enclosing caller functions could not be identified",
     );
   });

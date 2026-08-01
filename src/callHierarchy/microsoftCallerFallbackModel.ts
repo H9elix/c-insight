@@ -11,7 +11,9 @@ const microsoftFunctionKind = 11; // cpptools may expose C functions as Interfac
 
 export interface MicrosoftCallerEvidence {
   references: number;
+  mappedReferences: number;
   unmappedReferences: number;
+  callerFunctions: number;
 }
 
 export function microsoftEmptyCallersMessage(

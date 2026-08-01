@@ -74,6 +74,7 @@ export async function activate(
     analysis,
     context,
     engine,
+    callRepository,
   );
   workspaceSession = new WorkspaceSessionManager(context, {
     capture: () => ({
@@ -399,9 +400,19 @@ export async function activate(
             },
           },
         })];
-        if (!roots[0]) return { roots: 0, callers: 0 };
+        if (!roots[0]) {
+          return {
+            roots: 0,
+            callers: 0,
+            evidence: callRepository.microsoftCallerEvidenceStats(),
+          };
+        }
         const callers = await callRepository.incoming(roots[0]);
-        return { roots: roots.length, callers: callers.length };
+        return {
+          roots: roots.length,
+          callers: callers.length,
+          evidence: callRepository.microsoftCallerEvidenceStats(),
+        };
       }),
       vscode.commands.registerCommand("cInsight.test.referenceDiagnostics", async () => {
         const editor = vscode.window.activeTextEditor;
@@ -802,6 +813,6 @@ async function showMicrosoftEngineNotice(
   if (context.globalState.get<boolean>(key)) return;
   await context.globalState.update(key, true);
   void vscode.window.showInformationMessage(
-    "C Insight 当前使用 Microsoft C/C++ language service (cpptools) 作为语义分析提供方，负责定义、引用和调用关系等查询，而不是作为编译器。其性能和查询结果可能与 clangd 不同。",
+    "C Insight 当前使用 Microsoft C/C++ language service (cpptools) 作为语义分析提供方。其性能和查询结果可能与 clangd 不同。",
   );
 }
