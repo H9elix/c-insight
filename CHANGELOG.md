@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.8
+
+- Fixed Microsoft References-based Callers returning `No callers found` even
+  when cpptools had returned a valid reference and enclosing C function.
+- Added a narrowly scoped compatibility rule for cpptools flat document symbols,
+  which can label C functions as `Interface` while retaining a function
+  signature and full source range.
+- Strengthened the real FFmpeg Extension Host regression to require
+  `avcodec_receive_frame` to resolve back to its enclosing `decode_read` caller.
+
+
 ## 0.18.7
 
 - Removed two defensive changes that strict FFmpeg reproduction proved were

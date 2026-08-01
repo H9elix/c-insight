@@ -143,12 +143,18 @@ export async function run(): Promise<void> {
 
   const callerEditor = await vscode.window.showTextDocument(document);
   callerEditor.selection = new vscode.Selection(position, position);
+  const referenceDiagnostics = await vscode.commands.executeCommand(
+    "cInsight.test.referenceDiagnostics",
+  );
+  console.log(
+    `C Insight FFmpeg reference diagnostics: ${JSON.stringify(referenceDiagnostics)}`,
+  );
   const callers = await vscode.commands.executeCommand<CallerProbe>(
     "cInsight.test.referenceBasedCallers",
   );
   assert.ok(callers.roots > 0);
   assert.ok(Number.isInteger(callers.callers));
-  assert.ok(callers.callers >= 0);
+  assert.ok(callers.callers > 0, "Microsoft reference-based Callers should find decode_read");
 }
 
 function symbolPosition(document: vscode.TextDocument, symbol: string): vscode.Position {
