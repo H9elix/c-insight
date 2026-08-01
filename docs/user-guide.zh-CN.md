@@ -1,4 +1,4 @@
-# C Insight 0.18.21 使用手册
+# C Insight 0.18.22 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -84,6 +84,21 @@ Window。这个设置只关闭 LLVM clangd 扩展的语言服务；Microsoft 模
 启动 C Insight 自己管理的 clangd，也不会删除系统中的 clangd 可执行文件。其他
 Microsoft 启动失败仍打开对应的 Microsoft C/C++ 设置，不会建议无关的 clangd
 修改。
+
+反向场景同样处理：当 `cInsight.engine=clangd`、活动编辑器是 C/C++，并且 cpptools
+扩展在当前扩展宿主可用且有效 `C_Cpp.intelliSenseEngine` 不是 `disabled` 时，
+C Insight 会提示关闭当前 Workspace 的 Microsoft IntelliSense。检测不再依赖
+cpptools 是否已经完成 `isActive` 切换，因此不会遗漏两个扩展同时响应 `onLanguage`
+的启动时序；它也不会为了检测而主动激活 cpptools。活动编辑器、相关设置或扩展
+列表变化后会重新检查，同一组冲突在当前会话内不会重复弹窗。确认关闭会写入：
+
+```json
+"C_Cpp.intelliSenseEngine": "disabled"
+```
+
+C Insight 的 clangd 模式核心 Definition、References 和 Call Hierarchy 请求直接发给
+自管 clangd；但编辑器导航、补全、诊断以及通过 VS Code Provider 获取的预览语义
+令牌仍可能被其他已启用 Provider 影响，因此仍建议关闭竞争服务。
 
 快捷关闭会在当前工作区状态中记录原来的目标层级值。执行
 **C Insight: Restore Provider Settings** 时，只有仍保持 C Insight 写入值的设置才

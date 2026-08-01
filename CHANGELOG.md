@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.22
+
+- Fixed clangd-mode Microsoft IntelliSense conflicts being missed when C
+  Insight checked `isActive` before cpptools completed its simultaneous
+  `onLanguage` activation.
+- Detects an available cpptools extension with effective IntelliSense other
+  than `disabled` for an active C/C++ document, without activating the extension
+  itself, and offers the existing reversible Workspace quick fix.
+- Rechecks after active-editor, relevant configuration, and extension-list
+  changes while deduplicating identical prompts within the current session.
+
 ## 0.18.21
 
 - Replaced concurrent generic Provider-conflict and Microsoft startup-failure
