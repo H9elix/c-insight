@@ -17,6 +17,7 @@ import {
   WorkspaceSessionManager,
   WorkspaceSessionSnapshot,
 } from "./session/workspaceSession";
+import { sessionForAnalysisEngine } from "./session/workspaceSessionModel";
 import { TypeHierarchyExplorer } from "./typeHierarchy/typeHierarchyExplorer";
 import { TypeHierarchyRepository } from "./typeHierarchy/typeHierarchyRepository";
 import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExplorer";
@@ -76,6 +77,7 @@ export async function activate(
   );
   workspaceSession = new WorkspaceSessionManager(context, {
     capture: () => ({
+      engine,
       history: vscode.workspace
         .getConfiguration("cInsight.session")
         .get<boolean>("persistNavigationHistory", true)
@@ -108,6 +110,13 @@ export async function activate(
   ): Promise<boolean> => {
     if (!snapshot) {
       return false;
+    }
+    const compatible = sessionForAnalysisEngine(snapshot, engine);
+    snapshot = compatible.snapshot;
+    if (compatible.dropped.length > 0) {
+      output.appendLine(
+        `Workspace session engine changed; dropped semantic state: ${compatible.dropped.join(", ")}.`,
+      );
     }
     const runStep = async (
       label: string,
@@ -563,6 +572,9 @@ export async function activate(
       output,
     );
   } catch (error) {
+    if (engine === "microsoft") {
+      manager.failExternalEngine();
+    }
     output.appendLine(`${engine} startup failed: ${String(error)}`);
     await projectDiagnostics.refresh();
     void vscode.window.showErrorMessage(
@@ -572,7 +584,9 @@ export async function activate(
       if (action === "Open Settings") {
         void vscode.commands.executeCommand(
           "workbench.action.openSettings",
-          engine === "clangd" ? "cInsight.clangd.path" : "cInsight.engine",
+          engine === "clangd"
+            ? "cInsight.clangd.path"
+            : "C_Cpp.intelliSenseEngine",
         );
       }
     });

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.2
+
+- Renamed lifecycle output to `Analysis engine state` and renamed the Project
+  Diagnostics child group from `clangd diagnostics` to `Language diagnostics`.
+- Required Microsoft mode to use an installed `ms-vscode.cpptools` extension
+  with effective `C_Cpp.intelliSenseEngine=default`.
+- Added best-effort known-Provider conflict detection and rejected ambiguous
+  Microsoft queries when the LLVM clangd extension is active.
+- Added Microsoft Provider state, version, effective IntelliSense setting,
+  conflict evidence, and exact-command/base-configuration guidance to Project
+  Diagnostics and its text/JSON reports.
+- Stored the analysis engine in workspace-session snapshots and discarded
+  engine-dependent Preview, References, Call Hierarchy, and Relationship Graph
+  state when restoring under another engine.
+
 ## 0.18.1
 
 - Added the explicit `cInsight.engine` setting with `clangd` as the compatible

@@ -21,7 +21,8 @@ and tooltips without overwhelming the result label.
 - Semantic engines: clangd by default; Microsoft C/C++ Provider is available
   as an explicit opt-in mode
 - Microsoft integration: 0.18.0 contains the isolated feasibility evidence;
-  0.18.1 adds the opt-in production adapter
+  0.18.1 adds the opt-in production adapter and 0.18.2 validates its effective
+  configuration and known Provider conflicts
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -200,13 +201,15 @@ an explicit refresh. Per-view pin state lasts for the current VS Code session.
 
 ### Project diagnostics
 
-The Project Diagnostics view reports the clangd state, selected executable and
-version, detected `compile_commands.json`, and the compile command used for the
-active source file. It also summarizes clangd errors, warnings, and missing
-includes across the workspace, with current-file messages available as child
-items. The view refreshes when the active editor, clangd state, diagnostics, or
-compilation database changes. Its title-bar actions provide manual refresh and
-direct access to the classified **C Insight: clangd** log.
+The Project Diagnostics view reports the selected analysis engine, lifecycle
+state, detected `compile_commands.json`, and the compile command used for the
+active source file. Clangd mode includes executable, version, and index data;
+Microsoft mode includes extension version, effective IntelliSense setting,
+known Provider conflicts, and verification evidence. It summarizes Language
+diagnostics, warnings, and missing includes across the workspace, with
+current-file messages available as child items. The view refreshes when the
+active editor, engine state, diagnostics, or compilation database changes.
+Its title-bar actions retain direct access to the clangd log for clangd mode.
 
 The active command is broken down into compiler, language, standard, user,
 system, and quote include paths, definitions, forced includes, and response
@@ -237,7 +240,7 @@ not expose the name of the file currently being indexed.
 
 The bottom status bar is the single location for global analysis reliability.
 It reports Ready, live Indexing percentage, Limited, or Unavailable. Hover it
-to inspect every reason, including clangd availability, indexing, compilation
+to inspect every reason, including engine availability, indexing, compilation
 database and current-file commands, and missing includes; select it to open
 Project Diagnostics. References, Callers, and Callees do not duplicate this
 warning, though empty results still use “not found yet” wording while global

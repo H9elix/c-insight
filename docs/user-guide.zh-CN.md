@@ -1,4 +1,4 @@
-# C Insight 0.18.1 使用手册
+# C Insight 0.18.2 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -579,17 +579,17 @@ Document Symbols 显示活动文件的 clangd Document Symbols：
 
 Project Diagnostics 用于排查“为什么导航结果不准确或不可用”，显示：
 
-- clangd 生命周期状态
-- clangd 可执行文件
-- clangd 版本
-- Background Index 状态、进度和最后更新时间
+- 当前分析引擎及其生命周期状态
+- clangd 模式下的可执行文件、版本、Background Index 状态和进度
+- Microsoft 模式下的扩展版本、`C_Cpp.intelliSenseEngine` 有效值、
+  `verified`/`ambiguous`/`disabled`/`unavailable` 状态及已知 Provider 冲突
 - `compile_commands.json` 路径、来源和条目数
 - 当前文件的编译命令
 - 当前文件的编译工作目录
 - 编译器、显式语言和 `-std` 标准
 - `-I`、`-isystem` 和 `-iquote` Include 路径
 - `-D` 宏、`-include` 强制包含和 `@response` 文件
-- clangd 错误和警告数量
+- Language diagnostics 错误和警告数量及来源
 - 缺失头文件数量
 - 当前文件的具体 diagnostics
 
@@ -603,16 +603,23 @@ Project Diagnostics 用于排查“为什么导航结果不准确或不可用”
 - Export Project Diagnostics as JSON
 
 命令面板还可执行 **Export Project Diagnostics as Text**。复制和导出报告包含
-clangd 状态/版本、索引状态、编译数据库、当前文件命令拆解、Fallback Flags
-以及当前文件 diagnostics。JSON 使用带 `schemaVersion` 的结构化格式，适合
+引擎状态；clangd 状态/版本或 Microsoft Provider 证据；索引状态、编译数据库、
+当前文件命令拆解、回退配置以及当前文件 diagnostics。JSON 使用带
+`schemaVersion` 的结构化格式，适合
 脚本处理或提交问题；文本格式适合直接粘贴。
 
 对于源文件，`compile_commands.json` 中路径完全匹配的条目标记为 `direct`。
 头文件通常没有独立条目，clangd 会根据其内部 HeaderIncluderCache 等信息推断
 命令；C Insight 会优先查找同目录同名源文件，再选择同目录源文件作为
 `inferred-candidate`。这个候选项用于诊断 Include 路径和宏，不代表 C Insight
-能够确认 clangd 最终选择了它。没有直接条目或候选条目时标记为 `fallback`，
-并显示 `cInsight.fallbackFlags`。
+能够确认 clangd 最终选择了它。没有直接条目或候选条目时标记为 `fallback`；
+clangd 模式显示 `cInsight.fallbackFlags`，Microsoft 模式说明当前文件使用
+`C_Cpp.default.*` 或 `c_cpp_properties.json` 基础配置。
+
+Microsoft 模式要求 `C_Cpp.intelliSenseEngine` 的当前资源有效值为 `default`。
+值为 `disabled` 或 `Tag Parser` 时拒绝进入 ready；发现已激活的 LLVM clangd
+等已知竞争 Provider 时标记为 `ambiguous` 并拒绝语义查询。`verified` 只表示
+未发现已知冲突，因为 VS Code 公共命令仍不返回每条结果的 Provider 身份。
 
 Project Diagnostics 中的具体错误/警告可直接单击并在编辑器中打开对应范围。
 编译数据库路径和头文件候选源文件也可以单击打开。缺少编译数据库时提供选择
@@ -1382,7 +1389,8 @@ Diagnostics 中显示的 clangd 版本和实际可执行文件。
 
 第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括
 Code Preview 完整语义右键菜单、Include 条件预处理增强、Type/Include 会话恢复、
-跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器；尚未支持的
+跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器，0.18.2 增加
+配置/冲突验证、引擎诊断和跨引擎语义会话隔离；尚未支持的
 Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API 的能力边界。
 探测方法、实测结果和接入边界见 `docs/microsoft-provider-probe.zh-CN.md`。
 
@@ -1432,7 +1440,7 @@ clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结
 | Bookmarks | 用户保存的位置与标识符 | 文档修改后尝试重定位 | — | 支持 | 分组 | JSON 导入/导出 | 单击书签更新 |
 | Symbol Search | clangd Workspace Symbols | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击结果更新 |
 | Document Symbols | clangd Document Symbols | 窗口可见且活动文档变化时 | — | — | clangd 层级 | — | 单击符号更新 |
-| Project Diagnostics | clangd 状态、索引、数据库、编译命令和 diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | — |
+| Project Diagnostics | 引擎/Provider 状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | — |
 | Supertypes/Subtypes | clangd Type Hierarchy 与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击类型更新 |
 | Includes/Included By | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击 Include 更新 |
 | Relationship Graph | Call、Type、Include 与 Definition 关系仓库 | 只在显式扩展时查询 | 面板生命周期 | 已加载图搜索 | 多关系、有界扩展 | Text、JSON、Mermaid | 单击节点更新 |

@@ -24,6 +24,15 @@ export interface ProjectDiagnosticsReport {
   generatedAt: string;
   workspaceTrusted: boolean;
   analysisEngine?: "clangd" | "microsoft";
+  microsoftProvider?: {
+    state: string;
+    extensionInstalled: boolean;
+    extensionActive: boolean;
+    extensionVersion?: string;
+    intelliSenseEngine: string;
+    conflicts: string[];
+    detail: string;
+  };
   extension?: {
     name: string;
     version: string;
@@ -179,10 +188,18 @@ export function renderProjectDiagnosticsText(
     `${report.analysisEngine === "microsoft" ? "Microsoft C/C++ Provider" : "clangd"}: ${report.clangd.state}`,
     `Executable: ${report.clangd.executable}`,
     `Version: ${report.clangd.version ?? "unknown"}`,
-    `Background index: ${report.clangd.indexStatus}${report.clangd.indexProgress ? ` (${report.clangd.indexProgress})` : ""}`,
+    `${report.analysisEngine === "microsoft" ? "Provider index" : "Background index"}: ${report.clangd.indexStatus}${report.clangd.indexProgress ? ` (${report.clangd.indexProgress})` : ""}`,
     "",
     `Compilation database: ${report.compilationDatabase.path ?? "not found"}`,
   );
+  if (report.microsoftProvider) {
+    lines.push(
+      `Microsoft Provider status: ${report.microsoftProvider.state}`,
+      `C_Cpp.intelliSenseEngine: ${report.microsoftProvider.intelliSenseEngine}`,
+      `Known Provider conflicts: ${report.microsoftProvider.conflicts.join(", ") || "none"}`,
+      `Provider evidence: ${report.microsoftProvider.detail}`,
+    );
+  }
   if (report.compilationDatabase.source) {
     lines.push(`Database source: ${report.compilationDatabase.source}`);
   }
