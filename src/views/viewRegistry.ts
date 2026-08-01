@@ -490,6 +490,47 @@ export class ViewRegistry implements vscode.Disposable {
     };
   }
 
+  callHierarchyInteractionState(): {
+    pinned: boolean;
+    pinnedSymbol?: string;
+    pinnedStale: boolean;
+    incomingRoots: string[];
+    outgoingRoots: string[];
+    loadedIncoming: number;
+    loadedOutgoing: number;
+    incomingCache: { hits: number; misses: number };
+    outgoingCache: { hits: number; misses: number };
+    callerEvidence: ReturnType<CallHierarchyRepository["microsoftCallerEvidenceStats"]>;
+    calleeEvidence: ReturnType<CallHierarchyRepository["microsoftCalleeEvidenceStats"]>;
+    session?: CallHierarchySessionState;
+  } {
+    return {
+      pinned: this.callHierarchyPinned,
+      pinnedSymbol: this.callHierarchyPinnedSymbol,
+      pinnedStale: this.callHierarchyPinnedStale,
+      incomingRoots: this.callers.getRoots()
+        .filter((node) => node.callNode && node.callDepth === 0)
+        .map((node) => node.label),
+      outgoingRoots: this.callees.getRoots()
+        .filter((node) => node.callNode && node.callDepth === 0)
+        .map((node) => node.label),
+      loadedIncoming: flattenLoadedCallNodes(this.callers.getRoots()).length,
+      loadedOutgoing: flattenLoadedCallNodes(this.callees.getRoots()).length,
+      incomingCache: this.callRepository.stats("incoming"),
+      outgoingCache: this.callRepository.stats("outgoing"),
+      callerEvidence: this.callRepository.microsoftCallerEvidenceStats(),
+      calleeEvidence: this.callRepository.microsoftCalleeEvidenceStats(),
+      session: this.callHierarchySessionState(),
+    };
+  }
+
+  expandCallHierarchyToDepth(
+    direction: "incoming" | "outgoing",
+    depth: number,
+  ): Promise<void> {
+    return this.expandCallHierarchy(direction, depth, false);
+  }
+
   async restoreCallHierarchyDepths(
     state: CallHierarchySessionState | undefined,
   ): Promise<void> {
@@ -1026,11 +1067,20 @@ export class ViewRegistry implements vscode.Disposable {
         continue;
       }
       const children = await provider.getChildren(node);
-      await view?.reveal(node, {
-        expand: true,
-        focus: false,
-        select: false,
-      });
+      if (node.callPath) {
+        this.expandedCallPaths[direction].add(node.callPath);
+      }
+      try {
+        await view?.reveal(node, {
+          expand: true,
+          focus: false,
+          select: false,
+        });
+      } catch {
+        // A concurrent root refresh can make VS Code temporarily unable to
+        // resolve an otherwise successfully loaded node. Keep the data and
+        // exact expansion path; reveal is presentation-only.
+      }
       queue.push(...children.filter((child) => child.callKey !== undefined));
     }
   }

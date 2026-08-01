@@ -42,6 +42,20 @@ interface CalleeProbe {
   };
 }
 
+interface CallInteractionState {
+  pinned: boolean;
+  pinnedSymbol?: string;
+  incomingRoots: string[];
+  outgoingRoots: string[];
+  loadedIncoming: number;
+  loadedOutgoing: number;
+  incomingCache: { hits: number; misses: number };
+  outgoingCache: { hits: number; misses: number };
+  callerEvidence: CallerProbe["evidence"];
+  calleeEvidence: CalleeProbe["evidence"];
+  session?: { incomingDepth: number; outgoingDepth: number };
+}
+
 export async function run(): Promise<void> {
   const engine = vscode.workspace.getConfiguration("cInsight");
   const microsoft = vscode.workspace.getConfiguration("cInsight.microsoft");
@@ -198,6 +212,77 @@ export async function run(): Promise<void> {
   assert.equal(callees.evidence.empty, 0);
   assert.equal(callees.evidence.callees, callees.callees);
   assert.ok(callees.evidence.maximumDurationMs > 0);
+
+  callerEditor.selection = new vscode.Selection(localPosition, localPosition);
+  await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
+  const initialHierarchy = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallInteractionState>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.outgoingRoots.some((name) => name.includes("decode_read"))
+      ? state
+      : undefined;
+  }, 30_000);
+  await vscode.commands.executeCommand("cInsight.pinCallHierarchy");
+  const dsFree = symbolPosition(document, "ds_free");
+  callerEditor.selection = new vscode.Selection(dsFree, dsFree);
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
+  const pinnedHierarchy = await vscode.commands.executeCommand<CallInteractionState>(
+    "cInsight.test.callHierarchyState",
+  );
+  assert.equal(pinnedHierarchy.pinned, true);
+  assert.deepEqual(pinnedHierarchy.outgoingRoots, initialHierarchy.outgoingRoots);
+
+  await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
+  const manuallyRefreshed = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallInteractionState>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.outgoingRoots.some((name) => name.includes("ds_free"))
+      ? state
+      : undefined;
+  }, 30_000);
+  assert.equal(manuallyRefreshed.pinned, true);
+  await vscode.commands.executeCommand("cInsight.unpinCallHierarchy");
+
+  callerEditor.selection = new vscode.Selection(localPosition, localPosition);
+  await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallInteractionState>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.outgoingRoots.some((name) => name.includes("decode_read")) &&
+      state.incomingRoots.some((name) => name.includes("decode_read"))
+      ? state
+      : undefined;
+  }, 30_000);
+  await vscode.commands.executeCommand(
+    "cInsight.test.expandCallHierarchy",
+    "outgoing",
+    1,
+  );
+  await vscode.commands.executeCommand(
+    "cInsight.test.expandCallHierarchy",
+    "incoming",
+    1,
+  );
+  const expanded = await vscode.commands.executeCommand<CallInteractionState>(
+    "cInsight.test.callHierarchyState",
+  );
+  console.log(`C Insight expanded hierarchy state: ${JSON.stringify(expanded)}`);
+  assert.ok(expanded.loadedOutgoing > expanded.outgoingRoots.length);
+  assert.ok(expanded.loadedIncoming > expanded.incomingRoots.length);
+  assert.ok((expanded.session?.outgoingDepth ?? 0) >= 1);
+  assert.ok((expanded.session?.incomingDepth ?? 0) >= 1);
+  assert.ok(expanded.outgoingCache.misses > 0);
+  assert.ok(expanded.incomingCache.misses > 0);
+
+  await vscode.commands.executeCommand("cInsight.test.invalidateCallHierarchy");
+  const invalidated = await vscode.commands.executeCommand<CallInteractionState>(
+    "cInsight.test.callHierarchyState",
+  );
+  assert.deepEqual(invalidated.outgoingCache, { hits: 0, misses: 0 });
+  assert.deepEqual(invalidated.incomingCache, { hits: 0, misses: 0 });
 
   const headerSymbol = symbolPosition(document, "DecodeContext");
   callerEditor.selection = new vscode.Selection(headerSymbol, headerSymbol);

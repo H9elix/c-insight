@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.14
+
+- Added strict Microsoft Call Hierarchy interaction regression coverage for
+  shared Callers/Callees Pin state, automatic-update blocking, explicit manual
+  refresh while pinned, and Unpin.
+- Added real FFmpeg depth-one Callers and Callees expansion checks, including
+  loaded-node depth/session evidence and independent incoming/outgoing caches.
+- Made programmatic expansion retain successfully loaded data and exact paths
+  when a concurrent tree-root refresh makes VS Code `reveal()` temporarily
+  unable to resolve the node.
+- Verified Call Hierarchy invalidation clears both request caches and evidence;
+  retained existing model coverage for loaded-node search, text/JSON/Mermaid
+  export, bounded path search, and workspace-session compatibility.
+
+
 ## 0.18.13
 
 - Added Microsoft Definition, Declaration, and References evidence counters for
