@@ -24,7 +24,8 @@ and tooltips without overwhelming the result label.
   0.18.1 adds the opt-in production adapter, 0.18.2 validates its effective
   configuration and known Provider conflicts, and 0.18.3 adds per-query
   performance observability; 0.18.4 contains cpptools Call Hierarchy load and
-  crash-containment improvements
+  crash-containment improvements; 0.18.5 decouples Code Preview and provides a
+  References-based Microsoft Callers fallback
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 
@@ -35,6 +36,10 @@ and `PRIVACY.md`.
 
 Microsoft-provider probe design, reproducible commands, results, and API
 boundaries are documented in `docs/microsoft-provider-probe.zh-CN.md`.
+The optional `npm run test:e2e:ffmpeg:microsoft` gate opens the workspace from
+`C_INSIGHT_FFMPEG_WORKSPACE` (default `/home/user/projects/FFmpeg`) in an
+isolated Extension Host and verifies cross-file Code Preview plus the safe
+References-based Callers path without invoking native Incoming Calls.
 
 ## MVP features
 

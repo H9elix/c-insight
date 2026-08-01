@@ -411,8 +411,8 @@ export class ViewRegistry implements vscode.Disposable {
         this.callTreeNode(root, "outgoing", [], 0),
       );
       this.callResultsStaleReason = undefined;
-      this.callers.setRoots(this.withCallPinBanner(callerRoots));
-      this.callees.setRoots(this.withCallPinBanner(calleeRoots));
+      this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
+      this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
       void this.expandDefaultDepth();
     }
   }
@@ -1089,8 +1089,32 @@ export class ViewRegistry implements vscode.Disposable {
     return calls.map((call) => this.analysis.callNode(call.to));
   }
 
-  private withCallPinBanner(roots: TreeNode[]): TreeNode[] {
+  private withCallPinBanner(
+    roots: TreeNode[],
+    direction: "incoming" | "outgoing",
+  ): TreeNode[] {
     const banners: TreeNode[] = [];
+    if (
+      direction === "incoming" &&
+      this.analysis.analysisEngine === "microsoft"
+    ) {
+      const mode = this.callRepository.incomingMode();
+      banners.push({
+        label: mode === "references"
+          ? "Microsoft Callers: References-based"
+          : mode === "native"
+            ? "Microsoft Callers: Native Provider"
+            : "Microsoft Callers: Disabled",
+        description: mode === "references"
+          ? "approximate · avoids native Incoming Calls"
+          : mode === "native"
+            ? "cpptools may be unstable for cross-file symbols"
+            : undefined,
+        icon: new vscode.ThemeIcon(
+          mode === "references" ? "shield" : mode === "native" ? "warning" : "circle-slash",
+        ),
+      });
+    }
     if (this.callHierarchyPinned) {
       banners.push({
         label: `Pinned: ${this.callHierarchyPinnedSymbol ?? "Call Hierarchy"}`,
@@ -1114,8 +1138,8 @@ export class ViewRegistry implements vscode.Disposable {
   private refreshCallPinBanners(): void {
     const callerRoots = this.callDataRoots(this.callers);
     const calleeRoots = this.callDataRoots(this.callees);
-    this.callers.setRoots(this.withCallPinBanner(callerRoots));
-    this.callees.setRoots(this.withCallPinBanner(calleeRoots));
+    this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
+    this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
   }
 
   private callDataRoots(provider: MutableTreeProvider): TreeNode[] {

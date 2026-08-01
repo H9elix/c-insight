@@ -332,6 +332,57 @@ export async function activate(
     engine,
     () => restoreWithProgress(),
   );
+  if (context.extensionMode === vscode.ExtensionMode.Test) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand("cInsight.test.previewState", () =>
+        views.preview.sessionState(),
+      ),
+      vscode.commands.registerCommand("cInsight.test.referenceBasedCallers", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !isCppDocument(editor.document)) return undefined;
+        const definitions = await analysis.definition(
+          editor.document.uri,
+          editor.selection.active,
+        );
+        const definition = definitions[0];
+        if (!definition) return { roots: 0, callers: 0 };
+        const wordRange = editor.document.getWordRangeAtPosition(
+          editor.selection.active,
+        );
+        const name = wordRange
+          ? editor.document.getText(wordRange)
+          : "function";
+        const roots = [analysis.callNode({
+          name,
+          kind: vscode.SymbolKind.Function,
+          uri: definition.uri.toString(),
+          range: {
+            start: {
+              line: definition.range.start.line,
+              character: definition.range.start.character,
+            },
+            end: {
+              line: definition.range.end.line,
+              character: definition.range.end.character,
+            },
+          },
+          selectionRange: {
+            start: {
+              line: definition.range.start.line,
+              character: definition.range.start.character,
+            },
+            end: {
+              line: definition.range.end.line,
+              character: definition.range.end.character,
+            },
+          },
+        })];
+        if (!roots[0]) return { roots: 0, callers: 0 };
+        const callers = await callRepository.incoming(roots[0]);
+        return { roots: roots.length, callers: callers.length };
+      }),
+    );
+  }
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "cInsight.relationshipGraph.show",
@@ -467,6 +518,11 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.callHierarchy")) {
         views.invalidateCallHierarchy();
         relationshipGraph.markStale("call hierarchy configuration changed");
+        controller.refresh();
+      }
+      if (event.affectsConfiguration("cInsight.microsoft.callersMode")) {
+        views.invalidateCallHierarchy();
+        relationshipGraph.markStale("Microsoft Callers mode changed");
         controller.refresh();
       }
       if (event.affectsConfiguration("cInsight.typeHierarchy")) {

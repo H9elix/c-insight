@@ -1,4 +1,4 @@
-# C Insight 0.18.4 使用手册
+# C Insight 0.18.5 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -367,10 +367,17 @@ References 有独立 Pin 状态。Pin 后：
 
 ### 4.4 Callers
 
-Callers 对应 clangd Incoming Calls，回答“哪些函数调用当前函数”。
+Callers 回答“哪些函数调用当前函数”。clangd 模式使用 Incoming Calls；Microsoft
+模式默认使用 References 和每个引用位置的 Document Symbols 推导其外层函数，
+避免部分 cpptools 版本在原生 Incoming Calls 中发生进程崩溃。
 
 树的根节点是当前函数。展开节点后加载它的上游调用者。函数节点下还会显示
 具体 Call Site，包含调用次数、文件、行号和源码片段。
+
+Microsoft References 回退结果会显示 `References-based` 提示。它属于近似结果：
+普通直接调用通常可以识别，但宏展开、函数指针以及 Provider 未返回的引用可能
+缺失。可将 `cInsight.microsoft.callersMode` 改为 `native` 使用 cpptools 原生
+Incoming Calls（已知对部分跨文件符号存在崩溃风险），或设为 `disabled` 禁用。
 
 可能出现的标签：
 
@@ -1091,6 +1098,7 @@ Test 运行模式。这些信息也会进入复制或导出的诊断报告，便
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
 | `cInsight.engine` | string | `"clangd"` | `"clangd"`、`"microsoft"` | 选择语义分析引擎；修改后必须 Reload Window |
+| `cInsight.microsoft.callersMode` | string | `"references"` | `"references"`、`"native"`、`"disabled"` | Microsoft 模式的 Callers 展开实现：References 近似回退、cpptools 原生 Incoming Calls 或禁用；不影响 clangd |
 | `cInsight.clangd.path` | string | `""` | 可执行文件路径 | 空值从 `PATH` 自动寻找 `clangd-22`、`clangd-21`、`clangd-20`、`clangd`；明确路径用于固定版本 |
 | `cInsight.clangd.arguments` | string[] | `[]` | 任意 clangd CLI 参数数组 | 附加在 C Insight 管理参数之后；错误或重复参数可能导致 clangd 启动失败 |
 | `cInsight.clangd.logLevel` | string | `"info"` | `"error"`、`"info"`、`"verbose"` | 控制传给 clangd 的日志等级 |

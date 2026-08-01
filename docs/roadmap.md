@@ -49,6 +49,9 @@ the results through Project Diagnostics and shareable reports.
 Version 0.18.4 serializes and demand-gates Microsoft Call Hierarchy work,
 invalidates Provider-owned hierarchy items after failures, and preserves the
 last successful Code Preview through transient Provider interruptions.
+Version 0.18.5 decouples Code Preview Definition completion from Context
+enrichment and defaults Microsoft Callers expansion to a References-based
+fallback, avoiding the confirmed cpptools Incoming Calls crash path.
 
 ## Deferred fourth phase
 

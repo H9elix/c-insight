@@ -6,6 +6,13 @@
   Hierarchy work so Code Preview updates as soon as its definition resolves.
 - Prevented repeated Context enrichment from duplicating the same Code Preview
   target in Navigation History.
+- Added a References-and-Document-Symbols Callers fallback as the safe default
+  for Microsoft mode, while retaining explicit `native` and `disabled` modes.
+- Removed eager native Incoming/Outgoing count queries from explicit Microsoft
+  hierarchy refreshes and labelled the active Callers evidence mode in the UI.
+- Added an isolated FFmpeg Microsoft Extension Host regression that verifies
+  cross-file Code Preview and the safe Callers path without native Incoming
+  Calls.
 
 
 ## 0.18.4

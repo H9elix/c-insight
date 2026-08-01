@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
-  "version": "0.18.4",
+  "version": "0.18.5",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -75,6 +75,7 @@
     "test:e2e:xvfb": "xvfb-run -a npm run test:e2e",
     "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
     "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
+    "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
     "package": "npm run build && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
@@ -1171,6 +1172,21 @@
           ],
           "default": "clangd",
           "description": "Semantic analysis engine. Changing this setting requires Reload Window."
+        },
+        "cInsight.microsoft.callersMode": {
+          "type": "string",
+          "enum": [
+            "references",
+            "native",
+            "disabled"
+          ],
+          "enumDescriptions": [
+            "Build approximate Callers from References and enclosing Document Symbols; avoids the cpptools native Incoming Calls path.",
+            "Use the cpptools native Incoming Calls Provider. This may crash some cpptools versions for cross-file symbols.",
+            "Disable Callers expansion in Microsoft engine mode."
+          ],
+          "default": "references",
+          "description": "Callers implementation used by the Microsoft C/C++ engine. clangd mode is unaffected."
         },
         "cInsight.clangd.path": {
           "type": "string",

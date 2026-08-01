@@ -253,6 +253,13 @@ export class ProjectDiagnostics implements vscode.Disposable {
                 "Managed by Microsoft C/C++; not exposed through the public Provider API",
                 "info",
               ),
+              detail(
+                "Callers mode",
+                vscode.workspace
+                  .getConfiguration("cInsight.microsoft")
+                  .get<string>("callersMode", "references"),
+                "shield",
+              ),
             ]
           : [
           detail(
