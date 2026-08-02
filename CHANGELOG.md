@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.13
+
+- Changed Document Symbols selection to open and reveal the symbol directly in
+  the main editor while preserving disclosure-arrow expansion for nested nodes.
+
 ## 0.19.12
 
 - Added Outline-style, theme-aware icons for Document Symbols and reused the

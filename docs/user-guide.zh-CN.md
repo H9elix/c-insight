@@ -302,8 +302,8 @@ Code Preview 是共享源码预览窗口，可显示：
 - 双击预览代码或代码区空白：在主编辑器中打开对应位置；行尾、行号区域或
   已加载代码上下方的空白会定位到对应或最近的已加载行。该跳转引起编辑器切换
   时会保留当前预览，不会因为落点暂时没有可解析符号而立即清空。
-- 在 References、Callers、Callees 或 Document Symbols 中单击位置节点：
-  更新 Code Preview，不主动移动主编辑器。
+- 在 References、Callers 或 Callees 中单击位置节点：更新 Code Preview，
+  不主动移动主编辑器。单击 Document Symbols 节点则直接在主编辑器中定位。
 - 在位置节点的右键菜单中选择 Open Location：在主编辑器中打开。
 
 ### Code Preview 工具栏
@@ -746,8 +746,8 @@ Document Symbols 显示活动文件的 clangd Document Symbols：
 - 变量
 - 其他 clangd 返回的符号
 
-支持 clangd 的层级结构。选择符号会更新 Code Preview。切换活动文件或修改
-当前文件后会重新查询。
+支持 clangd 的层级结构。单击符号名称会直接在主编辑器中打开并定位；具有子项
+的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
 
 命令 **Search Workspace Symbols** 会打开 Symbol Search 的实时搜索选择器。
 

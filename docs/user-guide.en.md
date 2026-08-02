@@ -25,6 +25,10 @@ or nearest rendered line in the editor. The resulting editor activation keeps
 the current preview instead of immediately clearing it. Pin buttons stop automatic
 cursor-driven replacement while explicit actions remain available.
 
+Document Symbols are an intentional exception to location previewing: clicking
+a symbol name opens and selects it directly in the main editor, while its
+disclosure arrow continues to expand nested symbols.
+
 ## Configuration and commands
 
 Open **Settings** and search for `C Insight` to see every setting, accepted

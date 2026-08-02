@@ -324,5 +324,6 @@
   "Display limit reached ({displayed} / {total})": "已达到显示上限（{displayed} / {total}）",
   "narrow filters or raise maximumDisplayedResults": "请缩小筛选范围或提高 maximumDisplayedResults",
   "Qualified name": "限定名",
-  "Type / signature": "类型 / 签名"
+  "Type / signature": "类型 / 签名",
+  "Open Location": "打开位置"
 }
