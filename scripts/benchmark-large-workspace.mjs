@@ -8,6 +8,8 @@ import {
 import { renderHierarchyExport } from "../dist/src/utils/hierarchyExport.js";
 import { enhanceReferenceClassification } from "../dist/src/views/referenceModel.js";
 import { expandPreviewRange } from "../dist/src/views/previewRange.js";
+import { parseIncludes } from "../dist/src/includeHierarchy/includeModel.js";
+import { boundWorkspaceSessionSnapshot } from "../dist/src/session/workspaceSessionModel.js";
 
 const scale = positiveNumber(process.env.C_INSIGHT_BENCHMARK_SCALE, 1);
 const strict = process.env.C_INSIGHT_BENCHMARK_STRICT !== "0";
@@ -119,6 +121,50 @@ run("preview-range-scroll", 750, () => {
     }
   }
   return { steps: previewSteps, expansions, range };
+});
+
+const includeLines = Math.floor(100_000 * scale);
+run("include-directive-scan", 1_000, () => {
+  const source = Array.from({ length: includeLines }, (_, index) =>
+    index % 4 === 0
+      ? `#include \"generated/header_${index}.h\"`
+      : index % 4 === 1
+        ? `/* #include <ignored_${index}.h> */`
+        : index % 4 === 2
+          ? `int value_${index}; // #include \"ignored.h\"`
+          : `# include <system_${index}.h>`,
+  ).join("\n");
+  const directives = parseIncludes(source);
+  return { lines: includeLines, directives: directives.length };
+});
+
+const historyEntries = Math.floor(50_000 * scale);
+run("workspace-session-bounding", 1_000, () => {
+  const entries = Array.from({ length: historyEntries }, (_, index) => ({
+    id: index + 1,
+    uri: `file:///benchmark/source_${index % 1_000}.cpp`,
+    range: {
+      start: { line: index, character: 0 },
+      end: { line: index, character: 5 },
+    },
+    mode: "reference",
+    title: `Symbol ${index}`,
+    source: "selection",
+    timestamp: index,
+  }));
+  const bounded = boundWorkspaceSessionSnapshot({
+    format: "c-insight-workspace-session",
+    version: 1,
+    savedAt: Date.now(),
+    engine: "clangd",
+    history: { entries, currentId: historyEntries, filter: "all" },
+  }, 1024 * 1024);
+  return {
+    inputEntries: historyEntries,
+    retainedEntries: bounded.snapshot.history?.entries.length ?? 0,
+    bytes: bounded.byteLength,
+    dropped: bounded.dropped,
+  };
 });
 
 const report = {

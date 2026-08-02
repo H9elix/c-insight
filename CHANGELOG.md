@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.20.2
+
+- Extended the large-workspace benchmark with 100,000-line Include scanning and
+  50,000-entry workspace-session bounding scenarios.
+
 ## 0.20.1
 
 - Fixed cancelled-before-start semantic requests remaining retained in the

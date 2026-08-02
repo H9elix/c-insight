@@ -39,6 +39,8 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 | `relationship-graph-build-snapshot` | 20,000 节点 | 稳定 ID、节点/边写入和快照 |
 | `hierarchy-json-export` | 10,000 节点 | 结构化层级及统计 JSON 导出 |
 | `preview-range-scroll` | 100,000 次 | Code Preview 双向增量范围计算 |
+| `include-directive-scan` | 100,000 行 | Include 注释过滤和指令提取 |
+| `workspace-session-bounding` | 50,000 条历史 | 会话 UTF-8 计量和确定性降级 |
 
 每个场景记录耗时、预算、预算结论、近似堆变化和结果计数。堆变化受 V8 GC
 时机影响，只用于趋势比较，不作为硬预算。
