@@ -75,4 +75,20 @@ describe("navigation visibility query demand", () => {
     assert.equal(hierarchy.incomingCount, false);
     assert.equal(hierarchy.outgoingCount, false);
   });
+
+  it("never requests a hidden detail relation across all visibility combinations", () => {
+    for (let mask = 0; mask < 32; mask += 1) {
+      const visibility = {
+        context: Boolean(mask & 1),
+        preview: Boolean(mask & 2),
+        references: Boolean(mask & 4),
+        callers: Boolean(mask & 8),
+        callees: Boolean(mask & 16),
+      };
+      const demand = cursorQueryDemand(visibility);
+      if (!visibility.references) assert.equal(demand.references, false);
+      if (!visibility.callers) assert.equal(demand.incomingCount, false);
+      if (!visibility.callees) assert.equal(demand.outgoingCount, false);
+    }
+  });
 });

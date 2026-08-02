@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.1
+
+- Fixed cancelled-before-start semantic requests remaining retained in the
+  scheduler queue during prolonged rapid cursor movement.
+- Added a 5,000-request cancellation stress test and exhaustive hidden-view
+  relationship-demand invariants.
+
 ## 0.20.0
 
 - Established the third-stage large-workspace baseline with repeatable core-model
