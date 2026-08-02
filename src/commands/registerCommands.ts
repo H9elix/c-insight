@@ -4,10 +4,7 @@ import { AnalysisService } from "../analysis/analysisService";
 import { AnalysisEngine } from "../analysis/analysisEngine";
 import { ClangdManager } from "../clangd/clangdManager";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
-import {
-  isCppDocument,
-  readConfiguration,
-} from "../configuration/configuration";
+import { isCppDocument } from "../configuration/configuration";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
@@ -29,6 +26,8 @@ import {
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 import type { CommandId } from "../ids";
+import { registerReferenceCommands } from "./referenceCommands";
+import { registerCallHierarchyCommands } from "./callHierarchyCommands";
 
 export interface CommandDependencies {
   manager: ClangdManager;
@@ -208,141 +207,8 @@ export function registerCommands(
     );
   });
 
-  register("cInsight.findReferences", async () => {
-    const target = activePosition();
-    if (!target) {
-      return;
-    }
-    views.referenceExplorer.loading();
-    try {
-      const [locations, definitions, declarations, callRoots] = await Promise.all([
-        analysis.references(
-          target.uri,
-          target.position,
-          readConfiguration().includeDeclarationInReferences,
-        ),
-        analysis.definition(target.uri, target.position),
-        analysis.declaration(target.uri, target.position),
-        analysis.prepareCallHierarchy(target.uri, target.position).catch(() => []),
-      ]);
-      views.updateReferences(
-        locations,
-        definitions,
-        declarations,
-        callRoots.length > 0,
-        callRoots[0]?.raw.name,
-        true,
-      );
-      await vscode.commands.executeCommand("cInsight.references.focus");
-    } catch (error) {
-      views.referencesFailed(error, true);
-    }
-  });
-
-  register("cInsight.references.search", () =>
-    views.referenceExplorer.promptSearch(),
-  );
-  register("cInsight.references.clearSearch", () =>
-    views.referenceExplorer.clearSearch(),
-  );
-  register("cInsight.references.groupBy", () =>
-    views.referenceExplorer.chooseGrouping(),
-  );
-  register("cInsight.references.scope", () =>
-    views.referenceExplorer.chooseScope(),
-  );
-  register("cInsight.references.filterEvidence", () =>
-    views.referenceExplorer.chooseEvidenceFilter(),
-  );
-  register("cInsight.references.loadMore", () =>
-    views.referenceExplorer.loadMore(),
-  );
-  register("cInsight.references.showAll", () =>
-    views.referenceExplorer.showAll(),
-  );
-  register("cInsight.references.copy", (value: unknown) =>
-    views.referenceExplorer.copyReference(value),
-  );
-  register("cInsight.references.copyAll", () =>
-    views.referenceExplorer.copyAll(),
-  );
-  register("cInsight.references.exportText", () =>
-    views.referenceExplorer.exportResults("text"),
-  );
-  register("cInsight.references.exportJson", () =>
-    views.referenceExplorer.exportResults("json"),
-  );
-  register("cInsight.references.openList", () =>
-    views.referenceExplorer.openResultList(),
-  );
-  register("cInsight.references.expandAll", () =>
-    views.referenceExplorer.expandAll(),
-  );
-  register("cInsight.references.collapseAll", () =>
-    views.referenceExplorer.collapseAll(),
-  );
-
-  register("cInsight.showIncomingCalls", async () => {
-    const target = activePosition();
-    if (target) {
-      await controller.resolveNow(target.uri, target.position, {
-        manualCallHierarchy: true,
-        manualCallDirection: "incoming",
-      });
-      await vscode.commands.executeCommand("cInsight.callers.focus");
-    }
-  });
-
-  register("cInsight.showOutgoingCalls", async () => {
-    const target = activePosition();
-    if (target) {
-      await controller.resolveNow(target.uri, target.position, {
-        manualCallHierarchy: true,
-        manualCallDirection: "outgoing",
-      });
-      await vscode.commands.executeCommand("cInsight.callees.focus");
-    }
-  });
-
-  register("cInsight.callers.expandToDepth", () =>
-    views.promptExpandCallHierarchy("incoming"),
-  );
-  register("cInsight.callees.expandToDepth", () =>
-    views.promptExpandCallHierarchy("outgoing"),
-  );
-  register("cInsight.callHierarchy.stopExpansion", () =>
-    views.stopCallExpansion(),
-  );
-  register("cInsight.callers.search", () =>
-    views.searchCallHierarchy("incoming"),
-  );
-  register("cInsight.callees.search", () =>
-    views.searchCallHierarchy("outgoing"),
-  );
-  register("cInsight.callers.findPath", () =>
-    views.findCallPath("incoming"),
-  );
-  register("cInsight.callees.findPath", () =>
-    views.findCallPath("outgoing"),
-  );
-  register("cInsight.callers.exportText", () =>
-    views.exportCallHierarchy("incoming", "text"),
-  );
-  register("cInsight.callers.exportJson", () =>
-    views.exportCallHierarchy("incoming", "json"),
-  );
-  register("cInsight.callees.exportText", () =>
-    views.exportCallHierarchy("outgoing", "text"),
-  );
-  register("cInsight.callees.exportJson", () =>
-    views.exportCallHierarchy("outgoing", "json"),
-  );
-  register("cInsight.callers.exportMermaid", () =>
-    views.exportCallHierarchy("incoming", "mermaid"),
-  );
-  register("cInsight.callees.exportMermaid", () =>
-    views.exportCallHierarchy("outgoing", "mermaid"),
-  );
+  registerReferenceCommands(register, analysis, views, activePosition);
+  registerCallHierarchyCommands(register, controller, views, activePosition);
 
   register("cInsight.pinContext", () => controller.pin());
   register("cInsight.unpinContext", () => controller.unpin());

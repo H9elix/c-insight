@@ -11,6 +11,8 @@
   runtime context keys, with drift detection in the quality gate.
 - Replaced the command-registration positional parameter list with a named
   dependency object to make activation wiring safer to extend and review.
+- Began the command-wiring decomposition with isolated References and Call
+  Hierarchy registrars sharing one typed registration boundary.
 
 ## 0.19.0
 
