@@ -842,31 +842,34 @@ async function handleMicrosoftStartupFailure(
   ) {
     const status = microsoftProviderStatus(resource);
     if (status.conflicts.includes(LLVM_CLANGD_EXTENSION_ID)) {
+      const disableLlvm = vscode.l10n.t("Disable LLVM clangd for This Workspace");
+      const openWorkspaceSettings = vscode.l10n.t("Open Workspace Settings");
       const action = await vscode.window.showErrorMessage(
-        "C Insight could not start the Microsoft analysis engine because the LLVM clangd extension is also enabled. " +
-          workspaceSettingTargetDescription(),
+        vscode.l10n.t("C Insight could not start the Microsoft analysis engine because the LLVM clangd extension is also enabled. {target}", {
+          target: workspaceSettingTargetDescription(),
+        }),
         ...(vscode.workspace.workspaceFolders?.length
-          ? ["Disable LLVM clangd for This Workspace"]
+          ? [disableLlvm]
           : []),
-        "Open Workspace Settings",
+        openWorkspaceSettings,
       );
-      if (action === "Disable LLVM clangd for This Workspace") {
+      if (action === disableLlvm) {
         try {
           await disableConflictingProviders(context, [
             LLVM_CLANGD_EXTENSION_ID,
           ]);
         } catch (writeError) {
           const followUp = await vscode.window.showErrorMessage(
-            `C Insight could not update clangd.enable in Workspace settings: ${String(writeError)}`,
-            "Open Workspace Settings",
+            vscode.l10n.t("C Insight could not update clangd.enable in Workspace settings: {error}", { error: String(writeError) }),
+            openWorkspaceSettings,
           );
-          if (followUp === "Open Workspace Settings") {
+          if (followUp === openWorkspaceSettings) {
             await vscode.commands.executeCommand(
               "workbench.action.openWorkspaceSettingsFile",
             );
           }
         }
-      } else if (action === "Open Workspace Settings") {
+      } else if (action === openWorkspaceSettings) {
         await vscode.commands.executeCommand(
           "workbench.action.openWorkspaceSettingsFile",
         );
@@ -977,37 +980,42 @@ async function warnAboutConflicts(
     promptState.warned.add(fingerprint);
   }
   try {
+    const disableWorkspace = vscode.l10n.t("Disable for This Workspace");
+    const openSettings = vscode.l10n.t("Open Settings");
+    const ignoreWorkspace = vscode.l10n.t("Ignore for Workspace");
     const action = await vscode.window.showWarningMessage(
-      `C Insight detected enabled C/C++ providers (${conflicts.join(", ")}). This may cause duplicate navigation results and indexing. ` +
-        workspaceSettingTargetDescription(),
+      vscode.l10n.t("C Insight detected enabled C/C++ providers ({providers}). This may cause duplicate navigation results and indexing. {target}", {
+        providers: conflicts.join(", "),
+        target: workspaceSettingTargetDescription(),
+      }),
       ...(vscode.workspace.workspaceFolders?.length
-        ? ["Disable for This Workspace"]
+        ? [disableWorkspace]
         : []),
-      "Open Settings",
-      "Ignore for Workspace",
+      openSettings,
+      ignoreWorkspace,
     );
-    if (action === "Disable for This Workspace") {
+    if (action === disableWorkspace) {
       try {
         await disableConflictingProviders(context, conflicts);
       } catch (error) {
         const followUp = await vscode.window.showErrorMessage(
-          `C Insight could not update the workspace Provider settings: ${String(error)}`,
-          "Open Workspace Settings",
+          vscode.l10n.t("C Insight could not update the workspace Provider settings: {error}", { error: String(error) }),
+          vscode.l10n.t("Open Workspace Settings"),
         );
-        if (followUp === "Open Workspace Settings") {
+        if (followUp === vscode.l10n.t("Open Workspace Settings")) {
           await vscode.commands.executeCommand(
             "workbench.action.openWorkspaceSettingsFile",
           );
         }
       }
-    } else if (action === "Open Settings") {
+    } else if (action === openSettings) {
       await vscode.commands.executeCommand(
         "workbench.action.openSettings",
         conflicts.includes(MICROSOFT_CPP_EXTENSION_ID)
           ? "C_Cpp.intelliSenseEngine"
           : "clangd.enable",
       );
-    } else if (action === "Ignore for Workspace") {
+    } else if (action === ignoreWorkspace) {
       await context.workspaceState.update("ignoredProviderConflict", true);
     }
   } finally {

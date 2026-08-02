@@ -143,7 +143,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     } catch (error) {
       if (!cancellation.token.isCancellationRequested) {
         void vscode.window.showErrorMessage(
-          `C Insight: Failed to prepare Call Graph: ${String(error)}`,
+          vscode.l10n.t("C Insight: Failed to prepare Call Graph: {error}", { error: String(error) }),
         );
       }
       return;
@@ -158,7 +158,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         typeRoots = await this.typeRepository.prepare(uri, position);
       } catch (error) {
         void vscode.window.showErrorMessage(
-          `C Insight: Failed to prepare Type Graph: ${String(error)}`,
+          vscode.l10n.t("C Insight: Failed to prepare Type Graph: {error}", { error: String(error) }),
         );
         return;
       }
@@ -166,7 +166,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     if (callRoots.length === 0 && typeRoots.length === 0) {
       this.showFile(uri);
       void vscode.window.showInformationMessage(
-        "C Insight: No callable symbol or type at the cursor; the graph uses the active file as its root.",
+        vscode.l10n.t("C Insight: No callable symbol or type at the cursor; the graph uses the active file as its root."),
       );
       return;
     }
@@ -560,14 +560,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     if (this.model.snapshot().staleReason) {
       void vscode.window.showInformationMessage(
-        "C Insight: The Relationship Graph is stale. Run Show Relationship Graph again before expanding it.",
+        vscode.l10n.t("C Insight: The Relationship Graph is stale. Run Show Relationship Graph again before expanding it."),
       );
       return false;
     }
     const depth = this.nodeDepth.get(nodeId) ?? 0;
     if (depth >= this.maximumDepth) {
       void vscode.window.showInformationMessage(
-        `C Insight: Relationship Graph maximum depth ${this.maximumDepth} reached.`,
+        vscode.l10n.t("C Insight: Relationship Graph maximum depth {depth} reached.", { depth: this.maximumDepth }),
       );
       return false;
     }
@@ -628,7 +628,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         };
         await this.publish();
         void vscode.window.showErrorMessage(
-          `C Insight: Call Graph expansion failed: ${String(error)}`,
+          vscode.l10n.t("C Insight: Call Graph expansion failed: {error}", { error: String(error) }),
         );
       }
     } finally {
@@ -1019,8 +1019,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       return;
     }
     const value = await vscode.window.showInputBox({
-      title: `Expand ${isCall ? "Call" : isType ? "Type" : "Include"} Graph to Depth`,
-      prompt: `Load ${isCall ? "callers and callees" : isType ? "supertypes and subtypes" : "includes and included by"} from the selected node (maximum ${this.maximumDepth})`,
+      title: vscode.l10n.t("Expand {kind} Graph to Depth", { kind: isCall ? vscode.l10n.t("Call") : isType ? vscode.l10n.t("Type") : vscode.l10n.t("Include") }),
+      prompt: vscode.l10n.t("Load related nodes from the selected node (maximum {maximum})", { maximum: this.maximumDepth }),
       value: String(Math.min(2, this.maximumDepth)),
       validateInput: (input) => {
         const depth = Number(input);
@@ -1028,7 +1028,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
           depth >= 1 &&
           depth <= this.maximumDepth
           ? undefined
-          : `Enter an integer from 1 to ${this.maximumDepth}`;
+          : vscode.l10n.t("Enter an integer from 1 to {maximum}", { maximum: this.maximumDepth });
       },
     });
     if (!value) {
@@ -1621,7 +1621,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         nodeId: node.id,
       })),
       {
-        title: "Search Loaded Relationship Graph Nodes",
+        title: vscode.l10n.t("Search Loaded Relationship Graph Nodes"),
         matchOnDescription: true,
         matchOnDetail: true,
       },
@@ -1654,22 +1654,22 @@ export class RelationshipGraphPanel implements vscode.Disposable {
           ? [
               {
                 label: typeNode
-                  ? "$(type-hierarchy-super) Expand Supertypes"
+                  ? vscode.l10n.t("$(type-hierarchy-super) Expand Supertypes")
                   : includeNode
-                    ? "$(references) Expand Included By"
-                    : "$(references) Expand Callers",
+                    ? vscode.l10n.t("$(references) Expand Included By")
+                    : vscode.l10n.t("$(references) Expand Callers"),
                 value: "incoming",
               },
               {
                 label: typeNode
-                  ? "$(type-hierarchy-sub) Expand Subtypes"
+                  ? vscode.l10n.t("$(type-hierarchy-sub) Expand Subtypes")
                   : includeNode
-                    ? "$(files) Expand Includes"
-                    : "$(references) Expand Callees",
+                    ? vscode.l10n.t("$(files) Expand Includes")
+                    : vscode.l10n.t("$(references) Expand Callees"),
                 value: "outgoing",
               },
               {
-                label: "$(layers) Expand to Depth…",
+                label: vscode.l10n.t("$(layers) Expand to Depth…"),
                 value: "depth",
               },
             ]
@@ -1677,7 +1677,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         ...(!includeNode && node.kind !== "unresolved"
           ? [
               {
-                label: "$(file-code) Add Defining File",
+                label: vscode.l10n.t("$(file-code) Add Defining File"),
                 value: "definingFile",
               },
             ]
@@ -1685,7 +1685,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         ...(typeNode
           ? [
               {
-                label: "$(symbol-method) Add Type Members",
+                label: vscode.l10n.t("$(symbol-method) Add Type Members"),
                 value: "members",
               },
             ]
@@ -1693,14 +1693,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         ...(callNode
           ? [
               {
-                label: "$(symbol-class) Add Containing Type",
+                label: vscode.l10n.t("$(symbol-class) Add Containing Type"),
                 value: "containingType",
               },
             ]
           : []),
-        { label: "$(bookmark) Add Bookmark", value: "bookmark" },
-        { label: "$(go-to-file) Open Location", value: "open" },
-        { label: "$(target) Focus Node", value: "focus" },
+        { label: vscode.l10n.t("$(bookmark) Add Bookmark"), value: "bookmark" },
+        { label: vscode.l10n.t("$(go-to-file) Open Location"), value: "open" },
+        { label: vscode.l10n.t("$(target) Focus Node"), value: "focus" },
       ],
       { title: node.name },
     );
@@ -1753,11 +1753,11 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private async chooseExport(): Promise<void> {
     const format = await vscode.window.showQuickPick(
       [
-        { label: "Text", value: "text" as const },
+        { label: vscode.l10n.t("Text"), value: "text" as const },
         { label: "JSON", value: "json" as const },
         { label: "Mermaid", value: "mermaid" as const },
       ],
-      { title: "Export Loaded Relationship Graph" },
+      { title: vscode.l10n.t("Export Loaded Relationship Graph") },
     );
     if (format) {
       await this.exportGraph(format.value);
@@ -1767,14 +1767,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   async exportGraph(format: "text" | "json" | "mermaid"): Promise<void> {
     if (!this.panel) {
       void vscode.window.showInformationMessage(
-        "C Insight: Open a Relationship Graph before exporting.",
+        vscode.l10n.t("C Insight: Open a Relationship Graph before exporting."),
       );
       return;
     }
     const extension =
       format === "json" ? "json" : format === "mermaid" ? "md" : "txt";
     const uri = await vscode.window.showSaveDialog({
-      title: `Export Relationship Graph as ${format}`,
+      title: vscode.l10n.t("Export Relationship Graph as {format}", { format }),
       filters: { [format]: [extension] },
       defaultUri: vscode.Uri.joinPath(
         vscode.workspace.workspaceFolders?.[0]?.uri ??
@@ -1794,7 +1794,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
           : renderGraphText(snapshot);
     await writeExportWithinBudget(uri, content);
     void vscode.window.showInformationMessage(
-      `C Insight: Relationship Graph exported to ${uri.fsPath}`,
+      vscode.l10n.t("C Insight: Relationship Graph exported to {path}", { path: uri.fsPath }),
     );
   }
 
@@ -1943,13 +1943,13 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private canExpand(nodeId: string): boolean {
     if (this.model.snapshot().staleReason) {
       void vscode.window.showInformationMessage(
-        "C Insight: The Relationship Graph is stale. Run Show Relationship Graph again before expanding it.",
+        vscode.l10n.t("C Insight: The Relationship Graph is stale. Run Show Relationship Graph again before expanding it."),
       );
       return false;
     }
     if ((this.nodeDepth.get(nodeId) ?? 0) >= this.maximumDepth) {
       void vscode.window.showInformationMessage(
-        `C Insight: Relationship Graph maximum depth ${this.maximumDepth} reached.`,
+        vscode.l10n.t("C Insight: Relationship Graph maximum depth {depth} reached.", { depth: this.maximumDepth }),
       );
       return false;
     }
