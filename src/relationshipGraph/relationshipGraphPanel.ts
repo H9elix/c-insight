@@ -2282,6 +2282,30 @@ function isCanvasViewport(
 
 function graphHtml(): string {
   const nonce = randomNonce();
+  const labels = {
+    expandCallers: vscode.l10n.t("Expand Callers"),
+    expandCallees: vscode.l10n.t("Expand Callees"),
+    expandSupertypes: vscode.l10n.t("Expand Supertypes"),
+    expandSubtypes: vscode.l10n.t("Expand Subtypes"),
+    expandIncludedBy: vscode.l10n.t("Expand Included By"),
+    expandIncludes: vscode.l10n.t("Expand Includes"),
+    expandDepth: vscode.l10n.t("Expand to Depth"),
+    stop: vscode.l10n.t("Stop"),
+    search: vscode.l10n.t("Search"),
+    export: vscode.l10n.t("Export"),
+    fit: vscode.l10n.t("Fit"),
+    reset: vscode.l10n.t("Reset Layout"),
+    collapse: vscode.l10n.t("Collapse Branch"),
+    expandBranch: vscode.l10n.t("Expand Branch"),
+    call: vscode.l10n.t("Call"),
+    inheritance: vscode.l10n.t("Inheritance"),
+    include: vscode.l10n.t("Include"),
+    definition: vscode.l10n.t("Definition"),
+    waiting: vscode.l10n.t("Waiting for graph…"),
+    aria: vscode.l10n.t("C Insight Relationship Graph"),
+    empty: vscode.l10n.t("Run C Insight: Show Relationship Graph from a local C/C++ file."),
+  };
+  const scriptLabels = JSON.stringify(labels).replaceAll("<", "\\u003c");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2325,30 +2349,31 @@ function graphHtml(): string {
 </head>
 <body>
   <div id="toolbar">
-    <button id="callers">Expand Callers</button>
-    <button id="callees">Expand Callees</button>
-    <button id="depth">Expand to Depth</button>
-    <button id="stop">Stop</button>
-    <button id="search">Search</button>
-    <button id="export">Export</button>
-    <button id="fit">Fit</button>
-    <button id="reset">Reset Layout</button>
-    <button id="collapse">Collapse Branch</button>
-    <button id="uncollapse">Expand Branch</button>
-    <button class="relation active" data-relation="calls">Call</button>
-    <button class="relation active" data-relation="inherits">Inheritance</button>
-    <button class="relation active" data-relation="includes">Include</button>
-    <button class="relation active" data-relation="defines">Definition</button>
-    <span id="legend"><span><i class="legend-line legend-call"></i>Call</span><span><i class="legend-line legend-inherits"></i>Inheritance</span><span><i class="legend-line legend-includes"></i>Include</span><span><i class="legend-line legend-defines"></i>Definition</span></span>
-    <span id="status" role="status" aria-live="polite">Waiting for graph…</span>
+    <button id="callers">${labels.expandCallers}</button>
+    <button id="callees">${labels.expandCallees}</button>
+    <button id="depth">${labels.expandDepth}</button>
+    <button id="stop">${labels.stop}</button>
+    <button id="search">${labels.search}</button>
+    <button id="export">${labels.export}</button>
+    <button id="fit">${labels.fit}</button>
+    <button id="reset">${labels.reset}</button>
+    <button id="collapse">${labels.collapse}</button>
+    <button id="uncollapse">${labels.expandBranch}</button>
+    <button class="relation active" data-relation="calls">${labels.call}</button>
+    <button class="relation active" data-relation="inherits">${labels.inheritance}</button>
+    <button class="relation active" data-relation="includes">${labels.include}</button>
+    <button class="relation active" data-relation="defines">${labels.definition}</button>
+    <span id="legend"><span><i class="legend-line legend-call"></i>${labels.call}</span><span><i class="legend-line legend-inherits"></i>${labels.inheritance}</span><span><i class="legend-line legend-includes"></i>${labels.include}</span><span><i class="legend-line legend-defines"></i>${labels.definition}</span></span>
+    <span id="status" role="status" aria-live="polite">${labels.waiting}</span>
   </div>
-  <svg id="canvas" role="application" aria-label="C Insight Relationship Graph">
+  <svg id="canvas" role="application" aria-label="${labels.aria}">
     <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="context-stroke"/></marker></defs>
     <g id="viewport"><g id="edges"></g><g id="nodes"></g></g>
   </svg>
-  <div id="empty">Run C Insight: Show Relationship Graph from a local C/C++ file.</div>
+  <div id="empty">${labels.empty}</div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    const labels = ${scriptLabels};
     const svg = document.getElementById('canvas');
     const viewport = document.getElementById('viewport');
     const edgeLayer = document.getElementById('edges');
@@ -2425,8 +2450,8 @@ function graphHtml(): string {
       const selectedNode = graph.nodes.find(node => node.id === selected);
       const isType = selectedNode?.capabilities?.includes('inherits');
       const isInclude = selectedNode?.capabilities?.includes('includes');
-      document.getElementById('callers').textContent = isType ? 'Expand Supertypes' : isInclude ? 'Expand Included By' : 'Expand Callers';
-      document.getElementById('callees').textContent = isType ? 'Expand Subtypes' : isInclude ? 'Expand Includes' : 'Expand Callees';
+      document.getElementById('callers').textContent = isType ? labels.expandSupertypes : isInclude ? labels.expandIncludedBy : labels.expandCallers;
+      document.getElementById('callees').textContent = isType ? labels.expandSubtypes : isInclude ? labels.expandIncludes : labels.expandCallees;
       document.getElementById('callers').disabled = !selectedNode?.capabilities?.length;
       document.getElementById('callees').disabled = !selectedNode?.capabilities?.length;
       document.getElementById('depth').disabled = !selectedNode?.capabilities?.length;

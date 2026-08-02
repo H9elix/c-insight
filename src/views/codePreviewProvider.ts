@@ -849,31 +849,31 @@ async function openEditor(
 function previewModeLabel(mode: PreviewMode): string {
   switch (mode) {
     case "definition":
-      return "Definition";
+      return vscode.l10n.t("Definition");
     case "declaration":
-      return "Declaration";
+      return vscode.l10n.t("Declaration");
     case "reference":
-      return "Reference";
+      return vscode.l10n.t("Reference");
     case "caller":
-      return "Caller";
+      return vscode.l10n.t("Caller");
     case "callee-definition":
-      return "Callee Definition";
+      return vscode.l10n.t("Callee Definition");
     case "callee-call-site":
-      return "Callee Call Site";
+      return vscode.l10n.t("Callee Call Site");
   }
 }
 
 function emptyHtml(): string {
   return staticHtml(
-    "Code Preview",
+    vscode.l10n.t("Code Preview"),
     "",
-    '<p class="empty">Move the cursor to a symbol or select a code location.</p>',
+    `<p class="empty">${escapeHtml(vscode.l10n.t("Move the cursor to a symbol or select a code location."))}</p>`,
   );
 }
 
 function errorHtml(error: string): string {
   return staticHtml(
-    "Code Preview",
+    vscode.l10n.t("Code Preview"),
     "",
     `<p class="error">${escapeHtml(error)}</p>`,
   );
@@ -918,6 +918,26 @@ function htmlDocument(
   },
 ): string {
   const scriptPolicy = nonce ? ` script-src 'nonce-${nonce}';` : "";
+  const text = {
+    back: escapeHtml(vscode.l10n.t("Back")),
+    forward: escapeHtml(vscode.l10n.t("Forward")),
+    lock: escapeHtml(vscode.l10n.t("Lock preview")),
+    unlock: escapeHtml(vscode.l10n.t("Unlock preview")),
+    copyCode: escapeHtml(vscode.l10n.t("Copy selected text or preview code")),
+    copyPath: escapeHtml(vscode.l10n.t("Copy file path and line")),
+    path: escapeHtml(vscode.l10n.t("Path")),
+    open: escapeHtml(vscode.l10n.t("Open current preview in editor")),
+  };
+  const scriptText = JSON.stringify({
+    completeFile: vscode.l10n.t("Complete file"),
+    startOfFile: vscode.l10n.t("Start of file"),
+    endOfFile: vscode.l10n.t("End of file"),
+    scrollForMore: vscode.l10n.t("Scroll for more context"),
+    lines: vscode.l10n.t("Lines"),
+    loadingEarlier: vscode.l10n.t("Loading earlier source lines…"),
+    loadingLater: vscode.l10n.t("Loading later source lines…"),
+    sourceLoadingFailed: vscode.l10n.t("Source loading failed: "),
+  }).replaceAll("<", "\\u003c");
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -1032,12 +1052,12 @@ function htmlDocument(
     <div class="heading">
       <div class="title">${title}</div>
       <div class="controls">
-        <button data-action="back" title="Back"${controls.back ? "" : " disabled"}>←</button>
-        <button data-action="forward" title="Forward"${controls.forward ? "" : " disabled"}>→</button>
-        <button data-action="toggleLock" title="${controls.locked ? "Unlock preview" : "Lock preview"}" class="${controls.locked ? "locked" : ""}">⌖</button>
-        <button data-action="copyCode" title="Copy selected text or preview code">⧉</button>
-        <button data-action="copyPath" title="Copy file path and line">Path</button>
-        <button data-action="openCurrent" title="Open current preview in editor">↗</button>
+        <button data-action="back" title="${text.back}"${controls.back ? "" : " disabled"}>←</button>
+        <button data-action="forward" title="${text.forward}"${controls.forward ? "" : " disabled"}>→</button>
+        <button data-action="toggleLock" title="${controls.locked ? text.unlock : text.lock}" class="${controls.locked ? "locked" : ""}">⌖</button>
+        <button data-action="copyCode" title="${text.copyCode}">⧉</button>
+        <button data-action="copyPath" title="${text.copyPath}">${text.path}</button>
+        <button data-action="openCurrent" title="${text.open}">↗</button>
       </div>
     </div>
     <div class="location">${location}</div>
@@ -1046,6 +1066,7 @@ function htmlDocument(
   <div class="load-status" aria-live="polite"></div>
   ${nonce ? `<script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    const text = ${scriptText};
     let clickTimer;
     let loadingMore = false;
     let pendingDirection;
@@ -1067,14 +1088,14 @@ function htmlDocument(
       }
       const boundary =
         !hasBefore && !hasAfter
-          ? 'Complete file'
+          ? text.completeFile
           : !hasBefore
-            ? 'Start of file'
+            ? text.startOfFile
             : !hasAfter
-              ? 'End of file'
-              : 'Scroll for more context';
+              ? text.endOfFile
+              : text.scrollForMore;
       loadStatus.textContent =
-        'Lines ' + (startLine + 1) + '–' + (endLine + 1) +
+        text.lines + ' ' + (startLine + 1) + '–' + (endLine + 1) +
         ' / ' + totalLines + ' · ' + boundary;
     }
     function requestMore(direction) {
@@ -1087,8 +1108,8 @@ function htmlDocument(
       loadingMore = true;
       updateLoadStatus(
         direction === 'before'
-          ? 'Loading earlier source lines…'
-          : 'Loading later source lines…'
+          ? text.loadingEarlier
+          : text.loadingLater
       );
       vscode.postMessage({ type: 'loadMore', direction });
     }
@@ -1142,7 +1163,7 @@ function htmlDocument(
       if (!message || message.type !== 'incrementalLines' || !codeContainer) return;
       if (message.error) {
         loadingMore = false;
-        updateLoadStatus('Source loading failed: ' + message.error, true);
+        updateLoadStatus(text.sourceLoadingFailed + message.error, true);
         pendingDirection = undefined;
         return;
       }
