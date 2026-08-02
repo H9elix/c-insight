@@ -1,4 +1,3 @@
-import * as path from "node:path";
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
 import { AnalysisEngine } from "../analysis/analysisEngine";
@@ -7,10 +6,7 @@ import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
-import {
-  NavigationHistoryEntry,
-  NavigationSource,
-} from "../history/navigationHistoryModel";
+import { NavigationSource } from "../history/navigationHistoryModel";
 import { LocationResult } from "../models/types";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
@@ -22,6 +18,8 @@ import type { CommandId } from "../ids";
 import { registerReferenceCommands } from "./referenceCommands";
 import { registerCallHierarchyCommands } from "./callHierarchyCommands";
 import { registerHierarchyCommands } from "./hierarchyCommands";
+import { registerDiagnosticCommands } from "./diagnosticCommands";
+import { registerWorkspaceToolCommands } from "./workspaceToolCommands";
 
 export interface CommandDependencies {
   manager: ClangdManager;
@@ -217,112 +215,14 @@ export function registerCommands(
     controller.refresh();
   });
   register("cInsight.refresh", () => controller.refresh(true));
-  register("cInsight.diagnostics.refresh", () => projectDiagnostics.refresh());
-  register("cInsight.openProjectDiagnostics", () =>
-    vscode.commands.executeCommand("cInsight.status.focus"),
-  );
-  register("cInsight.diagnostics.showClangdLog", () => manager.showLog());
-  register("cInsight.diagnostics.copyReport", () =>
-    projectDiagnostics.copyReport("text"),
-  );
-  register("cInsight.diagnostics.exportText", () =>
-    projectDiagnostics.exportReport("text"),
-  );
-  register("cInsight.diagnostics.exportJson", () =>
-    projectDiagnostics.exportReport("json"),
-  );
-  register("cInsight.index.refresh", () =>
-    vscode.commands.executeCommand("cInsight.restartClangd"),
-  );
-  register("cInsight.diagnostics.selectCompilationDatabase", async () => {
-    const selected = await vscode.window.showOpenDialog({
-      title: vscode.l10n.t("Select compile_commands.json"),
-      canSelectFiles: true,
-      canSelectFolders: false,
-      canSelectMany: false,
-      filters: { JSON: ["json"] },
-    });
-    if (!selected?.[0]) {
-      return;
-    }
-    if (path.basename(selected[0].fsPath) !== "compile_commands.json") {
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("C Insight: Select a file named compile_commands.json."),
-      );
-      return;
-    }
-    const directory = path.dirname(selected[0].fsPath);
-    await vscode.workspace
-      .getConfiguration("cInsight")
-      .update(
-        "compileCommandsDir",
-        directory,
-        vscode.ConfigurationTarget.Workspace,
-      );
-  });
-  register("cInsight.diagnostics.clearCompilationDatabase", async () => {
-    await vscode.workspace
-      .getConfiguration("cInsight")
-      .update(
-        "compileCommandsDir",
-        "",
-        vscode.ConfigurationTarget.Workspace,
-      );
-  });
-  register("cInsight.history.preview", async (value: unknown) => {
-    const entry = value as NavigationHistoryEntry;
-    const selected = navigationHistory.select(entry.id);
-    if (!selected) {
-      return;
-    }
-    await views.preview.showLocation(
-      navigationHistory.entryLocation(selected),
-      selected.mode,
-      selected.title,
-      "history",
-    );
-  });
-  register("cInsight.history.filter", () => navigationHistory.chooseFilter());
-  register("cInsight.history.clear", () => navigationHistory.clear());
-  register("cInsight.bookmarks.addCurrent", () => bookmarks.addCurrent());
-  register("cInsight.bookmarks.add", (value: unknown) =>
-    bookmarks.addNode(value),
-  );
-  register("cInsight.bookmarks.rename", (value: unknown) =>
-    bookmarks.rename(value),
-  );
-  register("cInsight.bookmarks.changeGroup", (value: unknown) =>
-    bookmarks.changeGroup(value),
-  );
-  register("cInsight.bookmarks.delete", (value: unknown) =>
-    bookmarks.remove(value),
-  );
-  register("cInsight.bookmarks.refresh", () => bookmarks.refresh());
-  register("cInsight.bookmarks.search", () => bookmarks.search());
-  register("cInsight.bookmarks.clearSearch", () => bookmarks.clearSearch());
-  register("cInsight.bookmarks.sort", () => bookmarks.chooseSort());
-  register("cInsight.bookmarks.import", () => bookmarks.importBookmarks());
-  register("cInsight.bookmarks.export", (value: unknown) =>
-    bookmarks.exportBookmarks(value),
-  );
-  register("cInsight.bookmarks.renameGroup", (value: unknown) =>
-    bookmarks.renameGroup(value),
-  );
-  register("cInsight.bookmarks.deleteGroup", (value: unknown) =>
-    bookmarks.deleteGroup(value),
-  );
-  register("cInsight.session.restore", async () => {
-    if (!(await restoreWorkspaceSession())) {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t("C Insight: No saved workspace session is available."),
-      );
-    }
-  });
-  register("cInsight.session.clear", async () => {
-    await workspaceSession.clear();
-    void vscode.window.showInformationMessage(
-      vscode.l10n.t("C Insight: Saved workspace session cleared. Autosave is paused until this window closes."),
-    );
+  registerDiagnosticCommands(register, manager, projectDiagnostics);
+  registerWorkspaceToolCommands(register, {
+    history: navigationHistory,
+    bookmarks,
+    symbolSearch,
+    workspaceSession,
+    views,
+    restoreWorkspaceSession,
   });
   registerHierarchyCommands(register, typeHierarchy, includeHierarchy, activePosition);
 
@@ -349,13 +249,6 @@ export function registerCommands(
     }
   });
 
-  register("cInsight.searchSymbols", () => symbolSearch.openSearch());
-  register("cInsight.symbolSearch.refresh", () => symbolSearch.refresh());
-  register("cInsight.symbolSearch.clear", () => symbolSearch.clear());
-  register("cInsight.symbolSearch.groupBy", () => symbolSearch.chooseGrouping());
-  register("cInsight.symbolSearch.filterKinds", () =>
-    symbolSearch.chooseKinds(),
-  );
 }
 
 function activePosition():
