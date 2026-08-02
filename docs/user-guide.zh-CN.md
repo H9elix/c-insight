@@ -1627,6 +1627,10 @@ Code Preview、References-based Callers、原生 Callees、Pin/Unpin、懒加载
 资源证据；完整环境、结果及公开 API 边界见
 `docs/microsoft-engine-acceptance.zh-CN.md`。
 
+所有 Extension Host 测试都使用进程级隔离的临时用户数据与扩展目录，因此可以在
+日常 VS Code 已打开时运行，不会读取或改写用户配置，也不会与现有窗口竞争实例锁。
+第三阶段最终复验结果见 `docs/third-phase-acceptance.zh-CN.md`。
+
 ## 14. 功能与窗口矩阵
 
 | 功能/窗口 | 数据来源 | 自动更新 | Pin/Lock | 搜索 | 展开 | 导出 | Code Preview |

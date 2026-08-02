@@ -1,6 +1,7 @@
 import { accessSync } from "node:fs";
 import * as path from "node:path";
 import { runTests } from "@vscode/test-electron";
+import { isolatedTestLaunchArgs } from "./testLaunchArgs";
 
 async function main(): Promise<void> {
   const project = path.resolve(__dirname, "../../..");
@@ -34,12 +35,9 @@ async function main(): Promise<void> {
         process.env.C_INSIGHT_MICROSOFT_PROBE_OUTPUT ??
         "/tmp/c-insight-microsoft-provider-probe.json",
     },
-    launchArgs: [
+    launchArgs: isolatedTestLaunchArgs(
       path.join(project, "test", "fixtures", "basic-cpp"),
-      "--disable-extensions",
-      "--disable-gpu",
-      "--no-sandbox",
-    ],
+    ),
   });
 }
 

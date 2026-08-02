@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import { runTests } from "@vscode/test-electron";
+import { isolatedTestLaunchArgs } from "./testLaunchArgs";
 
 async function main(): Promise<void> {
   const extensionDevelopmentPath = path.resolve(__dirname, "../../..");
@@ -31,12 +32,7 @@ async function main(): Promise<void> {
       process.env.C_INSIGHT_VSCODE_EXECUTABLE_PATH || undefined,
     extensionDevelopmentPath,
     extensionTestsPath,
-    launchArgs: [
-      fixturePath,
-      "--disable-extensions",
-      "--disable-gpu",
-      "--no-sandbox",
-    ],
+    launchArgs: isolatedTestLaunchArgs(fixturePath),
   });
 }
 
