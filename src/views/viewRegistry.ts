@@ -52,6 +52,7 @@ import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
+import { ViewLifecycle } from "./viewLifecycle";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -62,12 +63,9 @@ export class ViewRegistry implements vscode.Disposable {
   readonly symbols = new MutableTreeProvider();
   readonly status = new MutableTreeProvider();
   readonly preview: CodePreviewProvider;
-  private readonly visibilityEmitter = new vscode.EventEmitter<string>();
-  readonly onDidChangeNavigationVisibility = this.visibilityEmitter.event;
-
-  private readonly disposables: vscode.Disposable[] = [];
+  private readonly lifecycle = new ViewLifecycle<TreeNode>();
+  readonly onDidChangeNavigationVisibility = this.lifecycle.onDidChangeVisibility;
   private readonly sourceLines = new SourceLineCache();
-  private readonly treeViews = new Map<ViewId, vscode.TreeView<TreeNode>>();
   private readonly callTreeState = {
     incoming: new HierarchyTreeState(),
     outgoing: new HierarchyTreeState(),
@@ -104,7 +102,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   isViewVisible(id: ViewId): boolean {
-    return this.treeViews.get(id)?.visible ?? false;
+    return this.lifecycle.isVisible(id);
   }
 
   constructor(
@@ -151,11 +149,10 @@ export class ViewRegistry implements vscode.Disposable {
       [VIEWS.STATUS, this.status],
     ];
     for (const [id, provider] of providers) {
-      const treeView = vscode.window.createTreeView(id, {
-        treeDataProvider: provider,
-        showCollapseAll: true,
-      });
-      this.treeViews.set(id, treeView);
+      const tracksNavigation = new Set<ViewId>([
+        VIEWS.CONTEXT, VIEWS.REFERENCES, VIEWS.CALLERS, VIEWS.CALLEES, VIEWS.SYMBOLS,
+      ]).has(id);
+      const treeView = this.lifecycle.createTreeView(id, provider, tracksNavigation);
       const callDirection =
         id === VIEWS.CALLERS
           ? "incoming"
@@ -163,7 +160,7 @@ export class ViewRegistry implements vscode.Disposable {
             ? "outgoing"
             : undefined;
       if (callDirection) {
-        this.disposables.push(
+        this.lifecycle.track(
           treeView.onDidExpandElement(({ element }) => {
             if (element.callPath) {
               this.expandedCallPaths[callDirection].add(element.callPath);
@@ -197,22 +194,6 @@ export class ViewRegistry implements vscode.Disposable {
       if (id === VIEWS.INCLUDED_BY) {
         includeHierarchy.attachTreeView("includedBy", treeView);
       }
-      this.disposables.push(
-        treeView,
-        treeView.onDidChangeVisibility(() => {
-          if (
-            new Set<ViewId>([
-              VIEWS.CONTEXT,
-              VIEWS.REFERENCES,
-              VIEWS.CALLERS,
-              VIEWS.CALLEES,
-              VIEWS.SYMBOLS,
-            ]).has(id)
-          ) {
-            this.visibilityEmitter.fire(id);
-          }
-        }),
-      );
       if (
         id !== VIEWS.HISTORY &&
         id !== VIEWS.BOOKMARKS &&
@@ -222,19 +203,11 @@ export class ViewRegistry implements vscode.Disposable {
         id !== VIEWS.INCLUDES &&
         id !== VIEWS.INCLUDED_BY
       ) {
-        this.disposables.push(provider);
+        this.lifecycle.track(provider);
       }
     }
-    this.disposables.push(
-      vscode.window.registerWebviewViewProvider(VIEWS.PREVIEW, this.preview),
-      this.preview,
-      this.preview.onDidChangeVisibility(() =>
-        this.visibilityEmitter.fire(VIEWS.PREVIEW),
-      ),
-      this.sourceLines,
-      this.referenceExplorer,
-      this.visibilityEmitter,
-    );
+    this.lifecycle.registerWebview(this.preview, this.preview.onDidChangeVisibility);
+    this.lifecycle.track(this.sourceLines, this.referenceExplorer);
   }
 
   updateContext(
@@ -755,7 +728,7 @@ export class ViewRegistry implements vscode.Disposable {
     if (!picked) {
       return;
     }
-    const view = this.treeViews.get(
+    const view = this.lifecycle.get(
       direction === "incoming"
         ? VIEWS.CALLERS
         : VIEWS.CALLEES,
@@ -937,7 +910,7 @@ export class ViewRegistry implements vscode.Disposable {
 
   dispose(): void {
     this.stopCallExpansion();
-    this.disposables.forEach((item) => item.dispose());
+    this.lifecycle.dispose();
   }
 
   private async expandDefaultDepth(): Promise<void> {
@@ -1074,7 +1047,7 @@ export class ViewRegistry implements vscode.Disposable {
   ): Promise<void> {
     const provider =
       direction === "incoming" ? this.callers : this.callees;
-    const view = this.treeViews.get(
+    const view = this.lifecycle.get(
       direction === "incoming"
         ? VIEWS.CALLERS
         : VIEWS.CALLEES,
@@ -1118,7 +1091,7 @@ export class ViewRegistry implements vscode.Disposable {
     }
     const provider =
       direction === "incoming" ? this.callers : this.callees;
-    const view = this.treeViews.get(
+    const view = this.lifecycle.get(
       direction === "incoming"
         ? VIEWS.CALLERS
         : VIEWS.CALLEES,

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.7
+
+- Extracted native TreeView and Code Preview Webview registration, visibility
+  events, lookup, ownership, and disposal into a dedicated lifecycle component.
+
 ## 0.19.6
 
 - Completed command composition decomposition by isolating navigation/About,
