@@ -28,6 +28,15 @@
 - LRU 缓存在 100,000 个不同键和每 10,000 次一次清空的循环中始终不超过 128
   条；最终 clear 后大小和统计均归零。
 
+## 0.20.4 双引擎复验
+
+- clangd Extension Host E2E、Microsoft Provider 隔离探针、C Insight Microsoft
+  模式 E2E 和真实 FFmpeg Microsoft E2E 全部退出码为 0。
+- Microsoft C/C++ 1.32.2 未发生 SIGSEGV；FFmpeg 测试继续使用 References-based
+  Callers 避开已知原生 Incoming Calls 风险路径。
+- Microsoft 冷 Definition 和 References 延迟明显高于 clangd 基线，属于已知
+  Provider 性能差异，现有用户提示与诊断计时继续保留。
+
 ## 1. 验收范围
 
 第三阶段 0.17.0–0.17.5 面向大型工程性能与可靠性，覆盖合成性能基线、语义请求
