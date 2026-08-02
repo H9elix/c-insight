@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.2
+
+- Isolated Type and Include Hierarchy command wiring behind one typed feature
+  registrar, replacing generated command-name strings with manifest-backed IDs.
+
 ## 0.19.1
 
 - Added a unified `npm run check` quality gate covering lint, tests,

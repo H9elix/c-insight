@@ -4,7 +4,6 @@ import { AnalysisService } from "../analysis/analysisService";
 import { AnalysisEngine } from "../analysis/analysisEngine";
 import { ClangdManager } from "../clangd/clangdManager";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
-import { isCppDocument } from "../configuration/configuration";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
@@ -15,19 +14,14 @@ import {
 import { LocationResult } from "../models/types";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
-import {
-  TypeHierarchyDirection,
-  TypeHierarchyExplorer,
-} from "../typeHierarchy/typeHierarchyExplorer";
-import {
-  IncludeHierarchyDirection,
-  IncludeHierarchyExplorer,
-} from "../includeHierarchy/includeHierarchyExplorer";
+import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
+import { IncludeHierarchyExplorer } from "../includeHierarchy/includeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
 import type { CommandId } from "../ids";
 import { registerReferenceCommands } from "./referenceCommands";
 import { registerCallHierarchyCommands } from "./callHierarchyCommands";
+import { registerHierarchyCommands } from "./hierarchyCommands";
 
 export interface CommandDependencies {
   manager: ClangdManager;
@@ -330,89 +324,7 @@ export function registerCommands(
       vscode.l10n.t("C Insight: Saved workspace session cleared. Autosave is paused until this window closes."),
     );
   });
-  const showTypeHierarchy = async (
-    direction: TypeHierarchyDirection,
-  ): Promise<void> => {
-    const target = activePosition();
-    if (target) {
-      await typeHierarchy.show(direction, target.uri, target.position);
-    }
-  };
-  register("cInsight.typeHierarchy.showSupertypes", () =>
-    showTypeHierarchy("supertypes"),
-  );
-  register("cInsight.typeHierarchy.showSubtypes", () =>
-    showTypeHierarchy("subtypes"),
-  );
-  register("cInsight.supertypes.expandToDepth", () =>
-    typeHierarchy.promptExpand("supertypes"),
-  );
-  register("cInsight.subtypes.expandToDepth", () =>
-    typeHierarchy.promptExpand("subtypes"),
-  );
-  register("cInsight.typeHierarchy.stopExpansion", () =>
-    typeHierarchy.stopExpansion(),
-  );
-  register("cInsight.supertypes.search", () =>
-    typeHierarchy.search("supertypes"),
-  );
-  register("cInsight.subtypes.search", () =>
-    typeHierarchy.search("subtypes"),
-  );
-  for (const direction of ["supertypes", "subtypes"] as const) {
-    for (const format of ["text", "json", "mermaid"] as const) {
-      register(`cInsight.${direction}.export${capitalize(format)}` as CommandId, () =>
-        typeHierarchy.export(direction, format),
-      );
-    }
-  }
-  const showIncludeHierarchy = async (
-    direction: IncludeHierarchyDirection,
-  ): Promise<void> => {
-    const editor = vscode.window.activeTextEditor;
-    if (
-      !editor ||
-      editor.document.uri.scheme !== "file" ||
-      !isCppDocument(editor.document)
-    ) {
-      void vscode.window.showWarningMessage(
-        vscode.l10n.t("C Insight: Open and activate a local C/C++ source or header file first."),
-      );
-      return;
-    }
-    await includeHierarchy.show(direction, editor.document.uri);
-  };
-  register("cInsight.includeHierarchy.showIncludes", () =>
-    showIncludeHierarchy("includes"),
-  );
-  register("cInsight.includeHierarchy.showIncludedBy", () =>
-    showIncludeHierarchy("includedBy"),
-  );
-  register("cInsight.includes.expandToDepth", () =>
-    includeHierarchy.promptExpand("includes"),
-  );
-  register("cInsight.includedBy.expandToDepth", () =>
-    includeHierarchy.promptExpand("includedBy"),
-  );
-  register("cInsight.includes.stopExpansion", () =>
-    includeHierarchy.stopExpansion("includes"),
-  );
-  register("cInsight.includedBy.stopExpansion", () =>
-    includeHierarchy.stopExpansion("includedBy"),
-  );
-  register("cInsight.includes.search", () =>
-    includeHierarchy.search("includes"),
-  );
-  register("cInsight.includedBy.search", () =>
-    includeHierarchy.search("includedBy"),
-  );
-  for (const direction of ["includes", "includedBy"] as const) {
-    for (const format of ["text", "json", "mermaid"] as const) {
-      register(`cInsight.${direction}.export${capitalize(format)}` as CommandId, () =>
-        includeHierarchy.export(direction, format),
-      );
-    }
-  }
+  registerHierarchyCommands(register, typeHierarchy, includeHierarchy, activePosition);
 
   register("cInsight.restartClangd", async () => {
     if (engine === "microsoft") {
@@ -468,8 +380,4 @@ function activeWord(): string | undefined {
     editor.selection.active,
   );
   return range ? editor.document.getText(range) : undefined;
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
