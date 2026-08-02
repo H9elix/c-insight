@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.20.11
+
+- Added an automated local Markdown-link validator to the standard quality
+  gate and converted the primary documentation index into clickable links.
+- Documented the link-validation workflow in the Chinese developer guide.
+
 ## 0.20.10
 
 - Completed the Simplified Chinese runtime and manifest terminology audit by
