@@ -21,7 +21,8 @@ automatic detail requests.
 Single-clicking a location previews it in Code Preview. Clicking a navigable
 symbol inside Code Preview follows its definition within the preview; double
 clicking source text or blank space in the source area opens the corresponding
-or nearest rendered line in the editor. Pin buttons stop automatic
+or nearest rendered line in the editor. The resulting editor activation keeps
+the current preview instead of immediately clearing it. Pin buttons stop automatic
 cursor-driven replacement while explicit actions remain available.
 
 ## Configuration and commands

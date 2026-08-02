@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.5
+
+- Preserved Code Preview during the editor activation caused by its own
+  double-click or Open Current action instead of immediately clearing it.
+
 ## 0.19.4
 
 - Made double-clicking blank space in the Code Preview source area open the
