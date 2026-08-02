@@ -23,6 +23,7 @@ import {
   highlightTarget,
   SemanticTokenSpan,
 } from "./sourceHighlight";
+import { PreviewClearGuard } from "./previewClearGuard";
 export type PreviewMode = NavigationMode;
 
 interface PreviewState {
@@ -84,6 +85,7 @@ export class CodePreviewProvider
   private readonly scrollStates = new Map<string, PreviewScrollState>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
+  private readonly clearGuard = new PreviewClearGuard();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
 
   get visible(): boolean {
@@ -152,7 +154,7 @@ export class CodePreviewProvider
   }
 
   clear(): void {
-    if (this.locked) {
+    if (this.locked || this.clearGuard.shouldPreserve()) {
       return;
     }
     this.cancelDefinition();
@@ -245,6 +247,7 @@ export class CodePreviewProvider
         const position = this.validPosition(message);
         if (position && this.rendered) {
           this.cancelDefinition();
+          this.clearGuard.arm();
           await openEditor(this.rendered.document, position);
         }
         break;
@@ -269,6 +272,7 @@ export class CodePreviewProvider
           const document = await vscode.workspace.openTextDocument(
             this.state.location.uri,
           );
+          this.clearGuard.arm();
           await openEditor(document, this.state.location.range.start);
         }
         break;
