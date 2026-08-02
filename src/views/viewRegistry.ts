@@ -72,7 +72,6 @@ export class ViewRegistry implements vscode.Disposable {
   };
   private callRootSignature = "";
   private callExpansion?: vscode.CancellationTokenSource;
-  private referencesPinned = false;
   private callHierarchyPinned = false;
   private callHierarchyPinnedSymbol?: string;
   private callHierarchyPinnedStale = false;
@@ -340,7 +339,7 @@ export class ViewRegistry implements vscode.Disposable {
         intent.manualReferences) &&
       (context.referencesRequested || intent.manualReferences) &&
       shouldUpdatePinnedView(
-        this.referencesPinned,
+        this.referenceExplorer.isPinned,
         intent.manualReferences,
       )
     ) {
@@ -401,7 +400,7 @@ export class ViewRegistry implements vscode.Disposable {
     symbolName?: string,
     manual = false,
   ): void {
-    if (!shouldUpdatePinnedView(this.referencesPinned, manual)) {
+    if (!shouldUpdatePinnedView(this.referenceExplorer.isPinned, manual)) {
       return;
     }
     this.referenceExplorer.update(
@@ -414,7 +413,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   referencesFailed(error: unknown, manual = false): void {
-    if (!shouldUpdatePinnedView(this.referencesPinned, manual)) {
+    if (!shouldUpdatePinnedView(this.referenceExplorer.isPinned, manual)) {
       return;
     }
     this.referenceExplorer.failed(error);
@@ -577,7 +576,7 @@ export class ViewRegistry implements vscode.Disposable {
       viewStatusNode(vscode.l10n.t("Place the cursor on a C/C++ symbol"), "idle"),
     ]);
     this.preview.clear();
-    if (!this.referencesPinned) {
+    if (!this.referenceExplorer.isPinned) {
       this.referenceExplorer.clear();
     }
     if (!this.callHierarchyPinned) {
@@ -596,7 +595,6 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   pinReferences(): void {
-    this.referencesPinned = true;
     this.referenceExplorer.setPinned(true, this.currentSymbolName);
     void vscode.commands.executeCommand(
       "setContext",
@@ -606,7 +604,6 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   unpinReferences(): void {
-    this.referencesPinned = false;
     this.referenceExplorer.setPinned(false);
     void vscode.commands.executeCommand(
       "setContext",

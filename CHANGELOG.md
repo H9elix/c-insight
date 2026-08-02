@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.8
+
+- Made `ReferenceExplorer` the single owner of References pin state, removing
+  duplicated coordination state from `ViewRegistry` and its drift risk.
+
 ## 0.19.7
 
 - Extracted native TreeView and Code Preview Webview registration, visibility
