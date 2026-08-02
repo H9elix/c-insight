@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.20.4
+
+- Revalidated clangd and Microsoft engines through Extension Host, isolated
+  provider, and real FFmpeg acceptance runs; all completed without a crash.
+
 ## 0.20.3
 
 - Expanded Extension Host endurance coverage to 1,000 rapid cursor moves and

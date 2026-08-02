@@ -78,3 +78,16 @@ Callers、原生 Callees、状态交互、诊断和资源控制均有自动化�
 
 后续 Microsoft 功能扩展仍遵守公开 API 边界；在没有稳定公开接口时，不使用私有
 cpptools 命令模拟 clangd 专属能力。
+
+## 7. 2026-08-02 复验（0.20.4）
+
+VS Code 1.130.0 与 Microsoft C/C++ 1.32.2 环境重新执行 Provider 探针、基础
+Microsoft 引擎 E2E 和真实 FFmpeg E2E，三者均以退出码 0 结束，未发生 cpptools
+崩溃。隔离探针中冷 Definition 1,381.05 ms、References 405.60 ms、Incoming Calls
+404.51 ms；Declaration 3.58 ms、Outgoing Calls 4.25 ms、Document Symbols
+0.53 ms、Semantic Tokens 0.97 ms。该结果继续证明首次跨文件查询可能显著慢于
+clangd，但 Provider 稳定后轻量查询正常。
+
+同日 clangd 20.1.2 的 FFmpeg 自动验收也通过；Document Symbols 54.61 ms、
+Definition 0.62 ms、References 0.41 ms。两组数字的进程热度和目标不同，不用于
+严格横向排名，只用于确认双引擎均可用及 Microsoft 冷查询提示仍然必要。
