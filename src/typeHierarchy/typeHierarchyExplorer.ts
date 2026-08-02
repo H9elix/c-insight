@@ -609,7 +609,7 @@ function emptyNode(direction: TypeHierarchyDirection): TreeNode {
 }
 
 function limitNode(): TreeNode {
-  return viewStatusNode("Type hierarchy node limit reached", "limited");
+  return viewStatusNode(vscode.l10n.t("Type hierarchy node limit reached"), "limited");
 }
 
 function typeExportNode(node: TreeNode): HierarchyExportNode {

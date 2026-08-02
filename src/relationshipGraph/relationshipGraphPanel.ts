@@ -122,7 +122,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       callRoots = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "C Insight: Preparing Relationship Graph root",
+          title: vscode.l10n.t("C Insight: Preparing Relationship Graph root"),
           cancellable: true,
         },
         async (_progress, token) => {

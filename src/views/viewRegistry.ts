@@ -257,7 +257,7 @@ export class ViewRegistry implements vscode.Disposable {
     if (context.qualifiedName && context.qualifiedName !== context.name) {
       roots.push({
         label: context.qualifiedName,
-        description: "Qualified name",
+        description: vscode.l10n.t("Qualified name"),
         tooltip: context.symbolId,
         icon: new vscode.ThemeIcon("symbol-namespace"),
       });
@@ -267,7 +267,7 @@ export class ViewRegistry implements vscode.Disposable {
       if (signature) {
         roots.push({
           label: signature.trim(),
-          description: "Type / signature",
+          description: vscode.l10n.t("Type / signature"),
           tooltip: hover,
           icon: new vscode.ThemeIcon("symbol-key"),
         });
