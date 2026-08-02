@@ -1212,9 +1212,24 @@ function htmlDocument(
       }
     }
     updateLoadStatus();
-    function sourcePosition(event) {
+    function sourcePosition(event, allowLineFallback = false) {
       const code = event.target.closest && event.target.closest('code[data-line]');
-      if (!code) return undefined;
+      if (!code) {
+        if (!allowLineFallback) return undefined;
+        let line = event.target.closest && event.target.closest('.line[data-line]');
+        if (!line && codeContainer) {
+          const lines = [...codeContainer.querySelectorAll('.line[data-line]')];
+          line = lines.find(candidate => {
+            const bounds = candidate.getBoundingClientRect();
+            return event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+          });
+          if (!line && lines.length > 0) {
+            const firstBounds = lines[0].getBoundingClientRect();
+            line = event.clientY < firstBounds.top ? lines[0] : lines[lines.length - 1];
+          }
+        }
+        return line ? { line: Number(line.dataset.line), character: 0 } : undefined;
+      }
       let range;
       if (document.caretRangeFromPoint) {
         range = document.caretRangeFromPoint(event.clientX, event.clientY);
@@ -1247,7 +1262,7 @@ function htmlDocument(
     });
     document.querySelector('.code')?.addEventListener('dblclick', event => {
       clearTimeout(clickTimer);
-      const position = sourcePosition(event);
+      const position = sourcePosition(event, true);
       if (position) vscode.postMessage({ type: 'openPosition', ...position });
     });
     document.querySelector('.controls')?.addEventListener('click', event => {

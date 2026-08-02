@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.4
+
+- Made double-clicking blank space in the Code Preview source area open the
+  previewed file in the editor at the nearest rendered line.
+
 ## 0.19.3
 
 - Isolated Project Diagnostics command wiring and compilation-database selection
