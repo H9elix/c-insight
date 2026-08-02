@@ -212,5 +212,21 @@
   "Call hierarchy node limit reached": "已达到调用层次节点上限",
   "{direction} query failed": "{direction}查询失败",
   "clangd 20 or newer is required": "需要 clangd 20 或更高版本",
-  "Set cInsight.clangd.path to a clangd 20+ executable and restart clangd.": "请将 cInsight.clangd.path 指向 clangd 20+ 可执行文件并重启 clangd。"
+  "Set cInsight.clangd.path to a clangd 20+ executable and restart clangd.": "请将 cInsight.clangd.path 指向 clangd 20+ 可执行文件并重启 clangd。",
+  "C Insight: Open and activate a local C/C++ source or header file first.": "C Insight：请先打开并激活本地 C/C++ 源文件或头文件。",
+  "C Insight: Project diagnostics report copied.": "C Insight：已复制工程诊断报告。",
+  "Export C Insight Project Diagnostics ({format})": "导出 C Insight 工程诊断（{format}）",
+  "C Insight: Project diagnostics exported to {path}": "C Insight：工程诊断已导出到 {path}",
+  "C Insight analysis engine changed. Reload the window to apply it.": "C Insight 分析引擎已更改。请重新加载窗口以应用。",
+  "Reload Window": "重新加载窗口",
+  "Open Settings": "打开设置",
+  "C Insight could not start the {engine} analysis engine. {error}": "C Insight 无法启动 {engine} 分析引擎。{error}",
+  "C Insight updated the Workspace settings for competing language services. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely.": "C Insight 已更新冲突语言服务的工作区设置。请重新加载窗口以应用更改；可使用“C Insight：恢复 Provider 设置”安全撤销。",
+  "C Insight restored {restored} provider setting(s); skipped {skipped}; failed {failed}. Reload Window to apply the change.": "C Insight 已恢复 {restored} 项 Provider 设置，跳过 {skipped} 项，失败 {failed} 项。请重新加载窗口以应用更改。",
+  "The quick fix will update Workspace settings ({path}).": "快速修复将更新工作区设置（{path}）。",
+  "The quick fix will update the shared multi-root Workspace settings because clangd.enable does not support Workspace Folder scope.": "由于 clangd.enable 不支持工作区文件夹范围，快速修复将更新多根工作区的共享工作区设置。",
+  "Open Settings to configure the language services manually.": "请打开设置手动配置语言服务。",
+  "C Insight is using Microsoft C/C++ language service (cpptools) as its semantic analysis provider. Performance and query results may differ from clangd.": "C Insight 当前使用 Microsoft C/C++ language service（cpptools）作为语义分析提供方。其性能和查询结果可能与 clangd 不同。",
+  "C Insight: Export is {size}, exceeding the {limit} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.": "C Insight：导出大小为 {size}，超过 {limit} 限制。请提高 cInsight.export.maximumMegabytes 或导出更小的已加载结果集。",
+  "C Insight Code Preview action failed: {error}": "C Insight 代码预览操作失败：{error}"
 }

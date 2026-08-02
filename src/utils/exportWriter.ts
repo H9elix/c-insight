@@ -13,7 +13,10 @@ export async function writeExportWithinBudget(
   if (!encoded.data) {
     runtimeDiagnostics.increment("limits.export.maximumMegabytes");
     void vscode.window.showErrorMessage(
-      `C Insight: Export is ${formatBytes(encoded.bytes)}, exceeding the ${formatBytes(encoded.maximumBytes)} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.`,
+      vscode.l10n.t("C Insight: Export is {size}, exceeding the {limit} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.", {
+        size: formatBytes(encoded.bytes),
+        limit: formatBytes(encoded.maximumBytes),
+      }),
     );
     return false;
   }

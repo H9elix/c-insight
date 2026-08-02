@@ -563,7 +563,7 @@ export async function activate(
           !isCppDocument(editor.document)
         ) {
           void vscode.window.showWarningMessage(
-            "C Insight: Open and activate a local C/C++ source or header file first.",
+            vscode.l10n.t("C Insight: Open and activate a local C/C++ source or header file first."),
           );
           return;
         }
@@ -583,7 +583,7 @@ export async function activate(
           !isCppDocument(editor.document)
         ) {
           void vscode.window.showWarningMessage(
-            "C Insight: Open and activate a local C/C++ source or header file first.",
+            vscode.l10n.t("C Insight: Open and activate a local C/C++ source or header file first."),
           );
           return;
         }
@@ -751,11 +751,11 @@ export async function activate(
         if (event.affectsConfiguration("cInsight.engine")) {
           void vscode.window
             .showInformationMessage(
-              "C Insight analysis engine changed. Reload the window to apply it.",
-              "Reload Window",
+              vscode.l10n.t("C Insight analysis engine changed. Reload the window to apply it."),
+              vscode.l10n.t("Reload Window"),
             )
             .then((choice) => {
-              if (choice === "Reload Window") {
+              if (choice === vscode.l10n.t("Reload Window")) {
                 void vscode.commands.executeCommand("workbench.action.reloadWindow");
               }
             });
@@ -881,11 +881,12 @@ async function showAnalysisEngineStartupFailure(
   engine: "clangd" | "microsoft",
   error: unknown,
 ): Promise<void> {
+  const openSettings = vscode.l10n.t("Open Settings");
   const action = await vscode.window.showErrorMessage(
-    `C Insight could not start the ${engine} analysis engine. ${String(error)}`,
-    "Open Settings",
+    vscode.l10n.t("C Insight could not start the {engine} analysis engine. {error}", { engine, error: String(error) }),
+    openSettings,
   );
-  if (action === "Open Settings") {
+  if (action === openSettings) {
     await vscode.commands.executeCommand(
       "workbench.action.openSettings",
       engine === "clangd"
@@ -1080,10 +1081,10 @@ async function disableConflictingProviders(
     await apply("clangd", "enable", false);
   }
   const action = await vscode.window.showInformationMessage(
-    "C Insight updated the Workspace settings for competing language services. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely.",
-    "Reload Window",
+    vscode.l10n.t("C Insight updated the Workspace settings for competing language services. Reload Window to apply the change. Use C Insight: Restore Provider Settings to undo it safely."),
+    vscode.l10n.t("Reload Window"),
   );
-  if (action === "Reload Window") {
+  if (action === vscode.l10n.t("Reload Window")) {
     await vscode.commands.executeCommand("workbench.action.reloadWindow");
   }
 }
@@ -1145,22 +1146,19 @@ async function restoreProviderSettings(
     retained.length ? retained : undefined,
   );
   void vscode.window.showInformationMessage(
-    `C Insight restored ${restored} provider setting(s)` +
-      (skipped ? `; skipped ${skipped} setting(s) changed after C Insight configured them.` : ".") +
-      (failed ? ` ${failed} setting(s) could not be restored and remain recorded.` : "") +
-      " Reload Window to apply the change.",
+    vscode.l10n.t("C Insight restored {restored} provider setting(s); skipped {skipped}; failed {failed}. Reload Window to apply the change.", { restored, skipped, failed }),
   );
 }
 
 function workspaceSettingTargetDescription(): string {
   const folders = vscode.workspace.workspaceFolders ?? [];
   if (folders.length === 1) {
-    return `The quick fix will update Workspace settings (${vscode.Uri.joinPath(folders[0].uri, ".vscode", "settings.json").toString(true)}).`;
+    return vscode.l10n.t("The quick fix will update Workspace settings ({path}).", { path: vscode.Uri.joinPath(folders[0].uri, ".vscode", "settings.json").toString(true) });
   }
   if (folders.length > 1) {
-    return "The quick fix will update the shared multi-root Workspace settings because clangd.enable does not support Workspace Folder scope.";
+    return vscode.l10n.t("The quick fix will update the shared multi-root Workspace settings because clangd.enable does not support Workspace Folder scope.");
   }
-  return "Open Settings to configure the language services manually.";
+  return vscode.l10n.t("Open Settings to configure the language services manually.");
 }
 
 function targetValue(
@@ -1180,6 +1178,6 @@ async function showMicrosoftEngineNotice(
   if (context.globalState.get<boolean>(key)) return;
   await context.globalState.update(key, true);
   void vscode.window.showInformationMessage(
-    "C Insight 当前使用 Microsoft C/C++ language service (cpptools) 作为语义分析提供方。其性能和查询结果可能与 clangd 不同。",
+    vscode.l10n.t("C Insight is using Microsoft C/C++ language service (cpptools) as its semantic analysis provider. Performance and query results may differ from clangd."),
   );
 }

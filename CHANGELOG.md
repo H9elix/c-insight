@@ -14,6 +14,9 @@
   confirmation, stale-location, and result feedback surfaces.
 - Localized Context relationship summaries and Callers/Callees prompts,
   searching, path finding, expansion, pin/status banners, limits, and errors.
+- Localized project-diagnostics/export feedback, Code Preview action errors,
+  engine lifecycle notices, workspace-setting targets, and Microsoft engine
+  guidance while keeping setting IDs and raw provider errors stable.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 

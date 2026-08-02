@@ -109,7 +109,7 @@ export class CodePreviewProvider
       view.webview.onDidReceiveMessage((message: PreviewMessage) => {
         void this.receiveMessage(message).catch((error: unknown) => {
           void vscode.window.showErrorMessage(
-            `C Insight Code Preview action failed: ${String(error)}`,
+            vscode.l10n.t("C Insight Code Preview action failed: {error}", { error: String(error) }),
           );
         });
       }),

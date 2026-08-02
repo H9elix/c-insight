@@ -104,14 +104,14 @@ export class ProjectDiagnostics implements vscode.Disposable {
         : renderProjectDiagnosticsText(report),
     );
     void vscode.window.showInformationMessage(
-      "C Insight: Project diagnostics report copied.",
+      vscode.l10n.t("C Insight: Project diagnostics report copied."),
     );
   }
 
   async exportReport(format: "text" | "json"): Promise<void> {
     const report = await this.latestExportReport();
     const uri = await vscode.window.showSaveDialog({
-      title: `Export C Insight Project Diagnostics (${format.toUpperCase()})`,
+      title: vscode.l10n.t("Export C Insight Project Diagnostics ({format})", { format: format.toUpperCase() }),
       defaultUri: vscode.Uri.joinPath(
         vscode.workspace.workspaceFolders?.[0]?.uri ??
           vscode.Uri.file(process.cwd()),
@@ -131,7 +131,7 @@ export class ProjectDiagnostics implements vscode.Disposable {
         : renderProjectDiagnosticsText(report);
     await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
     void vscode.window.showInformationMessage(
-      `C Insight: Project diagnostics exported to ${uri.fsPath}`,
+      vscode.l10n.t("C Insight: Project diagnostics exported to {path}", { path: uri.fsPath }),
     );
   }
 

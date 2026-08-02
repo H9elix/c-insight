@@ -488,7 +488,7 @@ export function registerCommands(
       !isCppDocument(editor.document)
     ) {
       void vscode.window.showWarningMessage(
-        "C Insight: Open and activate a local C/C++ source or header file first.",
+        vscode.l10n.t("C Insight: Open and activate a local C/C++ source or header file first."),
       );
       return;
     }
