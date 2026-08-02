@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.20.9
+
+- Applied the section-scoped Chinese-first terminology policy to the Chinese
+  developer guide while preserving source identifiers, paths, commands,
+  settings, and protocol methods.
+- Extended the idempotent terminology quality gate to cover both Chinese
+  manuals.
+
 ## 0.20.8
 
 - Localized feature, view, hierarchy, navigation, pin/lock, and result-state
