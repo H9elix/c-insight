@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.10
+
+- Completed the Simplified Chinese runtime and manifest terminology audit by
+  translating remaining user-facing Provider and C/C++ language-service text.
+- Corrected the duplicated wording in the reference evidence-filter command
+  and added a localization regression test for these terms.
+
 ## 0.20.9
 
 - Applied the section-scoped Chinese-first terminology policy to the Chinese
