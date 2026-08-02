@@ -20,6 +20,8 @@
 - Localized Code Preview mode labels, toolbar tooltips, empty state, incremental
   loading status, and Relationship Graph toolbar, legend, accessibility label,
   empty state, and relationship-specific expansion controls.
+- Localized Provider-conflict quick fixes and Relationship Graph preparation,
+  expansion, node actions, search, export, stale, depth-limit, and error dialogs.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 
