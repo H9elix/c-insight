@@ -106,7 +106,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
         node,
       })),
       {
-        title: `Search Loaded ${directionLabel(direction)}`,
+        title: vscode.l10n.t("Search Loaded {direction}", { direction: localizedDirectionLabel(direction) }),
         matchOnDescription: true,
         matchOnDetail: true,
       },
@@ -123,13 +123,13 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   async promptExpand(direction: IncludeHierarchyDirection): Promise<void> {
     const maximum = this.maximumDepth;
     const value = await vscode.window.showInputBox({
-      title: `Expand ${directionLabel(direction)} to Depth`,
+      title: vscode.l10n.t("Expand {direction} to Depth", { direction: localizedDirectionLabel(direction) }),
       value: String(Math.max(1, this.defaultDepth)),
       validateInput: (input) => {
         const depth = Number(input);
         return Number.isInteger(depth) && depth >= 1 && depth <= maximum
           ? undefined
-          : `Enter an integer from 1 to ${maximum}`;
+          : vscode.l10n.t("Enter an integer from 1 to {maximum}", { maximum });
       },
     });
     if (value !== undefined) {
@@ -172,7 +172,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       return;
     }
     const target = await vscode.window.showSaveDialog({
-      title: `Export ${directionLabel(direction)} as ${format.toUpperCase()}`,
+      title: vscode.l10n.t("Export {direction} as {format}", { direction: localizedDirectionLabel(direction), format: format.toUpperCase() }),
       filters:
         format === "json"
           ? { JSON: ["json"] }
@@ -311,9 +311,10 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
         !this.reportedTruncatedIndex
       ) {
         this.reportedTruncatedIndex = true;
-        void vscode.window.showWarningMessage(
-          `C Insight: Included By scanned the configured limit of ${this.workspaceFileLimit} files. Results may be incomplete.`,
-        );
+        void vscode.window.showWarningMessage(vscode.l10n.t(
+          "C Insight: Included By scanned the configured limit of {limit} files. Results may be incomplete.",
+          { limit: this.workspaceFileLimit },
+        ));
       }
       return incoming.map((edge) =>
         this.fileNode(
@@ -461,8 +462,8 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       }
       this.stale[current] = true;
       this.provider(current).setRoots([
-        viewStatusNode("Include hierarchy is stale", "stale", {
-          description: `run Show ${directionLabel(current)} again`,
+        viewStatusNode(vscode.l10n.t("Include hierarchy is stale"), "stale", {
+          description: vscode.l10n.t("run Show {direction} again", { direction: localizedDirectionLabel(current) }),
         }),
         ...this.provider(current).getRoots(),
       ]);
@@ -481,13 +482,13 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   private publishEmpty(): void {
     this.includes.setRoots([
       commandNode(
-        "Show Includes for the active C/C++ file",
+        vscode.l10n.t("Show Includes for the active C/C++ file"),
         "cInsight.includeHierarchy.showIncludes",
       ),
     ]);
     this.includedBy.setRoots([
       commandNode(
-        "Show Included By for the active C/C++ file",
+        vscode.l10n.t("Show Included By for the active C/C++ file"),
         "cInsight.includeHierarchy.showIncludedBy",
       ),
     ]);
@@ -570,6 +571,12 @@ function isIncludeFile(uri: vscode.Uri): boolean {
 
 function directionLabel(direction: IncludeHierarchyDirection): string {
   return direction === "includes" ? "Includes" : "Included By";
+}
+
+function localizedDirectionLabel(direction: IncludeHierarchyDirection): string {
+  return direction === "includes"
+    ? vscode.l10n.t("Includes")
+    : vscode.l10n.t("Included By");
 }
 
 function kindLabel(kind: IncludeTargetKind | undefined): string | undefined {

@@ -240,8 +240,8 @@ export class ReferenceExplorer implements vscode.Disposable {
 
   async promptSearch(): Promise<void> {
     const query = await vscode.window.showInputBox({
-      title: "C Insight: Filter References",
-      prompt: "Match source text, file name, or path",
+      title: vscode.l10n.t("C Insight: Filter References"),
+      prompt: vscode.l10n.t("Match source text, file name, or path"),
       value: this.query,
     });
     if (query === undefined) {
@@ -264,37 +264,37 @@ export class ReferenceExplorer implements vscode.Disposable {
       description: string;
       value: GroupMode;
     }> = [
-      { label: "File", description: "Group references by file", value: "file" },
+      { label: vscode.l10n.t("File"), description: vscode.l10n.t("Group references by file"), value: "file" },
       {
-        label: "Directory",
-        description: "Group references by directory and file",
+        label: vscode.l10n.t("Directory"),
+        description: vscode.l10n.t("Group references by directory and file"),
         value: "directory",
       },
       {
-        label: "Function",
-        description: "Group references by enclosing function",
+        label: vscode.l10n.t("Function"),
+        description: vscode.l10n.t("Group references by enclosing function"),
         value: "function",
       },
       {
-        label: "Reference Type",
-        description: "Group by definition, call, access, or other reference",
+        label: vscode.l10n.t("Reference Type"),
+        description: vscode.l10n.t("Group by definition, call, access, or other reference"),
         value: "type",
       },
       {
-        label: "Confidence",
-        description: "Group by semantic, syntax, inferred, or unknown confidence",
+        label: vscode.l10n.t("Confidence"),
+        description: vscode.l10n.t("Group by semantic, syntax, inferred, or unknown confidence"),
         value: "confidence",
       },
       {
-        label: "Evidence Source",
-        description: "Group by the primary classification evidence source",
+        label: vscode.l10n.t("Evidence Source"),
+        description: vscode.l10n.t("Group by the primary classification evidence source"),
         value: "evidence",
       },
-      { label: "Flat", description: "Show one flat result list", value: "flat" },
+      { label: vscode.l10n.t("Flat"), description: vscode.l10n.t("Show one flat result list"), value: "flat" },
     ];
     const picked = await vscode.window.showQuickPick(options, {
-      title: "C Insight: Reference Grouping",
-      placeHolder: `Current: ${this.groupMode}`,
+      title: vscode.l10n.t("C Insight: Reference Grouping"),
+      placeHolder: vscode.l10n.t("Current: {value}", { value: this.groupMode }),
     });
     if (!picked) {
       return;
@@ -325,15 +325,15 @@ export class ReferenceExplorer implements vscode.Disposable {
       values.map((value) => ({
         label:
           value === "all"
-            ? "All classifications"
+            ? vscode.l10n.t("All classifications")
             : value.replace(":", ": "),
         description:
-          value === this.evidenceFilter ? "Current filter" : undefined,
+          value === this.evidenceFilter ? vscode.l10n.t("Current filter") : undefined,
         value,
       })),
       {
-        title: "C Insight: Reference Evidence Filter",
-        placeHolder: `Current: ${this.evidenceFilter}`,
+        title: vscode.l10n.t("C Insight: Reference Evidence Filter"),
+        placeHolder: vscode.l10n.t("Current: {value}", { value: this.evidenceFilter }),
       },
     );
     if (!picked) {
@@ -350,26 +350,26 @@ export class ReferenceExplorer implements vscode.Disposable {
       description: string;
       value: ReferenceScope;
     }> = [
-      { label: "All", description: "All non-excluded results", value: "all" },
+      { label: vscode.l10n.t("All"), description: vscode.l10n.t("All non-excluded results"), value: "all" },
       {
-        label: "Workspace",
-        description: "Only files inside the current workspace",
+        label: vscode.l10n.t("Workspace"),
+        description: vscode.l10n.t("Only files inside the current workspace"),
         value: "workspace",
       },
       {
-        label: "Current Directory",
-        description: "Only files beside the active source file",
+        label: vscode.l10n.t("Current Directory"),
+        description: vscode.l10n.t("Only files beside the active source file"),
         value: "directory",
       },
       {
-        label: "Current File",
-        description: "Only the active source file",
+        label: vscode.l10n.t("Current File"),
+        description: vscode.l10n.t("Only the active source file"),
         value: "file",
       },
     ];
     const picked = await vscode.window.showQuickPick(options, {
-      title: "C Insight: Reference Scope",
-      placeHolder: `Current: ${this.scope}`,
+      title: vscode.l10n.t("C Insight: Reference Scope"),
+      placeHolder: vscode.l10n.t("Current: {value}", { value: this.scope }),
     });
     if (!picked) {
       return;
@@ -439,19 +439,19 @@ export class ReferenceExplorer implements vscode.Disposable {
     await vscode.env.clipboard.writeText(text);
     void vscode.window.showInformationMessage(
       omitted > 0
-        ? `C Insight: Copied ${records.length} references; omitted ${omitted} due to cInsight.export.maximumResults.`
-        : `C Insight: Copied ${records.length} references.`,
+        ? vscode.l10n.t("C Insight: Copied {count} references; omitted {omitted} due to cInsight.export.maximumResults.", { count: records.length, omitted })
+        : vscode.l10n.t("C Insight: Copied {count} references.", { count: records.length }),
     );
   }
 
   async exportResults(format: "text" | "json"): Promise<void> {
     const uri = await vscode.window.showSaveDialog({
-      title: `Export C Insight References as ${format.toUpperCase()}`,
+      title: vscode.l10n.t("Export C Insight References as {format}", { format: format.toUpperCase() }),
       filters:
         format === "json"
           ? { JSON: ["json"] }
           : { Text: ["txt"] },
-      saveLabel: "Export",
+      saveLabel: vscode.l10n.t("Export"),
     });
     if (!uri) {
       return;
@@ -467,7 +467,7 @@ export class ReferenceExplorer implements vscode.Disposable {
       const content = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: `C Insight: Preparing ${format.toUpperCase()} reference export`,
+          title: vscode.l10n.t("C Insight: Preparing {format} reference export", { format: format.toUpperCase() }),
           cancellable: true,
         },
         async (progress, token) =>
@@ -494,14 +494,14 @@ export class ReferenceExplorer implements vscode.Disposable {
       if (!encoded.data) {
         runtimeDiagnostics.increment("limits.export.maximumMegabytes");
         void vscode.window.showErrorMessage(
-          `C Insight: Export is ${formatBytes(encoded.bytes)}, exceeding the ${formatBytes(encoded.maximumBytes)} limit. Increase cInsight.export.maximumMegabytes or narrow the results.`,
+          vscode.l10n.t("C Insight: Export is {size}, exceeding the {limit} limit. Increase cInsight.export.maximumMegabytes or narrow the results.", { size: formatBytes(encoded.bytes), limit: formatBytes(encoded.maximumBytes) }),
         );
         return;
       }
       await vscode.workspace.fs.writeFile(uri, encoded.data);
       if (omitted > 0) {
         void vscode.window.showWarningMessage(
-          `C Insight: Exported the first ${records.length} references and omitted ${omitted} due to cInsight.export.maximumResults.`,
+          vscode.l10n.t("C Insight: Exported the first {count} references and omitted {omitted} due to cInsight.export.maximumResults.", { count: records.length, omitted }),
         );
       }
     } catch (error) {
@@ -522,7 +522,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     await vscode.window.showTextDocument(document, { preview: true });
     if (omitted > 0) {
       void vscode.window.showWarningMessage(
-        `C Insight: Opened the first ${records.length} references and omitted ${omitted} due to cInsight.export.maximumResults.`,
+        vscode.l10n.t("C Insight: Opened the first {count} references and omitted {omitted} due to cInsight.export.maximumResults.", { count: records.length, omitted }),
       );
     }
   }

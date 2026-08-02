@@ -67,14 +67,14 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   ): Promise<void> {
     this.stopExpansion();
     this.provider(direction).setRoots([
-      viewStatusNode("Querying type hierarchy…", "loading"),
+      viewStatusNode(vscode.l10n.t("Querying type hierarchy…"), "loading"),
     ]);
     try {
       const roots = await this.repository.prepare(uri, position);
       if (roots.length === 0) {
         this.provider(direction).setRoots([
           viewStatusNode(
-            "No type hierarchy is available at the cursor",
+            vscode.l10n.t("No type hierarchy is available at the cursor"),
             "empty",
           ),
         ]);
@@ -88,7 +88,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
       );
     } catch (error) {
       this.provider(direction).setRoots([
-        viewStatusNode("Type hierarchy query failed", "error", {
+        viewStatusNode(vscode.l10n.t("Type hierarchy query failed"), "error", {
           description: String(error),
           tooltip: String(error),
         }),
@@ -102,7 +102,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     );
     if (nodes.length === 0) {
       void vscode.window.showInformationMessage(
-        "C Insight: No loaded type hierarchy nodes to search.",
+        vscode.l10n.t("C Insight: No loaded type hierarchy nodes to search."),
       );
       return;
     }
@@ -112,11 +112,11 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     ] as string[];
     const kind = await vscode.window.showQuickPick(
       kinds.map((value) => ({
-        label: value === "all" ? "All type kinds" : value,
+        label: value === "all" ? vscode.l10n.t("All type kinds") : value,
         value,
       })),
       {
-        title: `Filter Loaded ${label(direction)} by Type Kind`,
+        title: vscode.l10n.t("Filter Loaded {direction} by Type Kind", { direction: localizedLabel(direction) }),
       },
     );
     if (!kind) {
@@ -129,11 +129,11 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     ];
     const relationship = await vscode.window.showQuickPick(
       relationships.map((value) => ({
-        label: value === "all" ? "All relationships" : value,
+        label: value === "all" ? vscode.l10n.t("All relationships") : value,
         value,
       })),
       {
-        title: `Filter Loaded ${label(direction)} by Relationship`,
+        title: vscode.l10n.t("Filter Loaded {direction} by Relationship", { direction: localizedLabel(direction) }),
       },
     );
     if (!relationship) {
@@ -151,7 +151,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     );
     if (filtered.length === 0) {
       void vscode.window.showInformationMessage(
-        "C Insight: No loaded type hierarchy nodes match the selected filters.",
+        vscode.l10n.t("C Insight: No loaded type hierarchy nodes match the selected filters."),
       );
       return;
     }
@@ -166,7 +166,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         node,
       })),
       {
-        title: `Search Loaded ${label(direction)}`,
+        title: vscode.l10n.t("Search Loaded {direction}", { direction: localizedLabel(direction) }),
         matchOnDescription: true,
         matchOnDetail: true,
       },
@@ -183,13 +183,13 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   async promptExpand(direction: TypeHierarchyDirection): Promise<void> {
     const maximum = this.maximumDepth;
     const value = await vscode.window.showInputBox({
-      title: `Expand ${label(direction)} to Depth`,
+      title: vscode.l10n.t("Expand {direction} to Depth", { direction: localizedLabel(direction) }),
       value: String(Math.max(1, this.defaultDepth)),
       validateInput: (input) => {
         const depth = Number(input);
         return Number.isInteger(depth) && depth >= 1 && depth <= maximum
           ? undefined
-          : `Enter an integer from 1 to ${maximum}`;
+          : vscode.l10n.t("Enter an integer from 1 to {maximum}", { maximum });
       },
     });
     if (value !== undefined) {
@@ -210,12 +210,12 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     const roots = this.dataRoots(direction);
     if (roots.length === 0) {
       void vscode.window.showInformationMessage(
-        `C Insight: No loaded ${label(direction).toLowerCase()} to export.`,
+        vscode.l10n.t("C Insight: No loaded {direction} to export.", { direction: localizedLabel(direction).toLowerCase() }),
       );
       return;
     }
     const target = await vscode.window.showSaveDialog({
-      title: `Export ${label(direction)} as ${format.toUpperCase()}`,
+      title: vscode.l10n.t("Export {direction} as {format}", { direction: localizedLabel(direction), format: format.toUpperCase() }),
       filters:
         format === "json"
           ? { JSON: ["json"] }
@@ -474,10 +474,10 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     for (const direction of ["supertypes", "subtypes"] as const) {
       this.provider(direction).setRoots([
         viewStatusNode(
-          `Type hierarchy for ${this.rootName ?? "type"} is stale`,
+          vscode.l10n.t("Type hierarchy for {name} is stale", { name: this.rootName ?? vscode.l10n.t("type") }),
           "stale",
           {
-          description: "run Show Type Hierarchy again",
+          description: vscode.l10n.t("run Show Type Hierarchy again"),
           },
         ),
         ...this.provider(direction).getRoots(),
@@ -489,7 +489,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     for (const direction of ["supertypes", "subtypes"] as const) {
       this.provider(direction).setRoots([
         viewStatusNode(
-          `Place the cursor on a C++ type and show ${label(direction)}`,
+          vscode.l10n.t("Place the cursor on a C++ type and show {direction}", { direction: localizedLabel(direction) }),
           "idle",
         ),
       ]);
@@ -570,6 +570,12 @@ function flatten(roots: TreeNode[]): TreeNode[] {
 
 function label(direction: TypeHierarchyDirection): string {
   return direction === "supertypes" ? "Supertypes" : "Subtypes";
+}
+
+function localizedLabel(direction: TypeHierarchyDirection): string {
+  return direction === "supertypes"
+    ? vscode.l10n.t("Supertypes")
+    : vscode.l10n.t("Subtypes");
 }
 
 function typeKindLabel(kind: number): string {

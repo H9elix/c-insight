@@ -9,6 +9,12 @@ const english = JSON.parse(
 const chinese = JSON.parse(
   readFileSync("package.nls.zh-cn.json", "utf8"),
 ) as Record<string, string>;
+const runtimeEnglish = JSON.parse(
+  readFileSync("l10n/bundle.l10n.json", "utf8"),
+) as Record<string, string>;
+const runtimeChinese = JSON.parse(
+  readFileSync("l10n/bundle.l10n.zh-cn.json", "utf8"),
+) as Record<string, string>;
 
 function collectMessageKeys(value: unknown, keys: Set<string>): void {
   if (typeof value === "string") {
@@ -28,6 +34,10 @@ function collectMessageKeys(value: unknown, keys: Set<string>): void {
 describe("manifest localization", () => {
   it("provides matching English and Simplified Chinese catalogs", () => {
     assert.deepEqual(Object.keys(chinese).sort(), Object.keys(english).sort());
+    assert.deepEqual(
+      Object.keys(runtimeChinese).sort(),
+      Object.keys(runtimeEnglish).sort(),
+    );
   });
 
   it("defines every message referenced by package.json", () => {
