@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.20.14
+
+- Extended generated command references and drift checks to both English and
+  Simplified Chinese user guides.
+- Added bilingual view, command, and configuration-family documentation gates,
+  completed the English configuration-family index, and documented the full
+  localization and link-maintenance workflow.
+
 ## 0.20.13
 
 - Standardized Simplified Chinese action verbs and empty, no-match,

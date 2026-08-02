@@ -42,11 +42,13 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Increment the extension version before packaging a modified test build so
   every VSIX filename identifies one exact implementation. Release handoff
   notes must list the behavior that needs focused manual testing.
-- Run `npm run docs:commands` after adding or changing commands.
+- Run `npm run docs:commands` after adding or changing commands; it updates
+  both the English and Simplified Chinese command references.
 - Run `npm run ids:generate` after adding, removing, or renaming contributed
   commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
 - Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls;
   `npm run check` verifies that both runtime catalogs remain synchronized.
+- Keep local Markdown links valid; `npm run check` verifies their target files.
 - Do not add a public repository, issue, sponsor, or homepage link until the
   maintainer has selected that destination.
 

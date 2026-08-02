@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.20.13",
+  "version": "0.20.14",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -68,6 +68,7 @@
     "benchmark:observe": "npm run compile && C_INSIGHT_BENCHMARK_STRICT=0 node scripts/benchmark-large-workspace.mjs",
     "acceptance:ffmpeg": "node scripts/acceptance-ffmpeg.mjs",
     "docs:commands": "node scripts/generate-command-reference.mjs && node scripts/localize-chinese-guide-terms.mjs",
+    "docs:commands:check": "node scripts/generate-command-reference.mjs --check",
     "docs:terms": "node scripts/localize-chinese-guide-terms.mjs",
     "docs:terms:check": "node scripts/localize-chinese-guide-terms.mjs --check",
     "docs:links:check": "node scripts/check-document-links.mjs",
@@ -83,7 +84,7 @@
     "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
     "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
     "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
-    "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:terms:check && npm run docs:links:check && npm run build",
+    "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:commands:check && npm run docs:terms:check && npm run docs:links:check && npm run build",
     "package": "npm run check && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
