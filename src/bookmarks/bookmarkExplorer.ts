@@ -72,10 +72,10 @@ export class BookmarkExplorer implements vscode.Disposable {
       return;
     }
     const label = await vscode.window.showInputBox({
-      title: "Rename C Insight Bookmark",
+      title: vscode.l10n.t("Rename C Insight Bookmark"),
       value: bookmark.label,
       validateInput: (input) =>
-        input.trim() ? undefined : "Bookmark name cannot be empty",
+        input.trim() ? undefined : vscode.l10n.t("Bookmark name cannot be empty"),
     });
     if (label && this.store.rename(bookmark.id, label)) {
       await this.persistAndPublish();
@@ -94,11 +94,11 @@ export class BookmarkExplorer implements vscode.Disposable {
           label: group,
           value: group,
         })),
-        { label: "$(add) New Group…", value: "" },
+        { label: vscode.l10n.t("$(add) New Group…"), value: "" },
       ],
       {
-        title: "Move C Insight Bookmark to Group",
-        placeHolder: `Current: ${bookmark.group}`,
+        title: vscode.l10n.t("Move C Insight Bookmark to Group"),
+        placeHolder: vscode.l10n.t("Current: {value}", { value: bookmark.group }),
       },
     );
     if (!picked) {
@@ -107,9 +107,9 @@ export class BookmarkExplorer implements vscode.Disposable {
     const group =
       picked.value ||
       (await vscode.window.showInputBox({
-        title: "New Bookmark Group",
+        title: vscode.l10n.t("New Bookmark Group"),
         validateInput: (input) =>
-          input.trim() ? undefined : "Group name cannot be empty",
+          input.trim() ? undefined : vscode.l10n.t("Group name cannot be empty"),
       }));
     if (group && this.store.move(bookmark.id, group)) {
       await this.persistAndPublish();
@@ -121,20 +121,21 @@ export class BookmarkExplorer implements vscode.Disposable {
     if (!bookmark) {
       return;
     }
+    const deleteAction = vscode.l10n.t("Delete");
     const action = await vscode.window.showWarningMessage(
-      `Delete bookmark “${bookmark.label}”?`,
+      vscode.l10n.t("Delete bookmark “{label}”?", { label: bookmark.label }),
       { modal: true },
-      "Delete",
+      deleteAction,
     );
-    if (action === "Delete" && this.store.remove(bookmark.id)) {
+    if (action === deleteAction && this.store.remove(bookmark.id)) {
       await this.persistAndPublish();
     }
   }
 
   async search(): Promise<void> {
     const query = await vscode.window.showInputBox({
-      title: "Filter C Insight Bookmarks",
-      prompt: "Match bookmark name, group, file path, or symbol",
+      title: vscode.l10n.t("Filter C Insight Bookmarks"),
+      prompt: vscode.l10n.t("Match bookmark name, group, file path, or symbol"),
       value: this.filterQuery,
     });
     if (query !== undefined) {
@@ -152,16 +153,16 @@ export class BookmarkExplorer implements vscode.Disposable {
     const current = this.sortMode;
     const selected = await vscode.window.showQuickPick(
       [
-        { label: "Name", value: "name" },
-        { label: "File Path", value: "path" },
-        { label: "Source Position", value: "position" },
-        { label: "Creation Time", value: "created" },
-        { label: "Last Updated", value: "updated" },
+        { label: vscode.l10n.t("Name"), value: "name" },
+        { label: vscode.l10n.t("File Path"), value: "path" },
+        { label: vscode.l10n.t("Source Position"), value: "position" },
+        { label: vscode.l10n.t("Creation Time"), value: "created" },
+        { label: vscode.l10n.t("Last Updated"), value: "updated" },
       ].map((item) => ({
         ...item,
-        description: item.value === current ? "Current" : undefined,
+        description: item.value === current ? vscode.l10n.t("Current") : undefined,
       })),
-      { title: "Sort C Insight Bookmarks By" },
+      { title: vscode.l10n.t("Sort C Insight Bookmarks By") },
     );
     if (selected) {
       await vscode.workspace
@@ -178,14 +179,14 @@ export class BookmarkExplorer implements vscode.Disposable {
     );
     if (bookmarks.length === 0) {
       void vscode.window.showInformationMessage(
-        "C Insight: There are no bookmarks to export.",
+        vscode.l10n.t("C Insight: There are no bookmarks to export."),
       );
       return;
     }
     const target = await vscode.window.showSaveDialog({
       title: group
-        ? `Export Bookmark Group “${group}”`
-        : "Export C Insight Bookmarks",
+        ? vscode.l10n.t("Export Bookmark Group “{group}”", { group })
+        : vscode.l10n.t("Export C Insight Bookmarks"),
       defaultUri: vscode.Uri.joinPath(
         vscode.workspace.workspaceFolders?.[0]?.uri ??
           vscode.Uri.file(process.cwd()),
@@ -207,13 +208,13 @@ export class BookmarkExplorer implements vscode.Disposable {
       Buffer.from(`${JSON.stringify(exported, undefined, 2)}\n`, "utf8"),
     );
     void vscode.window.showInformationMessage(
-      `C Insight: Exported ${bookmarks.length} bookmark${bookmarks.length === 1 ? "" : "s"}.`,
+      vscode.l10n.t("C Insight: Exported {count} bookmark(s).", { count: bookmarks.length }),
     );
   }
 
   async importBookmarks(): Promise<void> {
     const selected = await vscode.window.showOpenDialog({
-      title: "Import C Insight Bookmarks",
+      title: vscode.l10n.t("Import C Insight Bookmarks"),
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: false,
@@ -230,17 +231,17 @@ export class BookmarkExplorer implements vscode.Disposable {
       const mode = await vscode.window.showQuickPick(
         [
           {
-            label: "Append and Update",
+            label: vscode.l10n.t("Append and Update"),
             value: "append" as const,
-            description: "Keep current bookmarks and merge duplicate positions",
+            description: vscode.l10n.t("Keep current bookmarks and merge duplicate positions"),
           },
           {
-            label: "Replace All",
+            label: vscode.l10n.t("Replace All"),
             value: "replace" as const,
-            description: "Delete current bookmarks before importing",
+            description: vscode.l10n.t("Delete current bookmarks before importing"),
           },
         ],
-        { title: "Import C Insight Bookmarks" },
+        { title: vscode.l10n.t("Import C Insight Bookmarks") },
       );
       if (!mode) {
         return;
@@ -248,10 +249,10 @@ export class BookmarkExplorer implements vscode.Disposable {
       if (
         mode.value === "replace" &&
         (await vscode.window.showWarningMessage(
-          "Replace all current C Insight bookmarks?",
+          vscode.l10n.t("Replace all current C Insight bookmarks?"),
           { modal: true },
-          "Replace",
-        )) !== "Replace"
+          vscode.l10n.t("Replace"),
+        )) !== vscode.l10n.t("Replace")
       ) {
         return;
       }
@@ -283,11 +284,11 @@ export class BookmarkExplorer implements vscode.Disposable {
       }
       await this.persistAndPublish();
       void vscode.window.showInformationMessage(
-        `C Insight import: ${result.added} added, ${result.updated} updated, ${skipped} duplicate${skipped === 1 ? "" : "s"} skipped, ${missing} missing-file location${missing === 1 ? "" : "s"} marked stale.`,
+        vscode.l10n.t("C Insight import: {added} added, {updated} updated, {skipped} duplicate(s) skipped, {missing} missing-file location(s) marked stale.", { added: result.added, updated: result.updated, skipped, missing }),
       );
     } catch (error) {
       void vscode.window.showErrorMessage(
-        `C Insight could not import bookmarks: ${String(error)}`,
+        vscode.l10n.t("C Insight could not import bookmarks: {error}", { error: String(error) }),
       );
     }
   }
@@ -298,11 +299,11 @@ export class BookmarkExplorer implements vscode.Disposable {
       return;
     }
     const target = await vscode.window.showInputBox({
-      title: "Rename or Merge Bookmark Group",
+      title: vscode.l10n.t("Rename or Merge Bookmark Group"),
       value: group,
-      prompt: "An existing name merges both groups",
+      prompt: vscode.l10n.t("An existing name merges both groups"),
       validateInput: (input) =>
-        input.trim() ? undefined : "Group name cannot be empty",
+        input.trim() ? undefined : vscode.l10n.t("Group name cannot be empty"),
     });
     if (target && this.store.renameGroup(group, target) > 0) {
       await this.persistAndPublish();
@@ -317,12 +318,13 @@ export class BookmarkExplorer implements vscode.Disposable {
     const count = this.store.all.filter(
       (bookmark) => bookmark.group === group,
     ).length;
+    const deleteGroupAction = vscode.l10n.t("Delete Group");
     const action = await vscode.window.showWarningMessage(
-      `Delete group “${group}” and its ${count} bookmark${count === 1 ? "" : "s"}?`,
+      vscode.l10n.t("Delete group “{group}” and its {count} bookmark(s)?", { group, count }),
       { modal: true },
-      "Delete Group",
+      deleteGroupAction,
     );
-    if (action === "Delete Group" && this.store.removeGroup(group) > 0) {
+    if (action === deleteGroupAction && this.store.removeGroup(group) > 0) {
       await this.persistAndPublish();
     }
   }
@@ -404,8 +406,8 @@ export class BookmarkExplorer implements vscode.Disposable {
     await this.persistAndPublish();
     void vscode.window.showInformationMessage(
       result.created
-        ? `C Insight: Added bookmark “${result.bookmark.label}”.`
-        : `C Insight: Updated existing bookmark “${result.bookmark.label}”.`,
+        ? vscode.l10n.t("C Insight: Added bookmark “{label}”.", { label: result.bookmark.label })
+        : vscode.l10n.t("C Insight: Updated existing bookmark “{label}”.", { label: result.bookmark.label }),
     );
   }
 
@@ -459,7 +461,7 @@ export class BookmarkExplorer implements vscode.Disposable {
     if (this.store.all.length === 0) {
       this.provider.setRoots([
         {
-          label: "No bookmarks",
+          label: vscode.l10n.t("No bookmarks"),
           icon: new vscode.ThemeIcon("info"),
         },
       ]);
@@ -469,7 +471,7 @@ export class BookmarkExplorer implements vscode.Disposable {
     if (visible.length === 0) {
       this.provider.setRoots([
         {
-          label: `No bookmarks match “${this.filterQuery}”`,
+          label: vscode.l10n.t("No bookmarks match “{query}”", { query: this.filterQuery }),
           icon: new vscode.ThemeIcon("info"),
         },
       ]);
@@ -502,11 +504,11 @@ export class BookmarkExplorer implements vscode.Disposable {
     return {
       id: `bookmark:${bookmark.id}`,
       label: bookmark.label,
-      description: `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}${bookmark.stale ? " · stale" : ""}`,
+      description: `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}${bookmark.stale ? vscode.l10n.t(" · stale") : ""}`,
       tooltip:
         `${location.uri.fsPath}:${location.range.start.line + 1}:${location.range.start.character + 1}` +
         (bookmark.stale
-          ? "\nLocation may be outdated; run Refresh Bookmarks to relocate it."
+          ? vscode.l10n.t("\nLocation may be outdated; run Refresh Bookmarks to relocate it.")
           : ""),
       icon: new vscode.ThemeIcon(bookmark.stale ? "warning" : "bookmark"),
       location,

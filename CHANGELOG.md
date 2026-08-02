@@ -10,6 +10,8 @@
   expansion prompts, empty/stale states, and export feedback.
 - Localized Navigation History and Workspace Symbol Search filters, pickers,
   empty states, grouping controls, and navigation labels.
+- Localized Bookmark editing, grouping, sorting, filtering, import/export,
+  confirmation, stale-location, and result feedback surfaces.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 
