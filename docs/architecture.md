@@ -4,6 +4,12 @@ The TypeScript extension is both the VS Code integration and the LSP client.
 `ClangdManager` owns one clangd process. Navigation queries go through
 `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
+Command wiring uses a small typed registrar. Feature command groups live in
+separate modules under `src/commands`; `registerCommands` remains the composition
+root and passes only each group's required services. Contributed command IDs,
+view IDs, internal commands, and context keys are generated into `src/ids.ts`
+from the extension manifest and checked for drift before packaging.
+
 `ContextController` debounces cursor movement and assigns each refresh a
 monotonic generation. Results from an older generation are discarded. The
 views use native tree providers; callers and callees request children lazily.
