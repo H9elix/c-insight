@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Added the official VS Code localization structure with English fallback and
+  Simplified Chinese resources selected from the VS Code display language.
+- Localized extension metadata, commands, views, welcome actions, setting
+  descriptions, and setting enum descriptions.
+- Added manifest-localization completeness tests to prevent missing or
+  mismatched language entries.
+
 ## 0.18.22
 
 - Fixed clangd-mode Microsoft IntelliSense conflicts being missed when C

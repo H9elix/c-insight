@@ -1,7 +1,7 @@
 {
   "name": "c-insight",
   "displayName": "C Insight",
-  "description": "Source Insight-style C/C++ navigation powered by clangd or Microsoft C/C++.",
+  "description": "%extension.description%",
   "version": "0.18.22",
   "publisher": "c-insight",
   "author": {
@@ -23,8 +23,12 @@
     "call hierarchy"
   ],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "files": [
     "dist/extension.js",
+    "package.nls.json",
+    "package.nls.zh-cn.json",
+    "l10n/**/*",
     "media/**/*",
     "README.md",
     "CHANGELOG.md",
@@ -96,478 +100,478 @@
     "commands": [
       {
         "command": "cInsight.about",
-        "title": "C Insight: About"
+        "title": "%command.cInsight.about.title%"
       },
       {
         "command": "cInsight.relationshipGraph.show",
-        "title": "C Insight: Show Relationship Graph",
+        "title": "%command.cInsight.relationshipGraph.show.title%",
         "icon": "$(graph)"
       },
       {
         "command": "cInsight.relationshipGraph.showFile",
-        "title": "C Insight: Show File Relationship Graph",
+        "title": "%command.cInsight.relationshipGraph.showFile.title%",
         "icon": "$(files)"
       },
       {
         "command": "cInsight.relationshipGraph.exportText",
-        "title": "C Insight: Export Relationship Graph as Text"
+        "title": "%command.cInsight.relationshipGraph.exportText.title%"
       },
       {
         "command": "cInsight.relationshipGraph.exportJson",
-        "title": "C Insight: Export Relationship Graph as JSON"
+        "title": "%command.cInsight.relationshipGraph.exportJson.title%"
       },
       {
         "command": "cInsight.relationshipGraph.exportMermaid",
-        "title": "C Insight: Export Relationship Graph as Mermaid"
+        "title": "%command.cInsight.relationshipGraph.exportMermaid.title%"
       },
       {
         "command": "cInsight.goToDefinition",
-        "title": "C Insight: Go to Definition"
+        "title": "%command.cInsight.goToDefinition.title%"
       },
       {
         "command": "cInsight.findReferences",
-        "title": "C Insight: Find All References"
+        "title": "%command.cInsight.findReferences.title%"
       },
       {
         "command": "cInsight.showIncomingCalls",
-        "title": "C Insight: Show Incoming Calls",
+        "title": "%command.cInsight.showIncomingCalls.title%",
         "icon": "$(references)"
       },
       {
         "command": "cInsight.showOutgoingCalls",
-        "title": "C Insight: Show Outgoing Calls",
+        "title": "%command.cInsight.showOutgoingCalls.title%",
         "icon": "$(references)"
       },
       {
         "command": "cInsight.pinContext",
-        "title": "C Insight: Pin Context",
+        "title": "%command.cInsight.pinContext.title%",
         "icon": "$(pin)"
       },
       {
         "command": "cInsight.unpinContext",
-        "title": "C Insight: Unpin Context",
+        "title": "%command.cInsight.unpinContext.title%",
         "icon": "$(pinned)"
       },
       {
         "command": "cInsight.pinReferences",
-        "title": "C Insight: Pin References",
+        "title": "%command.cInsight.pinReferences.title%",
         "icon": "$(pin)"
       },
       {
         "command": "cInsight.unpinReferences",
-        "title": "C Insight: Unpin References",
+        "title": "%command.cInsight.unpinReferences.title%",
         "icon": "$(pinned)"
       },
       {
         "command": "cInsight.pinCallHierarchy",
-        "title": "C Insight: Pin Callers and Callees",
+        "title": "%command.cInsight.pinCallHierarchy.title%",
         "icon": "$(pin)"
       },
       {
         "command": "cInsight.unpinCallHierarchy",
-        "title": "C Insight: Unpin Callers and Callees",
+        "title": "%command.cInsight.unpinCallHierarchy.title%",
         "icon": "$(pinned)"
       },
       {
         "command": "cInsight.refresh",
-        "title": "C Insight: Refresh"
+        "title": "%command.cInsight.refresh.title%"
       },
       {
         "command": "cInsight.restartClangd",
-        "title": "C Insight: Restart clangd"
+        "title": "%command.cInsight.restartClangd.title%"
       },
       {
         "command": "cInsight.restoreProviderSettings",
-        "title": "C Insight: Restore Provider Settings"
+        "title": "%command.cInsight.restoreProviderSettings.title%"
       },
       {
         "command": "cInsight.diagnostics.refresh",
-        "title": "C Insight: Refresh Project Diagnostics",
+        "title": "%command.cInsight.diagnostics.refresh.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "cInsight.openProjectDiagnostics",
-        "title": "C Insight: Open Project Diagnostics"
+        "title": "%command.cInsight.openProjectDiagnostics.title%"
       },
       {
         "command": "cInsight.diagnostics.showClangdLog",
-        "title": "C Insight: Show clangd Log",
+        "title": "%command.cInsight.diagnostics.showClangdLog.title%",
         "icon": "$(output)"
       },
       {
         "command": "cInsight.diagnostics.copyReport",
-        "title": "C Insight: Copy Project Diagnostics Report",
+        "title": "%command.cInsight.diagnostics.copyReport.title%",
         "icon": "$(copy)"
       },
       {
         "command": "cInsight.diagnostics.exportText",
-        "title": "C Insight: Export Project Diagnostics as Text"
+        "title": "%command.cInsight.diagnostics.exportText.title%"
       },
       {
         "command": "cInsight.diagnostics.exportJson",
-        "title": "C Insight: Export Project Diagnostics as JSON",
+        "title": "%command.cInsight.diagnostics.exportJson.title%",
         "icon": "$(save)"
       },
       {
         "command": "cInsight.index.refresh",
-        "title": "C Insight: Restart Background Indexing",
+        "title": "%command.cInsight.index.refresh.title%",
         "icon": "$(sync)"
       },
       {
         "command": "cInsight.diagnostics.selectCompilationDatabase",
-        "title": "C Insight: Select Compilation Database",
+        "title": "%command.cInsight.diagnostics.selectCompilationDatabase.title%",
         "icon": "$(database)"
       },
       {
         "command": "cInsight.diagnostics.clearCompilationDatabase",
-        "title": "C Insight: Use Automatic Compilation Database Detection"
+        "title": "%command.cInsight.diagnostics.clearCompilationDatabase.title%"
       },
       {
         "command": "cInsight.openLocation",
-        "title": "C Insight: Open Location"
+        "title": "%command.cInsight.openLocation.title%"
       },
       {
         "command": "cInsight.searchSymbols",
-        "title": "C Insight: Search Workspace Symbols",
+        "title": "%command.cInsight.searchSymbols.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.symbolSearch.refresh",
-        "title": "C Insight: Refresh Workspace Symbol Search",
+        "title": "%command.cInsight.symbolSearch.refresh.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "cInsight.symbolSearch.clear",
-        "title": "C Insight: Clear Workspace Symbol Search",
+        "title": "%command.cInsight.symbolSearch.clear.title%",
         "icon": "$(clear-all)"
       },
       {
         "command": "cInsight.symbolSearch.groupBy",
-        "title": "C Insight: Group Workspace Symbols",
+        "title": "%command.cInsight.symbolSearch.groupBy.title%",
         "icon": "$(list-tree)"
       },
       {
         "command": "cInsight.symbolSearch.filterKinds",
-        "title": "C Insight: Filter Workspace Symbol Types",
+        "title": "%command.cInsight.symbolSearch.filterKinds.title%",
         "icon": "$(filter)"
       },
       {
         "command": "cInsight.history.filter",
-        "title": "C Insight: Filter Navigation History",
+        "title": "%command.cInsight.history.filter.title%",
         "icon": "$(filter)"
       },
       {
         "command": "cInsight.history.clear",
-        "title": "C Insight: Clear Navigation History",
+        "title": "%command.cInsight.history.clear.title%",
         "icon": "$(trash)"
       },
       {
         "command": "cInsight.bookmarks.addCurrent",
-        "title": "C Insight: Bookmark Current Symbol",
+        "title": "%command.cInsight.bookmarks.addCurrent.title%",
         "icon": "$(bookmark)"
       },
       {
         "command": "cInsight.bookmarks.add",
-        "title": "C Insight: Add Bookmark"
+        "title": "%command.cInsight.bookmarks.add.title%"
       },
       {
         "command": "cInsight.bookmarks.rename",
-        "title": "C Insight: Rename Bookmark"
+        "title": "%command.cInsight.bookmarks.rename.title%"
       },
       {
         "command": "cInsight.bookmarks.changeGroup",
-        "title": "C Insight: Change Bookmark Group"
+        "title": "%command.cInsight.bookmarks.changeGroup.title%"
       },
       {
         "command": "cInsight.bookmarks.delete",
-        "title": "C Insight: Delete Bookmark"
+        "title": "%command.cInsight.bookmarks.delete.title%"
       },
       {
         "command": "cInsight.bookmarks.refresh",
-        "title": "C Insight: Refresh Bookmarks",
+        "title": "%command.cInsight.bookmarks.refresh.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "cInsight.bookmarks.search",
-        "title": "C Insight: Filter Bookmarks",
+        "title": "%command.cInsight.bookmarks.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.bookmarks.clearSearch",
-        "title": "C Insight: Clear Bookmark Filter"
+        "title": "%command.cInsight.bookmarks.clearSearch.title%"
       },
       {
         "command": "cInsight.bookmarks.sort",
-        "title": "C Insight: Sort Bookmarks",
+        "title": "%command.cInsight.bookmarks.sort.title%",
         "icon": "$(list-ordered)"
       },
       {
         "command": "cInsight.bookmarks.import",
-        "title": "C Insight: Import Bookmarks",
+        "title": "%command.cInsight.bookmarks.import.title%",
         "icon": "$(cloud-download)"
       },
       {
         "command": "cInsight.bookmarks.export",
-        "title": "C Insight: Export Bookmarks",
+        "title": "%command.cInsight.bookmarks.export.title%",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "cInsight.bookmarks.renameGroup",
-        "title": "C Insight: Rename or Merge Bookmark Group"
+        "title": "%command.cInsight.bookmarks.renameGroup.title%"
       },
       {
         "command": "cInsight.bookmarks.deleteGroup",
-        "title": "C Insight: Delete Bookmark Group"
+        "title": "%command.cInsight.bookmarks.deleteGroup.title%"
       },
       {
         "command": "cInsight.session.restore",
-        "title": "C Insight: Restore Previous Workspace Session"
+        "title": "%command.cInsight.session.restore.title%"
       },
       {
         "command": "cInsight.session.clear",
-        "title": "C Insight: Clear Saved Workspace Session"
+        "title": "%command.cInsight.session.clear.title%"
       },
       {
         "command": "cInsight.references.search",
-        "title": "C Insight: Filter References",
+        "title": "%command.cInsight.references.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.references.clearSearch",
-        "title": "C Insight: Clear Reference Filter"
+        "title": "%command.cInsight.references.clearSearch.title%"
       },
       {
         "command": "cInsight.references.groupBy",
-        "title": "C Insight: Change Reference Grouping",
+        "title": "%command.cInsight.references.groupBy.title%",
         "icon": "$(list-tree)"
       },
       {
         "command": "cInsight.references.scope",
-        "title": "C Insight: Change Reference Scope",
+        "title": "%command.cInsight.references.scope.title%",
         "icon": "$(filter)"
       },
       {
         "command": "cInsight.references.filterEvidence",
-        "title": "C Insight: Filter References by Confidence or Evidence",
+        "title": "%command.cInsight.references.filterEvidence.title%",
         "icon": "$(verified)"
       },
       {
         "command": "cInsight.references.loadMore",
-        "title": "C Insight: Load More References"
+        "title": "%command.cInsight.references.loadMore.title%"
       },
       {
         "command": "cInsight.references.showAll",
-        "title": "C Insight: Show All References"
+        "title": "%command.cInsight.references.showAll.title%"
       },
       {
         "command": "cInsight.references.copy",
-        "title": "C Insight: Copy Reference"
+        "title": "%command.cInsight.references.copy.title%"
       },
       {
         "command": "cInsight.references.copyAll",
-        "title": "C Insight: Copy All References"
+        "title": "%command.cInsight.references.copyAll.title%"
       },
       {
         "command": "cInsight.references.exportText",
-        "title": "C Insight: Export References as Text"
+        "title": "%command.cInsight.references.exportText.title%"
       },
       {
         "command": "cInsight.references.exportJson",
-        "title": "C Insight: Export References as JSON"
+        "title": "%command.cInsight.references.exportJson.title%"
       },
       {
         "command": "cInsight.references.openList",
-        "title": "C Insight: Open Reference List in Editor"
+        "title": "%command.cInsight.references.openList.title%"
       },
       {
         "command": "cInsight.references.expandAll",
-        "title": "C Insight: Expand All Reference Groups"
+        "title": "%command.cInsight.references.expandAll.title%"
       },
       {
         "command": "cInsight.references.collapseAll",
-        "title": "C Insight: Collapse All Reference Groups"
+        "title": "%command.cInsight.references.collapseAll.title%"
       },
       {
         "command": "cInsight.callers.expandToDepth",
-        "title": "C Insight: Expand Callers to Depth",
+        "title": "%command.cInsight.callers.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.callees.expandToDepth",
-        "title": "C Insight: Expand Callees to Depth",
+        "title": "%command.cInsight.callees.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.callHierarchy.stopExpansion",
-        "title": "C Insight: Stop Call Hierarchy Expansion",
+        "title": "%command.cInsight.callHierarchy.stopExpansion.title%",
         "icon": "$(debug-stop)"
       },
       {
         "command": "cInsight.callers.search",
-        "title": "C Insight: Search Loaded Callers",
+        "title": "%command.cInsight.callers.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.callees.search",
-        "title": "C Insight: Search Loaded Callees",
+        "title": "%command.cInsight.callees.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.callers.exportText",
-        "title": "C Insight: Export Callers as Text"
+        "title": "%command.cInsight.callers.exportText.title%"
       },
       {
         "command": "cInsight.callers.exportJson",
-        "title": "C Insight: Export Callers as JSON"
+        "title": "%command.cInsight.callers.exportJson.title%"
       },
       {
         "command": "cInsight.callees.exportText",
-        "title": "C Insight: Export Callees as Text"
+        "title": "%command.cInsight.callees.exportText.title%"
       },
       {
         "command": "cInsight.callees.exportJson",
-        "title": "C Insight: Export Callees as JSON"
+        "title": "%command.cInsight.callees.exportJson.title%"
       },
       {
         "command": "cInsight.callers.findPath",
-        "title": "C Insight: Find Caller Path",
+        "title": "%command.cInsight.callers.findPath.title%",
         "icon": "$(git-compare)"
       },
       {
         "command": "cInsight.callees.findPath",
-        "title": "C Insight: Find Callee Path",
+        "title": "%command.cInsight.callees.findPath.title%",
         "icon": "$(git-compare)"
       },
       {
         "command": "cInsight.callers.exportMermaid",
-        "title": "C Insight: Export Callers as Mermaid"
+        "title": "%command.cInsight.callers.exportMermaid.title%"
       },
       {
         "command": "cInsight.callees.exportMermaid",
-        "title": "C Insight: Export Callees as Mermaid"
+        "title": "%command.cInsight.callees.exportMermaid.title%"
       },
       {
         "command": "cInsight.typeHierarchy.showSupertypes",
-        "title": "C Insight: Show Supertypes",
+        "title": "%command.cInsight.typeHierarchy.showSupertypes.title%",
         "icon": "$(type-hierarchy-super)"
       },
       {
         "command": "cInsight.typeHierarchy.showSubtypes",
-        "title": "C Insight: Show Subtypes",
+        "title": "%command.cInsight.typeHierarchy.showSubtypes.title%",
         "icon": "$(type-hierarchy-sub)"
       },
       {
         "command": "cInsight.supertypes.expandToDepth",
-        "title": "C Insight: Expand Supertypes to Depth",
+        "title": "%command.cInsight.supertypes.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.subtypes.expandToDepth",
-        "title": "C Insight: Expand Subtypes to Depth",
+        "title": "%command.cInsight.subtypes.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.typeHierarchy.stopExpansion",
-        "title": "C Insight: Stop Type Hierarchy Expansion",
+        "title": "%command.cInsight.typeHierarchy.stopExpansion.title%",
         "icon": "$(debug-stop)"
       },
       {
         "command": "cInsight.supertypes.search",
-        "title": "C Insight: Search Loaded Supertypes",
+        "title": "%command.cInsight.supertypes.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.subtypes.search",
-        "title": "C Insight: Search Loaded Subtypes",
+        "title": "%command.cInsight.subtypes.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.supertypes.exportText",
-        "title": "C Insight: Export Supertypes as Text"
+        "title": "%command.cInsight.supertypes.exportText.title%"
       },
       {
         "command": "cInsight.supertypes.exportJson",
-        "title": "C Insight: Export Supertypes as JSON"
+        "title": "%command.cInsight.supertypes.exportJson.title%"
       },
       {
         "command": "cInsight.supertypes.exportMermaid",
-        "title": "C Insight: Export Supertypes as Mermaid"
+        "title": "%command.cInsight.supertypes.exportMermaid.title%"
       },
       {
         "command": "cInsight.subtypes.exportText",
-        "title": "C Insight: Export Subtypes as Text"
+        "title": "%command.cInsight.subtypes.exportText.title%"
       },
       {
         "command": "cInsight.subtypes.exportJson",
-        "title": "C Insight: Export Subtypes as JSON"
+        "title": "%command.cInsight.subtypes.exportJson.title%"
       },
       {
         "command": "cInsight.subtypes.exportMermaid",
-        "title": "C Insight: Export Subtypes as Mermaid"
+        "title": "%command.cInsight.subtypes.exportMermaid.title%"
       },
       {
         "command": "cInsight.includeHierarchy.showIncludes",
-        "title": "C Insight: Show Includes",
+        "title": "%command.cInsight.includeHierarchy.showIncludes.title%",
         "icon": "$(references)"
       },
       {
         "command": "cInsight.includeHierarchy.showIncludedBy",
-        "title": "C Insight: Show Included By",
+        "title": "%command.cInsight.includeHierarchy.showIncludedBy.title%",
         "icon": "$(references)"
       },
       {
         "command": "cInsight.includes.expandToDepth",
-        "title": "C Insight: Expand Includes to Depth",
+        "title": "%command.cInsight.includes.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.includedBy.expandToDepth",
-        "title": "C Insight: Expand Included By to Depth",
+        "title": "%command.cInsight.includedBy.expandToDepth.title%",
         "icon": "$(expand-all)"
       },
       {
         "command": "cInsight.includes.stopExpansion",
-        "title": "C Insight: Stop Includes Expansion",
+        "title": "%command.cInsight.includes.stopExpansion.title%",
         "icon": "$(debug-stop)"
       },
       {
         "command": "cInsight.includedBy.stopExpansion",
-        "title": "C Insight: Stop Included By Expansion",
+        "title": "%command.cInsight.includedBy.stopExpansion.title%",
         "icon": "$(debug-stop)"
       },
       {
         "command": "cInsight.includes.search",
-        "title": "C Insight: Search Loaded Includes",
+        "title": "%command.cInsight.includes.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.includedBy.search",
-        "title": "C Insight: Search Loaded Included By",
+        "title": "%command.cInsight.includedBy.search.title%",
         "icon": "$(search)"
       },
       {
         "command": "cInsight.includes.exportText",
-        "title": "C Insight: Export Includes as Text"
+        "title": "%command.cInsight.includes.exportText.title%"
       },
       {
         "command": "cInsight.includes.exportJson",
-        "title": "C Insight: Export Includes as JSON"
+        "title": "%command.cInsight.includes.exportJson.title%"
       },
       {
         "command": "cInsight.includes.exportMermaid",
-        "title": "C Insight: Export Includes as Mermaid"
+        "title": "%command.cInsight.includes.exportMermaid.title%"
       },
       {
         "command": "cInsight.includedBy.exportText",
-        "title": "C Insight: Export Included By as Text"
+        "title": "%command.cInsight.includedBy.exportText.title%"
       },
       {
         "command": "cInsight.includedBy.exportJson",
-        "title": "C Insight: Export Included By as JSON"
+        "title": "%command.cInsight.includedBy.exportJson.title%"
       },
       {
         "command": "cInsight.includedBy.exportMermaid",
-        "title": "C Insight: Export Included By as Mermaid"
+        "title": "%command.cInsight.includedBy.exportMermaid.title%"
       }
     ],
     "keybindings": [
@@ -1083,89 +1087,89 @@
       "cInsight": [
         {
           "id": "cInsight.context",
-          "name": "Context"
+          "name": "%view.cInsight.context.name%"
         },
         {
           "id": "cInsight.preview",
-          "name": "Code Preview",
+          "name": "%view.cInsight.preview.name%",
           "type": "webview"
         },
         {
           "id": "cInsight.references",
-          "name": "References"
+          "name": "%view.cInsight.references.name%"
         },
         {
           "id": "cInsight.callers",
-          "name": "Callers"
+          "name": "%view.cInsight.callers.name%"
         },
         {
           "id": "cInsight.callees",
-          "name": "Callees"
+          "name": "%view.cInsight.callees.name%"
         },
         {
           "id": "cInsight.supertypes",
-          "name": "Supertypes"
+          "name": "%view.cInsight.supertypes.name%"
         },
         {
           "id": "cInsight.subtypes",
-          "name": "Subtypes"
+          "name": "%view.cInsight.subtypes.name%"
         },
         {
           "id": "cInsight.includes",
-          "name": "Includes"
+          "name": "%view.cInsight.includes.name%"
         },
         {
           "id": "cInsight.includedBy",
-          "name": "Included By"
+          "name": "%view.cInsight.includedBy.name%"
         },
         {
           "id": "cInsight.history",
-          "name": "Navigation History"
+          "name": "%view.cInsight.history.name%"
         },
         {
           "id": "cInsight.bookmarks",
-          "name": "Bookmarks"
+          "name": "%view.cInsight.bookmarks.name%"
         },
         {
           "id": "cInsight.workspaceSymbols",
-          "name": "Symbol Search"
+          "name": "%view.cInsight.workspaceSymbols.name%"
         },
         {
           "id": "cInsight.symbols",
-          "name": "Document Symbols"
+          "name": "%view.cInsight.symbols.name%"
         },
         {
           "id": "cInsight.status",
-          "name": "Project Diagnostics"
+          "name": "%view.cInsight.status.name%"
         }
       ]
     },
     "viewsWelcome": [
       {
         "view": "cInsight.context",
-        "contents": "Open a C or C++ file to inspect the symbol under the cursor.\n[Restart clangd](command:cInsight.restartClangd)",
+        "contents": "%viewWelcome.0%",
         "when": "config.cInsight.engine == clangd"
       },
       {
         "view": "cInsight.context",
-        "contents": "Open a C or C++ file to inspect the symbol under the cursor.\n[Open Project Diagnostics](command:cInsight.openProjectDiagnostics)",
+        "contents": "%viewWelcome.1%",
         "when": "config.cInsight.engine == microsoft"
       },
       {
         "view": "cInsight.symbols",
-        "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
+        "contents": "%viewWelcome.2%"
       },
       {
         "view": "cInsight.workspaceSymbols",
-        "contents": "[Search workspace symbols](command:cInsight.searchSymbols)"
+        "contents": "%viewWelcome.3%"
       },
       {
         "view": "cInsight.includes",
-        "contents": "Place the cursor in a C/C++ file, then [show its include hierarchy](command:cInsight.includeHierarchy.showIncludes)."
+        "contents": "%viewWelcome.4%"
       },
       {
         "view": "cInsight.includedBy",
-        "contents": "Place the cursor in a C/C++ file, then [find files that include it](command:cInsight.includeHierarchy.showIncludedBy)."
+        "contents": "%viewWelcome.5%"
       }
     ],
     "configuration": {
@@ -1178,11 +1182,11 @@
             "microsoft"
           ],
           "enumDescriptions": [
-            "Start and manage C Insight's bundled clangd client.",
-            "Use the installed Microsoft C/C++ extension through public VS Code Provider commands."
+            "%configuration.cInsight.engine.enumDescription.0%",
+            "%configuration.cInsight.engine.enumDescription.1%"
           ],
           "default": "clangd",
-          "description": "Semantic analysis engine. Changing this setting requires Reload Window."
+          "description": "%configuration.cInsight.engine.description%"
         },
         "cInsight.microsoft.callersMode": {
           "type": "string",
@@ -1192,17 +1196,17 @@
             "disabled"
           ],
           "enumDescriptions": [
-            "Build approximate Callers from References and enclosing Document Symbols; avoids the cpptools native Incoming Calls path.",
-            "Use the cpptools native Incoming Calls Provider. This may crash some cpptools versions for cross-file symbols.",
-            "Disable Callers expansion in Microsoft engine mode."
+            "%configuration.cInsight.microsoft.callersMode.enumDescription.0%",
+            "%configuration.cInsight.microsoft.callersMode.enumDescription.1%",
+            "%configuration.cInsight.microsoft.callersMode.enumDescription.2%"
           ],
           "default": "references",
-          "description": "Callers implementation used by the Microsoft C/C++ engine. clangd mode is unaffected."
+          "description": "%configuration.cInsight.microsoft.callersMode.description%"
         },
         "cInsight.clangd.path": {
           "type": "string",
           "default": "",
-          "description": "Path to the clangd executable. Empty uses PATH."
+          "description": "%configuration.cInsight.clangd.path.description%"
         },
         "cInsight.clangd.arguments": {
           "type": "array",
@@ -1210,7 +1214,7 @@
             "type": "string"
           },
           "default": [],
-          "description": "Additional arguments passed to clangd."
+          "description": "%configuration.cInsight.clangd.arguments.description%"
         },
         "cInsight.clangd.logLevel": {
           "type": "string",
@@ -1224,7 +1228,7 @@
         "cInsight.compileCommandsDir": {
           "type": "string",
           "default": "",
-          "description": "Directory containing compile_commands.json. Empty automatically searches the workspace root and common build directories."
+          "description": "%configuration.cInsight.compileCommandsDir.description%"
         },
         "cInsight.fallbackFlags": {
           "type": "array",
@@ -1247,7 +1251,7 @@
             "paths-and-defines"
           ],
           "default": "none",
-          "description": "Redact filesystem paths, or paths plus macro definitions/fallback flags, from copied and exported Project Diagnostics reports."
+          "description": "%configuration.cInsight.diagnostics.reportRedaction.description%"
         },
         "cInsight.followCursor": {
           "type": "boolean",
@@ -1264,134 +1268,134 @@
           "default": 600,
           "minimum": 200,
           "maximum": 5000,
-          "description": "Additional idle delay before loading references and first-level caller/callee counts."
+          "description": "%configuration.cInsight.followCursorDetailsDelay.description%"
         },
         "cInsight.codePreview.linesBefore": {
           "type": "number",
           "default": 6,
           "minimum": 0,
           "maximum": 100,
-          "description": "Number of source lines displayed before the Code Preview target."
+          "description": "%configuration.cInsight.codePreview.linesBefore.description%"
         },
         "cInsight.codePreview.linesAfter": {
           "type": "number",
           "default": 8,
           "minimum": 0,
           "maximum": 100,
-          "description": "Number of source lines displayed after the Code Preview target."
+          "description": "%configuration.cInsight.codePreview.linesAfter.description%"
         },
         "cInsight.codePreview.semanticHighlighting": {
           "type": "boolean",
           "default": true,
-          "description": "Use the active VS Code semantic token provider to color symbols in Code Preview, with lexical highlighting as a fallback."
+          "description": "%configuration.cInsight.codePreview.semanticHighlighting.description%"
         },
         "cInsight.codePreview.semanticTokenTimeout": {
           "type": "number",
           "default": 1500,
           "minimum": 100,
           "maximum": 10000,
-          "description": "Maximum milliseconds Code Preview waits for semantic tokens before rendering immediately with lexical highlighting."
+          "description": "%configuration.cInsight.codePreview.semanticTokenTimeout.description%"
         },
         "cInsight.codePreview.semanticTokenCacheSize": {
           "type": "number",
           "default": 32,
           "minimum": 1,
           "maximum": 256,
-          "description": "Maximum number of document-version semantic-token results retained in memory."
+          "description": "%configuration.cInsight.codePreview.semanticTokenCacheSize.description%"
         },
         "cInsight.codePreview.semanticTokenCacheMaximumMegabytes": {
           "type": "number",
           "default": 16,
           "minimum": 1,
           "maximum": 256,
-          "description": "Approximate maximum total memory in MiB retained by completed Code Preview semantic-token cache entries."
+          "description": "%configuration.cInsight.codePreview.semanticTokenCacheMaximumMegabytes.description%"
         },
         "cInsight.codePreview.incrementalLoading": {
           "type": "boolean",
           "default": true,
-          "description": "Load more source context when Code Preview is scrolled near its top or bottom edge."
+          "description": "%configuration.cInsight.codePreview.incrementalLoading.description%"
         },
         "cInsight.codePreview.loadBatchLines": {
           "type": "number",
           "default": 50,
           "minimum": 10,
           "maximum": 500,
-          "description": "Number of source lines added for each incremental Code Preview load."
+          "description": "%configuration.cInsight.codePreview.loadBatchLines.description%"
         },
         "cInsight.codePreview.maximumLoadedLines": {
           "type": "number",
           "default": 1000,
           "minimum": 50,
           "maximum": 10000,
-          "description": "Maximum source lines retained in the Code Preview DOM; distant lines are trimmed and can be loaded again."
+          "description": "%configuration.cInsight.codePreview.maximumLoadedLines.description%"
         },
         "cInsight.codePreview.restoreScrollPositions": {
           "type": "boolean",
           "default": true,
-          "description": "Restore loaded context and vertical/horizontal scroll position when returning to a previous Code Preview target."
+          "description": "%configuration.cInsight.codePreview.restoreScrollPositions.description%"
         },
         "cInsight.codePreview.maximumScrollPositions": {
           "type": "number",
           "default": 100,
           "minimum": 10,
           "maximum": 1000,
-          "description": "Maximum Code Preview target scroll positions retained for the current extension session."
+          "description": "%configuration.cInsight.codePreview.maximumScrollPositions.description%"
         },
         "cInsight.analysis.maximumConcurrentRequests": {
           "type": "number",
           "default": 8,
           "minimum": 1,
           "maximum": 64,
-          "description": "Maximum number of semantic-engine requests that C Insight may run concurrently. Interactive requests are dequeued before normal and background work."
+          "description": "%configuration.cInsight.analysis.maximumConcurrentRequests.description%"
         },
         "cInsight.analysis.maximumBackgroundRequests": {
           "type": "number",
           "default": 2,
           "minimum": 1,
           "maximum": 16,
-          "description": "Maximum concurrent background-detail requests within the total semantic request limit."
+          "description": "%configuration.cInsight.analysis.maximumBackgroundRequests.description%"
         },
         "cInsight.analysis.slowRequestThreshold": {
           "type": "number",
           "default": 1000,
           "minimum": 100,
           "maximum": 60000,
-          "description": "Duration in milliseconds after which a completed or failed semantic-engine request is counted and logged as slow."
+          "description": "%configuration.cInsight.analysis.slowRequestThreshold.description%"
         },
         "cInsight.references.pageSize": {
           "type": "number",
           "default": 200,
           "minimum": 25,
           "maximum": 5000,
-          "description": "Number of reference results added to the tree per page."
+          "description": "%configuration.cInsight.references.pageSize.description%"
         },
         "cInsight.references.maximumDisplayedResults": {
           "type": "number",
           "default": 10000,
           "minimum": 100,
           "maximum": 100000,
-          "description": "Maximum number of reference result tree nodes displayed at once, including Show All. Filtering and exports still operate on the full result set within their own limits."
+          "description": "%configuration.cInsight.references.maximumDisplayedResults.description%"
         },
         "cInsight.references.detailRequestCacheSize": {
           "type": "number",
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum per-kind LRU entries retained for References Document Highlight and Signature Help detail requests."
+          "description": "%configuration.cInsight.references.detailRequestCacheSize.description%"
         },
         "cInsight.export.maximumResults": {
           "type": "number",
           "default": 50000,
           "minimum": 1000,
           "maximum": 500000,
-          "description": "Maximum number of records included in one References export. Results beyond the limit are omitted and reported in export metadata."
+          "description": "%configuration.cInsight.export.maximumResults.description%"
         },
         "cInsight.export.maximumMegabytes": {
           "type": "number",
           "default": 64,
           "minimum": 1,
           "maximum": 1024,
-          "description": "Maximum encoded size in MiB for References, Call, Type, or Include hierarchy exports. Oversized output is not written."
+          "description": "%configuration.cInsight.export.maximumMegabytes.description%"
         },
         "cInsight.references.groupBy": {
           "type": "string",
@@ -1405,19 +1409,19 @@
             "flat"
           ],
           "default": "file",
-          "description": "Persisted grouping mode for the References view."
+          "description": "%configuration.cInsight.references.groupBy.description%"
         },
         "cInsight.history.maximumEntries": {
           "type": "number",
           "default": 200,
           "minimum": 20,
           "maximum": 2000,
-          "description": "Maximum number of navigation history entries retained for the current VS Code session."
+          "description": "%configuration.cInsight.history.maximumEntries.description%"
         },
         "cInsight.history.mergeConsecutiveDuplicates": {
           "type": "boolean",
           "default": true,
-          "description": "Merge consecutive navigation entries with the same location, mode, and origin."
+          "description": "%configuration.cInsight.history.mergeConsecutiveDuplicates.description%"
         },
         "cInsight.symbolSearch.groupBy": {
           "type": "string",
@@ -1428,7 +1432,7 @@
             "flat"
           ],
           "default": "type",
-          "description": "Persisted grouping mode for the Symbol Search view."
+          "description": "%configuration.cInsight.symbolSearch.groupBy.description%"
         },
         "cInsight.bookmarks.sortBy": {
           "type": "string",
@@ -1440,130 +1444,130 @@
             "updated"
           ],
           "default": "updated",
-          "description": "Persisted sorting mode for bookmarks within each group."
+          "description": "%configuration.cInsight.bookmarks.sortBy.description%"
         },
         "cInsight.session.restore": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically save and restore C Insight browsing state for the current folder or multi-root workspace."
+          "description": "%configuration.cInsight.session.restore.description%"
         },
         "cInsight.session.persistNavigationHistory": {
           "type": "boolean",
           "default": true,
-          "description": "Include Navigation History in the workspace session snapshot."
+          "description": "%configuration.cInsight.session.persistNavigationHistory.description%"
         },
         "cInsight.session.restoreCallHierarchy": {
           "type": "boolean",
           "default": true,
-          "description": "Re-query and restore the previous Callers/Callees root and loaded depth."
+          "description": "%configuration.cInsight.session.restoreCallHierarchy.description%"
         },
         "cInsight.session.restoreRelationshipGraph": {
           "type": "boolean",
           "default": true,
-          "description": "Restore a Relationship Graph that was still open when VS Code exited, as a static snapshot without issuing semantic or include queries."
+          "description": "%configuration.cInsight.session.restoreRelationshipGraph.description%"
         },
         "cInsight.session.relationshipGraphMaximumSnapshotNodes": {
           "type": "number",
           "default": 1000,
           "minimum": 50,
           "maximum": 2000,
-          "description": "Maximum Relationship Graph nodes stored in a workspace session; larger graphs degrade to a root-only snapshot."
+          "description": "%configuration.cInsight.session.relationshipGraphMaximumSnapshotNodes.description%"
         },
         "cInsight.session.maximumSnapshotKilobytes": {
           "type": "number",
           "default": 2048,
           "minimum": 64,
           "maximum": 8192,
-          "description": "Maximum serialized workspace-session size in KiB; oversized snapshots progressively drop graph and older/secondary navigation state."
+          "description": "%configuration.cInsight.session.maximumSnapshotKilobytes.description%"
         },
         "cInsight.session.maximumAgeDays": {
           "type": "number",
           "default": 30,
           "minimum": 1,
           "maximum": 365,
-          "description": "Ignore saved workspace sessions older than this many days."
+          "description": "%configuration.cInsight.session.maximumAgeDays.description%"
         },
         "cInsight.typeHierarchy.defaultDepth": {
           "type": "number",
           "default": 0,
           "minimum": 0,
           "maximum": 10,
-          "description": "Type hierarchy depth loaded automatically for a new root. Zero keeps roots collapsed."
+          "description": "%configuration.cInsight.typeHierarchy.defaultDepth.description%"
         },
         "cInsight.typeHierarchy.maximumDepth": {
           "type": "number",
           "default": 10,
           "minimum": 1,
           "maximum": 50,
-          "description": "Maximum depth allowed for type hierarchy expansion."
+          "description": "%configuration.cInsight.typeHierarchy.maximumDepth.description%"
         },
         "cInsight.typeHierarchy.maximumNodes": {
           "type": "number",
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum number of nodes loaded independently in each Supertypes or Subtypes tree."
+          "description": "%configuration.cInsight.typeHierarchy.maximumNodes.description%"
         },
         "cInsight.includeHierarchy.defaultDepth": {
           "type": "number",
           "default": 0,
           "minimum": 0,
           "maximum": 10,
-          "description": "Include hierarchy depth loaded automatically for a new root. Zero keeps roots collapsed."
+          "description": "%configuration.cInsight.includeHierarchy.defaultDepth.description%"
         },
         "cInsight.includeHierarchy.maximumDepth": {
           "type": "number",
           "default": 10,
           "minimum": 1,
           "maximum": 50,
-          "description": "Maximum depth allowed for include hierarchy expansion."
+          "description": "%configuration.cInsight.includeHierarchy.maximumDepth.description%"
         },
         "cInsight.includeHierarchy.maximumNodes": {
           "type": "number",
           "default": 5000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum number of include hierarchy nodes loaded for the current root."
+          "description": "%configuration.cInsight.includeHierarchy.maximumNodes.description%"
         },
         "cInsight.includeHierarchy.includeSystemHeaders": {
           "type": "boolean",
           "default": false,
-          "description": "Resolve and expand system headers in include hierarchies. Disabled by default to avoid very large trees."
+          "description": "%configuration.cInsight.includeHierarchy.includeSystemHeaders.description%"
         },
         "cInsight.includeHierarchy.workspaceFileLimit": {
           "type": "number",
           "default": 20000,
           "minimum": 100,
           "maximum": 200000,
-          "description": "Maximum workspace source/header files scanned when building the on-demand Included By index."
+          "description": "%configuration.cInsight.includeHierarchy.workspaceFileLimit.description%"
         },
         "cInsight.relationshipGraph.defaultDepth": {
           "type": "number",
           "default": 1,
           "minimum": 0,
           "maximum": 1,
-          "description": "Whether a new function or type graph root loads its first relationship level. Zero keeps only the root."
+          "description": "%configuration.cInsight.relationshipGraph.defaultDepth.description%"
         },
         "cInsight.relationshipGraph.maximumDepth": {
           "type": "number",
           "default": 10,
           "minimum": 1,
           "maximum": 50,
-          "description": "Maximum relationship depth allowed in the graph."
+          "description": "%configuration.cInsight.relationshipGraph.maximumDepth.description%"
         },
         "cInsight.relationshipGraph.maximumNodes": {
           "type": "number",
           "default": 500,
           "minimum": 50,
           "maximum": 10000,
-          "description": "Maximum semantic nodes retained in the current relationship graph."
+          "description": "%configuration.cInsight.relationshipGraph.maximumNodes.description%"
         },
         "cInsight.relationshipGraph.maximumEdges": {
           "type": "number",
           "default": 1000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum semantic edges retained in the current relationship graph."
+          "description": "%configuration.cInsight.relationshipGraph.maximumEdges.description%"
         },
         "cInsight.relationshipGraph.layout": {
           "type": "string",
@@ -1571,75 +1575,75 @@
             "layered"
           ],
           "default": "layered",
-          "description": "Relationship graph layout strategy."
+          "description": "%configuration.cInsight.relationshipGraph.layout.description%"
         },
         "cInsight.relationshipGraph.includeSystemHeaders": {
           "type": "boolean",
           "default": false,
-          "description": "Allow system headers to enter the relationship graph when Include adapters are enabled."
+          "description": "%configuration.cInsight.relationshipGraph.includeSystemHeaders.description%"
         },
         "cInsight.symbolSearch.maximumResults": {
           "type": "number",
           "default": 500,
           "minimum": 25,
           "maximum": 5000,
-          "description": "Maximum workspace symbol results displayed per query."
+          "description": "%configuration.cInsight.symbolSearch.maximumResults.description%"
         },
         "cInsight.symbolSearch.debounce": {
           "type": "number",
           "default": 250,
           "minimum": 100,
           "maximum": 2000,
-          "description": "Delay in milliseconds before sending a workspace symbol query while typing."
+          "description": "%configuration.cInsight.symbolSearch.debounce.description%"
         },
         "cInsight.callHierarchy.defaultDepth": {
           "type": "number",
           "default": 0,
           "minimum": 0,
           "maximum": 10,
-          "description": "Call hierarchy depth expanded automatically for a new root. Zero keeps roots collapsed."
+          "description": "%configuration.cInsight.callHierarchy.defaultDepth.description%"
         },
         "cInsight.callHierarchy.maximumDepth": {
           "type": "number",
           "default": 10,
           "minimum": 1,
           "maximum": 50,
-          "description": "Maximum depth allowed for manual or automatic call hierarchy expansion."
+          "description": "%configuration.cInsight.callHierarchy.maximumDepth.description%"
         },
         "cInsight.callHierarchy.maximumNodes": {
           "type": "number",
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum number of nodes created independently in each Callers or Callees tree."
+          "description": "%configuration.cInsight.callHierarchy.maximumNodes.description%"
         },
         "cInsight.callHierarchy.cacheSize": {
           "type": "number",
           "default": 500,
           "minimum": 10,
           "maximum": 10000,
-          "description": "Maximum cached Incoming/Outgoing function requests."
+          "description": "%configuration.cInsight.callHierarchy.cacheSize.description%"
         },
         "cInsight.callHierarchy.pathSearchMaximumDepth": {
           "type": "number",
           "default": 8,
           "minimum": 1,
           "maximum": 50,
-          "description": "Maximum edge depth explored by caller/callee path search."
+          "description": "%configuration.cInsight.callHierarchy.pathSearchMaximumDepth.description%"
         },
         "cInsight.callHierarchy.pathSearchMaximumPaths": {
           "type": "number",
           "default": 20,
           "minimum": 1,
           "maximum": 500,
-          "description": "Maximum matching call paths returned by one search."
+          "description": "%configuration.cInsight.callHierarchy.pathSearchMaximumPaths.description%"
         },
         "cInsight.callHierarchy.pathSearchMaximumNodes": {
           "type": "number",
           "default": 2000,
           "minimum": 100,
           "maximum": 50000,
-          "description": "Maximum semantic nodes visited by one call path search."
+          "description": "%configuration.cInsight.callHierarchy.pathSearchMaximumNodes.description%"
         },
         "cInsight.includeDeclarationInReferences": {
           "type": "boolean",
@@ -1659,7 +1663,7 @@
             "/generated/",
             "/third_party/"
           ],
-          "description": "Path fragments excluded from C Insight result views."
+          "description": "%configuration.cInsight.exclude.description%"
         }
       }
     }

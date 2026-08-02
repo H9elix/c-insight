@@ -15,7 +15,15 @@ interface Manifest {
 const manifest = JSON.parse(
   readFileSync("package.json", "utf8"),
 ) as Manifest;
+const packageMessages = JSON.parse(
+  readFileSync("package.nls.json", "utf8"),
+) as Record<string, string>;
 const guide = readFileSync("docs/user-guide.zh-CN.md", "utf8");
+
+function resolveManifestMessage(value: string): string {
+  const match = /^%(.+)%$/.exec(value);
+  return match ? packageMessages[match[1]] ?? value : value;
+}
 
 describe("user guide completeness", () => {
   it("lists every contributed configuration with its default value", () => {
@@ -56,9 +64,10 @@ describe("user guide completeness", () => {
   it("describes every contributed view by name", () => {
     const lowerGuide = guide.toLowerCase();
     for (const view of Object.values(manifest.contributes.views).flat()) {
+      const viewName = resolveManifestMessage(view.name);
       assert.ok(
-        lowerGuide.includes(view.name.toLowerCase()),
-        `Missing view documentation: ${view.id} (${view.name})`,
+        lowerGuide.includes(viewName.toLowerCase()),
+        `Missing view documentation: ${view.id} (${viewName})`,
       );
     }
   });

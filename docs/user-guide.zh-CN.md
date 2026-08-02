@@ -3,6 +3,19 @@
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
 
+### 界面语言
+
+C Insight 使用 VS Code 官方本地化机制，界面语言自动跟随 VS Code 的显示语言：
+
+- VS Code 使用简体中文（`zh-cn`）时，C Insight 使用简体中文；
+- VS Code 使用英文或尚未提供翻译的语言时，C Insight 回退到英文；
+- 在命令面板执行 **Configure Display Language（配置显示语言）** 并重新加载窗口，
+  即可切换语言；C Insight 不单独提供语言设置。
+
+命令、视图名称、欢迎操作和配置说明由 VS Code 在扩展激活前完成本地化；通知、
+树节点、状态栏和自定义 Webview 等运行时内容由扩展的语言资源提供。函数名、文件
+路径、命令 ID、配置 ID、JSON 字段和 clangd/cpptools 原始日志不会被翻译。
+
 ## 1. 运行要求
 
 - VS Code 1.95 或更高版本。
