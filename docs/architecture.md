@@ -208,3 +208,10 @@ and JSON exports serialize the same report used by the view.
 C Insight does not start clangd in an untrusted workspace. It launches the
 process without a shell and never executes CMake or build commands
 automatically.
+
+## Architecture safeguards
+
+Packaging runs lint, unit/integration tests, localization drift checks, generated
+identifier drift checks, and a command-wiring audit. The audit requires every
+manifest-contributed command to have exactly one runtime registration site,
+preventing silent menu failures or duplicate handlers during future module splits.
