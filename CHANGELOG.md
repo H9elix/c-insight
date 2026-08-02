@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.6
+
+- Added a packaged Chinese developer guide covering architecture, source-file
+  ownership, query flow, localization, scripts, tests, development workflows,
+  extension points, and maintenance safeguards.
+- Linked the developer guide from the repository README.
+
 ## 0.20.5
 
 - Completed the third-stage performance and reliability revalidation with all

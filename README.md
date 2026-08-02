@@ -11,6 +11,8 @@ to trigger the first query; failure details remain available in descriptions
 and tooltips without overwhelming the result label.
 
 完整中文说明见随扩展发布的 `docs/user-guide.zh-CN.md`。
+源码结构、状态所有权、测试和发布流程见
+`docs/developer-guide.zh-CN.md`（中文版开发者手册）。
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。
 

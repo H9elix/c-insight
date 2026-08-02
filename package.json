@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.20.5",
+  "version": "0.20.6",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -34,6 +34,7 @@
     "CHANGELOG.md",
     "docs/user-guide.zh-CN.md",
     "docs/user-guide.en.md",
+    "docs/developer-guide.zh-CN.md",
     "docs/performance-baseline.zh-CN.md",
     "docs/third-phase-acceptance.zh-CN.md",
     "docs/microsoft-engine-acceptance.zh-CN.md",
