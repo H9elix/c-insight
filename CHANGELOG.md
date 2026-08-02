@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.20.3
+
+- Expanded Extension Host endurance coverage to 1,000 rapid cursor moves and
+  100 References/Call Hierarchy pin cycles.
+- Added 100,000-entry LRU churn with repeated invalidation and strict bounds.
+
 ## 0.20.2
 
 - Extended the large-workspace benchmark with 100,000-line Include scanning and

@@ -19,6 +19,15 @@
 `structuredClone`；实际 Navigation History 有更低的配置上限，因此本结果作为
 极端边界观察值，不据此扩大生产缓存。
 
+## 0.20.3 资源生命周期复验
+
+- Extension Host 内连续触发 1,000 次光标移动，随后 Definition 和 References
+  Provider 仍返回有效结果。
+- 连续执行 100 轮 References 与 Call Hierarchy Pin/Unpin，再继续执行 Graph、
+  Preview 和层级命令，验证事件与命令生命周期未失效。
+- LRU 缓存在 100,000 个不同键和每 10,000 次一次清空的循环中始终不超过 128
+  条；最终 clear 后大小和统计均归零。
+
 ## 1. 验收范围
 
 第三阶段 0.17.0–0.17.5 面向大型工程性能与可靠性，覆盖合成性能基线、语义请求

@@ -42,7 +42,7 @@ async function runClangdAcceptance(): Promise<void> {
 
   // Exercise cursor-follow cancellation before waiting for the final symbol.
   // Large projects otherwise accumulate expensive stale reference/call queries.
-  for (let index = 0; index < 20; index += 1) {
+  for (let index = 0; index < 1_000; index += 1) {
     const transient = new vscode.Position(
       index % document.lineCount,
       0,
@@ -50,6 +50,13 @@ async function runClangdAcceptance(): Promise<void> {
     editor.selection = new vscode.Selection(transient, transient);
   }
   editor.selection = new vscode.Selection(position, position);
+
+  for (let index = 0; index < 100; index += 1) {
+    await vscode.commands.executeCommand("cInsight.pinReferences");
+    await vscode.commands.executeCommand("cInsight.unpinReferences");
+    await vscode.commands.executeCommand("cInsight.pinCallHierarchy");
+    await vscode.commands.executeCommand("cInsight.unpinCallHierarchy");
+  }
 
   const definitions = await waitFor(async () => {
     const value = await vscode.commands.executeCommand<
