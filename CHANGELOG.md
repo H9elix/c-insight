@@ -17,6 +17,9 @@
 - Localized project-diagnostics/export feedback, Code Preview action errors,
   engine lifecycle notices, workspace-setting targets, and Microsoft engine
   guidance while keeping setting IDs and raw provider errors stable.
+- Localized Code Preview mode labels, toolbar tooltips, empty state, incremental
+  loading status, and Relationship Graph toolbar, legend, accessibility label,
+  empty state, and relationship-specific expansion controls.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 
