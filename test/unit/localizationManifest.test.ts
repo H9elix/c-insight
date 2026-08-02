@@ -79,4 +79,12 @@ describe("manifest localization", () => {
     assert.doesNotMatch(runtimeMessages, /C\/C\+\+ language service/);
     assert.doesNotMatch(manifestMessages, /筛选按/);
   });
+
+  it("uses consistent spacing between Chinese and Latin-script terms", () => {
+    const messages = [...Object.values(chinese), ...Object.values(runtimeChinese)];
+    for (const message of messages) {
+      assert.doesNotMatch(message, /[\p{Script=Han}][A-Za-z]/u, message);
+      assert.doesNotMatch(message, /[A-Za-z0-9][\p{Script=Han}]/u, message);
+    }
+  });
 });

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.12
+
+- Standardized Chinese/Latin spacing in manifest command titles for JSON,
+  Mermaid, and clangd terminology.
+- Added a localization regression test that prevents adjacent Chinese and
+  Latin-script terms in user-facing catalogs.
+
 ## 0.20.11
 
 - Added an automated local Markdown-link validator to the standard quality
