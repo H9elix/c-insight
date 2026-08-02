@@ -1,6 +1,7 @@
 import { accessSync } from "node:fs";
 import * as path from "node:path";
 import { runTests } from "@vscode/test-electron";
+import { isolatedTestLaunchArgs } from "./testLaunchArgs";
 
 async function main(): Promise<void> {
   const project = path.resolve(__dirname, "../../..");
@@ -27,12 +28,7 @@ async function main(): Promise<void> {
       process.env.C_INSIGHT_VSCODE_EXECUTABLE_PATH || undefined,
     extensionDevelopmentPath: [project, cpptools],
     extensionTestsPath: path.resolve(__dirname, "suite/ffmpegMicrosoft.js"),
-    launchArgs: [
-      workspace,
-      "--disable-extensions",
-      "--disable-gpu",
-      "--no-sandbox",
-    ],
+    launchArgs: isolatedTestLaunchArgs(workspace),
   });
 }
 

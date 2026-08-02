@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.20.5
+
+- Completed the third-stage performance and reliability revalidation with all
+  quality gates, the synthetic benchmark, real FFmpeg/clangd acceptance, and
+  Extension Host endurance tests passing.
+- Isolated every Extension Host test in a process-specific user-data and
+  extensions directory so automated tests can run beside an open VS Code
+  instance without competing for its instance lock.
+
 ## 0.20.4
 
 - Revalidated clangd and Microsoft engines through Extension Host, isolated
