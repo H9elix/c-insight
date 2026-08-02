@@ -1,4 +1,4 @@
-# C Insight 0.18.22 使用手册
+# C Insight 0.19.0 使用手册
 
 本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、
 状态栏、常用命令、编译数据库，以及所有可配置参数。
@@ -1684,110 +1684,110 @@ Code Preview、References-based Callers、原生 Callees、Pin/Unpin、懒加载
 
 | 命令 | Command ID | 入口 |
 | --- | --- | --- |
-| About | `cInsight.about` | 命令面板 |
-| Show Relationship Graph | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
-| Show File Relationship Graph | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
-| Export Relationship Graph as Text | `cInsight.relationshipGraph.exportText` | 命令面板 |
-| Export Relationship Graph as JSON | `cInsight.relationshipGraph.exportJson` | 命令面板 |
-| Export Relationship Graph as Mermaid | `cInsight.relationshipGraph.exportMermaid` | 命令面板 |
-| Go to Definition | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单；快捷键 `f12` |
-| Find All References | `cInsight.findReferences` | 命令面板；编辑器右键菜单；快捷键 `shift+f12` |
-| Show Incoming Calls | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单；Callers 标题栏 |
-| Show Outgoing Calls | `cInsight.showOutgoingCalls` | 命令面板；编辑器右键菜单；Callees 标题栏 |
-| Pin Context | `cInsight.pinContext` | 命令面板；Context 标题栏 |
-| Unpin Context | `cInsight.unpinContext` | 命令面板；Context 标题栏 |
-| Pin References | `cInsight.pinReferences` | 命令面板；References 标题栏 |
-| Unpin References | `cInsight.unpinReferences` | 命令面板；References 标题栏 |
-| Pin Callers and Callees | `cInsight.pinCallHierarchy` | 命令面板；Callers 标题栏；Callees 标题栏 |
-| Unpin Callers and Callees | `cInsight.unpinCallHierarchy` | 命令面板；Callers 标题栏；Callees 标题栏 |
+| 关于 | `cInsight.about` | 命令面板 |
+| 显示关系图 | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
+| 显示文件关系图 | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
+| 将关系图导出为文本 | `cInsight.relationshipGraph.exportText` | 命令面板 |
+| 将关系图导出为JSON | `cInsight.relationshipGraph.exportJson` | 命令面板 |
+| 将关系图导出为Mermaid | `cInsight.relationshipGraph.exportMermaid` | 命令面板 |
+| 转到定义 | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单；快捷键 `f12` |
+| 查找所有引用 | `cInsight.findReferences` | 命令面板；编辑器右键菜单；快捷键 `shift+f12` |
+| 显示传入调用 | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单；调用者 标题栏 |
+| 显示传出调用 | `cInsight.showOutgoingCalls` | 命令面板；编辑器右键菜单；被调用者 标题栏 |
+| 固定上下文 | `cInsight.pinContext` | 命令面板；上下文 标题栏 |
+| 取消固定上下文 | `cInsight.unpinContext` | 命令面板；上下文 标题栏 |
+| 固定引用 | `cInsight.pinReferences` | 命令面板；引用 标题栏 |
+| 取消固定引用 | `cInsight.unpinReferences` | 命令面板；引用 标题栏 |
+| 固定调用者和被调用者 | `cInsight.pinCallHierarchy` | 命令面板；调用者 标题栏；被调用者 标题栏 |
+| 取消固定调用者和被调用者 | `cInsight.unpinCallHierarchy` | 命令面板；调用者 标题栏；被调用者 标题栏 |
 | Refresh | `cInsight.refresh` | 命令面板；窗口标题栏 |
-| Restart clangd | `cInsight.restartClangd` | 命令面板 |
-| Restore Provider Settings | `cInsight.restoreProviderSettings` | 命令面板 |
-| Refresh Project Diagnostics | `cInsight.diagnostics.refresh` | 命令面板；Project Diagnostics 标题栏 |
-| Open Project Diagnostics | `cInsight.openProjectDiagnostics` | 命令面板 |
-| Show clangd Log | `cInsight.diagnostics.showClangdLog` | 命令面板；Project Diagnostics 标题栏 |
-| Copy Project Diagnostics Report | `cInsight.diagnostics.copyReport` | 命令面板；Project Diagnostics 标题栏 |
-| Export Project Diagnostics as Text | `cInsight.diagnostics.exportText` | 命令面板 |
-| Export Project Diagnostics as JSON | `cInsight.diagnostics.exportJson` | 命令面板；Project Diagnostics 标题栏 |
-| Restart Background Indexing | `cInsight.index.refresh` | 命令面板；Project Diagnostics 标题栏 |
-| Select Compilation Database | `cInsight.diagnostics.selectCompilationDatabase` | 命令面板；Project Diagnostics 标题栏 |
-| Use Automatic Compilation Database Detection | `cInsight.diagnostics.clearCompilationDatabase` | 命令面板 |
-| Open Location | `cInsight.openLocation` | 命令面板；树节点右键菜单 |
-| Search Workspace Symbols | `cInsight.searchSymbols` | 命令面板；Symbol Search 标题栏 |
-| Refresh Workspace Symbol Search | `cInsight.symbolSearch.refresh` | 命令面板；Symbol Search 标题栏 |
-| Clear Workspace Symbol Search | `cInsight.symbolSearch.clear` | 命令面板；Symbol Search 标题栏 |
-| Group Workspace Symbols | `cInsight.symbolSearch.groupBy` | 命令面板；Symbol Search 标题栏 |
-| Filter Workspace Symbol Types | `cInsight.symbolSearch.filterKinds` | 命令面板；Symbol Search 标题栏 |
-| Filter Navigation History | `cInsight.history.filter` | 命令面板；Navigation History 标题栏 |
-| Clear Navigation History | `cInsight.history.clear` | 命令面板；Navigation History 标题栏 |
-| Bookmark Current Symbol | `cInsight.bookmarks.addCurrent` | 命令面板；编辑器右键菜单；Bookmarks 标题栏 |
-| Add Bookmark | `cInsight.bookmarks.add` | 命令面板；树节点右键菜单 |
-| Rename Bookmark | `cInsight.bookmarks.rename` | 命令面板；树节点右键菜单 |
-| Change Bookmark Group | `cInsight.bookmarks.changeGroup` | 命令面板；树节点右键菜单 |
-| Delete Bookmark | `cInsight.bookmarks.delete` | 命令面板；树节点右键菜单 |
-| Refresh Bookmarks | `cInsight.bookmarks.refresh` | 命令面板；Bookmarks 标题栏 |
-| Filter Bookmarks | `cInsight.bookmarks.search` | 命令面板；Bookmarks 标题栏 |
-| Clear Bookmark Filter | `cInsight.bookmarks.clearSearch` | 命令面板；Bookmarks 标题栏 |
-| Sort Bookmarks | `cInsight.bookmarks.sort` | 命令面板；Bookmarks 标题栏 |
-| Import Bookmarks | `cInsight.bookmarks.import` | 命令面板；Bookmarks 标题栏 |
-| Export Bookmarks | `cInsight.bookmarks.export` | 命令面板；Bookmarks 标题栏；树节点右键菜单 |
-| Rename or Merge Bookmark Group | `cInsight.bookmarks.renameGroup` | 命令面板；树节点右键菜单 |
-| Delete Bookmark Group | `cInsight.bookmarks.deleteGroup` | 命令面板；树节点右键菜单 |
-| Restore Previous Workspace Session | `cInsight.session.restore` | 命令面板 |
-| Clear Saved Workspace Session | `cInsight.session.clear` | 命令面板 |
-| Filter References | `cInsight.references.search` | 命令面板；References 标题栏 |
-| Clear Reference Filter | `cInsight.references.clearSearch` | 命令面板 |
-| Change Reference Grouping | `cInsight.references.groupBy` | 命令面板；References 标题栏 |
-| Change Reference Scope | `cInsight.references.scope` | 命令面板；References 标题栏 |
-| Filter References by Confidence or Evidence | `cInsight.references.filterEvidence` | 命令面板；References 标题栏 |
-| Load More References | `cInsight.references.loadMore` | 命令面板 |
-| Show All References | `cInsight.references.showAll` | 命令面板 |
-| Copy Reference | `cInsight.references.copy` | 命令面板；树节点右键菜单 |
-| Copy All References | `cInsight.references.copyAll` | 命令面板 |
-| Export References as Text | `cInsight.references.exportText` | 命令面板 |
-| Export References as JSON | `cInsight.references.exportJson` | 命令面板 |
-| Open Reference List in Editor | `cInsight.references.openList` | 命令面板 |
-| Expand All Reference Groups | `cInsight.references.expandAll` | 命令面板 |
-| Collapse All Reference Groups | `cInsight.references.collapseAll` | 命令面板 |
-| Expand Callers to Depth | `cInsight.callers.expandToDepth` | 命令面板；Callers 标题栏 |
-| Expand Callees to Depth | `cInsight.callees.expandToDepth` | 命令面板；Callees 标题栏 |
-| Stop Call Hierarchy Expansion | `cInsight.callHierarchy.stopExpansion` | 命令面板；Callers 标题栏；Callees 标题栏 |
-| Search Loaded Callers | `cInsight.callers.search` | 命令面板；Callers 标题栏 |
-| Search Loaded Callees | `cInsight.callees.search` | 命令面板；Callees 标题栏 |
-| Export Callers as Text | `cInsight.callers.exportText` | 命令面板；Callers 标题栏 |
-| Export Callers as JSON | `cInsight.callers.exportJson` | 命令面板；Callers 标题栏 |
-| Export Callees as Text | `cInsight.callees.exportText` | 命令面板；Callees 标题栏 |
-| Export Callees as JSON | `cInsight.callees.exportJson` | 命令面板；Callees 标题栏 |
-| Find Caller Path | `cInsight.callers.findPath` | 命令面板；Callers 标题栏 |
-| Find Callee Path | `cInsight.callees.findPath` | 命令面板；Callees 标题栏 |
-| Export Callers as Mermaid | `cInsight.callers.exportMermaid` | 命令面板；Callers 标题栏 |
-| Export Callees as Mermaid | `cInsight.callees.exportMermaid` | 命令面板；Callees 标题栏 |
-| Show Supertypes | `cInsight.typeHierarchy.showSupertypes` | 命令面板；编辑器右键菜单；Supertypes 标题栏 |
-| Show Subtypes | `cInsight.typeHierarchy.showSubtypes` | 命令面板；编辑器右键菜单；Subtypes 标题栏 |
-| Expand Supertypes to Depth | `cInsight.supertypes.expandToDepth` | 命令面板；Supertypes 标题栏 |
-| Expand Subtypes to Depth | `cInsight.subtypes.expandToDepth` | 命令面板；Subtypes 标题栏 |
-| Stop Type Hierarchy Expansion | `cInsight.typeHierarchy.stopExpansion` | 命令面板；Supertypes 标题栏 |
-| Search Loaded Supertypes | `cInsight.supertypes.search` | 命令面板；Supertypes 标题栏 |
-| Search Loaded Subtypes | `cInsight.subtypes.search` | 命令面板；Subtypes 标题栏 |
-| Export Supertypes as Text | `cInsight.supertypes.exportText` | 命令面板；Supertypes 标题栏 |
-| Export Supertypes as JSON | `cInsight.supertypes.exportJson` | 命令面板；Supertypes 标题栏 |
-| Export Supertypes as Mermaid | `cInsight.supertypes.exportMermaid` | 命令面板；Supertypes 标题栏 |
-| Export Subtypes as Text | `cInsight.subtypes.exportText` | 命令面板；Subtypes 标题栏 |
-| Export Subtypes as JSON | `cInsight.subtypes.exportJson` | 命令面板；Subtypes 标题栏 |
-| Export Subtypes as Mermaid | `cInsight.subtypes.exportMermaid` | 命令面板；Subtypes 标题栏 |
-| Show Includes | `cInsight.includeHierarchy.showIncludes` | 命令面板；编辑器右键菜单；Includes 标题栏 |
-| Show Included By | `cInsight.includeHierarchy.showIncludedBy` | 命令面板；编辑器右键菜单；Included By 标题栏 |
-| Expand Includes to Depth | `cInsight.includes.expandToDepth` | 命令面板；Includes 标题栏 |
-| Expand Included By to Depth | `cInsight.includedBy.expandToDepth` | 命令面板；Included By 标题栏 |
-| Stop Includes Expansion | `cInsight.includes.stopExpansion` | 命令面板；Includes 标题栏 |
-| Stop Included By Expansion | `cInsight.includedBy.stopExpansion` | 命令面板；Included By 标题栏 |
-| Search Loaded Includes | `cInsight.includes.search` | 命令面板；Includes 标题栏 |
-| Search Loaded Included By | `cInsight.includedBy.search` | 命令面板；Included By 标题栏 |
-| Export Includes as Text | `cInsight.includes.exportText` | 命令面板；Includes 标题栏 |
-| Export Includes as JSON | `cInsight.includes.exportJson` | 命令面板；Includes 标题栏 |
-| Export Includes as Mermaid | `cInsight.includes.exportMermaid` | 命令面板；Includes 标题栏 |
-| Export Included By as Text | `cInsight.includedBy.exportText` | 命令面板；Included By 标题栏 |
-| Export Included By as JSON | `cInsight.includedBy.exportJson` | 命令面板；Included By 标题栏 |
-| Export Included By as Mermaid | `cInsight.includedBy.exportMermaid` | 命令面板；Included By 标题栏 |
+| 重启clangd | `cInsight.restartClangd` | 命令面板 |
+| 恢复Provider 设置 | `cInsight.restoreProviderSettings` | 命令面板 |
+| 刷新工程诊断 | `cInsight.diagnostics.refresh` | 命令面板；工程诊断 标题栏 |
+| 打开工程诊断 | `cInsight.openProjectDiagnostics` | 命令面板 |
+| 显示clangd 日志 | `cInsight.diagnostics.showClangdLog` | 命令面板；工程诊断 标题栏 |
+| 复制工程诊断报告 | `cInsight.diagnostics.copyReport` | 命令面板；工程诊断 标题栏 |
+| 将工程诊断导出为文本 | `cInsight.diagnostics.exportText` | 命令面板 |
+| 将工程诊断导出为JSON | `cInsight.diagnostics.exportJson` | 命令面板；工程诊断 标题栏 |
+| 重启后台索引 | `cInsight.index.refresh` | 命令面板；工程诊断 标题栏 |
+| 选择编译数据库 | `cInsight.diagnostics.selectCompilationDatabase` | 命令面板；工程诊断 标题栏 |
+| 使用自动检测编译数据库 | `cInsight.diagnostics.clearCompilationDatabase` | 命令面板 |
+| 打开位置 | `cInsight.openLocation` | 命令面板；树节点右键菜单 |
+| 搜索工作区符号 | `cInsight.searchSymbols` | 命令面板；符号搜索 标题栏 |
+| 刷新工作区符号搜索 | `cInsight.symbolSearch.refresh` | 命令面板；符号搜索 标题栏 |
+| 清除工作区符号搜索 | `cInsight.symbolSearch.clear` | 命令面板；符号搜索 标题栏 |
+| 分组工作区符号 | `cInsight.symbolSearch.groupBy` | 命令面板；符号搜索 标题栏 |
+| 筛选工作区符号类型 | `cInsight.symbolSearch.filterKinds` | 命令面板；符号搜索 标题栏 |
+| 筛选导航历史 | `cInsight.history.filter` | 命令面板；导航历史 标题栏 |
+| 清除导航历史 | `cInsight.history.clear` | 命令面板；导航历史 标题栏 |
+| 为以下符号添加书签：当前符号 | `cInsight.bookmarks.addCurrent` | 命令面板；编辑器右键菜单；书签 标题栏 |
+| 添加书签 | `cInsight.bookmarks.add` | 命令面板；树节点右键菜单 |
+| 重命名书签 | `cInsight.bookmarks.rename` | 命令面板；树节点右键菜单 |
+| 更改书签分组 | `cInsight.bookmarks.changeGroup` | 命令面板；树节点右键菜单 |
+| 删除书签 | `cInsight.bookmarks.delete` | 命令面板；树节点右键菜单 |
+| 刷新书签 | `cInsight.bookmarks.refresh` | 命令面板；书签 标题栏 |
+| 筛选书签 | `cInsight.bookmarks.search` | 命令面板；书签 标题栏 |
+| 清除书签筛选 | `cInsight.bookmarks.clearSearch` | 命令面板；书签 标题栏 |
+| 排序书签 | `cInsight.bookmarks.sort` | 命令面板；书签 标题栏 |
+| 导入书签 | `cInsight.bookmarks.import` | 命令面板；书签 标题栏 |
+| Export Bookmarks | `cInsight.bookmarks.export` | 命令面板；书签 标题栏；树节点右键菜单 |
+| 重命名或合并书签分组 | `cInsight.bookmarks.renameGroup` | 命令面板；树节点右键菜单 |
+| 删除书签分组 | `cInsight.bookmarks.deleteGroup` | 命令面板；树节点右键菜单 |
+| 恢复上一次工作区会话 | `cInsight.session.restore` | 命令面板 |
+| 清除已保存的工作区会话 | `cInsight.session.clear` | 命令面板 |
+| 筛选引用 | `cInsight.references.search` | 命令面板；引用 标题栏 |
+| 清除引用筛选 | `cInsight.references.clearSearch` | 命令面板 |
+| 更改引用分组方式 | `cInsight.references.groupBy` | 命令面板；引用 标题栏 |
+| 更改引用范围 | `cInsight.references.scope` | 命令面板；引用 标题栏 |
+| 筛选按可信度或证据筛选引用 | `cInsight.references.filterEvidence` | 命令面板；引用 标题栏 |
+| 加载更多引用 | `cInsight.references.loadMore` | 命令面板 |
+| 显示全部引用 | `cInsight.references.showAll` | 命令面板 |
+| 复制引用 | `cInsight.references.copy` | 命令面板；树节点右键菜单 |
+| 复制全部引用 | `cInsight.references.copyAll` | 命令面板 |
+| 将引用导出为文本 | `cInsight.references.exportText` | 命令面板 |
+| 将引用导出为JSON | `cInsight.references.exportJson` | 命令面板 |
+| 打开编辑器中的引用列表 | `cInsight.references.openList` | 命令面板 |
+| 展开所有引用分组 | `cInsight.references.expandAll` | 命令面板 |
+| 折叠所有引用分组 | `cInsight.references.collapseAll` | 命令面板 |
+| 按深度展开调用者 | `cInsight.callers.expandToDepth` | 命令面板；调用者 标题栏 |
+| 按深度展开被调用者 | `cInsight.callees.expandToDepth` | 命令面板；被调用者 标题栏 |
+| 停止调用层次展开 | `cInsight.callHierarchy.stopExpansion` | 命令面板；调用者 标题栏；被调用者 标题栏 |
+| 搜索已加载的调用者 | `cInsight.callers.search` | 命令面板；调用者 标题栏 |
+| 搜索已加载的被调用者 | `cInsight.callees.search` | 命令面板；被调用者 标题栏 |
+| 将调用者导出为文本 | `cInsight.callers.exportText` | 命令面板；调用者 标题栏 |
+| 将调用者导出为JSON | `cInsight.callers.exportJson` | 命令面板；调用者 标题栏 |
+| 将被调用者导出为文本 | `cInsight.callees.exportText` | 命令面板；被调用者 标题栏 |
+| 将被调用者导出为JSON | `cInsight.callees.exportJson` | 命令面板；被调用者 标题栏 |
+| 查找调用者路径 | `cInsight.callers.findPath` | 命令面板；调用者 标题栏 |
+| 查找被调用者路径 | `cInsight.callees.findPath` | 命令面板；被调用者 标题栏 |
+| 将调用者导出为Mermaid | `cInsight.callers.exportMermaid` | 命令面板；调用者 标题栏 |
+| 将被调用者导出为Mermaid | `cInsight.callees.exportMermaid` | 命令面板；被调用者 标题栏 |
+| 显示父类型 | `cInsight.typeHierarchy.showSupertypes` | 命令面板；编辑器右键菜单；父类型 标题栏 |
+| 显示子类型 | `cInsight.typeHierarchy.showSubtypes` | 命令面板；编辑器右键菜单；子类型 标题栏 |
+| 按深度展开父类型 | `cInsight.supertypes.expandToDepth` | 命令面板；父类型 标题栏 |
+| 按深度展开子类型 | `cInsight.subtypes.expandToDepth` | 命令面板；子类型 标题栏 |
+| 停止类型层次展开 | `cInsight.typeHierarchy.stopExpansion` | 命令面板；父类型 标题栏 |
+| 搜索已加载的父类型 | `cInsight.supertypes.search` | 命令面板；父类型 标题栏 |
+| 搜索已加载的子类型 | `cInsight.subtypes.search` | 命令面板；子类型 标题栏 |
+| 将父类型导出为文本 | `cInsight.supertypes.exportText` | 命令面板；父类型 标题栏 |
+| 将父类型导出为JSON | `cInsight.supertypes.exportJson` | 命令面板；父类型 标题栏 |
+| 将父类型导出为Mermaid | `cInsight.supertypes.exportMermaid` | 命令面板；父类型 标题栏 |
+| 将子类型导出为文本 | `cInsight.subtypes.exportText` | 命令面板；子类型 标题栏 |
+| 将子类型导出为JSON | `cInsight.subtypes.exportJson` | 命令面板；子类型 标题栏 |
+| 将子类型导出为Mermaid | `cInsight.subtypes.exportMermaid` | 命令面板；子类型 标题栏 |
+| 显示包含文件 | `cInsight.includeHierarchy.showIncludes` | 命令面板；编辑器右键菜单；包含文件 标题栏 |
+| 显示被包含关系 | `cInsight.includeHierarchy.showIncludedBy` | 命令面板；编辑器右键菜单；被包含关系 标题栏 |
+| 按深度展开包含文件 | `cInsight.includes.expandToDepth` | 命令面板；包含文件 标题栏 |
+| 按深度展开被包含关系 | `cInsight.includedBy.expandToDepth` | 命令面板；被包含关系 标题栏 |
+| 停止包含文件展开 | `cInsight.includes.stopExpansion` | 命令面板；包含文件 标题栏 |
+| 停止被包含关系展开 | `cInsight.includedBy.stopExpansion` | 命令面板；被包含关系 标题栏 |
+| 搜索已加载的包含文件 | `cInsight.includes.search` | 命令面板；包含文件 标题栏 |
+| 搜索已加载的被包含关系 | `cInsight.includedBy.search` | 命令面板；被包含关系 标题栏 |
+| 将包含文件导出为文本 | `cInsight.includes.exportText` | 命令面板；包含文件 标题栏 |
+| 将包含文件导出为JSON | `cInsight.includes.exportJson` | 命令面板；包含文件 标题栏 |
+| 将包含文件导出为Mermaid | `cInsight.includes.exportMermaid` | 命令面板；包含文件 标题栏 |
+| 将被包含关系导出为文本 | `cInsight.includedBy.exportText` | 命令面板；被包含关系 标题栏 |
+| 将被包含关系导出为JSON | `cInsight.includedBy.exportJson` | 命令面板；被包含关系 标题栏 |
+| 将被包含关系导出为Mermaid | `cInsight.includedBy.exportMermaid` | 命令面板；被包含关系 标题栏 |
 
 <!-- GENERATED COMMAND REFERENCE END -->

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.19.0
 
 - Added the official VS Code localization structure with English fallback and
   Simplified Chinese resources selected from the VS Code display language.
