@@ -83,33 +83,33 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
       value: HistoryFilter;
       description: string;
     }> = [
-      { label: "All", value: "all", description: "All navigation entries" },
+      { label: vscode.l10n.t("All"), value: "all", description: vscode.l10n.t("All navigation entries") },
       {
-        label: "Definitions",
+        label: vscode.l10n.t("Definitions"),
         value: "definition",
-        description: "Definition navigation",
+        description: vscode.l10n.t("Definition navigation"),
       },
       {
-        label: "Declarations",
+        label: vscode.l10n.t("Declarations"),
         value: "declaration",
-        description: "Declaration navigation",
+        description: vscode.l10n.t("Declaration navigation"),
       },
       {
-        label: "References",
+        label: vscode.l10n.t("References"),
         value: "reference",
-        description: "Reference navigation",
+        description: vscode.l10n.t("Reference navigation"),
       },
-      { label: "Callers", value: "caller", description: "Caller navigation" },
-      { label: "Callees", value: "callee", description: "Callee navigation" },
+      { label: vscode.l10n.t("Callers"), value: "caller", description: vscode.l10n.t("Caller navigation") },
+      { label: vscode.l10n.t("Callees"), value: "callee", description: vscode.l10n.t("Callee navigation") },
       {
-        label: "Code Preview",
+        label: vscode.l10n.t("Code Preview"),
         value: "code-preview",
-        description: "Definitions followed inside Code Preview",
+        description: vscode.l10n.t("Definitions followed inside Code Preview"),
       },
     ];
     const picked = await vscode.window.showQuickPick(options, {
-      title: "C Insight: Navigation History Filter",
-      placeHolder: `Current: ${this.filter}`,
+      title: vscode.l10n.t("C Insight: Navigation History Filter"),
+      placeHolder: vscode.l10n.t("Current: {value}", { value: this.filter }),
     });
     if (picked) {
       this.filter = picked.value;
@@ -181,8 +181,8 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
         {
           label:
             this.store.all.length === 0
-              ? "No navigation history"
-              : "No history matches the current filter",
+              ? vscode.l10n.t("No navigation history")
+              : vscode.l10n.t("No history matches the current filter"),
           icon: new vscode.ThemeIcon("info"),
         },
       ]);
@@ -202,7 +202,7 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
     return {
       id: `history:${entry.id}`,
       label: entry.title,
-      description: `${historyOriginLabel(entry.origin)} · ${relative}:${location.range.start.line + 1}${current ? " · current" : ""}`,
+      description: `${historyOriginLabel(entry.origin)} · ${relative}:${location.range.start.line + 1}${current ? vscode.l10n.t(" · current") : ""}`,
       tooltip:
         `${location.uri.fsPath}:${location.range.start.line + 1}:${location.range.start.character + 1}\n` +
         `${historyOriginLabel(entry.origin)} · ${new Date(entry.timestamp).toLocaleString()}`,
@@ -211,7 +211,7 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
       contextValue: "historyLocation",
       command: {
         command: "cInsight.history.preview",
-        title: "Preview Navigation History",
+        title: vscode.l10n.t("Preview Navigation History"),
         arguments: [entry],
       },
     };
@@ -237,17 +237,17 @@ function serializeRange(range: vscode.Range): {
 function historyOriginLabel(origin: NavigationOrigin): string {
   switch (origin) {
     case "definition":
-      return "Definition";
+      return vscode.l10n.t("Definition");
     case "declaration":
-      return "Declaration";
+      return vscode.l10n.t("Declaration");
     case "reference":
-      return "Reference";
+      return vscode.l10n.t("Reference");
     case "caller":
-      return "Caller";
+      return vscode.l10n.t("Caller");
     case "callee":
-      return "Callee";
+      return vscode.l10n.t("Callee");
     case "code-preview":
-      return "Code Preview";
+      return vscode.l10n.t("Code Preview");
   }
 }
 

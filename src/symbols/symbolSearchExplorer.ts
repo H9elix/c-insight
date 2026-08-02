@@ -27,8 +27,8 @@ export class SymbolSearchExplorer implements vscode.Disposable {
 
   async openSearch(): Promise<void> {
     const picker = vscode.window.createQuickPick<SearchItem>();
-    picker.title = "C Insight: Search Workspace Symbols";
-    picker.placeholder = "Type a function, variable, type, or macro name";
+    picker.title = vscode.l10n.t("C Insight: Search Workspace Symbols");
+    picker.placeholder = vscode.l10n.t("Type a function, variable, type, or macro name");
     picker.matchOnDescription = true;
     picker.matchOnDetail = true;
     picker.busy = false;
@@ -89,15 +89,15 @@ export class SymbolSearchExplorer implements vscode.Disposable {
     const current = this.grouping;
     const selected = await vscode.window.showQuickPick(
       [
-        { label: "Symbol Type", value: "type" },
-        { label: "File", value: "file" },
-        { label: "Directory", value: "directory" },
-        { label: "No Grouping", value: "flat" },
+        { label: vscode.l10n.t("Symbol Type"), value: "type" },
+        { label: vscode.l10n.t("File"), value: "file" },
+        { label: vscode.l10n.t("Directory"), value: "directory" },
+        { label: vscode.l10n.t("No Grouping"), value: "flat" },
       ].map((item) => ({
         ...item,
-        description: item.value === current ? "Current" : undefined,
+        description: item.value === current ? vscode.l10n.t("Current") : undefined,
       })),
-      { title: "Group Workspace Symbols By" },
+      { title: vscode.l10n.t("Group Workspace Symbols By") },
     );
     if (selected) {
       await vscode.workspace
@@ -116,9 +116,9 @@ export class SymbolSearchExplorer implements vscode.Disposable {
         picked: this.selectedKinds.size === 0 || this.selectedKinds.has(kind),
       })),
       {
-        title: "Filter Workspace Symbols by Type",
+        title: vscode.l10n.t("Filter Workspace Symbols by Type"),
         canPickMany: true,
-        placeHolder: "No selection means all symbol types",
+        placeHolder: vscode.l10n.t("No selection means all symbol types"),
       },
     );
     if (selected) {
@@ -202,7 +202,7 @@ export class SymbolSearchExplorer implements vscode.Disposable {
       if (generation === this.generation) {
         this.provider.setRoots([
           {
-            label: `Symbol search failed: ${String(error)}`,
+            label: vscode.l10n.t("Symbol search failed: {error}", { error: String(error) }),
             icon: new vscode.ThemeIcon("error"),
           },
         ]);
@@ -218,12 +218,12 @@ export class SymbolSearchExplorer implements vscode.Disposable {
     if (!this.query) {
       this.provider.setRoots([
         {
-          label: "Search workspace symbols",
-          description: "functions, variables, types, macros",
+          label: vscode.l10n.t("Search workspace symbols"),
+          description: vscode.l10n.t("functions, variables, types, macros"),
           icon: new vscode.ThemeIcon("search"),
           command: {
             command: "cInsight.searchSymbols",
-            title: "Search Workspace Symbols",
+            title: vscode.l10n.t("Search Workspace Symbols"),
           },
         },
       ]);
@@ -233,7 +233,7 @@ export class SymbolSearchExplorer implements vscode.Disposable {
     if (visible.length === 0) {
       this.provider.setRoots([
         {
-          label: `No symbols found for “${this.query}”`,
+          label: vscode.l10n.t("No symbols found for “{query}”", { query: this.query }),
           icon: new vscode.ThemeIcon("info"),
         },
       ]);
