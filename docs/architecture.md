@@ -23,6 +23,10 @@ and Callees. All hidden means no cursor request. Individual LSP methods are
 selected from that demand; manual commands bypass this visibility gate.
 Document Symbols uses its own visibility gate.
 
+`ViewLifecycle` owns VS Code TreeView/Webview registrations, visibility events,
+view lookup, and deterministic disposal. `ViewRegistry` consumes that boundary
+and retains only feature coordination rather than extension-host resource ownership.
+
 Code Preview uses a nonce-restricted Webview script. Browser click coordinates
 are converted to UTF-16 source positions and validated again against the
 currently rendered document and line range by the extension host. The Webview
