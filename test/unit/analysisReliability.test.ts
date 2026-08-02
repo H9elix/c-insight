@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { evaluateReliability } from "../../src/diagnostics/analysisReliability";
+import {
+  analysisReliabilityEqual,
+  evaluateReliability,
+} from "../../src/diagnostics/analysisReliability";
 
 describe("analysis reliability", () => {
   it("reports reliable results when the project is ready and configured", () => {
@@ -63,6 +66,21 @@ describe("analysis reliability", () => {
     assert.deepEqual(
       result.issues.map((issue) => issue.code),
       ["no-compile-command"],
+    );
+  });
+
+  it("compares reliability by visible issue content", () => {
+    const first = {
+      level: "limited" as const,
+      issues: [{ code: "indexing" as const, message: "Indexing 42%" }],
+    };
+    assert.equal(analysisReliabilityEqual(first, { ...first, issues: [...first.issues] }), true);
+    assert.equal(
+      analysisReliabilityEqual(first, {
+        ...first,
+        issues: [{ ...first.issues[0], message: "Indexing 43%" }],
+      }),
+      false,
     );
   });
 });

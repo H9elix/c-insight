@@ -13,6 +13,8 @@
   dependency object to make activation wiring safer to extend and review.
 - Began the command-wiring decomposition with isolated References and Call
   Hierarchy registrars sharing one typed registration boundary.
+- Prevented pinned, non-empty References results from repainting when project
+  reliability is recomputed, while preserving real empty-result warning changes.
 
 ## 0.19.0
 
