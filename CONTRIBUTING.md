@@ -16,9 +16,7 @@ and review contract in the meantime.
 
 ```bash
 npm install
-npm run compile
-npm test
-npm run lint
+npm run check
 npm run benchmark
 npm run package
 xvfb-run -a npm run test:e2e
@@ -42,6 +40,8 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Update `CHANGELOG.md`, the Chinese user guide, and relevant architecture or
   acceptance documentation in the same change.
 - Run `npm run docs:commands` after adding or changing commands.
+- Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls;
+  `npm run check` verifies that both runtime catalogs remain synchronized.
 - Do not add a public repository, issue, sponsor, or homepage link until the
   maintainer has selected that destination.
 
