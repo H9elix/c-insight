@@ -226,7 +226,7 @@ export async function activate(
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "C Insight: Restoring workspace session",
+        title: vscode.l10n.t("C Insight: Restoring workspace session"),
         cancellable: true,
       },
       (progress, token) => restoreSnapshot(snapshot, progress, token),
@@ -328,7 +328,7 @@ export async function activate(
           await vscode.window.withProgress(
             {
               location: vscode.ProgressLocation.Notification,
-              title: "Reloading C Insight compilation database",
+              title: vscode.l10n.t("Reloading C Insight compilation database"),
             },
             () => manager!.restart(),
           );

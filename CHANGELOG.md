@@ -22,6 +22,9 @@
   empty state, and relationship-specific expansion controls.
 - Localized Provider-conflict quick fixes and Relationship Graph preparation,
   expansion, node actions, search, export, stale, depth-limit, and error dialogs.
+- Localized remaining References lifecycle, pagination, display-limit and pin
+  states plus workspace-session, compilation-database, graph, type, and include
+  progress/limit labels found by the runtime UI audit.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 

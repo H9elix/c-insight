@@ -99,8 +99,8 @@ export class ReferenceExplorer implements vscode.Disposable {
       .getConfiguration("cInsight.references")
       .get<GroupMode>("groupBy", "file");
     this.provider.setRoots([
-      viewStatusNode("Place the cursor on a C/C++ symbol", "idle", {
-        description: "open References or run Find All References to query",
+      viewStatusNode(vscode.l10n.t("Place the cursor on a C/C++ symbol"), "idle", {
+        description: vscode.l10n.t("open References or run Find All References to query"),
       }),
     ]);
   }
@@ -155,7 +155,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.loadingStarted = performance.now();
     this.provider.setRoots(
       this.withPinnedBanner([
-        viewStatusNode("Querying references…", "loading"),
+        viewStatusNode(vscode.l10n.t("Querying references…"), "loading"),
       ]),
     );
   }
@@ -166,8 +166,8 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.loadingStarted = undefined;
     this.provider.setRoots(
       this.withPinnedBanner([
-        viewStatusNode("References query cancelled", "cancelled", {
-          description: "previous results were replaced",
+        viewStatusNode(vscode.l10n.t("References query cancelled"), "cancelled", {
+          description: vscode.l10n.t("previous results were replaced"),
         }),
       ]),
     );
@@ -180,7 +180,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.errorMessage = String(error);
     this.provider.setRoots(
       this.withPinnedBanner([
-        viewStatusNode("References query failed", "error", {
+        viewStatusNode(vscode.l10n.t("References query failed"), "error", {
           description: this.errorMessage,
           tooltip: this.errorMessage,
         }),
@@ -195,8 +195,8 @@ export class ReferenceExplorer implements vscode.Disposable {
     this.roots = [];
     this.state = "idle";
     this.provider.setRoots([
-      viewStatusNode("Place the cursor on a C/C++ symbol", "idle", {
-        description: "open References or run Find All References to query",
+      viewStatusNode(vscode.l10n.t("Place the cursor on a C/C++ symbol"), "idle", {
+        description: vscode.l10n.t("open References or run Find All References to query"),
       }),
     ]);
   }
@@ -638,9 +638,9 @@ export class ReferenceExplorer implements vscode.Disposable {
       const reason =
         this.locations.length === 0
           ? this.reliability.level === "reliable"
-            ? "No references found"
-            : "No references found yet — results may be incomplete"
-          : "No references match the current filters";
+            ? vscode.l10n.t("No references found")
+            : vscode.l10n.t("No references found yet — results may be incomplete")
+          : vscode.l10n.t("No references match the current filters");
       this.roots = [viewStatusNode(reason, "empty")];
       this.provider.setRoots(this.withPinnedBanner(this.roots));
       return;
@@ -656,17 +656,17 @@ export class ReferenceExplorer implements vscode.Disposable {
       displayed.length < maximumDisplayed
     ) {
       this.roots.push({
-        label: `Load more (${displayed.length} / ${this.filtered.length})`,
-        description: `${this.filtered.length - displayed.length} remaining`,
+        label: vscode.l10n.t("Load more ({displayed} / {total})", { displayed: displayed.length, total: this.filtered.length }),
+        description: vscode.l10n.t("{count} remaining", { count: this.filtered.length - displayed.length }),
         icon: new vscode.ThemeIcon("more"),
         command: {
           command: "cInsight.references.loadMore",
-          title: "Load More References",
+          title: vscode.l10n.t("Load More References"),
         },
       });
     } else if (displayed.length === this.filtered.length) {
       this.roots.unshift({
-        label: `${this.filtered.length} references`,
+        label: vscode.l10n.t("{count} references", { count: this.filtered.length }),
         description: this.summary(),
         icon: new vscode.ThemeIcon("references"),
       });
@@ -676,10 +676,10 @@ export class ReferenceExplorer implements vscode.Disposable {
         runtimeDiagnostics.increment("limits.references.display");
       }
       this.roots.push(viewStatusNode(
-        `Display limit reached (${displayed.length} / ${this.filtered.length})`,
+        vscode.l10n.t("Display limit reached ({displayed} / {total})", { displayed: displayed.length, total: this.filtered.length }),
         "limited",
         {
-        description: "narrow filters or raise maximumDisplayedResults",
+        description: vscode.l10n.t("narrow filters or raise maximumDisplayedResults"),
         },
       ));
     }
@@ -922,8 +922,8 @@ export class ReferenceExplorer implements vscode.Disposable {
     const banners: TreeNode[] = [];
     if (this.pinned) {
       banners.push({
-        label: `Pinned: ${this.pinnedSymbol ?? "References"}`,
-        description: this.pinnedStale ? "stale" : undefined,
+        label: vscode.l10n.t("Pinned: {symbol}", { symbol: this.pinnedSymbol ?? vscode.l10n.t("References") }),
+        description: this.pinnedStale ? vscode.l10n.t("stale") : undefined,
         icon: new vscode.ThemeIcon(
           this.pinnedStale ? "warning" : "pinned",
         ),
@@ -1072,9 +1072,9 @@ export class ReferenceExplorer implements vscode.Disposable {
 }
 
 function staleNode(reason: string): TreeNode {
-  return viewStatusNode("Results are stale", "stale", {
+  return viewStatusNode(vscode.l10n.t("Results are stale"), "stale", {
     description: reason,
-    tooltip: `These results predate: ${reason}. Run the query again to refresh them.`,
+    tooltip: vscode.l10n.t("These results predate: {reason}. Run the query again to refresh them.", { reason }),
     contextValue: "analysisStaleStatus",
   });
 }

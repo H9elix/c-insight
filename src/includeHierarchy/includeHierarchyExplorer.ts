@@ -338,7 +338,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "C Insight: Building Included By index",
+        title: vscode.l10n.t("C Insight: Building Included By index"),
         cancellable: true,
       },
       async (progress, progressToken) => {
@@ -613,11 +613,11 @@ function commandNode(label: string, command: string): TreeNode {
 }
 
 function limitNode(): TreeNode {
-  return viewStatusNode("Include hierarchy node limit reached", "limited");
+  return viewStatusNode(vscode.l10n.t("Include hierarchy node limit reached"), "limited");
 }
 
 function errorNode(error: unknown): TreeNode {
-  return viewStatusNode("Include hierarchy failed", "error", {
+  return viewStatusNode(vscode.l10n.t("Include hierarchy failed"), "error", {
     description: String(error),
     tooltip: String(error),
   });
