@@ -39,6 +39,9 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Add deterministic tests for model or protocol behavior.
 - Update `CHANGELOG.md`, the Chinese user guide, and relevant architecture or
   acceptance documentation in the same change.
+- Increment the extension version before packaging a modified test build so
+  every VSIX filename identifies one exact implementation. Release handoff
+  notes must list the behavior that needs focused manual testing.
 - Run `npm run docs:commands` after adding or changing commands.
 - Run `npm run ids:generate` after adding, removing, or renaming contributed
   commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
