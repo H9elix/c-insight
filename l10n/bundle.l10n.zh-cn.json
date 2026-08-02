@@ -1,1 +1,20 @@
-{}
+{
+  "Version: {version}": "版本：{version}",
+  "Developer: {developer}": "开发者：{developer}",
+  "Semantic engine: {engine}": "语义引擎：{engine}",
+  "License: {license}": "许可证：{license}",
+  "VS Code: {version}": "VS Code：{version}",
+  "Platform: {platform} {architecture}": "平台：{platform} {architecture}",
+  "Remote: {remote}": "远程环境：{remote}",
+  "Telemetry: disabled; source code is not uploaded by C Insight": "遥测：已禁用；C Insight 不会上传源代码",
+  "Copy Information": "复制信息",
+  "Open User Guide": "打开使用手册",
+  "C Insight: No definition found.": "C Insight：未找到定义。",
+  "Select compile_commands.json": "选择 compile_commands.json",
+  "C Insight: Select a file named compile_commands.json.": "C Insight：请选择名为 compile_commands.json 的文件。",
+  "C Insight: No saved workspace session is available.": "C Insight：没有可用的已保存工作区会话。",
+  "C Insight: Saved workspace session cleared. Autosave is paused until this window closes.": "C Insight：已清除保存的工作区会话；自动保存会暂停到当前窗口关闭。",
+  "C Insight is using the Microsoft C/C++ language service (cpptools). Reload Window to restart that extension host.": "C Insight 正在使用 Microsoft C/C++ 语言服务（cpptools）。请重新加载窗口以重启该扩展宿主。",
+  "Restarting C Insight clangd": "正在重启 C Insight clangd",
+  "C Insight could not start clangd: {error}": "C Insight 无法启动 clangd：{error}"
+}

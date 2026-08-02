@@ -73,6 +73,7 @@
     "benchmark:observe": "npm run compile && C_INSIGHT_BENCHMARK_STRICT=0 node scripts/benchmark-large-workspace.mjs",
     "acceptance:ffmpeg": "node scripts/acceptance-ffmpeg.mjs",
     "docs:commands": "node scripts/generate-command-reference.mjs",
+    "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
     "test": "npm run compile && node --test dist/test/**/*.test.js",
     "test:unit": "npm run compile && node --test dist/test/unit/**/*.test.js",
     "test:integration": "npm run compile && node --test dist/test/integration/**/*.test.js",
@@ -89,6 +90,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.95.0",
+    "@vscode/l10n-dev": "^0.0.18",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.2.1",
     "esbuild": "^0.28.1",

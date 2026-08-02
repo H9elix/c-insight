@@ -65,26 +65,31 @@ export function registerCommands(
         ? manifest.author
         : manifest.author?.name ?? "youjinchun";
     const details = [
-      `Version: ${manifest.version ?? "unknown"}`,
-      `Developer: ${developer}`,
-      `Semantic engine: ${engine}`,
-      `License: ${manifest.license ?? "MIT"}`,
-      `VS Code: ${vscode.version}`,
-      `Platform: ${process.platform} ${process.arch}`,
-      `Remote: ${vscode.env.remoteName ?? "local"}`,
-      "Telemetry: disabled; source code is not uploaded by C Insight",
+      vscode.l10n.t("Version: {version}", { version: manifest.version ?? "unknown" }),
+      vscode.l10n.t("Developer: {developer}", { developer }),
+      vscode.l10n.t("Semantic engine: {engine}", { engine }),
+      vscode.l10n.t("License: {license}", { license: manifest.license ?? "MIT" }),
+      vscode.l10n.t("VS Code: {version}", { version: vscode.version }),
+      vscode.l10n.t("Platform: {platform} {architecture}", {
+        platform: process.platform,
+        architecture: process.arch,
+      }),
+      vscode.l10n.t("Remote: {remote}", { remote: vscode.env.remoteName ?? "local" }),
+      vscode.l10n.t("Telemetry: disabled; source code is not uploaded by C Insight"),
     ].join("\n");
+    const copyInformation = vscode.l10n.t("Copy Information");
+    const openUserGuide = vscode.l10n.t("Open User Guide");
     const action = await vscode.window.showInformationMessage(
       manifest.displayName ?? manifest.name ?? "C Insight",
       { modal: true, detail: details },
-      "Copy Information",
-      "Open User Guide",
+      copyInformation,
+      openUserGuide,
     );
-    if (action === "Copy Information") {
+    if (action === copyInformation) {
       await vscode.env.clipboard.writeText(
         `${manifest.displayName ?? "C Insight"}\n${details}\n`,
       );
-    } else if (action === "Open User Guide") {
+    } else if (action === openUserGuide) {
       const guide = vscode.Uri.joinPath(
         context.extensionUri,
         "docs/user-guide.zh-CN.md",
@@ -161,7 +166,9 @@ export function registerCommands(
     }
     const locations = await analysis.definition(target.uri, target.position);
     if (locations.length === 0) {
-      void vscode.window.showInformationMessage("C Insight: No definition found.");
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("C Insight: No definition found."),
+      );
       return;
     }
     navigationHistory.record(
@@ -347,7 +354,7 @@ export function registerCommands(
   );
   register("cInsight.diagnostics.selectCompilationDatabase", async () => {
     const selected = await vscode.window.showOpenDialog({
-      title: "Select compile_commands.json",
+      title: vscode.l10n.t("Select compile_commands.json"),
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: false,
@@ -358,7 +365,7 @@ export function registerCommands(
     }
     if (path.basename(selected[0].fsPath) !== "compile_commands.json") {
       void vscode.window.showErrorMessage(
-        "C Insight: Select a file named compile_commands.json.",
+        vscode.l10n.t("C Insight: Select a file named compile_commands.json."),
       );
       return;
     }
@@ -425,14 +432,14 @@ export function registerCommands(
   register("cInsight.session.restore", async () => {
     if (!(await restoreWorkspaceSession())) {
       void vscode.window.showInformationMessage(
-        "C Insight: No saved workspace session is available.",
+        vscode.l10n.t("C Insight: No saved workspace session is available."),
       );
     }
   });
   register("cInsight.session.clear", async () => {
     await workspaceSession.clear();
     void vscode.window.showInformationMessage(
-      "C Insight: Saved workspace session cleared. Autosave is paused until this window closes.",
+      vscode.l10n.t("C Insight: Saved workspace session cleared. Autosave is paused until this window closes."),
     );
   });
   const showTypeHierarchy = async (
@@ -522,7 +529,7 @@ export function registerCommands(
   register("cInsight.restartClangd", async () => {
     if (engine === "microsoft") {
       void vscode.window.showInformationMessage(
-        "C Insight is using the Microsoft C/C++ language service (cpptools). Reload Window to restart that extension host.",
+        vscode.l10n.t("C Insight is using the Microsoft C/C++ language service (cpptools). Reload Window to restart that extension host."),
       );
       return;
     }
@@ -530,14 +537,14 @@ export function registerCommands(
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "Restarting C Insight clangd",
+          title: vscode.l10n.t("Restarting C Insight clangd"),
         },
         () => manager.restart(),
       );
       controller.refresh();
     } catch (error) {
       void vscode.window.showErrorMessage(
-        `C Insight could not start clangd: ${String(error)}`,
+        vscode.l10n.t("C Insight could not start clangd: {error}", { error: String(error) }),
       );
     }
   });
