@@ -98,6 +98,10 @@ export class RequestScheduler {
         if (!entry.started && !entry.settled) {
           entry.settled = true;
           this.counters.cancelledBeforeStart += 1;
+          const queuedIndex = this.queue.indexOf(entry as QueueEntry<unknown>);
+          if (queuedIndex >= 0) {
+            this.queue.splice(queuedIndex, 1);
+          }
           entry.reject(new ScheduledRequestCancelledError());
           this.finishEntry(entry, promise);
           this.drain();
@@ -113,7 +117,7 @@ export class RequestScheduler {
     return {
       ...this.counters,
       active: this.active,
-      queued: this.queue.filter((entry) => !entry.settled).length,
+      queued: this.queue.length,
     };
   }
 

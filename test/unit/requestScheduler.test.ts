@@ -85,6 +85,25 @@ describe("semantic request scheduler", () => {
     await active;
     assert.equal(scheduler.stats().cancelledBeforeStart, 1);
   });
+
+  it("releases a large cancelled queue before foreground work resumes", async () => {
+    const scheduler = new RequestScheduler(1, 1);
+    const gate = deferred<void>();
+    const active = scheduler.schedule("active", "normal", () => gate.promise);
+    const cancellations = Array.from({ length: 5_000 }, () => new TestCancellation());
+    const queued = cancellations.map((cancellation, index) =>
+      scheduler.schedule(`cancel-${index}`, "background", async () => index, cancellation),
+    );
+    cancellations.forEach((cancellation) => cancellation.cancel());
+    await Promise.all(queued.map((request) => assert.rejects(request, ScheduledRequestCancelledError)));
+    assert.equal(scheduler.stats().queued, 0);
+    assert.equal(scheduler.stats().cancelledBeforeStart, 5_000);
+    const interactive = scheduler.schedule("interactive-after-cancel", "interactive", async () => 42);
+    gate.resolve(undefined);
+    await active;
+    assert.equal(await interactive, 42);
+    assert.equal(scheduler.stats().started, 2);
+  });
 });
 
 class TestCancellation implements SchedulerCancellation {
