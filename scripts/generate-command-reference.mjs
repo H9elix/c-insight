@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const packagePath = new URL("../package.json", import.meta.url);
 const messagesPath = new URL("../package.nls.zh-cn.json", import.meta.url);
-const guidePath = new URL("../docs/user-guide.zh-CN.md", import.meta.url);
+const guidePath = new URL("../docs/user/user-guide.zh-CN.md", import.meta.url);
 const manifest = JSON.parse(readFileSync(packagePath, "utf8"));
 const messages = JSON.parse(readFileSync(messagesPath, "utf8"));
 const guide = readFileSync(guidePath, "utf8");

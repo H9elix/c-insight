@@ -58,4 +58,4 @@ diagnostic evidence and automation stay stable.
 C Insight has no telemetry and does not upload source code. See `PRIVACY.md`,
 `SECURITY.md`, and `CONTRIBUTING.md` for the complete boundaries and maintenance
 workflow. The detailed Simplified Chinese manual is in
-`docs/user-guide.zh-CN.md`.
+`docs/user/user-guide.zh-CN.md`.

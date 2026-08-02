@@ -10,9 +10,10 @@ empty, cancelled, stale, limited, and failed operations. Idle rows explain how
 to trigger the first query; failure details remain available in descriptions
 and tooltips without overwhelming the result label.
 
-完整中文说明见随扩展发布的 `docs/user-guide.zh-CN.md`。
+完整中文说明见随扩展发布的 `docs/user/user-guide.zh-CN.md`。
 源码结构、状态所有权、测试和发布流程见
-`docs/developer-guide.zh-CN.md`（中文版开发者手册）。
+`docs/development/developer-guide.zh-CN.md`（中文版开发者手册）。完整文档分类见
+`docs/README.md`。
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。
 
@@ -69,10 +70,10 @@ information. Development requirements and quality gates are in
 and `PRIVACY.md`.
 
 Microsoft-provider probe design, reproducible commands, results, and API
-boundaries are documented in `docs/microsoft-provider-probe.zh-CN.md`.
+boundaries are documented in `docs/validation/microsoft-provider-probe.zh-CN.md`.
 The completed staged engine acceptance, real FFmpeg evidence, and remaining
 public-API boundaries are documented in
-`docs/microsoft-engine-acceptance.zh-CN.md`.
+`docs/validation/microsoft-engine-acceptance.zh-CN.md`.
 The optional `npm run test:e2e:ffmpeg:microsoft` gate opens the workspace from
 `C_INSIGHT_FFMPEG_WORKSPACE` (default `/home/user/projects/FFmpeg`) in an
 isolated Extension Host and verifies cross-file Code Preview plus the safe
@@ -437,14 +438,14 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 Run `npm run benchmark` to produce the versioned synthetic large-workspace
 baseline. It covers 100,000 reference classifications, a 20,000-node
 relationship graph, a 10,000-node hierarchy export, and 100,000 Code Preview
-range updates. See `docs/performance-baseline.zh-CN.md` for scaling, JSON output,
+range updates. See `docs/validation/performance-baseline.zh-CN.md` for scaling, JSON output,
 budgets, and interpretation. This model benchmark complements rather than
 replaces clangd and real-workspace acceptance testing.
 
 Run `npm run acceptance:ffmpeg` for the read-only clangd 20 and compilation
 database acceptance harness. Override the checkout and executable with
 `C_INSIGHT_FFMPEG_ROOT` and `C_INSIGHT_FFMPEG_CLANGD`; optionally pass a JSON
-output path after `--`. See `docs/third-phase-acceptance.zh-CN.md` for the
+output path after `--`. See `docs/validation/third-phase-acceptance.zh-CN.md` for the
 recorded environment, timings, interpretation, and acceptance boundaries.
 
 ## Known limitations

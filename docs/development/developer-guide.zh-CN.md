@@ -1,8 +1,8 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.20.6` 源码结构
-对应。用户操作和配置参数请查看 `docs/user-guide.zh-CN.md`；历史规划与延期事项请查看
-`docs/roadmap.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.20.7` 源码结构
+对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；历史规划与延期事项
+请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -384,9 +384,8 @@ npm run package
 ## 12. 文档维护规则
 
 - 用户行为或配置变化：更新中英文用户手册、README 摘要和 CHANGELOG。
-- 架构或文件职责变化：更新本文及 `docs/architecture.md`。
-- 延期或完成计划项：更新 `docs/roadmap.md`，删除已经过时的备忘描述。
-- 性能门槛变化：更新 `docs/performance-baseline.zh-CN.md`。
+- 架构或文件职责变化：更新本文及 `docs/development/architecture.md`。
+- 延期或完成计划项：更新 `docs/planning/roadmap.md`，删除已经过时的备忘描述。
+- 性能门槛变化：更新 `docs/validation/performance-baseline.zh-CN.md`。
 - 引擎能力或验收变化：更新对应 Microsoft/第三阶段验收文档。
 - 每次发布同步提升 `package.json` 与 `package-lock.json` 版本，并重新打包 VSIX。
-

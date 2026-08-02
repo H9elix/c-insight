@@ -50,7 +50,7 @@ Definition 和 References 是最低通过条件；References 会等待微软后�
 
 2026-08-01 在 VS Code 1.130.0、Microsoft C/C++ 1.32.2、Linux x64 的隔离
 Extension Host 中运行通过，且确认 C Insight 未被加载。最终原始报告随扩展保存
-为 \`docs/microsoft-provider-probe-result.json\`。
+为 \`docs/validation/microsoft-provider-probe-result.json\`。
 
 | 能力 | 可用 | 结果摘要 |
 | --- | --- | --- |
