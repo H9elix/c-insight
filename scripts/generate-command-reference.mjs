@@ -1,15 +1,17 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const packagePath = new URL("../package.json", import.meta.url);
+const messagesPath = new URL("../package.nls.zh-cn.json", import.meta.url);
 const guidePath = new URL("../docs/user-guide.zh-CN.md", import.meta.url);
 const manifest = JSON.parse(readFileSync(packagePath, "utf8"));
+const messages = JSON.parse(readFileSync(messagesPath, "utf8"));
 const guide = readFileSync(guidePath, "utf8");
 const startMarker = "<!-- GENERATED COMMAND REFERENCE START -->";
 const endMarker = "<!-- GENERATED COMMAND REFERENCE END -->";
 const views = new Map(
   Object.values(manifest.contributes?.views ?? {})
     .flat()
-    .map((view) => [view.id, view.name]),
+    .map((view) => [view.id, resolveMessage(view.name)]),
 );
 const menuLocations = new Map([
   ["editor/context", "编辑器右键菜单"],
@@ -47,7 +49,7 @@ for (const binding of manifest.contributes?.keybindings ?? []) {
 const escapeCell = (value) =>
   String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
 const rows = (manifest.contributes?.commands ?? []).map((command) => {
-  const title = command.title.replace(/^C Insight:\s*/, "");
+  const title = resolveMessage(command.title).replace(/^C Insight[：:]\s*/, "");
   const locations = [...(entries.get(command.command) ?? [])].join("；");
   return `| ${escapeCell(title)} | \`${command.command}\` | ${escapeCell(locations)} |`;
 });
@@ -78,3 +80,8 @@ if (start >= 0 && end >= start) {
   next = `${guide.trimEnd()}\n\n${generated}\n`;
 }
 writeFileSync(guidePath, next);
+
+function resolveMessage(value) {
+  const match = /^%(.+)%$/.exec(value);
+  return match ? messages[match[1]] ?? value : value;
+}

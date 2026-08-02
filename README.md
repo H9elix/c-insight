@@ -56,6 +56,8 @@ the setting is intentionally shared with the rest of the VS Code interface.
   supported Workspace target and reports the exact local/WSL/SSH destination;
   0.18.21 folds that action into a single Microsoft-startup conflict prompt;
   0.18.22 removes the reciprocal clangd-mode cpptools activation race
+- Localization: 0.19.0 adds English fallback and Simplified Chinese UI
+  resources that follow the VS Code display language
 - Telemetry: none; C Insight does not upload source code
 - Public repository and issue tracker: not configured yet
 

@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.18.22",
+  "version": "0.19.0",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -33,6 +33,7 @@
     "README.md",
     "CHANGELOG.md",
     "docs/user-guide.zh-CN.md",
+    "docs/user-guide.en.md",
     "docs/performance-baseline.zh-CN.md",
     "docs/third-phase-acceptance.zh-CN.md",
     "docs/microsoft-engine-acceptance.zh-CN.md",

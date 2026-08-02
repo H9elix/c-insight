@@ -92,7 +92,9 @@ export function registerCommands(
     } else if (action === openUserGuide) {
       const guide = vscode.Uri.joinPath(
         context.extensionUri,
-        "docs/user-guide.zh-CN.md",
+        vscode.env.language.toLowerCase().startsWith("zh")
+          ? "docs/user-guide.zh-CN.md"
+          : "docs/user-guide.en.md",
       );
       await vscode.commands.executeCommand("markdown.showPreview", guide);
     }
