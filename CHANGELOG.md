@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.19.3
+
+- Isolated Project Diagnostics command wiring and compilation-database selection
+  from the main command composition root.
+- Grouped Navigation History, Bookmarks, Workspace Session, and Workspace Symbol
+  Search commands into a workspace-tools registrar with named dependencies.
+
 ## 0.19.2
 
 - Isolated Type and Include Hierarchy command wiring behind one typed feature
