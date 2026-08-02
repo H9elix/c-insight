@@ -8,7 +8,10 @@ import {
 } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
 import { readConfiguration } from "../configuration/configuration";
-import { AnalysisReliability } from "../diagnostics/analysisReliability";
+import {
+  AnalysisReliability,
+  analysisReliabilityEqual,
+} from "../diagnostics/analysisReliability";
 import { LocationResult, LspSymbol } from "../models/types";
 import {
   classifyReference,
@@ -225,8 +228,13 @@ export class ReferenceExplorer implements vscode.Disposable {
   }
 
   setReliability(reliability: AnalysisReliability): void {
+    if (analysisReliabilityEqual(this.reliability, reliability)) {
+      return;
+    }
     this.reliability = reliability;
-    if (this.state === "ready") {
+    // Reliability changes only alter the empty-result explanation. Existing
+    // reference trees must not be republished, especially while pinned.
+    if (this.state === "ready" && this.locations.length === 0) {
       void this.publish();
     }
   }

@@ -17,6 +17,19 @@ export interface AnalysisReliability {
   issues: ReliabilityIssue[];
 }
 
+export function analysisReliabilityEqual(
+  left: AnalysisReliability,
+  right: AnalysisReliability,
+): boolean {
+  return left.level === right.level &&
+    left.issues.length === right.issues.length &&
+    left.issues.every(
+      (issue, index) =>
+        issue.code === right.issues[index].code &&
+        issue.message === right.issues[index].message,
+    );
+}
+
 export interface ReliabilityInputs {
   clangdState: string;
   engineLabel?: string;
