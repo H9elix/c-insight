@@ -8,6 +8,8 @@
   descriptions, and setting enum descriptions.
 - Localized References, Type Hierarchy, and Include Hierarchy filters,
   expansion prompts, empty/stale states, and export feedback.
+- Localized Navigation History and Workspace Symbol Search filters, pickers,
+  empty states, grouping controls, and navigation labels.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 
