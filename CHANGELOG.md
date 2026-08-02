@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.6
+
+- Completed command composition decomposition by isolating navigation/About,
+  pin state, refresh, and engine-control commands into typed registrars.
+
 ## 0.19.5
 
 - Preserved Code Preview during the editor activation caused by its own

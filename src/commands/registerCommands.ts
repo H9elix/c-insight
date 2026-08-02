@@ -1,276 +1,52 @@
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
 import { AnalysisEngine } from "../analysis/analysisEngine";
-import { ClangdManager } from "../clangd/clangdManager";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
+import { ClangdManager } from "../clangd/clangdManager";
 import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
-import { NavigationSource } from "../history/navigationHistoryModel";
-import { LocationResult } from "../models/types";
-import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
-import { WorkspaceSessionManager } from "../session/workspaceSession";
-import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import { IncludeHierarchyExplorer } from "../includeHierarchy/includeHierarchyExplorer";
-import { ViewRegistry } from "../views/viewRegistry";
-import type { PreviewMode } from "../views/codePreviewProvider";
 import type { CommandId } from "../ids";
-import { registerReferenceCommands } from "./referenceCommands";
+import { WorkspaceSessionManager } from "../session/workspaceSession";
+import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
+import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
+import { ViewRegistry } from "../views/viewRegistry";
 import { registerCallHierarchyCommands } from "./callHierarchyCommands";
-import { registerHierarchyCommands } from "./hierarchyCommands";
 import { registerDiagnosticCommands } from "./diagnosticCommands";
+import { registerExtensionControlCommands } from "./extensionControlCommands";
+import { registerHierarchyCommands } from "./hierarchyCommands";
+import { registerNavigationCommands } from "./navigationCommands";
+import { registerReferenceCommands } from "./referenceCommands";
 import { registerWorkspaceToolCommands } from "./workspaceToolCommands";
 
 export interface CommandDependencies {
-  manager: ClangdManager;
-  analysis: AnalysisService;
-  controller: ContextController;
-  views: ViewRegistry;
-  projectDiagnostics: ProjectDiagnostics;
-  navigationHistory: NavigationHistoryExplorer;
-  bookmarks: BookmarkExplorer;
-  symbolSearch: SymbolSearchExplorer;
-  typeHierarchy: TypeHierarchyExplorer;
-  includeHierarchy: IncludeHierarchyExplorer;
-  workspaceSession: WorkspaceSessionManager;
-  engine: AnalysisEngine;
-  restoreWorkspaceSession: () => Promise<boolean>;
+  manager: ClangdManager; analysis: AnalysisService; controller: ContextController;
+  views: ViewRegistry; projectDiagnostics: ProjectDiagnostics;
+  navigationHistory: NavigationHistoryExplorer; bookmarks: BookmarkExplorer;
+  symbolSearch: SymbolSearchExplorer; typeHierarchy: TypeHierarchyExplorer;
+  includeHierarchy: IncludeHierarchyExplorer; workspaceSession: WorkspaceSessionManager;
+  engine: AnalysisEngine; restoreWorkspaceSession: () => Promise<boolean>;
 }
 
-export function registerCommands(
-  context: vscode.ExtensionContext,
-  dependencies: CommandDependencies,
-): void {
-  const {
-    manager,
-    analysis,
-    controller,
-    views,
-    projectDiagnostics,
-    navigationHistory,
-    bookmarks,
-    symbolSearch,
-    typeHierarchy,
-    includeHierarchy,
-    workspaceSession,
-    engine,
-    restoreWorkspaceSession,
-  } = dependencies;
-  const register = (
-    id: CommandId,
-    callback: (...args: unknown[]) => unknown,
-  ): void => {
+export function registerCommands(context: vscode.ExtensionContext, dependencies: CommandDependencies): void {
+  const register = (id: CommandId, callback: (...args: unknown[]) => unknown): void => {
     context.subscriptions.push(vscode.commands.registerCommand(id, callback));
   };
-
-  register("cInsight.about", async () => {
-    const manifest = context.extension.packageJSON as {
-      displayName?: string;
-      name?: string;
-      version?: string;
-      author?: string | { name?: string };
-      license?: string;
-    };
-    const developer =
-      typeof manifest.author === "string"
-        ? manifest.author
-        : manifest.author?.name ?? "youjinchun";
-    const details = [
-      vscode.l10n.t("Version: {version}", { version: manifest.version ?? "unknown" }),
-      vscode.l10n.t("Developer: {developer}", { developer }),
-      vscode.l10n.t("Semantic engine: {engine}", { engine }),
-      vscode.l10n.t("License: {license}", { license: manifest.license ?? "MIT" }),
-      vscode.l10n.t("VS Code: {version}", { version: vscode.version }),
-      vscode.l10n.t("Platform: {platform} {architecture}", {
-        platform: process.platform,
-        architecture: process.arch,
-      }),
-      vscode.l10n.t("Remote: {remote}", { remote: vscode.env.remoteName ?? "local" }),
-      vscode.l10n.t("Telemetry: disabled; source code is not uploaded by C Insight"),
-    ].join("\n");
-    const copyInformation = vscode.l10n.t("Copy Information");
-    const openUserGuide = vscode.l10n.t("Open User Guide");
-    const action = await vscode.window.showInformationMessage(
-      manifest.displayName ?? manifest.name ?? "C Insight",
-      { modal: true, detail: details },
-      copyInformation,
-      openUserGuide,
-    );
-    if (action === copyInformation) {
-      await vscode.env.clipboard.writeText(
-        `${manifest.displayName ?? "C Insight"}\n${details}\n`,
-      );
-    } else if (action === openUserGuide) {
-      const guide = vscode.Uri.joinPath(
-        context.extensionUri,
-        vscode.env.language.toLowerCase().startsWith("zh")
-          ? "docs/user-guide.zh-CN.md"
-          : "docs/user-guide.en.md",
-      );
-      await vscode.commands.executeCommand("markdown.showPreview", guide);
-    }
-  });
-
-  register("cInsight.openLocation", async (value: unknown) => {
-    const candidate = value as LocationResult & {
-      location?: LocationResult;
-      previewMode?: PreviewMode;
-      previewTitle?: string;
-      label?: string;
-      contextValue?: string;
-      includeFileUri?: vscode.Uri;
-    };
-    const location =
-      candidate.contextValue === "includeHierarchyLocation" &&
-      candidate.includeFileUri
-        ? {
-            uri: candidate.includeFileUri,
-            range: new vscode.Range(0, 0, 0, 0),
-          }
-        :
-      "location" in candidate && candidate.location
-        ? candidate.location
-        : (candidate as LocationResult);
-    if (!location?.uri || !location.range) {
-      return;
-    }
-    if (candidate.contextValue !== "historyLocation") {
-      navigationHistory.record(
-        location,
-        candidate.previewMode ?? "reference",
-        candidate.previewTitle ?? candidate.label ?? "Location",
-        "selection",
-      );
-    }
-    const document = await vscode.workspace.openTextDocument(location.uri);
-    const editor = await vscode.window.showTextDocument(document, {
-      preview: true,
-      preserveFocus: false,
-    });
-    editor.selection = new vscode.Selection(
-      location.range.start,
-      location.range.start,
-    );
-    editor.revealRange(location.range, vscode.TextEditorRevealType.InCenter);
-  });
-
-  register(
-    "cInsight.previewLocation",
-    async (
-      value: unknown,
-      mode: unknown,
-      title: unknown,
-      source: unknown,
-    ) => {
-      const location = value as LocationResult;
-      await views.preview.showLocation(
-        location,
-        (mode as PreviewMode) ?? "reference",
-        typeof title === "string" ? title : undefined,
-        (source as NavigationSource) ?? "selection",
-      );
-    },
-  );
-
-  register("cInsight.goToDefinition", async () => {
-    const target = activePosition();
-    if (!target) {
-      return;
-    }
-    const locations = await analysis.definition(target.uri, target.position);
-    if (locations.length === 0) {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t("C Insight: No definition found."),
-      );
-      return;
-    }
-    navigationHistory.record(
-      locations[0],
-      "definition",
-      activeWord() ?? "Definition",
-      "selection",
-    );
-    await vscode.commands.executeCommand(
-      "cInsight.openLocation",
-      {
-        location: locations[0],
-        contextValue: "historyLocation",
-      },
-    );
-  });
-
-  registerReferenceCommands(register, analysis, views, activePosition);
-  registerCallHierarchyCommands(register, controller, views, activePosition);
-
-  register("cInsight.pinContext", () => controller.pin());
-  register("cInsight.unpinContext", () => controller.unpin());
-  register("cInsight.pinReferences", () => views.pinReferences());
-  register("cInsight.unpinReferences", () => {
-    views.unpinReferences();
-    controller.refresh();
-  });
-  register("cInsight.pinCallHierarchy", () => views.pinCallHierarchy());
-  register("cInsight.unpinCallHierarchy", () => {
-    views.unpinCallHierarchy();
-    controller.refresh();
-  });
-  register("cInsight.refresh", () => controller.refresh(true));
-  registerDiagnosticCommands(register, manager, projectDiagnostics);
-  registerWorkspaceToolCommands(register, {
-    history: navigationHistory,
-    bookmarks,
-    symbolSearch,
-    workspaceSession,
-    views,
-    restoreWorkspaceSession,
-  });
-  registerHierarchyCommands(register, typeHierarchy, includeHierarchy, activePosition);
-
-  register("cInsight.restartClangd", async () => {
-    if (engine === "microsoft") {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t("C Insight is using the Microsoft C/C++ language service (cpptools). Reload Window to restart that extension host."),
-      );
-      return;
-    }
-    try {
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: vscode.l10n.t("Restarting C Insight clangd"),
-        },
-        () => manager.restart(),
-      );
-      controller.refresh();
-    } catch (error) {
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("C Insight could not start clangd: {error}", { error: String(error) }),
-      );
-    }
-  });
-
-}
-
-function activePosition():
-  | { uri: vscode.Uri; position: vscode.Position }
-  | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    return undefined;
-  }
-  return {
-    uri: editor.document.uri,
-    position: editor.selection.active,
+  const activePosition = (): { uri: vscode.Uri; position: vscode.Position } | undefined => {
+    const editor = vscode.window.activeTextEditor;
+    return editor ? { uri: editor.document.uri, position: editor.selection.active } : undefined;
   };
-}
-
-function activeWord(): string | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    return undefined;
-  }
-  const range = editor.document.getWordRangeAtPosition(
-    editor.selection.active,
-  );
-  return range ? editor.document.getText(range) : undefined;
+  const d = dependencies;
+  registerExtensionControlCommands(register, context, d.engine, d.manager, d.controller, d.views);
+  registerNavigationCommands(register, d.analysis, d.navigationHistory, d.views.preview, activePosition);
+  registerReferenceCommands(register, d.analysis, d.views, activePosition);
+  registerCallHierarchyCommands(register, d.controller, d.views, activePosition);
+  registerDiagnosticCommands(register, d.manager, d.projectDiagnostics);
+  registerWorkspaceToolCommands(register, {
+    history: d.navigationHistory, bookmarks: d.bookmarks, symbolSearch: d.symbolSearch,
+    workspaceSession: d.workspaceSession, views: d.views,
+    restoreWorkspaceSession: d.restoreWorkspaceSession,
+  });
+  registerHierarchyCommands(register, d.typeHierarchy, d.includeHierarchy, activePosition);
 }
