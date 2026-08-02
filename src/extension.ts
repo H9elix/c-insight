@@ -38,6 +38,7 @@ import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExp
 import { IncludeHierarchyRepository } from "./includeHierarchy/includeHierarchyRepository";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
+import { CONTEXT_KEYS, VIEWS } from "./ids";
 
 let manager: ClangdManager | undefined;
 let workspaceSession: WorkspaceSessionManager | undefined;
@@ -280,7 +281,7 @@ export async function activate(
     if (documentSymbolsTimer) {
       clearTimeout(documentSymbolsTimer);
     }
-    if (!views.isViewVisible("cInsight.symbols")) {
+    if (!views.isViewVisible(VIEWS.SYMBOLS)) {
       documentSymbolsTimer = undefined;
       return;
     }
@@ -365,19 +366,21 @@ export async function activate(
 
   registerCommands(
     context,
-    manager,
-    analysis,
-    controller,
-    views,
-    projectDiagnostics,
-    navigationHistory,
-    bookmarks,
-    symbolSearch,
-    typeHierarchy,
-    includeHierarchy,
-    workspaceSession,
-    engine,
-    () => restoreWithProgress(),
+    {
+      manager,
+      analysis,
+      controller,
+      views,
+      projectDiagnostics,
+      navigationHistory,
+      bookmarks,
+      symbolSearch,
+      typeHierarchy,
+      includeHierarchy,
+      workspaceSession,
+      engine,
+      restoreWorkspaceSession: () => restoreWithProgress(),
+    },
   );
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(
@@ -632,8 +635,8 @@ export async function activate(
     }),
     views.onDidChangeNavigationVisibility((id) => {
       if (
-        id === "cInsight.symbols" &&
-        views.isViewVisible("cInsight.symbols")
+        id === VIEWS.SYMBOLS &&
+        views.isViewVisible(VIEWS.SYMBOLS)
       ) {
         scheduleDocumentSymbols(vscode.window.activeTextEditor, 0);
       }
@@ -769,21 +772,21 @@ export async function activate(
     }),
   );
 
-  await vscode.commands.executeCommand("setContext", "cInsight.active", true);
-  await vscode.commands.executeCommand("setContext", "cInsight.pinned", false);
+  await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.ACTIVE, true);
+  await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, false);
   await vscode.commands.executeCommand(
     "setContext",
-    "cInsight.previewLocked",
+    CONTEXT_KEYS.PREVIEW_LOCKED,
     false,
   );
   await vscode.commands.executeCommand(
     "setContext",
-    "cInsight.referencesPinned",
+    CONTEXT_KEYS.REFERENCES_PINNED,
     false,
   );
   await vscode.commands.executeCommand(
     "setContext",
-    "cInsight.callHierarchyPinned",
+    CONTEXT_KEYS.CALL_HIERARCHY_PINNED,
     false,
   );
   await projectDiagnostics.refresh();
@@ -923,7 +926,7 @@ async function updateDocumentSymbols(
   output: vscode.OutputChannel,
   isCurrent: () => boolean = () => true,
 ): Promise<void> {
-  if (!views.isViewVisible("cInsight.symbols")) {
+  if (!views.isViewVisible(VIEWS.SYMBOLS)) {
     return;
   }
   if (!editor || !isCppDocument(editor.document)) {

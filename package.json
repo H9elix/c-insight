@@ -76,6 +76,8 @@
     "docs:commands": "node scripts/generate-command-reference.mjs",
     "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
     "l10n:check": "node scripts/check-localization.mjs",
+    "ids:generate": "node scripts/generate-id-registry.mjs",
+    "ids:check": "node scripts/generate-id-registry.mjs --check",
     "test": "npm run compile && node --test dist/test/**/*.test.js",
     "test:unit": "npm run compile && node --test dist/test/unit/**/*.test.js",
     "test:integration": "npm run compile && node --test dist/test/integration/**/*.test.js",
@@ -84,7 +86,7 @@
     "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
     "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
     "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
-    "check": "npm run lint && npm run test && npm run l10n:check && npm run build",
+    "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run build",
     "package": "npm run check && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {

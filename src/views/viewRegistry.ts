@@ -51,6 +51,7 @@ import { ReferenceExplorer } from "./referenceExplorer";
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
+import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -66,7 +67,7 @@ export class ViewRegistry implements vscode.Disposable {
 
   private readonly disposables: vscode.Disposable[] = [];
   private readonly sourceLines = new SourceLineCache();
-  private readonly treeViews = new Map<string, vscode.TreeView<TreeNode>>();
+  private readonly treeViews = new Map<ViewId, vscode.TreeView<TreeNode>>();
   private readonly callTreeState = {
     incoming: new HierarchyTreeState(),
     outgoing: new HierarchyTreeState(),
@@ -94,15 +95,15 @@ export class ViewRegistry implements vscode.Disposable {
 
   get navigationVisibility(): NavigationVisibility {
     return {
-      context: this.isViewVisible("cInsight.context"),
+      context: this.isViewVisible(VIEWS.CONTEXT),
       preview: this.preview.visible,
-      references: this.isViewVisible("cInsight.references"),
-      callers: this.isViewVisible("cInsight.callers"),
-      callees: this.isViewVisible("cInsight.callees"),
+      references: this.isViewVisible(VIEWS.REFERENCES),
+      callers: this.isViewVisible(VIEWS.CALLERS),
+      callees: this.isViewVisible(VIEWS.CALLEES),
     };
   }
 
-  isViewVisible(id: string): boolean {
+  isViewVisible(id: ViewId): boolean {
     return this.treeViews.get(id)?.visible ?? false;
   }
 
@@ -134,20 +135,20 @@ export class ViewRegistry implements vscode.Disposable {
         description: vscode.l10n.t("open Callees or run Show Outgoing Calls to query"),
       }),
     ]);
-    const providers: Array<[string, MutableTreeProvider]> = [
-      ["cInsight.context", this.context],
-      ["cInsight.references", this.references],
-      ["cInsight.callers", this.callers],
-      ["cInsight.callees", this.callees],
-      ["cInsight.history", history.provider],
-      ["cInsight.bookmarks", bookmarks.provider],
-      ["cInsight.workspaceSymbols", symbolSearch.provider],
-      ["cInsight.supertypes", typeHierarchy.supertypes],
-      ["cInsight.subtypes", typeHierarchy.subtypes],
-      ["cInsight.includes", includeHierarchy.includes],
-      ["cInsight.includedBy", includeHierarchy.includedBy],
-      ["cInsight.symbols", this.symbols],
-      ["cInsight.status", this.status],
+    const providers: Array<[ViewId, MutableTreeProvider]> = [
+      [VIEWS.CONTEXT, this.context],
+      [VIEWS.REFERENCES, this.references],
+      [VIEWS.CALLERS, this.callers],
+      [VIEWS.CALLEES, this.callees],
+      [VIEWS.HISTORY, history.provider],
+      [VIEWS.BOOKMARKS, bookmarks.provider],
+      [VIEWS.WORKSPACE_SYMBOLS, symbolSearch.provider],
+      [VIEWS.SUPERTYPES, typeHierarchy.supertypes],
+      [VIEWS.SUBTYPES, typeHierarchy.subtypes],
+      [VIEWS.INCLUDES, includeHierarchy.includes],
+      [VIEWS.INCLUDED_BY, includeHierarchy.includedBy],
+      [VIEWS.SYMBOLS, this.symbols],
+      [VIEWS.STATUS, this.status],
     ];
     for (const [id, provider] of providers) {
       const treeView = vscode.window.createTreeView(id, {
@@ -156,9 +157,9 @@ export class ViewRegistry implements vscode.Disposable {
       });
       this.treeViews.set(id, treeView);
       const callDirection =
-        id === "cInsight.callers"
+        id === VIEWS.CALLERS
           ? "incoming"
-          : id === "cInsight.callees"
+          : id === VIEWS.CALLEES
             ? "outgoing"
             : undefined;
       if (callDirection) {
@@ -181,54 +182,54 @@ export class ViewRegistry implements vscode.Disposable {
           }),
         );
       }
-      if (id === "cInsight.references") {
+      if (id === VIEWS.REFERENCES) {
         this.referenceExplorer.attachTreeView(treeView);
       }
-      if (id === "cInsight.supertypes") {
+      if (id === VIEWS.SUPERTYPES) {
         typeHierarchy.attachTreeView("supertypes", treeView);
       }
-      if (id === "cInsight.subtypes") {
+      if (id === VIEWS.SUBTYPES) {
         typeHierarchy.attachTreeView("subtypes", treeView);
       }
-      if (id === "cInsight.includes") {
+      if (id === VIEWS.INCLUDES) {
         includeHierarchy.attachTreeView("includes", treeView);
       }
-      if (id === "cInsight.includedBy") {
+      if (id === VIEWS.INCLUDED_BY) {
         includeHierarchy.attachTreeView("includedBy", treeView);
       }
       this.disposables.push(
         treeView,
         treeView.onDidChangeVisibility(() => {
           if (
-            [
-              "cInsight.context",
-              "cInsight.references",
-              "cInsight.callers",
-              "cInsight.callees",
-              "cInsight.symbols",
-            ].includes(id)
+            new Set<ViewId>([
+              VIEWS.CONTEXT,
+              VIEWS.REFERENCES,
+              VIEWS.CALLERS,
+              VIEWS.CALLEES,
+              VIEWS.SYMBOLS,
+            ]).has(id)
           ) {
             this.visibilityEmitter.fire(id);
           }
         }),
       );
       if (
-        id !== "cInsight.history" &&
-        id !== "cInsight.bookmarks" &&
-        id !== "cInsight.workspaceSymbols" &&
-        id !== "cInsight.supertypes" &&
-        id !== "cInsight.subtypes" &&
-        id !== "cInsight.includes" &&
-        id !== "cInsight.includedBy"
+        id !== VIEWS.HISTORY &&
+        id !== VIEWS.BOOKMARKS &&
+        id !== VIEWS.WORKSPACE_SYMBOLS &&
+        id !== VIEWS.SUPERTYPES &&
+        id !== VIEWS.SUBTYPES &&
+        id !== VIEWS.INCLUDES &&
+        id !== VIEWS.INCLUDED_BY
       ) {
         this.disposables.push(provider);
       }
     }
     this.disposables.push(
-      vscode.window.registerWebviewViewProvider("cInsight.preview", this.preview),
+      vscode.window.registerWebviewViewProvider(VIEWS.PREVIEW, this.preview),
       this.preview,
       this.preview.onDidChangeVisibility(() =>
-        this.visibilityEmitter.fire("cInsight.preview"),
+        this.visibilityEmitter.fire(VIEWS.PREVIEW),
       ),
       this.sourceLines,
       this.referenceExplorer,
@@ -362,7 +363,7 @@ export class ViewRegistry implements vscode.Disposable {
       this.preview.clear();
     }
     if (
-      (this.isViewVisible("cInsight.references") ||
+      (this.isViewVisible(VIEWS.REFERENCES) ||
         intent.manualReferences) &&
       (context.referencesRequested || intent.manualReferences) &&
       shouldUpdatePinnedView(
@@ -387,8 +388,8 @@ export class ViewRegistry implements vscode.Disposable {
       this.callHierarchyPinned,
       intent.manualCallHierarchy,
     ) && (
-      this.isViewVisible("cInsight.callers") ||
-      this.isViewVisible("cInsight.callees") ||
+      this.isViewVisible(VIEWS.CALLERS) ||
+      this.isViewVisible(VIEWS.CALLEES) ||
       Boolean(intent.manualCallHierarchy)
     );
     const callRootSignature = context.callRoots.map((root) => root.key).join("|");
@@ -626,7 +627,7 @@ export class ViewRegistry implements vscode.Disposable {
     this.referenceExplorer.setPinned(true, this.currentSymbolName);
     void vscode.commands.executeCommand(
       "setContext",
-      "cInsight.referencesPinned",
+      CONTEXT_KEYS.REFERENCES_PINNED,
       true,
     );
   }
@@ -636,7 +637,7 @@ export class ViewRegistry implements vscode.Disposable {
     this.referenceExplorer.setPinned(false);
     void vscode.commands.executeCommand(
       "setContext",
-      "cInsight.referencesPinned",
+      CONTEXT_KEYS.REFERENCES_PINNED,
       false,
     );
   }
@@ -648,7 +649,7 @@ export class ViewRegistry implements vscode.Disposable {
     this.refreshCallPinBanners();
     void vscode.commands.executeCommand(
       "setContext",
-      "cInsight.callHierarchyPinned",
+      CONTEXT_KEYS.CALL_HIERARCHY_PINNED,
       true,
     );
   }
@@ -660,7 +661,7 @@ export class ViewRegistry implements vscode.Disposable {
     this.refreshCallPinBanners();
     void vscode.commands.executeCommand(
       "setContext",
-      "cInsight.callHierarchyPinned",
+      CONTEXT_KEYS.CALL_HIERARCHY_PINNED,
       false,
     );
   }
@@ -756,8 +757,8 @@ export class ViewRegistry implements vscode.Disposable {
     }
     const view = this.treeViews.get(
       direction === "incoming"
-        ? "cInsight.callers"
-        : "cInsight.callees",
+        ? VIEWS.CALLERS
+        : VIEWS.CALLEES,
     );
     await view?.reveal(picked.node, {
       focus: true,
@@ -1075,8 +1076,8 @@ export class ViewRegistry implements vscode.Disposable {
       direction === "incoming" ? this.callers : this.callees;
     const view = this.treeViews.get(
       direction === "incoming"
-        ? "cInsight.callers"
-        : "cInsight.callees",
+        ? VIEWS.CALLERS
+        : VIEWS.CALLEES,
     );
     const queue = [...provider.getRoots()];
     while (queue.length > 0 && !token.isCancellationRequested) {
@@ -1119,8 +1120,8 @@ export class ViewRegistry implements vscode.Disposable {
       direction === "incoming" ? this.callers : this.callees;
     const view = this.treeViews.get(
       direction === "incoming"
-        ? "cInsight.callers"
-        : "cInsight.callees",
+        ? VIEWS.CALLERS
+        : VIEWS.CALLEES,
     );
     const queue = [...provider.getRoots()];
     while (

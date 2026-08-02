@@ -7,6 +7,10 @@
 - Added a non-mutating localization drift check that compares extracted
   runtime messages with both committed English and Simplified Chinese catalogs.
 - Removed obsolete hierarchy label helpers left behind by localization.
+- Added a generated, typed registry for contributed command IDs, view IDs, and
+  runtime context keys, with drift detection in the quality gate.
+- Replaced the command-registration positional parameter list with a named
+  dependency object to make activation wiring safer to extend and review.
 
 ## 0.19.0
 
