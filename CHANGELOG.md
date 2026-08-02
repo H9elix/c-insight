@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.19.1
+
 - Added a unified `npm run check` quality gate covering lint, tests,
   localization drift, and production build before VSIX packaging.
 - Added a non-mutating localization drift check that compares extracted
