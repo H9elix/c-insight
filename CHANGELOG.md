@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.20.8
+
+- Localized feature, view, hierarchy, navigation, pin/lock, and result-state
+  terminology throughout the Chinese user guide.
+- Standardized each section to show the original English term in parentheses
+  only on that concept's first occurrence, while preserving command IDs,
+  configuration keys, protocol methods, and filenames verbatim.
+- Added an idempotent documentation terminology tool for keeping this policy
+  consistent as the guide evolves.
+
 ## 0.20.7
 
 - Organized documentation into user, development, planning, and validation
