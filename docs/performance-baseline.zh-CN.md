@@ -50,3 +50,39 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 - clangd 请求、索引、磁盘、Extension Host 和 UI 响应将在后续真实工作区基线中
   单独记录。
 - 报告包含 Node、平台、架构、CPU 数量和总内存，便于比较运行环境。
+
+## 2026-08-02 基线（0.20.0）
+
+环境：Linux x64、Node.js 24.16.0、20 个逻辑 CPU、约 8 GB 内存；真实工程为
+`/home/user/projects/FFmpeg`，使用工程根目录的 `compile_commands.json` 和
+clangd 20.1.2。数值为单次自动验收样本，主要用于同机回归，不作为跨机器承诺。
+
+### 核心模型
+
+| 场景 | 规模 | 耗时 | 宽松预算 | 结果 |
+| --- | ---: | ---: | ---: | --- |
+| References 分类 | 100,000 | 24.96 ms | 1,500 ms | 通过 |
+| Graph 构建与快照 | 20,000 节点 | 56.87 ms | 2,000 ms | 通过 |
+| Hierarchy JSON 导出 | 10,000 节点 / 4.63 MB | 14.84 ms | 1,500 ms | 通过 |
+| Code Preview 范围滚动 | 100,000 次 | 2.75 ms | 750 ms | 通过 |
+
+### FFmpeg + clangd 20
+
+| 请求 | 耗时 | 结果 |
+| --- | ---: | --- |
+| initialize | 33.15 ms | clangd 20.1.2，能力协商成功 |
+| Document Symbols | 54.61 ms | 33 个顶层结果 |
+| Definition | 0.62 ms | 1 个结果 |
+| References | 0.41 ms | 1 个结果 |
+| Prepare Call Hierarchy | 0.26 ms | `noise_init` |
+| Outgoing Calls | 0.25 ms | 合法空结果 |
+| Hover | 0.67 ms | 可用 |
+
+对应自动命令：
+
+```bash
+npm run benchmark
+C_INSIGHT_FFMPEG_ROOT=/home/user/projects/FFmpeg \
+C_INSIGHT_FFMPEG_CLANGD=/usr/bin/clangd-20 \
+npm run acceptance:ffmpeg -- /tmp/c-insight-ffmpeg-acceptance.json
+```

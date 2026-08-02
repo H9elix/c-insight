@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.20.0
+
+- Established the third-stage large-workspace baseline with repeatable core-model
+  benchmarks and a real FFmpeg/clangd 20 acceptance sample.
+
 ## 0.19.13
 
 - Changed Document Symbols selection to open and reveal the symbol directly in
