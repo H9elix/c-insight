@@ -69,4 +69,14 @@ describe("manifest localization", () => {
       }
     }
   });
+
+  it("keeps translatable UI terminology localized in Chinese catalogs", () => {
+    const manifestMessages = Object.values(chinese).join("\n");
+    const runtimeMessages = Object.values(runtimeChinese).join("\n");
+
+    assert.doesNotMatch(manifestMessages, /\bProvider\b/);
+    assert.doesNotMatch(runtimeMessages, /\bProvider\b/);
+    assert.doesNotMatch(runtimeMessages, /C\/C\+\+ language service/);
+    assert.doesNotMatch(manifestMessages, /筛选按/);
+  });
 });
