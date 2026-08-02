@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
+import { CONTEXT_KEYS } from "../ids";
 import { AnalysisService } from "../analysis/analysisService";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import {
@@ -204,7 +205,7 @@ export class CodePreviewProvider
     this.locked = state.locked;
     await vscode.commands.executeCommand(
       "setContext",
-      "cInsight.previewLocked",
+      CONTEXT_KEYS.PREVIEW_LOCKED,
       this.locked,
     );
     this.state = {
@@ -258,7 +259,7 @@ export class CodePreviewProvider
         this.locked = !this.locked;
         await vscode.commands.executeCommand(
           "setContext",
-          "cInsight.previewLocked",
+          CONTEXT_KEYS.PREVIEW_LOCKED,
           this.locked,
         );
         await this.render();

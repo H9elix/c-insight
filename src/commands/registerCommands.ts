@@ -28,25 +28,45 @@ import {
 } from "../includeHierarchy/includeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import type { PreviewMode } from "../views/codePreviewProvider";
+import type { CommandId } from "../ids";
+
+export interface CommandDependencies {
+  manager: ClangdManager;
+  analysis: AnalysisService;
+  controller: ContextController;
+  views: ViewRegistry;
+  projectDiagnostics: ProjectDiagnostics;
+  navigationHistory: NavigationHistoryExplorer;
+  bookmarks: BookmarkExplorer;
+  symbolSearch: SymbolSearchExplorer;
+  typeHierarchy: TypeHierarchyExplorer;
+  includeHierarchy: IncludeHierarchyExplorer;
+  workspaceSession: WorkspaceSessionManager;
+  engine: AnalysisEngine;
+  restoreWorkspaceSession: () => Promise<boolean>;
+}
 
 export function registerCommands(
   context: vscode.ExtensionContext,
-  manager: ClangdManager,
-  analysis: AnalysisService,
-  controller: ContextController,
-  views: ViewRegistry,
-  projectDiagnostics: ProjectDiagnostics,
-  navigationHistory: NavigationHistoryExplorer,
-  bookmarks: BookmarkExplorer,
-  symbolSearch: SymbolSearchExplorer,
-  typeHierarchy: TypeHierarchyExplorer,
-  includeHierarchy: IncludeHierarchyExplorer,
-  workspaceSession: WorkspaceSessionManager,
-  engine: AnalysisEngine,
-  restoreWorkspaceSession: () => Promise<boolean>,
+  dependencies: CommandDependencies,
 ): void {
+  const {
+    manager,
+    analysis,
+    controller,
+    views,
+    projectDiagnostics,
+    navigationHistory,
+    bookmarks,
+    symbolSearch,
+    typeHierarchy,
+    includeHierarchy,
+    workspaceSession,
+    engine,
+    restoreWorkspaceSession,
+  } = dependencies;
   const register = (
-    id: string,
+    id: CommandId,
     callback: (...args: unknown[]) => unknown,
   ): void => {
     context.subscriptions.push(vscode.commands.registerCommand(id, callback));
@@ -475,7 +495,7 @@ export function registerCommands(
   );
   for (const direction of ["supertypes", "subtypes"] as const) {
     for (const format of ["text", "json", "mermaid"] as const) {
-      register(`cInsight.${direction}.export${capitalize(format)}`, () =>
+      register(`cInsight.${direction}.export${capitalize(format)}` as CommandId, () =>
         typeHierarchy.export(direction, format),
       );
     }
@@ -522,7 +542,7 @@ export function registerCommands(
   );
   for (const direction of ["includes", "includedBy"] as const) {
     for (const format of ["text", "json", "mermaid"] as const) {
-      register(`cInsight.${direction}.export${capitalize(format)}`, () =>
+      register(`cInsight.${direction}.export${capitalize(format)}` as CommandId, () =>
         includeHierarchy.export(direction, format),
       );
     }

@@ -6,6 +6,7 @@ import {
 } from "../configuration/configuration";
 import { LocationResult, SymbolContext, ViewUpdateIntent } from "../models/types";
 import { ViewRegistry } from "../views/viewRegistry";
+import { CONTEXT_KEYS, VIEWS } from "../ids";
 import {
   cursorQueryDemandForEngine,
   CursorQueryDemand,
@@ -43,7 +44,7 @@ export class ContextController implements vscode.Disposable {
         }
       }),
       this.views.onDidChangeNavigationVisibility((id) => {
-        if (id === "cInsight.symbols") {
+        if (id === VIEWS.SYMBOLS) {
           return;
         }
         if (this.views.navigationVisible) {
@@ -67,12 +68,12 @@ export class ContextController implements vscode.Disposable {
 
   pin(): void {
     this.pinned = true;
-    void vscode.commands.executeCommand("setContext", "cInsight.pinned", true);
+    void vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, true);
   }
 
   unpin(): void {
     this.pinned = false;
-    void vscode.commands.executeCommand("setContext", "cInsight.pinned", false);
+    void vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, false);
     this.refresh();
   }
 
