@@ -9,6 +9,7 @@ import {
   WorkspaceSymbolRecord,
 } from "./symbolSearchModel";
 import type { SymbolSearchSessionState } from "../session/workspaceSession";
+import { symbolKindIconId } from "./symbolPresentation";
 
 interface SearchItem extends vscode.QuickPickItem {
   symbol: WorkspaceSymbolRecord;
@@ -328,28 +329,7 @@ function distinctKinds(
   ].sort((left, right) => left[1].localeCompare(right[1]));
 }
 
-function symbolIcon(kind: number): string {
-  const icons: Partial<Record<number, string>> = {
-    [SymbolKind.File]: "file",
-    [SymbolKind.Namespace]: "symbol-namespace",
-    [SymbolKind.Class]: "symbol-class",
-    [SymbolKind.Method]: "symbol-method",
-    [SymbolKind.Property]: "symbol-property",
-    [SymbolKind.Field]: "symbol-field",
-    [SymbolKind.Constructor]: "symbol-constructor",
-    [SymbolKind.Enum]: "symbol-enum",
-    [SymbolKind.Interface]: "symbol-interface",
-    [SymbolKind.Function]: "symbol-function",
-    [SymbolKind.Variable]: "symbol-variable",
-    [SymbolKind.Constant]: "symbol-constant",
-    [SymbolKind.String]: "symbol-string",
-    [SymbolKind.Struct]: "symbol-struct",
-    [SymbolKind.EnumMember]: "symbol-enum-member",
-    [SymbolKind.Operator]: "symbol-operator",
-    [SymbolKind.TypeParameter]: "symbol-type-parameter",
-  };
-  return icons[kind] ?? "symbol-misc";
-}
+const symbolIcon = symbolKindIconId;
 
 function symbolKindLabel(kind: number): string {
   const labels: Partial<Record<number, string>> = {

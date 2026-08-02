@@ -258,6 +258,9 @@ Context 显示当前光标符号的摘要：
 标题栏 Pin 会暂停整个自动 Context 跟随链路，因此也会暂停由光标移动触发的
 Code Preview、References、Callers 和 Callees 更新。
 
+Document Symbols 按函数、方法、变量、字段、结构体、类、枚举、命名空间等
+符号类型显示不同的 VS Code 主题图标；图标颜色随当前颜色主题自动变化。
+
 Pin 后仍可使用 Find All References、Show Incoming Calls、Show Outgoing
 Calls 或 Refresh 显式查询。Pin/Unpin 按钮使用固定位置，切换时不会移动。
 

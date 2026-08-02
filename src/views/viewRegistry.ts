@@ -54,6 +54,7 @@ import { writeExportWithinBudget } from "../utils/exportWriter";
 import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
+import { symbolKindIconId } from "../symbols/symbolPresentation";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -1455,7 +1456,7 @@ export class ViewRegistry implements vscode.Disposable {
       return {
         label: info.name,
         description: info.containerName,
-        icon: new vscode.ThemeIcon("symbol-misc"),
+        icon: new vscode.ThemeIcon(symbolKindIconId(info.kind)),
         location: this.analysis.toVsLocation(info.location),
       };
     }
@@ -1463,7 +1464,7 @@ export class ViewRegistry implements vscode.Disposable {
     return {
       label: document.name,
       description: document.detail,
-      icon: new vscode.ThemeIcon("symbol-misc"),
+      icon: new vscode.ThemeIcon(symbolKindIconId(document.kind)),
       location: {
         uri,
         range: this.analysis.toVsRange(document.selectionRange),
