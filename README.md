@@ -14,6 +14,11 @@ and tooltips without overwhelming the result label.
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。
 
+C Insight follows the VS Code display language. English is the fallback
+language, and Simplified Chinese is selected when VS Code uses `zh-cn`.
+Use **Configure Display Language** and reload the window to switch languages;
+the setting is intentionally shared with the rest of the VS Code interface.
+
 ## Developer and maintenance
 
 - Developer and maintainer: `youjinchun`
