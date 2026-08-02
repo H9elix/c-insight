@@ -67,6 +67,10 @@ Symbol Search owns a native tree provider and sends workspace queries through
 search text. Its result nodes reuse the shared location path for preview,
 history, and bookmarks.
 
+`ReferenceExplorer` is the single owner of References result, filter, paging,
+stale, reliability, and pin state. `ViewRegistry` delegates updates and context
+keys to it rather than mirroring mutable pin state.
+
 Workspace session persistence uses one versioned snapshot in VS Code
 `workspaceState`, so a directly opened folder and a multi-root workspace each
 receive isolated state. Lightweight UI state is restored directly. Call

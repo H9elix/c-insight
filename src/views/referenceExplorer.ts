@@ -87,6 +87,10 @@ export class ReferenceExplorer implements vscode.Disposable {
   private pinned = false;
   private pinnedSymbol?: string;
   private pinnedStale = false;
+
+  get isPinned(): boolean {
+    return this.pinned;
+  }
   private resultsStaleReason?: string;
   private displayLimitReportedGeneration = -1;
   private reliability: AnalysisReliability = {
