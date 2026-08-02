@@ -279,6 +279,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | `scripts/generate-id-registry.mjs` / `npm run ids:generate` | 从 manifest 生成 `src/ids.ts`；`ids:check` 只检查漂移。 |
 | `scripts/generate-command-reference.mjs` / `npm run docs:commands` | 从 manifest 生成用户手册命令参考段落。 |
 | `scripts/localize-chinese-guide-terms.mjs` / `npm run docs:terms` | 按小节统一中文用户手册中的界面术语；首次出现保留英文括注，并跳过代码段；`docs:terms:check` 在质量门中检查漂移。 |
+| `scripts/check-document-links.mjs` / `npm run docs:links:check` | 检查仓库内 Markdown 本地链接的目标是否存在；标准质量门会自动执行。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
 
