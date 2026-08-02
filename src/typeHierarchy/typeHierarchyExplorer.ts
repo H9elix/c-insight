@@ -568,10 +568,6 @@ function flatten(roots: TreeNode[]): TreeNode[] {
   ]);
 }
 
-function label(direction: TypeHierarchyDirection): string {
-  return direction === "supertypes" ? "Supertypes" : "Subtypes";
-}
-
 function localizedLabel(direction: TypeHierarchyDirection): string {
   return direction === "supertypes"
     ? vscode.l10n.t("Supertypes")

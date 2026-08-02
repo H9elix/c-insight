@@ -569,10 +569,6 @@ function isIncludeFile(uri: vscode.Uri): boolean {
   return /\.(?:c|h|cc|hh|cpp|hpp|cxx|hxx|m|mm)$/i.test(uri.fsPath);
 }
 
-function directionLabel(direction: IncludeHierarchyDirection): string {
-  return direction === "includes" ? "Includes" : "Included By";
-}
-
 function localizedDirectionLabel(direction: IncludeHierarchyDirection): string {
   return direction === "includes"
     ? vscode.l10n.t("Includes")

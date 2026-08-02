@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added a unified `npm run check` quality gate covering lint, tests,
+  localization drift, and production build before VSIX packaging.
+- Added a non-mutating localization drift check that compares extracted
+  runtime messages with both committed English and Simplified Chinese catalogs.
+- Removed obsolete hierarchy label helpers left behind by localization.
+
 ## 0.19.0
 
 - Added the official VS Code localization structure with English fallback and
