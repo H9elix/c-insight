@@ -163,6 +163,10 @@ IDs. Supertypes/Subtypes trees and Relationship Graph likewise share a
 `TypeHierarchyRepository`; inheritance edges are normalized as Supertype →
 Subtype before entering the graph model.
 
+Callers and Callees also share one `CallHierarchyViewState` for pin ownership,
+the pinned symbol, and stale transitions; direction-specific expansion trees
+and caches remain isolated.
+
 Includes/Included By trees and Relationship Graph share an
 `IncludeHierarchyRepository`. It owns the resolver, forward promise cache, and
 single reverse workspace index. File-graph creation and forward expansion call

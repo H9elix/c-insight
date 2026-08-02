@@ -53,6 +53,7 @@ import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
+import { CallHierarchyViewState } from "./callHierarchyViewState";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -72,9 +73,7 @@ export class ViewRegistry implements vscode.Disposable {
   };
   private callRootSignature = "";
   private callExpansion?: vscode.CancellationTokenSource;
-  private callHierarchyPinned = false;
-  private callHierarchyPinnedSymbol?: string;
-  private callHierarchyPinnedStale = false;
+  private readonly callViewState = new CallHierarchyViewState();
   private currentSymbolName?: string;
   private reliability: AnalysisReliability = {
     level: "reliable",
@@ -357,7 +356,7 @@ export class ViewRegistry implements vscode.Disposable {
       }
     }
     const allowCallUpdate = shouldUpdatePinnedView(
-      this.callHierarchyPinned,
+      this.callViewState.pinned,
       intent.manualCallHierarchy,
     ) && (
       this.isViewVisible(VIEWS.CALLERS) ||
@@ -371,9 +370,8 @@ export class ViewRegistry implements vscode.Disposable {
         intent.manualCallHierarchy)
     ) {
       this.callRootSignature = callRootSignature;
-      if (this.callHierarchyPinned && intent.manualCallHierarchy) {
-        this.callHierarchyPinnedSymbol = this.currentSymbolName;
-        this.callHierarchyPinnedStale = false;
+      if (this.callViewState.pinned && intent.manualCallHierarchy) {
+        this.callViewState.replacePinnedSymbol(this.currentSymbolName);
       }
       this.callTreeState.incoming.reset();
       this.callTreeState.outgoing.reset();
@@ -481,9 +479,9 @@ export class ViewRegistry implements vscode.Disposable {
     session?: CallHierarchySessionState;
   } {
     return {
-      pinned: this.callHierarchyPinned,
-      pinnedSymbol: this.callHierarchyPinnedSymbol,
-      pinnedStale: this.callHierarchyPinnedStale,
+      pinned: this.callViewState.pinned,
+      pinnedSymbol: this.callViewState.pinnedSymbol,
+      pinnedStale: this.callViewState.pinnedStale,
       incomingRoots: this.callers.getRoots()
         .filter((node) => node.callNode && node.callDepth === 0)
         .map((node) => node.label),
@@ -579,7 +577,7 @@ export class ViewRegistry implements vscode.Disposable {
     if (!this.referenceExplorer.isPinned) {
       this.referenceExplorer.clear();
     }
-    if (!this.callHierarchyPinned) {
+    if (!this.callViewState.pinned) {
       this.callers.setRoots([
         viewStatusNode(vscode.l10n.t("Place the cursor on a callable symbol"), "idle", {
           description: vscode.l10n.t("open Callers or run Show Incoming Calls to query"),
@@ -613,9 +611,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   pinCallHierarchy(): void {
-    this.callHierarchyPinned = true;
-    this.callHierarchyPinnedSymbol = this.currentSymbolName;
-    this.callHierarchyPinnedStale = false;
+    this.callViewState.pin(this.currentSymbolName);
     this.refreshCallPinBanners();
     void vscode.commands.executeCommand(
       "setContext",
@@ -625,9 +621,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   unpinCallHierarchy(): void {
-    this.callHierarchyPinned = false;
-    this.callHierarchyPinnedSymbol = undefined;
-    this.callHierarchyPinnedStale = false;
+    this.callViewState.unpin();
     this.refreshCallPinBanners();
     void vscode.commands.executeCommand(
       "setContext",
@@ -639,8 +633,8 @@ export class ViewRegistry implements vscode.Disposable {
   markPinnedViewsStale(): void {
     this.referenceExplorer.markPinnedStale();
     this.markResultsStale("the active source file changed");
-    if (this.callHierarchyPinned) {
-      this.callHierarchyPinnedStale = true;
+    if (this.callViewState.pinned) {
+      this.callViewState.markStale();
       this.refreshCallPinBanners();
     }
   }
@@ -1160,12 +1154,12 @@ export class ViewRegistry implements vscode.Disposable {
         contextValue: "microsoftCallersModeStatus",
       });
     }
-    if (this.callHierarchyPinned) {
+    if (this.callViewState.pinned) {
       banners.push({
-        label: vscode.l10n.t("Pinned: {symbol}", { symbol: this.callHierarchyPinnedSymbol ?? vscode.l10n.t("Call Hierarchy") }),
-        description: this.callHierarchyPinnedStale ? vscode.l10n.t("stale") : undefined,
+        label: vscode.l10n.t("Pinned: {symbol}", { symbol: this.callViewState.pinnedSymbol ?? vscode.l10n.t("Call Hierarchy") }),
+        description: this.callViewState.pinnedStale ? vscode.l10n.t("stale") : undefined,
         icon: new vscode.ThemeIcon(
-          this.callHierarchyPinnedStale ? "warning" : "pinned",
+          this.callViewState.pinnedStale ? "warning" : "pinned",
         ),
         contextValue: "callHierarchyPinStatus",
       });

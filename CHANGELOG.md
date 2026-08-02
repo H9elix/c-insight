@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.9
+
+- Centralized shared Callers/Callees pin, pinned-symbol, and stale transitions
+  in a tested Call Hierarchy view-state component.
+
 ## 0.19.8
 
 - Made `ReferenceExplorer` the single owner of References pin state, removing
