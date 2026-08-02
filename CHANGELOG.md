@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.10
+
+- Extracted initial Context Key setup and clangd/Microsoft engine startup from
+  `activate()` into a focused runtime-initialization module.
+
 ## 0.19.9
 
 - Centralized shared Callers/Callees pin, pinned-symbol, and stale transitions

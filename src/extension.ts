@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
-import {
-  analysisEngineDisplayName,
-  compilationDatabaseChangePresentation,
-} from "./analysis/enginePresentation";
+import { compilationDatabaseChangePresentation } from "./analysis/enginePresentation";
 import { AnalysisService } from "./analysis/analysisService";
 import { configuredAnalysisEngine } from "./analysis/analysisEngine";
-import { MicrosoftSemanticProvider } from "./analysis/microsoftSemanticProvider";
 import {
   microsoftProviderStatus,
   MicrosoftProviderConfigurationError,
@@ -38,7 +34,8 @@ import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExp
 import { IncludeHierarchyRepository } from "./includeHierarchy/includeHierarchyRepository";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
-import { CONTEXT_KEYS, VIEWS } from "./ids";
+import { VIEWS } from "./ids";
+import { initializeContextKeys, startAnalysisEngine } from "./activation/runtimeInitialization";
 
 let manager: ClangdManager | undefined;
 let workspaceSession: WorkspaceSessionManager | undefined;
@@ -772,35 +769,14 @@ export async function activate(
     }),
   );
 
-  await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.ACTIVE, true);
-  await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, false);
-  await vscode.commands.executeCommand(
-    "setContext",
-    CONTEXT_KEYS.PREVIEW_LOCKED,
-    false,
-  );
-  await vscode.commands.executeCommand(
-    "setContext",
-    CONTEXT_KEYS.REFERENCES_PINNED,
-    false,
-  );
-  await vscode.commands.executeCommand(
-    "setContext",
-    CONTEXT_KEYS.CALL_HIERARCHY_PINNED,
-    false,
-  );
+  await initializeContextKeys();
   await projectDiagnostics.refresh();
 
   registerProviderSettingRestore(context);
   try {
-    if (engine === "microsoft") {
-      await new MicrosoftSemanticProvider().activate();
-      manager.useMicrosoftProvider();
-      output.appendLine(`Analysis engine: ${analysisEngineDisplayName(engine)}`);
+    await startAnalysisEngine(engine, manager, output, () => {
       void showMicrosoftEngineNotice(context);
-    } else {
-      await manager.start();
-    }
+    });
     await projectDiagnostics.refresh();
     if (initialSession) {
       await restoreWithProgress(initialSession).catch((error: unknown) => {

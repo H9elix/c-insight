@@ -4,6 +4,10 @@ The TypeScript extension is both the VS Code integration and the LSP client.
 `ClangdManager` owns one clangd process. Navigation queries go through
 `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
+Activation delegates initial Context Key publication and concrete analysis-engine
+startup to `activation/runtimeInitialization`; `activate()` retains composition,
+recovery, and event wiring while startup details remain independently reviewable.
+
 Command wiring uses a small typed registrar. References, Call Hierarchy,
 Type/Include Hierarchy, Project Diagnostics, and workspace-tool command groups
 live in separate modules under `src/commands`; `registerCommands` remains the
