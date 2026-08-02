@@ -6,8 +6,10 @@
   Simplified Chinese resources selected from the VS Code display language.
 - Localized extension metadata, commands, views, welcome actions, setting
   descriptions, and setting enum descriptions.
+- Localized References, Type Hierarchy, and Include Hierarchy filters,
+  expansion prompts, empty/stale states, and export feedback.
 - Added manifest-localization completeness tests to prevent missing or
-  mismatched language entries.
+  mismatched manifest or runtime language entries.
 
 ## 0.18.22
 
