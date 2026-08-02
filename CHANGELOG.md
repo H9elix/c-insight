@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.19.12
+
+- Added Outline-style, theme-aware icons for Document Symbols and reused the
+  same tested SymbolKind mapping in Workspace Symbols.
+
 ## 0.19.11
 
 - Added an architecture regression test requiring every manifest-contributed
