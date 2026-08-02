@@ -81,11 +81,21 @@ const pattern = new RegExp(`(?<![A-Za-z])(${escaped.join("|")})(?![A-Za-z])`, "g
 
 for (const guide of guides) {
   let inFence = false;
+  let inGeneratedCommandReference = false;
   let seen = new Set();
   const input = readFileSync(guide, "utf8");
   const output = input
     .split("\n")
     .map((line) => {
+      if (line === "<!-- GENERATED COMMAND REFERENCE START -->") {
+        inGeneratedCommandReference = true;
+        return line;
+      }
+      if (line === "<!-- GENERATED COMMAND REFERENCE END -->") {
+        inGeneratedCommandReference = false;
+        return line;
+      }
+      if (inGeneratedCommandReference) return line;
       if (/^```/.test(line.trim())) {
         inFence = !inFence;
         return line;

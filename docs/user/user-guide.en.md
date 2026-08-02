@@ -35,13 +35,18 @@ Open **Settings** and search for `C Insight` to see every setting, accepted
 value, range, and default in the active display language. Stable configuration
 IDs begin with `cInsight.`. Important groups include:
 
-- `cInsight.engine`, `cInsight.clangd.*`, and `cInsight.compileCommandsDir`
-- `cInsight.codePreview.*` and `cInsight.analysis.*`
+- `cInsight.engine`, `cInsight.clangd.*`, `cInsight.microsoft.*`,
+  `cInsight.compileCommandsDir`, `cInsight.fallbackFlags`, and `cInsight.exclude`
+- `cInsight.codePreview.*`, `cInsight.analysis.*`, `cInsight.backgroundIndex.*`,
+  `cInsight.diagnostics.*`, `cInsight.followCursor`,
+  `cInsight.followCursorDelay`, and `cInsight.followCursorDetailsDelay`
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
 - `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and
   `cInsight.relationshipGraph.*`
 - `cInsight.history.*`, `cInsight.bookmarks.*`, `cInsight.symbolSearch.*`, and
   `cInsight.session.*`
+- `cInsight.includeDeclarationInReferences` and
+  `cInsight.includeSystemReferences`
 
 All commands are available from the Command Palette under **C Insight**.
 Context menus and view title bars expose commands relevant to the current
@@ -55,7 +60,127 @@ and result reliability. Raw clangd/cpptools logs, command IDs, setting IDs,
 symbol names, file paths, and exported JSON field names remain untranslated so
 diagnostic evidence and automation stay stable.
 
-C Insight has no telemetry and does not upload source code. See `PRIVACY.md`,
-`SECURITY.md`, and `CONTRIBUTING.md` for the complete boundaries and maintenance
-workflow. The detailed Simplified Chinese manual is in
-`docs/user/user-guide.zh-CN.md`.
+C Insight has no telemetry and does not upload source code. See
+[Privacy](../../PRIVACY.md), [Security](../../SECURITY.md), and
+[Contributing](../../CONTRIBUTING.md) for the complete boundaries and maintenance
+workflow. For detailed feature behavior, use the
+[Simplified Chinese manual](user-guide.zh-CN.md).
+
+<!-- GENERATED COMMAND REFERENCE START -->
+
+## Complete command reference
+
+This section is generated from `package.json`. Every command is available from the
+Command Palette; the table also lists view-title, editor-context, tree-item, and
+default-keybinding entry points. An entry can be hidden when its `when` condition
+does not match the current UI state.
+
+| Command | Command ID | Entry points |
+| --- | --- | --- |
+| About | `cInsight.about` | Command Palette |
+| Show Relationship Graph | `cInsight.relationshipGraph.show` | Command Palette; Editor context menu |
+| Show File Relationship Graph | `cInsight.relationshipGraph.showFile` | Command Palette; Editor context menu |
+| Export Relationship Graph as Text | `cInsight.relationshipGraph.exportText` | Command Palette |
+| Export Relationship Graph as JSON | `cInsight.relationshipGraph.exportJson` | Command Palette |
+| Export Relationship Graph as Mermaid | `cInsight.relationshipGraph.exportMermaid` | Command Palette |
+| Go to Definition | `cInsight.goToDefinition` | Command Palette; Editor context menu; Keybinding `f12` |
+| Find All References | `cInsight.findReferences` | Command Palette; Editor context menu; Keybinding `shift+f12` |
+| Show Incoming Calls | `cInsight.showIncomingCalls` | Command Palette; Editor context menu; Callers title |
+| Show Outgoing Calls | `cInsight.showOutgoingCalls` | Command Palette; Editor context menu; Callees title |
+| Pin Context | `cInsight.pinContext` | Command Palette; Context title |
+| Unpin Context | `cInsight.unpinContext` | Command Palette; Context title |
+| Pin References | `cInsight.pinReferences` | Command Palette; References title |
+| Unpin References | `cInsight.unpinReferences` | Command Palette; References title |
+| Pin Callers and Callees | `cInsight.pinCallHierarchy` | Command Palette; Callers title; Callees title |
+| Unpin Callers and Callees | `cInsight.unpinCallHierarchy` | Command Palette; Callers title; Callees title |
+| Refresh | `cInsight.refresh` | Command Palette; View title |
+| Restart clangd | `cInsight.restartClangd` | Command Palette |
+| Restore Provider Settings | `cInsight.restoreProviderSettings` | Command Palette |
+| Refresh Project Diagnostics | `cInsight.diagnostics.refresh` | Command Palette; Project Diagnostics title |
+| Open Project Diagnostics | `cInsight.openProjectDiagnostics` | Command Palette |
+| Show clangd Log | `cInsight.diagnostics.showClangdLog` | Command Palette; Project Diagnostics title |
+| Copy Project Diagnostics Report | `cInsight.diagnostics.copyReport` | Command Palette; Project Diagnostics title |
+| Export Project Diagnostics as Text | `cInsight.diagnostics.exportText` | Command Palette |
+| Export Project Diagnostics as JSON | `cInsight.diagnostics.exportJson` | Command Palette; Project Diagnostics title |
+| Restart Background Indexing | `cInsight.index.refresh` | Command Palette; Project Diagnostics title |
+| Select Compilation Database | `cInsight.diagnostics.selectCompilationDatabase` | Command Palette; Project Diagnostics title |
+| Use Automatic Compilation Database Detection | `cInsight.diagnostics.clearCompilationDatabase` | Command Palette |
+| Open Location | `cInsight.openLocation` | Command Palette; Tree item context menu |
+| Search Workspace Symbols | `cInsight.searchSymbols` | Command Palette; Symbol Search title |
+| Refresh Workspace Symbol Search | `cInsight.symbolSearch.refresh` | Command Palette; Symbol Search title |
+| Clear Workspace Symbol Search | `cInsight.symbolSearch.clear` | Command Palette; Symbol Search title |
+| Group Workspace Symbols | `cInsight.symbolSearch.groupBy` | Command Palette; Symbol Search title |
+| Filter Workspace Symbol Types | `cInsight.symbolSearch.filterKinds` | Command Palette; Symbol Search title |
+| Filter Navigation History | `cInsight.history.filter` | Command Palette; Navigation History title |
+| Clear Navigation History | `cInsight.history.clear` | Command Palette; Navigation History title |
+| Bookmark Current Symbol | `cInsight.bookmarks.addCurrent` | Command Palette; Editor context menu; Bookmarks title |
+| Add Bookmark | `cInsight.bookmarks.add` | Command Palette; Tree item context menu |
+| Rename Bookmark | `cInsight.bookmarks.rename` | Command Palette; Tree item context menu |
+| Change Bookmark Group | `cInsight.bookmarks.changeGroup` | Command Palette; Tree item context menu |
+| Delete Bookmark | `cInsight.bookmarks.delete` | Command Palette; Tree item context menu |
+| Refresh Bookmarks | `cInsight.bookmarks.refresh` | Command Palette; Bookmarks title |
+| Filter Bookmarks | `cInsight.bookmarks.search` | Command Palette; Bookmarks title |
+| Clear Bookmark Filter | `cInsight.bookmarks.clearSearch` | Command Palette; Bookmarks title |
+| Sort Bookmarks | `cInsight.bookmarks.sort` | Command Palette; Bookmarks title |
+| Import Bookmarks | `cInsight.bookmarks.import` | Command Palette; Bookmarks title |
+| Export Bookmarks | `cInsight.bookmarks.export` | Command Palette; Bookmarks title; Tree item context menu |
+| Rename or Merge Bookmark Group | `cInsight.bookmarks.renameGroup` | Command Palette; Tree item context menu |
+| Delete Bookmark Group | `cInsight.bookmarks.deleteGroup` | Command Palette; Tree item context menu |
+| Restore Previous Workspace Session | `cInsight.session.restore` | Command Palette |
+| Clear Saved Workspace Session | `cInsight.session.clear` | Command Palette |
+| Filter References | `cInsight.references.search` | Command Palette; References title |
+| Clear Reference Filter | `cInsight.references.clearSearch` | Command Palette |
+| Change Reference Grouping | `cInsight.references.groupBy` | Command Palette; References title |
+| Change Reference Scope | `cInsight.references.scope` | Command Palette; References title |
+| Filter References by Confidence or Evidence | `cInsight.references.filterEvidence` | Command Palette; References title |
+| Load More References | `cInsight.references.loadMore` | Command Palette |
+| Show All References | `cInsight.references.showAll` | Command Palette |
+| Copy Reference | `cInsight.references.copy` | Command Palette; Tree item context menu |
+| Copy All References | `cInsight.references.copyAll` | Command Palette |
+| Export References as Text | `cInsight.references.exportText` | Command Palette |
+| Export References as JSON | `cInsight.references.exportJson` | Command Palette |
+| Open Reference List in Editor | `cInsight.references.openList` | Command Palette |
+| Expand All Reference Groups | `cInsight.references.expandAll` | Command Palette |
+| Collapse All Reference Groups | `cInsight.references.collapseAll` | Command Palette |
+| Expand Callers to Depth | `cInsight.callers.expandToDepth` | Command Palette; Callers title |
+| Expand Callees to Depth | `cInsight.callees.expandToDepth` | Command Palette; Callees title |
+| Stop Call Hierarchy Expansion | `cInsight.callHierarchy.stopExpansion` | Command Palette; Callers title; Callees title |
+| Search Loaded Callers | `cInsight.callers.search` | Command Palette; Callers title |
+| Search Loaded Callees | `cInsight.callees.search` | Command Palette; Callees title |
+| Export Callers as Text | `cInsight.callers.exportText` | Command Palette; Callers title |
+| Export Callers as JSON | `cInsight.callers.exportJson` | Command Palette; Callers title |
+| Export Callees as Text | `cInsight.callees.exportText` | Command Palette; Callees title |
+| Export Callees as JSON | `cInsight.callees.exportJson` | Command Palette; Callees title |
+| Find Caller Path | `cInsight.callers.findPath` | Command Palette; Callers title |
+| Find Callee Path | `cInsight.callees.findPath` | Command Palette; Callees title |
+| Export Callers as Mermaid | `cInsight.callers.exportMermaid` | Command Palette; Callers title |
+| Export Callees as Mermaid | `cInsight.callees.exportMermaid` | Command Palette; Callees title |
+| Show Supertypes | `cInsight.typeHierarchy.showSupertypes` | Command Palette; Editor context menu; Supertypes title |
+| Show Subtypes | `cInsight.typeHierarchy.showSubtypes` | Command Palette; Editor context menu; Subtypes title |
+| Expand Supertypes to Depth | `cInsight.supertypes.expandToDepth` | Command Palette; Supertypes title |
+| Expand Subtypes to Depth | `cInsight.subtypes.expandToDepth` | Command Palette; Subtypes title |
+| Stop Type Hierarchy Expansion | `cInsight.typeHierarchy.stopExpansion` | Command Palette; Supertypes title |
+| Search Loaded Supertypes | `cInsight.supertypes.search` | Command Palette; Supertypes title |
+| Search Loaded Subtypes | `cInsight.subtypes.search` | Command Palette; Subtypes title |
+| Export Supertypes as Text | `cInsight.supertypes.exportText` | Command Palette; Supertypes title |
+| Export Supertypes as JSON | `cInsight.supertypes.exportJson` | Command Palette; Supertypes title |
+| Export Supertypes as Mermaid | `cInsight.supertypes.exportMermaid` | Command Palette; Supertypes title |
+| Export Subtypes as Text | `cInsight.subtypes.exportText` | Command Palette; Subtypes title |
+| Export Subtypes as JSON | `cInsight.subtypes.exportJson` | Command Palette; Subtypes title |
+| Export Subtypes as Mermaid | `cInsight.subtypes.exportMermaid` | Command Palette; Subtypes title |
+| Show Includes | `cInsight.includeHierarchy.showIncludes` | Command Palette; Editor context menu; Includes title |
+| Show Included By | `cInsight.includeHierarchy.showIncludedBy` | Command Palette; Editor context menu; Included By title |
+| Expand Includes to Depth | `cInsight.includes.expandToDepth` | Command Palette; Includes title |
+| Expand Included By to Depth | `cInsight.includedBy.expandToDepth` | Command Palette; Included By title |
+| Stop Includes Expansion | `cInsight.includes.stopExpansion` | Command Palette; Includes title |
+| Stop Included By Expansion | `cInsight.includedBy.stopExpansion` | Command Palette; Included By title |
+| Search Loaded Includes | `cInsight.includes.search` | Command Palette; Includes title |
+| Search Loaded Included By | `cInsight.includedBy.search` | Command Palette; Included By title |
+| Export Includes as Text | `cInsight.includes.exportText` | Command Palette; Includes title |
+| Export Includes as JSON | `cInsight.includes.exportJson` | Command Palette; Includes title |
+| Export Includes as Mermaid | `cInsight.includes.exportMermaid` | Command Palette; Includes title |
+| Export Included By as Text | `cInsight.includedBy.exportText` | Command Palette; Included By title |
+| Export Included By as JSON | `cInsight.includedBy.exportJson` | Command Palette; Included By title |
+| Export Included By as Mermaid | `cInsight.includedBy.exportMermaid` | Command Palette; Included By title |
+
+<!-- GENERATED COMMAND REFERENCE END -->

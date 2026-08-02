@@ -1696,8 +1696,8 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 显示关系图 | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
 | 显示文件关系图 | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
 | 将关系图导出为文本 | `cInsight.relationshipGraph.exportText` | 命令面板 |
-| 将关系图导出为JSON | `cInsight.relationshipGraph.exportJson` | 命令面板 |
-| 将关系图导出为Mermaid | `cInsight.relationshipGraph.exportMermaid` | 命令面板 |
+| 将关系图导出为 JSON | `cInsight.relationshipGraph.exportJson` | 命令面板 |
+| 将关系图导出为 Mermaid | `cInsight.relationshipGraph.exportMermaid` | 命令面板 |
 | 转到定义 | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单；快捷键 `f12` |
 | 查找所有引用 | `cInsight.findReferences` | 命令面板；编辑器右键菜单；快捷键 `shift+f12` |
 | 显示传入调用 | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单；调用者标题栏 |
@@ -1709,14 +1709,14 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 固定调用者和被调用者 | `cInsight.pinCallHierarchy` | 命令面板；调用者标题栏；被调用者标题栏 |
 | 取消固定调用者和被调用者 | `cInsight.unpinCallHierarchy` | 命令面板；调用者标题栏；被调用者标题栏 |
 | 刷新 | `cInsight.refresh` | 命令面板；窗口标题栏 |
-| 重启clangd | `cInsight.restartClangd` | 命令面板 |
+| 重启 clangd | `cInsight.restartClangd` | 命令面板 |
 | 恢复提供程序设置 | `cInsight.restoreProviderSettings` | 命令面板 |
 | 刷新工程诊断 | `cInsight.diagnostics.refresh` | 命令面板；工程诊断标题栏 |
 | 打开工程诊断 | `cInsight.openProjectDiagnostics` | 命令面板 |
-| 显示clangd 日志 | `cInsight.diagnostics.showClangdLog` | 命令面板；工程诊断标题栏 |
+| 显示 clangd 日志 | `cInsight.diagnostics.showClangdLog` | 命令面板；工程诊断标题栏 |
 | 复制工程诊断报告 | `cInsight.diagnostics.copyReport` | 命令面板；工程诊断标题栏 |
 | 将工程诊断导出为文本 | `cInsight.diagnostics.exportText` | 命令面板 |
-| 将工程诊断导出为JSON | `cInsight.diagnostics.exportJson` | 命令面板；工程诊断标题栏 |
+| 将工程诊断导出为 JSON | `cInsight.diagnostics.exportJson` | 命令面板；工程诊断标题栏 |
 | 重启后台索引 | `cInsight.index.refresh` | 命令面板；工程诊断标题栏 |
 | 选择编译数据库 | `cInsight.diagnostics.selectCompilationDatabase` | 命令面板；工程诊断标题栏 |
 | 使用自动检测编译数据库 | `cInsight.diagnostics.clearCompilationDatabase` | 命令面板 |
@@ -1747,13 +1747,13 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 清除引用筛选 | `cInsight.references.clearSearch` | 命令面板 |
 | 更改引用分组方式 | `cInsight.references.groupBy` | 命令面板；引用标题栏 |
 | 更改引用范围 | `cInsight.references.scope` | 命令面板；引用标题栏 |
-| 筛选按可信度或证据筛选引用 | `cInsight.references.filterEvidence` | 命令面板；引用标题栏 |
+| 按可信度或证据筛选引用 | `cInsight.references.filterEvidence` | 命令面板；引用标题栏 |
 | 加载更多引用 | `cInsight.references.loadMore` | 命令面板 |
 | 显示全部引用 | `cInsight.references.showAll` | 命令面板 |
 | 复制引用 | `cInsight.references.copy` | 命令面板；树节点右键菜单 |
 | 复制全部引用 | `cInsight.references.copyAll` | 命令面板 |
 | 将引用导出为文本 | `cInsight.references.exportText` | 命令面板 |
-| 将引用导出为JSON | `cInsight.references.exportJson` | 命令面板 |
+| 将引用导出为 JSON | `cInsight.references.exportJson` | 命令面板 |
 | 打开编辑器中的引用列表 | `cInsight.references.openList` | 命令面板 |
 | 展开所有引用分组 | `cInsight.references.expandAll` | 命令面板 |
 | 折叠所有引用分组 | `cInsight.references.collapseAll` | 命令面板 |
@@ -1763,13 +1763,13 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 搜索已加载的调用者 | `cInsight.callers.search` | 命令面板；调用者标题栏 |
 | 搜索已加载的被调用者 | `cInsight.callees.search` | 命令面板；被调用者标题栏 |
 | 将调用者导出为文本 | `cInsight.callers.exportText` | 命令面板；调用者标题栏 |
-| 将调用者导出为JSON | `cInsight.callers.exportJson` | 命令面板；调用者标题栏 |
+| 将调用者导出为 JSON | `cInsight.callers.exportJson` | 命令面板；调用者标题栏 |
 | 将被调用者导出为文本 | `cInsight.callees.exportText` | 命令面板；被调用者标题栏 |
-| 将被调用者导出为JSON | `cInsight.callees.exportJson` | 命令面板；被调用者标题栏 |
+| 将被调用者导出为 JSON | `cInsight.callees.exportJson` | 命令面板；被调用者标题栏 |
 | 查找调用者路径 | `cInsight.callers.findPath` | 命令面板；调用者标题栏 |
 | 查找被调用者路径 | `cInsight.callees.findPath` | 命令面板；被调用者标题栏 |
-| 将调用者导出为Mermaid | `cInsight.callers.exportMermaid` | 命令面板；调用者标题栏 |
-| 将被调用者导出为Mermaid | `cInsight.callees.exportMermaid` | 命令面板；被调用者标题栏 |
+| 将调用者导出为 Mermaid | `cInsight.callers.exportMermaid` | 命令面板；调用者标题栏 |
+| 将被调用者导出为 Mermaid | `cInsight.callees.exportMermaid` | 命令面板；被调用者标题栏 |
 | 显示父类型 | `cInsight.typeHierarchy.showSupertypes` | 命令面板；编辑器右键菜单；父类型标题栏 |
 | 显示子类型 | `cInsight.typeHierarchy.showSubtypes` | 命令面板；编辑器右键菜单；子类型标题栏 |
 | 按深度展开父类型 | `cInsight.supertypes.expandToDepth` | 命令面板；父类型标题栏 |
@@ -1778,11 +1778,11 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 搜索已加载的父类型 | `cInsight.supertypes.search` | 命令面板；父类型标题栏 |
 | 搜索已加载的子类型 | `cInsight.subtypes.search` | 命令面板；子类型标题栏 |
 | 将父类型导出为文本 | `cInsight.supertypes.exportText` | 命令面板；父类型标题栏 |
-| 将父类型导出为JSON | `cInsight.supertypes.exportJson` | 命令面板；父类型标题栏 |
-| 将父类型导出为Mermaid | `cInsight.supertypes.exportMermaid` | 命令面板；父类型标题栏 |
+| 将父类型导出为 JSON | `cInsight.supertypes.exportJson` | 命令面板；父类型标题栏 |
+| 将父类型导出为 Mermaid | `cInsight.supertypes.exportMermaid` | 命令面板；父类型标题栏 |
 | 将子类型导出为文本 | `cInsight.subtypes.exportText` | 命令面板；子类型标题栏 |
-| 将子类型导出为JSON | `cInsight.subtypes.exportJson` | 命令面板；子类型标题栏 |
-| 将子类型导出为Mermaid | `cInsight.subtypes.exportMermaid` | 命令面板；子类型标题栏 |
+| 将子类型导出为 JSON | `cInsight.subtypes.exportJson` | 命令面板；子类型标题栏 |
+| 将子类型导出为 Mermaid | `cInsight.subtypes.exportMermaid` | 命令面板；子类型标题栏 |
 | 显示包含文件 | `cInsight.includeHierarchy.showIncludes` | 命令面板；编辑器右键菜单；包含文件标题栏 |
 | 显示被包含关系 | `cInsight.includeHierarchy.showIncludedBy` | 命令面板；编辑器右键菜单；被包含关系标题栏 |
 | 按深度展开包含文件 | `cInsight.includes.expandToDepth` | 命令面板；包含文件标题栏 |
@@ -1792,10 +1792,10 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 | 搜索已加载的包含文件 | `cInsight.includes.search` | 命令面板；包含文件标题栏 |
 | 搜索已加载的被包含关系 | `cInsight.includedBy.search` | 命令面板；被包含关系标题栏 |
 | 将包含文件导出为文本 | `cInsight.includes.exportText` | 命令面板；包含文件标题栏 |
-| 将包含文件导出为JSON | `cInsight.includes.exportJson` | 命令面板；包含文件标题栏 |
-| 将包含文件导出为Mermaid | `cInsight.includes.exportMermaid` | 命令面板；包含文件标题栏 |
+| 将包含文件导出为 JSON | `cInsight.includes.exportJson` | 命令面板；包含文件标题栏 |
+| 将包含文件导出为 Mermaid | `cInsight.includes.exportMermaid` | 命令面板；包含文件标题栏 |
 | 将被包含关系导出为文本 | `cInsight.includedBy.exportText` | 命令面板；被包含关系标题栏 |
-| 将被包含关系导出为JSON | `cInsight.includedBy.exportJson` | 命令面板；被包含关系标题栏 |
-| 将被包含关系导出为Mermaid | `cInsight.includedBy.exportMermaid` | 命令面板；被包含关系标题栏 |
+| 将被包含关系导出为 JSON | `cInsight.includedBy.exportJson` | 命令面板；被包含关系标题栏 |
+| 将被包含关系导出为 Mermaid | `cInsight.includedBy.exportMermaid` | 命令面板；被包含关系标题栏 |
 
 <!-- GENERATED COMMAND REFERENCE END -->
