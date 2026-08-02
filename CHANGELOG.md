@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.19.11
+
+- Added an architecture regression test requiring every manifest-contributed
+  command to have exactly one runtime registration site.
+- Completed the second-stage command, view-lifecycle, References/Call Hierarchy
+  state-ownership, and runtime-initialization architecture pass.
+
 ## 0.19.10
 
 - Extracted initial Context Key setup and clangd/Microsoft engine startup from
