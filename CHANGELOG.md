@@ -12,6 +12,8 @@
   empty states, grouping controls, and navigation labels.
 - Localized Bookmark editing, grouping, sorting, filtering, import/export,
   confirmation, stale-location, and result feedback surfaces.
+- Localized Context relationship summaries and Callers/Callees prompts,
+  searching, path finding, expansion, pin/status banners, limits, and errors.
 - Added manifest-localization completeness tests to prevent missing or
   mismatched manifest or runtime language entries.
 
