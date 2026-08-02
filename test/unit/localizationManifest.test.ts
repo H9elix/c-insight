@@ -87,4 +87,16 @@ describe("manifest localization", () => {
       assert.doesNotMatch(message, /[A-Za-z0-9][\p{Script=Han}]/u, message);
     }
   });
+
+  it("uses stable Chinese verbs and result-state terminology", () => {
+    assert.equal(runtimeChinese["No navigation history"], "暂无导航历史");
+    assert.equal(runtimeChinese["No bookmarks"], "暂无书签");
+    assert.match(runtimeChinese["No references found"], /未找到/);
+    assert.match(runtimeChinese["Callers unavailable"], /不可用/);
+    assert.match(runtimeChinese["References query failed"], /查询失败/);
+    assert.match(chinese["command.cInsight.relationshipGraph.show.title"], /显示/);
+    assert.match(chinese["command.cInsight.openProjectDiagnostics.title"], /打开/);
+    assert.match(chinese["command.cInsight.history.clear.title"], /清除/);
+    assert.match(runtimeChinese["Reset Layout"], /重置/);
+  });
 });

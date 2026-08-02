@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.13
+
+- Standardized Simplified Chinese action verbs and empty, no-match,
+  unavailable, and query-failure result terminology.
+- Documented the Chinese UI-writing conventions and added regression coverage
+  for their representative runtime and manifest messages.
+
 ## 0.20.12
 
 - Standardized Chinese/Latin spacing in manifest command titles for JSON,
