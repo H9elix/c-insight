@@ -1586,7 +1586,7 @@ C Insight 可以降低并发压力和避免复用失效对象，但无法捕获�
 SIGSEGV；若仍发生，应将 cpptools 输出的调用栈提交到 Microsoft vscode-cpptools
 问题跟踪器。尚未支持的
 Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API 的能力边界。
-探测方法、实测结果和接入边界见 `docs/microsoft-provider-probe.zh-CN.md`。
+探测方法、实测结果和接入边界见 `docs/validation/microsoft-provider-probe.zh-CN.md`。
 
 - 主要面向单个本地工作区根目录。
 - Code Preview 复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与
@@ -1604,7 +1604,7 @@ Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API �
 关系图、1 万节点层级 JSON 导出和 10 万次 Code Preview 范围滚动。输出为
 `c-insight.performance-baseline` 版本 1 的 JSON，包含运行环境、耗时、宽松回归
 预算、近似堆变化和结果计数。完整命令、缩放和报告落盘方式见随扩展打包的
-`docs/performance-baseline.zh-CN.md`。
+`docs/validation/performance-baseline.zh-CN.md`。
 
 该基线只验证宿主侧核心模型，不启动 clangd，也不替代 FFmpeg、Remote SSH、
 磁盘和 VS Code UI 的真实工程验收。
@@ -1616,7 +1616,7 @@ Type Hierarchy、索引进度和 clangd 专用证据属于公开 Provider API �
 `C_INSIGHT_FFMPEG_ROOT` 与 `C_INSIGHT_FFMPEG_CLANGD` 覆盖路径，并把可选的第一个
 命令行参数作为 JSON 报告输出位置。它验证初始化、Document Symbols、Definition、
 References、Call Hierarchy 方法兼容性和 Hover。详细的第三阶段环境、实测结果及
-边界见 `docs/third-phase-acceptance.zh-CN.md`。
+边界见 `docs/validation/third-phase-acceptance.zh-CN.md`。
 
 clangd 对某个 C 函数返回空 Outgoing Calls 仍可能是合法的保守结果；验收重点是
 请求成功并返回数组，而不是强制猜测静态目标。
@@ -1625,11 +1625,11 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 `npm run test:e2e:microsoft` 和 `npm run test:e2e:ffmpeg:microsoft`。后者覆盖跨文件
 Code Preview、References-based Callers、原生 Callees、Pin/Unpin、懒加载、缓存和
 资源证据；完整环境、结果及公开 API 边界见
-`docs/microsoft-engine-acceptance.zh-CN.md`。
+`docs/validation/microsoft-engine-acceptance.zh-CN.md`。
 
 所有 Extension Host 测试都使用进程级隔离的临时用户数据与扩展目录，因此可以在
 日常 VS Code 已打开时运行，不会读取或改写用户配置，也不会与现有窗口竞争实例锁。
-第三阶段最终复验结果见 `docs/third-phase-acceptance.zh-CN.md`。
+第三阶段最终复验结果见 `docs/validation/third-phase-acceptance.zh-CN.md`。
 
 ## 14. 功能与窗口矩阵
 

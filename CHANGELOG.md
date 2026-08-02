@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.20.7
+
+- Organized documentation into user, development, planning, and validation
+  subdirectories, with a new central documentation index.
+- Updated runtime help, documentation tools, tests, package contents, and all
+  maintained cross-references to use the categorized paths.
+
 ## 0.20.6
 
 - Added a packaged Chinese developer guide covering architecture, source-file
@@ -1249,7 +1256,7 @@
   with extension-side source position validation and cancellable definition
   requests.
 - Recorded deferred full semantic context menus and per-target scroll
-  restoration in `docs/roadmap.md`.
+  restoration in `docs/planning/roadmap.md`.
 
 ## 0.3.0
 

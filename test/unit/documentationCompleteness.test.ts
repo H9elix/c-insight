@@ -18,7 +18,7 @@ const manifest = JSON.parse(
 const packageMessages = JSON.parse(
   readFileSync("package.nls.json", "utf8"),
 ) as Record<string, string>;
-const guide = readFileSync("docs/user-guide.zh-CN.md", "utf8");
+const guide = readFileSync("docs/user/user-guide.zh-CN.md", "utf8");
 
 function resolveManifestMessage(value: string): string {
   const match = /^%(.+)%$/.exec(value);

@@ -52,7 +52,7 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 
 ## Architecture
 
-Start with `docs/architecture.md`. Keep protocol and model logic testable
+Start with `docs/development/architecture.md`. Keep protocol and model logic testable
 without a VS Code host where possible.
 
 ## Commit style

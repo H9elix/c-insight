@@ -38,7 +38,7 @@ export function registerExtensionControlCommands(
     if (action === copy) await vscode.env.clipboard.writeText(`${manifest.displayName ?? "C Insight"}\n${details}\n`);
     if (action === guideAction) {
       const guide = vscode.Uri.joinPath(context.extensionUri,
-        vscode.env.language.toLowerCase().startsWith("zh") ? "docs/user-guide.zh-CN.md" : "docs/user-guide.en.md");
+        vscode.env.language.toLowerCase().startsWith("zh") ? "docs/user/user-guide.zh-CN.md" : "docs/user/user-guide.en.md");
       await vscode.commands.executeCommand("markdown.showPreview", guide);
     }
   });
