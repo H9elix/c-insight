@@ -39,7 +39,14 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
   };
   const d = dependencies;
   registerExtensionControlCommands(register, context, d.engine, d.manager, d.controller, d.views);
-  registerNavigationCommands(register, d.analysis, d.navigationHistory, d.views.preview, activePosition);
+  registerNavigationCommands(
+    register,
+    d.analysis,
+    d.navigationHistory,
+    d.views.preview,
+    d.controller,
+    activePosition,
+  );
   registerReferenceCommands(register, d.analysis, d.views, activePosition);
   registerCallHierarchyCommands(register, d.controller, d.views, activePosition);
   registerDiagnosticCommands(register, d.manager, d.projectDiagnostics);

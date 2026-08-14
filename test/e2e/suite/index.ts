@@ -237,19 +237,22 @@ async function runClangdAcceptance(): Promise<void> {
           firstDefinition.targetSelectionRange ??
             firstDefinition.targetRange,
         );
-  await vscode.commands.executeCommand(
-    "cInsight.previewLocation",
-    definitionLocation,
-    "definition",
-    "Calculator::add",
+  const callLocation = new vscode.Location(
+    uri,
+    new vscode.Range(position, position),
+  );
+  assert.notEqual(
+    definitionLocation.range.start.line,
+    callLocation.range.start.line,
+    "The fixture call site must differ from its definition",
   );
   const treeLocationNode = {
-    id: "e2e-definition",
-    label: "Calculator::add",
-    location: definitionLocation,
-    previewMode: "definition",
-    previewTitle: "Calculator::add",
-    contextValue: "documentSymbolLocation",
+    id: "e2e-reference",
+    label: "Calculator::add call",
+    location: callLocation,
+    previewMode: "reference",
+    previewTitle: "Calculator::add call",
+    contextValue: "referenceLocation",
   };
   const firstTreeActivation = vscode.commands.executeCommand(
     "cInsight.activateTreeLocation",
@@ -264,11 +267,22 @@ async function runClangdAcceptance(): Promise<void> {
   await Promise.all([firstTreeActivation, secondTreeActivation]);
   assert.equal(
     vscode.window.activeTextEditor?.document.uri.toString(),
-    definitionLocation.uri.toString(),
+    callLocation.uri.toString(),
   );
   assert.equal(
     vscode.window.activeTextEditor?.selection.active.line,
-    definitionLocation.range.start.line,
+    callLocation.range.start.line,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 1_200));
+  const previewAfterTreeOpen = await vscode.commands.executeCommand<{
+    uri: string;
+    range: { start: { line: number } };
+  }>("cInsight.test.previewState");
+  assert.equal(previewAfterTreeOpen?.uri, callLocation.uri.toString());
+  assert.equal(
+    previewAfterTreeOpen?.range.start.line,
+    callLocation.range.start.line,
+    "Tree double-click unexpectedly refreshed Code Preview from the editor cursor",
   );
   await vscode.commands.executeCommand("cInsight.findReferences");
   await vscode.commands.executeCommand("cInsight.references.showAll");

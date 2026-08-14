@@ -11,6 +11,10 @@ import {
   cursorQueryDemandForEngine,
   CursorQueryDemand,
 } from "./navigationDemand";
+import {
+  CursorFollowInputKind,
+  CursorFollowSuppression,
+} from "../utils/cursorFollowSuppression";
 
 export class ContextController implements vscode.Disposable {
   private timer?: NodeJS.Timeout;
@@ -19,6 +23,7 @@ export class ContextController implements vscode.Disposable {
   private generation = 0;
   private pinned = false;
   private current?: { uri: vscode.Uri; position: vscode.Position };
+  private readonly cursorFollowSuppression = new CursorFollowSuppression();
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -29,17 +34,40 @@ export class ContextController implements vscode.Disposable {
     this.disposables.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
         if (event.textEditor === vscode.window.activeTextEditor) {
-          this.schedule(event.textEditor.document, event.selections[0].active);
+          const position = event.selections[0].active;
+          if (
+            this.cursorFollowSuppression.suppressSelection(
+              cursorTarget(event.textEditor.document.uri, position),
+              selectionInputKind(event.kind),
+            )
+          ) {
+            return;
+          }
+          this.schedule(event.textEditor.document, position);
         }
       }),
       vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (editor) {
+          if (
+            this.cursorFollowSuppression.suppressActiveEditor(
+              editor.document.uri.toString(),
+            )
+          ) {
+            return;
+          }
           this.schedule(editor.document, editor.selection.active, true);
         }
       }),
       vscode.workspace.onDidChangeTextDocument((event) => {
         const editor = vscode.window.activeTextEditor;
         if (editor?.document === event.document) {
+          if (
+            this.cursorFollowSuppression.suppressAutomaticUpdate(
+              editor.document.uri.toString(),
+            )
+          ) {
+            return;
+          }
           this.schedule(editor.document, editor.selection.active);
         }
       }),
@@ -50,6 +78,13 @@ export class ContextController implements vscode.Disposable {
         if (this.views.navigationVisible) {
           const editor = vscode.window.activeTextEditor;
           if (editor) {
+            if (
+              this.cursorFollowSuppression.suppressAutomaticUpdate(
+                editor.document.uri.toString(),
+              )
+            ) {
+              return;
+            }
             this.schedule(editor.document, editor.selection.active, true);
           }
         } else {
@@ -89,6 +124,24 @@ export class ContextController implements vscode.Disposable {
           : undefined,
       );
     }
+  }
+
+  beginProgrammaticNavigation(
+    location: LocationResult,
+  ): number {
+    this.cancelPending();
+    this.generation += 1;
+    return this.cursorFollowSuppression.begin(
+      cursorTarget(location.uri, location.range.start),
+    );
+  }
+
+  completeProgrammaticNavigation(token: number): void {
+    this.cursorFollowSuppression.complete(token);
+  }
+
+  cancelProgrammaticNavigation(token: number): void {
+    this.cursorFollowSuppression.cancel(token);
   }
 
   async resolveNow(
@@ -405,6 +458,14 @@ export class ContextController implements vscode.Disposable {
     const manual =
       intent.manualReferences || intent.manualCallHierarchy;
     if (
+      !manual &&
+      this.cursorFollowSuppression.suppressAutomaticUpdate(
+        document.uri.toString(),
+      )
+    ) {
+      return;
+    }
+    if (
       (this.pinned || !readConfiguration().followCursor) &&
       !manual
     ) {
@@ -427,6 +488,32 @@ export class ContextController implements vscode.Disposable {
       this.timer = undefined;
       void this.resolveCursor(document.uri, position, generation, intent);
     }, delay);
+  }
+}
+
+function cursorTarget(
+  uri: vscode.Uri,
+  position: vscode.Position,
+): { uri: string; line: number; character: number } {
+  return {
+    uri: uri.toString(),
+    line: position.line,
+    character: position.character,
+  };
+}
+
+function selectionInputKind(
+  kind: vscode.TextEditorSelectionChangeKind | undefined,
+): CursorFollowInputKind {
+  switch (kind) {
+    case vscode.TextEditorSelectionChangeKind.Keyboard:
+      return "keyboard";
+    case vscode.TextEditorSelectionChangeKind.Mouse:
+      return "mouse";
+    case vscode.TextEditorSelectionChangeKind.Command:
+      return "command";
+    default:
+      return "unknown";
   }
 }
 

@@ -8,6 +8,7 @@ import { LocationResult } from "../models/types";
 import { TreeLocationClickClassifier } from "../utils/treeLocationInteraction";
 import { CodePreviewProvider, PreviewMode } from "../views/codePreviewProvider";
 import type { TreeNode } from "../views/treeNode";
+import { ContextController } from "../context/contextController";
 import { RegisterCommand } from "./commandRegistrar";
 
 export type ActivePosition = () => { uri: vscode.Uri; position: vscode.Position } | undefined;
@@ -17,6 +18,7 @@ export function registerNavigationCommands(
   analysis: AnalysisService,
   history: NavigationHistoryExplorer,
   preview: CodePreviewProvider,
+  controller: ContextController,
   activePosition: ActivePosition,
 ): void {
   const treeClicks = new TreeLocationClickClassifier();
@@ -69,7 +71,14 @@ export function registerNavigationCommands(
       return;
     }
     preview.preserveForEditorOpen();
-    await openEditorLocation(location);
+    const navigation = controller.beginProgrammaticNavigation(location);
+    try {
+      await openEditorLocation(location);
+      controller.completeProgrammaticNavigation(navigation);
+    } catch (error) {
+      controller.cancelProgrammaticNavigation(navigation);
+      throw error;
+    }
   });
   register(INTERNAL_COMMANDS.PREVIEW_LOCATION, async (
     value: unknown, mode: unknown, title: unknown, source: unknown,
