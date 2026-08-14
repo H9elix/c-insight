@@ -30,6 +30,12 @@ Document Symbols uses its own visibility gate.
 `ViewLifecycle` owns VS Code TreeView/Webview registrations, visibility events,
 view lookup, and deterministic disposal. `ViewRegistry` consumes that boundary
 and retains only feature coordination rather than extension-host resource ownership.
+Every ordinary tree node with a source location routes through one internal
+activation command. A pure classifier keys activations by view and stable node
+identity: the first activation previews immediately, while a second activation
+inside the configured interval opens the same exact location in the editor.
+Action and status nodes retain their explicit commands. This emulates double
+click because the public TreeView API exposes no pointer click-count event.
 
 Code Preview uses a nonce-restricted Webview script. Browser click coordinates
 are converted to UTF-16 source positions and validated again against the

@@ -127,6 +127,12 @@ availability plus its effective IntelliSense setting is checked for active
 C/C++ documents without forcing activation. Editor, configuration, and
 extension-list changes re-run the check, with session-level prompt
 deduplication.
+Version 0.21.0 unifies all ordinary source-location TreeView results on one
+interaction path: the first activation previews immediately and a configurable
+second activation opens the same location in the editor. Document Symbols,
+Navigation History, source diagnostics, and every semantic hierarchy now share
+the same policy while action/status nodes and explicit Open Location commands
+retain their specialized behavior.
 
 ## Deferred fourth phase
 

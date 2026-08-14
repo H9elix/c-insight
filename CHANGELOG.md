@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.21.0
+
+- Unified every ordinary source-location tree result on immediate single-click
+  Code Preview and configurable double-activation editor navigation.
+- Migrated Document Symbols, Navigation History, and source diagnostics from
+  direct-open exceptions while preserving disclosure arrows, explicit Open
+  Location actions, pin/lock policy, and Include target-file navigation.
+- Added pure click classification, tree-wiring, and real Extension Host
+  regressions plus complete bilingual interaction and configuration guidance.
+
 ## 0.20.14
 
 - Extended generated command references and drift checks to both English and
