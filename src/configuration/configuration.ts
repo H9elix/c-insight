@@ -12,6 +12,7 @@ export interface CInsightConfiguration {
   followCursor: boolean;
   followCursorDelay: number;
   followCursorDetailsDelay: number;
+  navigationDoubleClickInterval: number;
   includeDeclarationInReferences: boolean;
   includeSystemReferences: boolean;
   exclude: string[];
@@ -47,6 +48,10 @@ export function readConfiguration(): CInsightConfiguration {
     followCursorDetailsDelay: config.get<number>(
       "followCursorDetailsDelay",
       600,
+    ),
+    navigationDoubleClickInterval: config.get<number>(
+      "navigation.doubleClickInterval",
+      500,
     ),
     includeDeclarationInReferences: config.get<boolean>(
       "includeDeclarationInReferences",

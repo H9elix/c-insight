@@ -14,6 +14,7 @@ function configuration(): CInsightConfiguration {
     followCursor: true,
     followCursorDelay: 200,
     followCursorDetailsDelay: 600,
+    navigationDoubleClickInterval: 500,
     includeDeclarationInReferences: true,
     includeSystemReferences: false,
     exclude: [],

@@ -137,6 +137,7 @@
   "configuration.cInsight.compileCommandsDir.description": "Directory containing compile_commands.json. Empty automatically searches the workspace root and common build directories.",
   "configuration.cInsight.diagnostics.reportRedaction.description": "Redact filesystem paths, or paths plus macro definitions/fallback flags, from copied and exported Project Diagnostics reports.",
   "configuration.cInsight.followCursorDetailsDelay.description": "Additional idle delay before loading references and first-level caller/callee counts.",
+  "configuration.cInsight.navigation.doubleClickInterval.description": "Maximum interval in milliseconds between two activations of the same source-location tree result for opening it in the editor.",
   "configuration.cInsight.codePreview.linesBefore.description": "Number of source lines displayed before the Code Preview target.",
   "configuration.cInsight.codePreview.linesAfter.description": "Number of source lines displayed after the Code Preview target.",
   "configuration.cInsight.codePreview.semanticHighlighting.description": "Use the active VS Code semantic token provider to color symbols in Code Preview, with lexical highlighting as a fallback.",

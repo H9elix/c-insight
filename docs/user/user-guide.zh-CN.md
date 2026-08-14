@@ -1301,6 +1301,7 @@ C Insight 默认管理：
 | `cInsight.followCursor` | boolean | `true` | `true` / `false` | 是否根据编辑器光标自动查询上下文（Context） |
 | `cInsight.followCursorDelay` | number | `200` | 50–2000 ms | 光标停稳后开始基础查询的延迟 |
 | `cInsight.followCursorDetailsDelay` | number | `600` | 200–5000 ms | 基础查询完成后，加载引用（References）和第一层调用数量前的额外空闲延迟 |
+| `cInsight.navigation.doubleClickInterval` | number | `500` | 150–2000 ms | 同一源码位置树结果连续两次激活时，被识别为双击并在编辑器中打开的最大间隔 |
 
 大型工程可适当提高两个延迟，减少快速移动光标时的无效 clangd 请求。
 

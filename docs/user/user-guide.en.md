@@ -39,7 +39,8 @@ IDs begin with `cInsight.`. Important groups include:
   `cInsight.compileCommandsDir`, `cInsight.fallbackFlags`, and `cInsight.exclude`
 - `cInsight.codePreview.*`, `cInsight.analysis.*`, `cInsight.backgroundIndex.*`,
   `cInsight.diagnostics.*`, `cInsight.followCursor`,
-  `cInsight.followCursorDelay`, and `cInsight.followCursorDetailsDelay`
+  `cInsight.followCursorDelay`, `cInsight.followCursorDetailsDelay`, and
+  `cInsight.navigation.*`
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
 - `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and
   `cInsight.relationshipGraph.*`
