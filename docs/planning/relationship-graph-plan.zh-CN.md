@@ -2,16 +2,13 @@
 
 ## 1. 目标
 
-0.12.0 增加一个独立的 Relationship Graph，用同一画布查看并继续展开三类
-已经具备可靠数据源的关系：
+0.12.0 增加一个独立的 Relationship Graph，用同一画布查看并继续展开三类已经具备可靠数据源的关系：
 
 - 函数调用：Caller → Callee
 - 类型继承：Supertype → Subtype
 - 文件包含：Including File → Included File
 
-关系图用于理解局部结构和跨关系导航，不替代现有 Callers/Callees、
-Supertypes/Subtypes、Includes/Included By 树。树适合精确逐层浏览，图适合观察
-分支、汇合、环和不同关系之间的整体结构。
+关系图用于理解局部结构和跨关系导航，不替代现有 Callers/Callees、Supertypes/Subtypes、Includes/Included By 树。树适合精确逐层浏览，图适合观察分支、汇合、环和不同关系之间的整体结构。
 
 ## 2. 首版范围
 
@@ -25,16 +22,13 @@ Supertypes/Subtypes、Includes/Included By 树。树适合精确逐层浏览，�
 - 单击节点更新 Code Preview；双击节点在主编辑器打开。
 - 右键节点支持 Expand、Open Location、Add Bookmark。
 - 循环、重复、深度上限、节点上限、stale 和取消状态可见。
-- 导出统一 JSON 和 Mermaid；JSON 沿用 0.11.9 的版本化层级字段思想，
-  但使用适合一般图的 `nodes` 和 `edges`。
+- 导出统一 JSON 和 Mermaid；JSON 沿用 0.11.9 的版本化层级字段思想，但使用适合一般图的 `nodes` 和 `edges`。
 - 所有查询都由扩展宿主执行；Webview 只渲染经过校验的数据。
 
 ### 首版不实现
 
-- References 边。引用数量通常远大于调用/继承/包含关系，直接加入会使图迅速
-  失控；后续应先设计聚合节点和过滤规则。
-- 自动跟随编辑器光标。首版只响应显式 Show/Replace Root，避免光标移动不断
-  重建布局和发起查询。
+- References 边。引用数量通常远大于调用/继承/包含关系，直接加入会使图迅速失控；后续应先设计聚合节点和过滤规则。
+- 自动跟随编辑器光标。首版只响应显式 Show/Replace Root，避免光标移动不断重建布局和发起查询。
 - 跨工作区会话恢复。
 - 全工作区一次性关系数据库。
 - 复杂物理仿真布局、3D 图和自动社区检测。
@@ -42,8 +36,7 @@ Supertypes/Subtypes、Includes/Included By 树。树适合精确逐层浏览，�
 
 ## 3. 界面形式
 
-推荐使用 `WebviewPanel` 打开在编辑器区域，而不是继续占用窄侧栏。图需要稳定的
-二维空间，编辑器标签页也便于并排放置源码和 Code Preview。
+推荐使用 `WebviewPanel` 打开在编辑器区域，而不是继续占用窄侧栏。图需要稳定的二维空间，编辑器标签页也便于并排放置源码和 Code Preview。
 
 顶部工具栏按以下顺序排列：
 
@@ -70,17 +63,14 @@ Supertypes/Subtypes、Includes/Included By 树。树适合精确逐层浏览，�
 
 ## 4. 交互逻辑
 
-- 单击：选择节点，并通过现有导航管线更新 Code Preview 和 Navigation
-  History，不移动主编辑器。
+- 单击：选择节点，并通过现有导航管线更新 Code Preview 和 Navigation History，不移动主编辑器。
 - 双击：打开节点的定义或文件位置。
 - `Enter`：展开当前节点上次使用的关系方向。
 - 右键 Expand：显示该节点当前支持的具体方向，不做隐式猜测。
-- 展开已有节点：合并相同稳定 ID 的节点，不复制实体；新增边可以连接到现有
-  节点，从而显示汇合和循环。
+- 展开已有节点：合并相同稳定 ID 的节点，不复制实体；新增边可以连接到现有节点，从而显示汇合和循环。
 - Replace Root：清空当前图并建立新根。
 - Add as Root/Focus：保留图数据，只把选中节点作为布局中心。
-- 源码、clangd、编译数据库或 include 配置变化后标记 stale；已有图仍可导航，
-  Refresh/Replace Root 后重新查询。
+- 源码、clangd、编译数据库或 include 配置变化后标记 stale；已有图仍可导航，Refresh/Replace Root 后重新查询。
 
 ## 5. 统一图模型
 
@@ -118,9 +108,7 @@ interface GraphEdge {
 }
 ```
 
-稳定节点 ID 应由关系种类、规范化 URI、选择范围和语义名称组成。边 ID 由
-`relation + from + to + source location` 组成。不得使用 Webview 临时序号作为
-业务身份。
+稳定节点 ID 应由关系种类、规范化 URI、选择范围和语义名称组成。边 ID 由 `relation + from + to + source location` 组成。不得使用 Webview 临时序号作为业务身份。
 
 ## 6. 数据层设计
 
@@ -130,27 +118,22 @@ interface GraphEdge {
 - `TypeGraphAdapter`：复用 Type Hierarchy 请求及 clangd opaque `data`。
 - `IncludeGraphAdapter`：复用 include resolver 和按需 reverse index。
 
-现有窗口和图服务最终应共享请求缓存，但 0.12.0 不应为了复用而直接访问各
-Explorer 的私有 UI 状态。先抽出只含查询与缓存的 repository，再由树和图共同
-调用。
+现有窗口和图服务最终应共享请求缓存，但 0.12.0 不应为了复用而直接访问各 Explorer 的私有 UI 状态。先抽出只含查询与缓存的 repository，再由树和图共同调用。
 
-Included By 仍遵循现有规则：只有用户明确展开 Included By 时才建立反向索引，
-显示进度并允许取消。打开图或展开 Includes 不得顺带触发该扫描。
+Included By 仍遵循现有规则：只有用户明确展开 Included By 时才建立反向索引，显示进度并允许取消。打开图或展开 Includes 不得顺带触发该扫描。
 
 ## 7. 布局与渲染
 
 首版不引入大型前端图形依赖，使用 CSP 限制下的原生 SVG：
 
 - 默认采用确定性的分层布局。
-- 根位于中心；incoming/supertype/included-by 放在左侧，outgoing/subtype/
-  includes 放在右侧。
+- 根位于中心；incoming/supertype/included-by 放在左侧，outgoing/subtype/includes 放在右侧。
 - 同层按稳定 ID 排序，保证相同数据重开时布局尽量一致。
 - 循环边使用曲线；多重边按关系类型偏移。
 - Webview 维护缩放、平移和节点拖动位置，扩展宿主维护语义图。
 - 大于可视阈值时只渲染视口附近标签，边和节点总数仍受宿主限制。
 
-如果真实工程证明分层布局无法处理常见图，再单独评估轻量布局库；不能在首版
-未经测量就加入体积较大的依赖。
+如果真实工程证明分层布局无法处理常见图，再单独评估轻量布局库；不能在首版未经测量就加入体积较大的依赖。
 
 ## 8. 资源与可靠性边界
 
@@ -196,8 +179,7 @@ JSON：
 }
 ```
 
-Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据当前视图方向
-二次推断。Text 以节点清单和边清单两部分输出，避免把一般图伪装成没有汇合的树。
+Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据当前视图方向二次推断。Text 以节点清单和边清单两部分输出，避免把一般图伪装成没有汇合的树。
 
 ## 11. 测试策略
 
@@ -205,8 +187,7 @@ Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据�
 - 集成测试：三个 Adapter 的方向和取消行为。
 - Webview 消息测试：非法 ID、越界深度、未知消息和 HTML 转义。
 - VS Code E2E：命令注册、面板打开、根替换、单击预览、双击打开、导出。
-- 大工程手工验证：FFmpeg 上的局部调用图、Include 图、Included By 首次扫描
-  取消及节点/边上限。
+- 大工程手工验证：FFmpeg 上的局部调用图、Include 图、Included By 首次扫描取消及节点/边上限。
 
 ## 12. 实现顺序
 
@@ -237,16 +218,7 @@ Mermaid 根据 `GraphEdge.from` 和 `GraphEdge.to` 直接输出，不再根据�
 3. stale、限制、错误和取消状态。
 4. 单元、集成、E2E、FFmpeg 手工验证、手册和打包。
 
-Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成，Type Adapter 已在
-0.12.3 完成，Include Adapter 已在 0.12.4 完成。三类关系均已接入；后续工作
-转向混合关系体验、规模性能和画布交互完善。0.12.5 已完成关系样式、图例、
-节点状态、无查询折叠、稳定视口、过滤统计和键盘操作。
-0.12.6 已完成按帧合并、稳定 ID 增量 SVG、视口虚拟化、线性分层遍历、
-慢渲染诊断、关闭释放和大型合成图回归测试。
-0.12.7 已通过显式 Definition 归属边接通 File、Type 与 Callable 节点，
-支持从新增节点继续使用原有 Include、Inheritance 和 Call 展开能力。
-0.12.8 已接入版本化、有界的 Workspace Session 静态恢复；画布状态随快照保存，
-语义节点只在用户继续展开时重新验证，恢复本身不触发 clangd 或 Include 查询。
+Call Graph 的 A、B、D 阶段已在 0.12.0–0.12.2 完成，Type Adapter 已在 0.12.3 完成，Include Adapter 已在 0.12.4 完成。三类关系均已接入；后续工作转向混合关系体验、规模性能和画布交互完善。0.12.5 已完成关系样式、图例、节点状态、无查询折叠、稳定视口、过滤统计和键盘操作。0.12.6 已完成按帧合并、稳定 ID 增量 SVG、视口虚拟化、线性分层遍历、慢渲染诊断、关闭释放和大型合成图回归测试。0.12.7 已通过显式 Definition 归属边接通 File、Type 与 Callable 节点，支持从新增节点继续使用原有 Include、Inheritance 和 Call 展开能力。0.12.8 已接入版本化、有界的 Workspace Session 静态恢复；画布状态随快照保存，语义节点只在用户继续展开时重新验证，恢复本身不触发 clangd 或 Include 查询。
 
 ## 13. 验收标准
 

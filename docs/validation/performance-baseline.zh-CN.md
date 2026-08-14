@@ -1,7 +1,6 @@
 # C Insight 大型工程性能基线
 
-本基线用于比较代码修改前后的核心模型性能，不代替真实 clangd、Remote SSH、
-磁盘和 VS Code UI 验收。
+本基线用于比较代码修改前后的核心模型性能，不代替真实 clangd、Remote SSH、磁盘和 VS Code UI 验收。
 
 ## 执行
 
@@ -9,8 +8,7 @@
 npm run benchmark
 ```
 
-默认输出一个 `c-insight.performance-baseline` 版本 1 的 JSON 报告，并在任一
-场景超过宽松回归预算时返回非零退出码。
+默认输出一个 `c-insight.performance-baseline` 版本 1 的 JSON 报告，并在任一场景超过宽松回归预算时返回非零退出码。
 
 需要保存纯 JSON 文件时，先编译再直接运行脚本：
 
@@ -42,22 +40,18 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 | `include-directive-scan` | 100,000 行 | Include 注释过滤和指令提取 |
 | `workspace-session-bounding` | 50,000 条历史 | 会话 UTF-8 计量和确定性降级 |
 
-每个场景记录耗时、预算、预算结论、近似堆变化和结果计数。堆变化受 V8 GC
-时机影响，只用于趋势比较，不作为硬预算。
+每个场景记录耗时、预算、预算结论、近似堆变化和结果计数。堆变化受 V8 GC 时机影响，只用于趋势比较，不作为硬预算。
 
 ## 解释边界
 
 - 预算故意宽松，用于发现数量级退化，不用于比较不同机器的绝对快慢。
 - 脚本不启动 clangd，不读取 FFmpeg，也不打开 VS Code。
-- clangd 请求、索引、磁盘、Extension Host 和 UI 响应将在后续真实工作区基线中
-  单独记录。
+- clangd 请求、索引、磁盘、Extension Host 和 UI 响应将在后续真实工作区基线中单独记录。
 - 报告包含 Node、平台、架构、CPU 数量和总内存，便于比较运行环境。
 
 ## 2026-08-02 基线（0.20.0）
 
-环境：Linux x64、Node.js 24.16.0、20 个逻辑 CPU、约 8 GB 内存；真实工程为
-`/home/user/projects/FFmpeg`，使用工程根目录的 `compile_commands.json` 和
-clangd 20.1.2。数值为单次自动验收样本，主要用于同机回归，不作为跨机器承诺。
+环境：Linux x64、Node.js 24.16.0、20 个逻辑 CPU、约 8 GB 内存；真实工程为 `/home/user/projects/FFmpeg`，使用工程根目录的 `compile_commands.json` 和 clangd 20.1.2。数值为单次自动验收样本，主要用于同机回归，不作为跨机器承诺。
 
 ### 核心模型
 

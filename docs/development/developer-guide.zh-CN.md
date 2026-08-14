@@ -1,21 +1,15 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.20.9` 源码结构
-对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；历史规划与延期事项
-请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.20.9` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
-C Insight 是 TypeScript 编写的 VS Code 扩展，生产入口为 `src/extension.ts`，通过
-esbuild 打包为单个 `dist/extension.js`。它支持两种分析引擎：
+C Insight 是 TypeScript 编写的 VS Code 扩展，生产入口为 `src/extension.ts`，通过 esbuild 打包为单个 `dist/extension.js`。它支持两种分析引擎：
 
-- **clangd**：扩展自行启动一个 clangd 进程，通过 `vscode-languageclient` 直接发送
-  LSP 请求，并将标准语言能力注册给 VS Code。
-- **Microsoft C/C++ language service (cpptools)**：不启动或控制 cpptools 进程，
-  而是调用 VS Code 公开的定义（Definition）、引用（References）、调用层次（Call Hierarchy）等提供程序（Provider） API。
+- **clangd**：扩展自行启动一个 clangd 进程，通过 `vscode-languageclient` 直接发送 LSP 请求，并将标准语言能力注册给 VS Code。
+- **Microsoft C/C++ language service (cpptools)**：不启动或控制 cpptools 进程，而是调用 VS Code 公开的定义（Definition）、引用（References）、调用层次（Call Hierarchy）等提供程序（Provider） API。
 
-扩展不会运行 CMake、编译器或工程构建命令。工作区不受信任时不得启动 clangd。
-包含层次（Include Hierarchy）只读取源码、编译数据库和工作区文件。
+扩展不会运行 CMake、编译器或工程构建命令。工作区不受信任时不得启动 clangd。包含层次（Include Hierarchy）只读取源码、编译数据库和工作区文件。
 
 核心依赖方向如下：
 
@@ -35,9 +29,7 @@ AnalysisService（调度、计时、统一结果）
        └── MicrosoftSemanticProvider → VS Code Provider API → cpptools
 ```
 
-纯数据规则应尽量放在模型（Model）或 `src/utils` 中，不依赖 `vscode`，以便单元测试。
-浏览器/提供程序（Explorer/Provider）负责 VS Code 状态和交互；仓库（Repository）负责可复用语义请求、缓存及
-原始协议对象。不要让 Webview 直接读取文件或请求语言服务。
+纯数据规则应尽量放在模型（Model）或 `src/utils` 中，不依赖 `vscode`，以便单元测试。浏览器/提供程序（Explorer/Provider）负责 VS Code 状态和交互；仓库（Repository）负责可复用语义请求、缓存及原始协议对象。不要让 Webview 直接读取文件或请求语言服务。
 
 ## 2. 从激活到一次查询
 
@@ -45,14 +37,11 @@ AnalysisService（调度、计时、统一结果）
 2. `runtimeInitialization.ts` 发布初始上下文键（Context Keys），并启动选定引擎。
 3. `ViewLifecycle` 注册 TreeView 和代码预览（Code Preview） Webview，记录实时可见性。
 4. `ContextController` 监听活动编辑器和光标，经过防抖后根据可见窗口生成查询需求。
-5. `AnalysisService` 将请求交给 `RequestScheduler`，然后路由至 clangd 或 Microsoft
-   提供程序（Provider），并统一转换位置、符号和调用节点。
+5. `AnalysisService` 将请求交给 `RequestScheduler`，然后路由至 clangd 或 Microsoft 提供程序（Provider），并统一转换位置、符号和调用节点。
 6. 返回结果携带查询 generation；过期 generation 的结果被丢弃，不能覆盖新光标。
-7. `ViewRegistry` 将上下文、文档符号（Document Symbols）和调用关系分发给各自状态所有者；
-   代码预览、引用（References）、调用者（Callers）/被调用者（Callees）分别执行自己的固定（Pin）/锁定（Lock）更新策略。
+7. `ViewRegistry` 将上下文、文档符号（Document Symbols）和调用关系分发给各自状态所有者；代码预览、引用（References）、调用者（Callers）/被调用者（Callees）分别执行自己的固定（Pin）/锁定（Lock）更新策略。
 
-手动命令不受窗口可见性门控；自动光标查询必须按实际可见窗口按需执行。新增后台
-查询时，应同时考虑取消、generation、优先级、隐藏窗口和已过期（stale）状态。
+手动命令不受窗口可见性门控；自动光标查询必须按实际可见窗口按需执行。新增后台查询时，应同时考虑取消、generation、优先级、隐藏窗口和已过期（stale）状态。
 
 ## 3. 根目录文件
 
@@ -72,8 +61,7 @@ AnalysisService（调度、计时、统一结果）
 | `LICENSE` | MIT 许可证。 |
 | `media/c-insight.svg` | Activity Bar 容器图标。 |
 
-`dist/`、`.vscode-test/` 和 `*.vsix` 是构建或测试产物，不是源代码。不要手工修改
-`dist/extension.js`。
+`dist/`、`.vscode-test/` 和 `*.vsix` 是构建或测试产物，不是源代码。不要手工修改 `dist/extension.js`。
 
 ## 4. `src` 源码目录
 
@@ -100,9 +88,7 @@ AnalysisService（调度、计时、统一结果）
 | `providerConflictModel.ts` | 已知 clangd/cpptools 提供程序冲突识别和扩展 ID 常量。 |
 | `enginePresentation.ts` | 引擎正式名称、状态栏和编译数据库变更操作的展示文案模型。 |
 
-新增一种引擎时，优先扩展 `AnalysisService` 的稳定接口，而不是在每个 Explorer 中
-添加引擎分支。引擎不支持的能力应显式抛出 `UnsupportedEngineFeatureError`，不能返回
-伪造的空结果。
+新增一种引擎时，优先扩展 `AnalysisService` 的稳定接口，而不是在每个 Explorer 中添加引擎分支。引擎不支持的能力应显式抛出 `UnsupportedEngineFeatureError`，不能返回伪造的空结果。
 
 ### 4.3 clangd 生命周期层 `src/clangd`
 
@@ -146,8 +132,7 @@ AnalysisService（调度、计时、统一结果）
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
 
-Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点
-身份。所有源码内容进入 HTML 前必须转义。
+Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点身份。所有源码内容进入 HTML 前必须转义。
 
 ### 4.6 调用层次（Call Hierarchy） `src/callHierarchy`
 
@@ -157,9 +142,7 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
 | `microsoftCalleeEvidenceModel.ts` | 汇总 Microsoft 原生传出调用（Outgoing Calls）的成功、空、失败、取消和耗时证据。 |
 
-clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，不能只保存显示字段后
-重建对象。Microsoft 传入调用（Incoming Calls）曾触发 cpptools 原生崩溃，因此安全回退（fallback）
-路径不能未经实测替换为原生调用。
+clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，不能只保存显示字段后重建对象。Microsoft 传入调用（Incoming Calls）曾触发 cpptools 原生崩溃，因此安全回退（fallback）路径不能未经实测替换为原生调用。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 
@@ -178,8 +161,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `includeHierarchyRepository.ts` | 正向（forward）缓存、共享解析器（resolver）和唯一反向索引（reverse index）；树和关系图共用。 |
 | `includeHierarchyExplorer.ts` | 包含文件（Includes）/被包含关系两棵独立树、懒加载、搜索、深度展开、限制状态和导出。 |
 
-普通包含文件或包含关系图（Include Graph）不应隐式建立反向索引；只有明确的被包含关系操作
-可以调用 `incoming`。扫描结果必须完整且 generation 仍有效后才能原子发布。
+普通包含文件或包含关系图（Include Graph）不应隐式建立反向索引；只有明确的被包含关系操作可以调用 `incoming`。扫描结果必须完整且 generation 仍有效后才能原子发布。
 
 ### 4.9 关系图（Relationship Graph） `src/relationshipGraph`
 
@@ -189,8 +171,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `relationshipGraphPanel.ts` | 编辑区 WebviewPanel、SVG 交互、调用/类型/包含/定义（Call/Type/Include/Definition）图准备与展开、搜索、过滤、导航、书签、会话和资源释放。 |
 | `graphSessionLifecycle.ts` | 区分用户关闭面板与扩展关闭，决定图会话是否保留。 |
 
-语义边方向固定为调用者（Caller）→被调用者（Callee）、Supertype→Subtype、Includer→Included、
-Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义。
+语义边方向固定为调用者（Caller）→被调用者（Callee）、Supertype→Subtype、Includer→Included、Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义。
 
 ### 4.10 工作区工具（Workspace Tools）
 
@@ -211,8 +192,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | `workspaceSessionModel.ts` | 版本化快照类型、解析校验、字节预算降级、跨引擎语义状态隔离。 |
 | `workspaceSession.ts` | workspaceState 读写、串行保存、定时自动保存和关闭时最终保存。 |
 
-快照只保存可稳定重建的数据，不保存 clangd opaque item。新增 section 时必须定义：
-格式版本、尺寸上限、无效数据处理、跨引擎策略、URI 可用性检查和恢复取消点。
+快照只保存可稳定重建的数据，不保存 clangd opaque item。新增 section 时必须定义：格式版本、尺寸上限、无效数据处理、跨引擎策略、URI 可用性检查和恢复取消点。
 
 ### 4.12 诊断 `src/diagnostics`
 
@@ -241,9 +221,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | `diagnosticCommands.ts` | 工程诊断（Project Diagnostics）、编译数据库选择、复制/导出报告和索引操作。 |
 | `extensionControlCommands.ts` | About、引擎控制、提供程序（Provider）冲突处理和扩展级刷新。 |
 
-新增命令的顺序是：修改 `package.json` contribution → 更新 NLS → 运行
-`npm run ids:generate` → 在唯一一个命令组注册 → 更新中英文用户手册。自动测试会要求
-每个 manifest 命令恰好有一个注册位置。
+新增命令的顺序是：修改 `package.json` contribution → 更新 NLS → 运行 `npm run ids:generate` → 在唯一一个命令组注册 → 更新中英文用户手册。自动测试会要求每个 manifest 命令恰好有一个注册位置。
 
 ### 4.14 通用工具 `src/utils`
 
@@ -270,8 +248,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 - `l10n/bundle.l10n.zh-cn.json`：简体中文运行时目录。
 - `package.nls*.json`：仅用于 manifest 的命令、视图和配置文本。
 
-修改运行时文本后运行 `npm run l10n:export`，翻译新增中文条目，再运行
-`npm run l10n:check`。不要只改一个语言目录。
+修改运行时文本后运行 `npm run l10n:export`，翻译新增中文条目，再运行 `npm run l10n:check`。不要只改一个语言目录。
 
 中文界面文案遵循以下约定：
 
@@ -289,6 +266,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | `scripts/generate-id-registry.mjs` / `npm run ids:generate` | 从 manifest 生成 `src/ids.ts`；`ids:check` 只检查漂移。 |
 | `scripts/generate-command-reference.mjs` / `npm run docs:commands` | 从 manifest 同步生成中英文用户手册命令参考段落；`docs:commands:check` 检查漂移。 |
 | `scripts/localize-chinese-guide-terms.mjs` / `npm run docs:terms` | 按小节统一中文用户手册中的界面术语；首次出现保留英文括注，并跳过代码段；`docs:terms:check` 在质量门中检查漂移。 |
+| `scripts/format-markdown-prose.mjs` / `npm run docs:prose` | 合并 `docs/` 普通段落和列表项中不合时宜的硬换行，同时保留标题、表格、代码块和其他 Markdown 结构；`docs:prose:check` 防止格式回退。 |
 | `scripts/check-document-links.mjs` / `npm run docs:links:check` | 检查仓库内 Markdown 本地链接的目标是否存在；标准质量门会自动执行。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
@@ -297,8 +275,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 
 ### 7.1 单元测试
 
-`test/unit/*.test.ts` 与纯 Model/Utils 一一对应。新增规则至少覆盖：正常结果、空结果、
-取消/限制、重复/递归、异常输入和兼容旧格式。重要架构守卫包括：
+`test/unit/*.test.ts` 与纯 Model/Utils 一一对应。新增规则至少覆盖：正常结果、空结果、取消/限制、重复/递归、异常输入和兼容旧格式。重要架构守卫包括：
 
 - `commandWiringCompleteness.test.ts`：命令 contribution 与唯一注册点一致。
 - `documentationCompleteness.test.ts`：配置、命令和视图全部出现在用户手册。
@@ -315,8 +292,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 - `runFfmpegMicrosoftTest.ts` + `suite/ffmpegMicrosoft.ts`：真实 FFmpeg Microsoft 模式回归。
 - `testLaunchArgs.ts`：为每个 Extension Host 分配独立临时用户数据和扩展目录，避免修改用户配置或争抢实例锁。
 
-E2E 默认需要图形环境；无桌面环境使用 `xvfb-run`。Microsoft 测试还需要安装对应
-cpptools 扩展，可通过环境变量覆盖扩展和 VS Code 路径。
+E2E 默认需要图形环境；无桌面环境使用 `xvfb-run`。Microsoft 测试还需要安装对应 cpptools 扩展，可通过环境变量覆盖扩展和 VS Code 路径。
 
 ## 8. 常用开发流程
 
@@ -328,9 +304,7 @@ npm test
 npm run check
 ```
 
-`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、
-文档链接检查和生产构建，是每次
-提交前的最低门槛。涉及性能或真实引擎时追加：
+`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接检查和生产构建，是每次提交前的最低门槛。涉及性能或真实引擎时追加：
 
 ```bash
 npm run benchmark
@@ -376,8 +350,7 @@ npm run package
 - `WorkspaceSessionManager` 唯一负责串行保存，不能从多个事件直接并发写 workspaceState。
 - `RelationshipGraphPanel` 的宿主模型是语义真相；Webview 只拥有画布布局、缩放、折叠和选择。
 
-如果一个改动需要在两个类中同步维护同一布尔状态，通常说明所有权划分出现问题，
-应先抽取单一状态对象，而不是增加双向事件同步。
+如果一个改动需要在两个类中同步维护同一布尔状态，通常说明所有权划分出现问题，应先抽取单一状态对象，而不是增加双向事件同步。
 
 ## 11. 安全、性能和兼容性检查表
 

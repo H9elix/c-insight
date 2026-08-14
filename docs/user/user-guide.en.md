@@ -1,91 +1,41 @@
 # C Insight User Guide
 
-C Insight is a Source Insight-style C/C++ navigation extension for VS Code.
-It follows the VS Code display language: Simplified Chinese is used for
-`zh-cn`, while English is the fallback for English and untranslated locales.
-Run **Configure Display Language** and reload the window to switch languages.
+C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
-Open a C/C++ folder or multi-root workspace, provide a `compile_commands.json`
-when possible, and select **C Insight** in the Activity Bar. The default
-`cInsight.engine` is `clangd`; set it to `microsoft` and reload the window to
-use the Microsoft C/C++ language service (cpptools).
+Open a C/C++ folder or multi-root workspace, provide a `compile_commands.json` when possible, and select **C Insight** in the Activity Bar. The default `cInsight.engine` is `clangd`; set it to `microsoft` and reload the window to use the Microsoft C/C++ language service (cpptools).
 
-The main views are Context, Code Preview, References, Callers, Callees,
-Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks,
-Symbol Search, Document Symbols, and Project Diagnostics. Queries are
-demand-driven: hidden relationship views do not issue their corresponding
-automatic detail requests.
+The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
 
-Single-clicking any source-location result in a C Insight tree previews it in
-Code Preview; double-clicking the same result opens that exact location in the
-editor. This includes Context definitions/declarations, References, Callers,
-Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and
-document symbols, and source diagnostics. Disclosure arrows still expand
-hierarchical nodes, while explicit **Open Location** actions open immediately.
+Single-clicking any source-location result in a C Insight tree previews it in Code Preview; double-clicking the same result opens that exact location in the editor. This includes Context definitions/declarations, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and document symbols, and source diagnostics. Disclosure arrows still expand hierarchical nodes, while explicit **Open Location** actions open immediately.
 
-VS Code's public TreeView API does not expose a native double-click event, so
-C Insight treats the second activation of the same node within
-`cInsight.navigation.doubleClickInterval` (default 500 ms) as a double click.
-Two rapid keyboard activations behave the same way. The first activation is
-never delayed. Opening a tree result does not immediately replace cursor-driven
-Context, Code Preview, References, Callers, or Callees results. Following
-resumes after the editor cursor moves to a different position with the mouse or
-keyboard; Document Symbols and Project Diagnostics still follow the active file
-immediately. Explicit Open Location, Go to Definition, Code Preview editor
-navigation, and Relationship Graph navigation retain their existing behavior.
-Clicking a navigable symbol inside Code Preview follows its
-definition there; double-clicking source text or blank space opens the
-corresponding or nearest rendered line in the editor. Pin and lock controls
-continue to block automatic replacement while allowing explicit navigation.
+VS Code's public TreeView API does not expose a native double-click event, so C Insight treats the second activation of the same node within `cInsight.navigation.doubleClickInterval` (default 500 ms) as a double click. Two rapid keyboard activations behave the same way. The first activation is never delayed. Opening a tree result does not immediately replace cursor-driven Context, Code Preview, References, Callers, or Callees results. Following resumes after the editor cursor moves to a different position with the mouse or keyboard; Document Symbols and Project Diagnostics still follow the active file immediately. Explicit Open Location, Go to Definition, Code Preview editor navigation, and Relationship Graph navigation retain their existing behavior. Clicking a navigable symbol inside Code Preview follows its definition there; double-clicking source text or blank space opens the corresponding or nearest rendered line in the editor. Pin and lock controls continue to block automatic replacement while allowing explicit navigation.
 
 ## Configuration and commands
 
-Open **Settings** and search for `C Insight` to see every setting, accepted
-value, range, and default in the active display language. Stable configuration
-IDs begin with `cInsight.`. Important groups include:
+Open **Settings** and search for `C Insight` to see every setting, accepted value, range, and default in the active display language. Stable configuration IDs begin with `cInsight.`. Important groups include:
 
-- `cInsight.engine`, `cInsight.clangd.*`, `cInsight.microsoft.*`,
-  `cInsight.compileCommandsDir`, `cInsight.fallbackFlags`, and `cInsight.exclude`
-- `cInsight.codePreview.*`, `cInsight.analysis.*`, `cInsight.backgroundIndex.*`,
-  `cInsight.diagnostics.*`, `cInsight.followCursor`,
-  `cInsight.followCursorDelay`, `cInsight.followCursorDetailsDelay`, and
-  `cInsight.navigation.*`
+- `cInsight.engine`, `cInsight.clangd.*`, `cInsight.microsoft.*`, `cInsight.compileCommandsDir`, `cInsight.fallbackFlags`, and `cInsight.exclude`
+- `cInsight.codePreview.*`, `cInsight.analysis.*`, `cInsight.backgroundIndex.*`, `cInsight.diagnostics.*`, `cInsight.followCursor`, `cInsight.followCursorDelay`, `cInsight.followCursorDetailsDelay`, and `cInsight.navigation.*`
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
-- `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and
-  `cInsight.relationshipGraph.*`
-- `cInsight.history.*`, `cInsight.bookmarks.*`, `cInsight.symbolSearch.*`, and
-  `cInsight.session.*`
-- `cInsight.includeDeclarationInReferences` and
-  `cInsight.includeSystemReferences`
+- `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and `cInsight.relationshipGraph.*`
+- `cInsight.history.*`, `cInsight.bookmarks.*`, `cInsight.symbolSearch.*`, and `cInsight.session.*`
+- `cInsight.includeDeclarationInReferences` and `cInsight.includeSystemReferences`
 
-All commands are available from the Command Palette under **C Insight**.
-Context menus and view title bars expose commands relevant to the current
-editor, view, or selected node.
+All commands are available from the Command Palette under **C Insight**. Context menus and view title bars expose commands relevant to the current editor, view, or selected node.
 
 ## Diagnostics and privacy
 
-Project Diagnostics explains engine availability, compilation database
-detection, the active file command, indexing progress, request performance,
-and result reliability. Raw clangd/cpptools logs, command IDs, setting IDs,
-symbol names, file paths, and exported JSON field names remain untranslated so
-diagnostic evidence and automation stay stable.
+Project Diagnostics explains engine availability, compilation database detection, the active file command, indexing progress, request performance, and result reliability. Raw clangd/cpptools logs, command IDs, setting IDs, symbol names, file paths, and exported JSON field names remain untranslated so diagnostic evidence and automation stay stable.
 
-C Insight has no telemetry and does not upload source code. See
-[Privacy](../../PRIVACY.md), [Security](../../SECURITY.md), and
-[Contributing](../../CONTRIBUTING.md) for the complete boundaries and maintenance
-workflow. For detailed feature behavior, use the
-[Simplified Chinese manual](user-guide.zh-CN.md).
+C Insight has no telemetry and does not upload source code. See [Privacy](../../PRIVACY.md), [Security](../../SECURITY.md), and [Contributing](../../CONTRIBUTING.md) for the complete boundaries and maintenance workflow. For detailed feature behavior, use the [Simplified Chinese manual](user-guide.zh-CN.md).
 
 <!-- GENERATED COMMAND REFERENCE START -->
 
 ## Complete command reference
 
-This section is generated from `package.json`. Every command is available from the
-Command Palette; the table also lists view-title, editor-context, tree-item, and
-default-keybinding entry points. An entry can be hidden when its `when` condition
-does not match the current UI state.
+This section is generated from `package.json`. Every command is available from the Command Palette; the table also lists view-title, editor-context, tree-item, and default-keybinding entry points. An entry can be hidden when its `when` condition does not match the current UI state.
 
 | Command | Command ID | Entry points |
 | --- | --- | --- |

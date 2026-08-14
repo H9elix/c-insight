@@ -9,8 +9,7 @@
 
 ## 开发维护 `development/`
 
-- [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、
-  测试与发布流程。
+- [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、测试与发布流程。
 - [架构说明](development/architecture.md)：核心架构、数据流、信任边界和架构守卫。
 
 ## 规划设计 `planning/`
@@ -26,5 +25,4 @@
 - [Microsoft 提供程序探测结果](validation/microsoft-provider-probe-result.json)：可复核的探测结果。
 - [Microsoft 引擎验收报告](validation/microsoft-engine-acceptance.zh-CN.md)：Microsoft C/C++ 引擎阶段验收报告。
 
-用户行为和配置以用户手册为准；源码维护以开发者手册及实际代码为准；规划文档中的
-延期项目不表示已经实现。
+用户行为和配置以用户手册为准；源码维护以开发者手册及实际代码为准；规划文档中的延期项目不表示已经实现。
