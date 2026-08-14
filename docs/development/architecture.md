@@ -36,6 +36,12 @@ identity: the first activation previews immediately, while a second activation
 inside the configured interval opens the same exact location in the editor.
 Action and status nodes retain their explicit commands. This emulates double
 click because the public TreeView API exposes no pointer click-count event.
+Before that second activation opens the editor, `ContextController` invalidates
+pending cursor work and arms a target-aware suppression state. Editor activation
+and programmatic selection events for that target do not replace cursor-driven
+views. A later mouse or keyboard move to a different position releases the
+state; switching to another editor releases it immediately. Document Symbols
+and Project Diagnostics remain on their independent active-document paths.
 
 Code Preview uses a nonce-restricted Webview script. Browser click coordinates
 are converted to UTF-16 source positions and validated again against the

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.21.1
+
+- Prevented a tree-result double-click from immediately replacing cursor-driven
+  Context, Code Preview, References, Callers, and Callees results.
+- Cursor following now resumes after the user moves to a different editor
+  position with the mouse or keyboard; document-scoped views still follow the
+  active file immediately.
+- Added pure suppression-state coverage and an Extension Host regression that
+  distinguishes a selected call site from its definition.
+
 ## 0.21.0
 
 - Unified every ordinary source-location tree result on immediate single-click

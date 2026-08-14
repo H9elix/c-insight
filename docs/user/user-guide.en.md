@@ -29,7 +29,13 @@ VS Code's public TreeView API does not expose a native double-click event, so
 C Insight treats the second activation of the same node within
 `cInsight.navigation.doubleClickInterval` (default 500 ms) as a double click.
 Two rapid keyboard activations behave the same way. The first activation is
-never delayed. Clicking a navigable symbol inside Code Preview follows its
+never delayed. Opening a tree result does not immediately replace cursor-driven
+Context, Code Preview, References, Callers, or Callees results. Following
+resumes after the editor cursor moves to a different position with the mouse or
+keyboard; Document Symbols and Project Diagnostics still follow the active file
+immediately. Explicit Open Location, Go to Definition, Code Preview editor
+navigation, and Relationship Graph navigation retain their existing behavior.
+Clicking a navigable symbol inside Code Preview follows its
 definition there; double-clicking source text or blank space opens the
 corresponding or nearest rendered line in the editor. Pin and lock controls
 continue to block automatic replacement while allowing explicit navigation.
