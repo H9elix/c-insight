@@ -1275,6 +1275,13 @@
           "maximum": 5000,
           "description": "%configuration.cInsight.followCursorDetailsDelay.description%"
         },
+        "cInsight.navigation.doubleClickInterval": {
+          "type": "number",
+          "default": 500,
+          "minimum": 150,
+          "maximum": 2000,
+          "description": "%configuration.cInsight.navigation.doubleClickInterval.description%"
+        },
         "cInsight.codePreview.linesBefore": {
           "type": "number",
           "default": 6,
