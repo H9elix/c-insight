@@ -18,16 +18,21 @@ Symbol Search, Document Symbols, and Project Diagnostics. Queries are
 demand-driven: hidden relationship views do not issue their corresponding
 automatic detail requests.
 
-Single-clicking a location previews it in Code Preview. Clicking a navigable
-symbol inside Code Preview follows its definition within the preview; double
-clicking source text or blank space in the source area opens the corresponding
-or nearest rendered line in the editor. The resulting editor activation keeps
-the current preview instead of immediately clearing it. Pin buttons stop automatic
-cursor-driven replacement while explicit actions remain available.
+Single-clicking any source-location result in a C Insight tree previews it in
+Code Preview; double-clicking the same result opens that exact location in the
+editor. This includes Context definitions/declarations, References, Callers,
+Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and
+document symbols, and source diagnostics. Disclosure arrows still expand
+hierarchical nodes, while explicit **Open Location** actions open immediately.
 
-Document Symbols are an intentional exception to location previewing: clicking
-a symbol name opens and selects it directly in the main editor, while its
-disclosure arrow continues to expand nested symbols.
+VS Code's public TreeView API does not expose a native double-click event, so
+C Insight treats the second activation of the same node within
+`cInsight.navigation.doubleClickInterval` (default 500 ms) as a double click.
+Two rapid keyboard activations behave the same way. The first activation is
+never delayed. Clicking a navigable symbol inside Code Preview follows its
+definition there; double-clicking source text or blank space opens the
+corresponding or nearest rendered line in the editor. Pin and lock controls
+continue to block automatic replacement while allowing explicit navigation.
 
 ## Configuration and commands
 

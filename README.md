@@ -139,9 +139,9 @@ and safety-limit markers.
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow
    the cursor automatically.
-3. Expand References, Callers, or Callees. Selecting a result updates Code
-   Preview without moving the editor; use **Open Location** from the result's
-   context menu to navigate.
+3. Expand References, Callers, or Callees. Single-clicking any source-location
+   tree result updates Code Preview without moving the editor; double-clicking
+   opens that exact location. Use **Open Location** for immediate navigation.
 4. Single-click a symbol inside Code Preview to preview its definition. A
    pointer cursor identifies semantic symbols that can continue navigation. A
    double-click opens the exact source position in the main editor.
@@ -341,9 +341,10 @@ and expansion cancellation. They share only resolution caches and the reverse
 workspace index, so showing one direction never refreshes or automatically
 expands the other.
 
-Single-clicking an include row previews its directive. **Open Location** opens
-the resolved included file. Unresolved directives remain visible with a
-reason. System headers are hidden by default and can be enabled with
+Single-clicking an include row previews its directive, and double-clicking
+opens that same relation line in the editor. **Open Location** opens the
+resolved included file. Unresolved directives remain visible with a reason.
+System headers are hidden by default and can be enabled with
 `cInsight.includeHierarchy.includeSystemHeaders`.
 
 ## Requirements

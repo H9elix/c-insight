@@ -133,7 +133,7 @@ AnalysisService（调度、计时、统一结果）
 | --- | --- |
 | `viewLifecycle.ts` | TreeView/Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
-| `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`。 |
+| `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
 | `viewStatusModel.ts` | 空闲（Idle）、加载中（Loading）、空结果（Empty）、已取消（Cancelled）、已过期（Stale）、结果受限（Limited）、失败（Failed）的纯展示模型。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动和锁定（Lock）。 |
 | `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及目标范围叠加。 |
@@ -141,6 +141,7 @@ AnalysisService（调度、计时、统一结果）
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |
 | `previewClearGuard.ts` | 从预览打开编辑器期间阻止活动编辑器事件立即清空预览。 |
+| `treeLocationInteraction.ts` | 将同一窗口、同一稳定节点在配置时间内的两次激活分类为单击预览或双击打开；不持有 VS Code 资源。 |
 | `referenceExplorer.ts` | 引用结果、固定、已过期（stale）、可靠性、分页、搜索、分组、证据过滤、选择和会话状态的唯一所有者。 |
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
@@ -232,7 +233,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | --- | --- |
 | `registerCommands.ts` | 命令组合根，只注入各组需要的依赖。 |
 | `commandRegistrar.ts` | 类型化命令注册函数签名。 |
-| `navigationCommands.ts` | 定义（Definition）/声明（Declaration）、预览前进后退、打开位置等导航命令。 |
+| `navigationCommands.ts` | 定义（Definition）/声明（Declaration）、统一树位置单击/双击、预览和打开位置等导航命令。 |
 | `referenceCommands.ts` | 引用（References）查询、刷新、固定（Pin）、过滤、分组、分页和导出。 |
 | `callHierarchyCommands.ts` | Incoming/Outgoing、刷新、固定、展开、路径搜索和导出。 |
 | `hierarchyCommands.ts` | 类型/包含层次（Type/Include Hierarchy）的显示、刷新、展开、搜索、过滤和导出。 |

@@ -301,9 +301,16 @@ maximum-nodes、cancelled 和 possible-indirect-call 等状态。Mermaid 箭头�
 - 双击预览代码或代码区空白：在主编辑器中打开对应位置；行尾、行号区域或
   已加载代码上下方的空白会定位到对应或最近的已加载行。该跳转引起编辑器切换
   时会保留当前预览，不会因为落点暂时没有可解析符号而立即清空。
-- 在引用（References）、调用者（Callers）或被调用者（Callees）中单击位置节点：更新代码预览，
-  不主动移动主编辑器。单击文档符号（Document Symbols）节点则直接在主编辑器中定位。
+- 在上下文（Context）、引用（References）、调用者（Callers）、被调用者（Callees）、类型/包含层次、
+  导航历史（Navigation History）、书签（Bookmarks）、符号结果和工程诊断（Project Diagnostics）中单击源码位置节点：
+  更新代码预览，不主动移动主编辑器。
+- 双击同一源码位置节点：在主编辑器中打开代码预览所显示的同一位置并居中。文档符号
+  （Document Symbols）也遵循此规则；具有子项的节点仍通过左侧展开箭头展开。
 - 在位置节点的右键菜单中选择打开位置（Open Location）：在主编辑器中打开。
+
+VS Code 的公共 TreeView API 不提供原生双击事件，因此 C Insight 将同一节点在
+`cInsight.navigation.doubleClickInterval` 时间内的第二次激活识别为双击；快速连续按两次
+Enter 也会产生相同行为。第一次激活始终立即更新代码预览，不会等待双击超时。
 
 ### 代码预览（Code Preview）工具栏
 
@@ -644,6 +651,7 @@ Diagnostics 的 Runtime performance 中查看。
 `current`。
 
 - 单击记录：在代码预览中重新预览，不会再次写入历史。
+- 双击记录：在主编辑器中打开同一位置，并保留该记录为当前历史游标。
 - 右键选择打开位置（Open Location）：在主编辑器中打开。
 - Filter 导航历史：按定义、声明、引用、
   调用者、被调用者或代码预览来源过滤；启用会话恢复时保存该过滤条件。
@@ -675,6 +683,7 @@ VS Code 后，当前工作区的书签仍会恢复。
 书签操作：
 
 - 单击：在代码预览（Code Preview）中预览，并进入导航历史。
+- 双击：在主编辑器中打开同一书签位置。
 - 右键打开位置（Open Location）：在主编辑器中打开。
 - Rename Bookmark：只修改显示名称，不修改用于重定位的原始符号。
 - Change Bookmark Group：移动到已有分组，或创建新分组。
@@ -724,6 +733,7 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 - 单击结果：以定义（Definition）模式在代码预览（Code Preview）中预览，并写入导航历史
   （Navigation History）。
+- 双击结果：在主编辑器中打开同一符号位置。
 - 右键打开位置（Open Location）：在主编辑器打开。
 - 右键选择添加书签（Add Bookmark）：保存到书签（Bookmarks）。
 - Filter Workspace Symbol Types：选择需要显示的符号类型。它不写入工作区
@@ -745,8 +755,8 @@ Import 书签校验 JSON 格式后提供两种方式：
 - 变量
 - 其他 clangd 返回的符号
 
-支持 clangd 的层级结构。单击符号名称会直接在主编辑器中打开并定位；具有子项
-的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
+支持 clangd 的层级结构。单击符号名称会以定义（Definition）模式更新代码预览；双击在
+主编辑器中打开并定位。具有子项的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
 
 命令 **Search 工作区符号（Workspace Symbols）** 会打开符号搜索（Symbol Search）的实时搜索选择器。
 
@@ -796,7 +806,7 @@ Microsoft 模式要求 `C_Cpp.intelliSenseEngine` 的当前资源有效值为 `d
 等已知竞争提供程序时标记为 `ambiguous` 并拒绝语义查询。`verified` 只表示
 未发现已知冲突，因为 VS Code 公共命令仍不返回每条结果的提供程序身份。
 
-工程诊断中的具体错误/警告可直接单击并在编辑器中打开对应范围。
+工程诊断中的具体错误/警告单击时在代码预览中显示对应范围，双击时在编辑器中打开。
 编译数据库路径和头文件候选源文件也可以单击打开。缺少编译数据库时提供选择
 入口；Fallback Flags 可直接打开相应设置；索引分组提供重启后台索引入口。
 
@@ -909,6 +919,7 @@ Session；表中的“书签当前过滤文本”仅指过滤输入，不是书�
 
 - 展开节点：懒加载下一层关系。
 - 单击节点：以定义（Definition）模式更新代码预览（Code Preview），并写入导航历史（Navigation History）。
+- 双击节点：在主编辑器中打开同一类型位置。
 - 右键打开位置（Open Location）：在主编辑器打开。
 - 右键 Add Bookmark：保存类型位置。
 - 搜索已加载内容（Search Loaded）父类型/子类型：先按 Class/Struct/Interface 等类型种类
@@ -992,6 +1003,7 @@ JSON 将统计放在顶层 `summary`；Text 使用 `# Summary` 首行；Mermaid 
 
 - 展开节点：懒加载下一层，不预先加载整棵树。
 - 单击节点：在代码预览（Code Preview）显示产生关系的 `#include` 源码行。
+- 双击节点：在主编辑器中打开代码预览所显示的同一 `#include` 关系行。
 - 右键打开位置（Open Location）：打开被包含文件；未解析节点打开 include 所在源码行。
 - 右键 Add Bookmark：保存已解析文件。
 - 搜索已加载内容（Search Loaded）包含文件/被包含关系：只搜索已加载节点。
@@ -1635,19 +1647,19 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为
 
 | 功能/窗口 | 数据来源 | 自动更新 | 固定（Pin）/锁定（Lock） | 搜索 | 展开 | 导出 | 代码预览（Code Preview） |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 上下文（Context） | 当前分析引擎的定义（Definition）、声明（Declaration）、悬停信息（Hover） | 可见且 Follow Cursor 启用时 | 独立固定 | — | — | — | 自动更新 |
+| 上下文（Context） | 当前分析引擎的定义（Definition）、声明（Declaration）、悬停信息（Hover） | 可见且 Follow Cursor 启用时 | 独立固定 | — | — | — | 自动更新；位置节点单击预览、双击打开 |
 | 代码预览 | 文档源码、VS Code 语义令牌（Semantic Tokens） | 跟随上下文或显式选择 | 独立锁定 | 单击符号继续定义 | 双向滚动加载源码 | 复制代码/路径 | 本窗口 |
-| 引用（References） | 当前分析引擎的引用、Highlight、Signature 与证据化语法分类 | 仅窗口可见时查询详情 | 独立固定 | 文本、置信度、证据来源 | 分页；按类型、证据、置信度等分组 | 自描述 Text、版本化 JSON、列表 | 单击位置更新 |
-| 调用者（Callers） | clangd 传入调用层次（Incoming Call Hierarchy）；Microsoft 模式默认使用基于引用（References-based）的近似结果 | 仅窗口可见时查询 | 与被调用者（Callees）共用固定 | 已加载节点搜索、调用者路径（Caller Path） | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击节点更新 |
-| 被调用者 | 当前分析引擎的传出调用层次（Outgoing Call Hierarchy） | 仅窗口可见时查询 | 与调用者共用固定 | 已加载节点搜索、被调用者路径（Callee Path） | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击定义或调用点更新 |
-| 导航历史（Navigation History） | 所有显式/预览导航事件 | 导航时写入 | — | 来源过滤 | — | — | 单击记录恢复 |
-| 书签（Bookmarks） | 用户保存的位置与标识符 | 文档修改后尝试重定位 | — | 支持 | 分组 | JSON 导入/导出 | 单击书签更新 |
-| 符号搜索（Symbol Search） | 当前分析引擎的工作区符号（Workspace Symbols） | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击结果更新 |
-| 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | — | — | 提供程序（Provider）层级 | — | 单击符号更新 |
-| 工程诊断（Project Diagnostics） | 引擎/提供程序状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | — |
-| 父类型（Supertypes）/子类型（Subtypes） | clangd 类型层次（Type Hierarchy）与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击类型更新 |
-| 包含文件（Includes）/被包含关系（Included By） | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击 Include 更新 |
-| 关系图（Relationship Graph） | Call、Type、Include 与定义关系仓库 | 只在显式扩展时查询 | 面板生命周期 | 已加载图搜索 | 多关系、有界扩展 | Text、JSON、Mermaid | 单击节点更新 |
+| 引用（References） | 当前分析引擎的引用、Highlight、Signature 与证据化语法分类 | 仅窗口可见时查询详情 | 独立固定 | 文本、置信度、证据来源 | 分页；按类型、证据、置信度等分组 | 自描述 Text、版本化 JSON、列表 | 单击预览；双击打开 |
+| 调用者（Callers） | clangd 传入调用层次（Incoming Call Hierarchy）；Microsoft 模式默认使用基于引用（References-based）的近似结果 | 仅窗口可见时查询 | 与被调用者（Callees）共用固定 | 已加载节点搜索、调用者路径（Caller Path） | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击预览；双击打开 |
+| 被调用者 | 当前分析引擎的传出调用层次（Outgoing Call Hierarchy） | 仅窗口可见时查询 | 与调用者共用固定 | 已加载节点搜索、被调用者路径（Callee Path） | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击定义/调用点预览；双击打开 |
+| 导航历史（Navigation History） | 所有显式/预览导航事件 | 导航时写入 | — | 来源过滤 | — | — | 单击恢复预览；双击打开 |
+| 书签（Bookmarks） | 用户保存的位置与标识符 | 文档修改后尝试重定位 | — | 支持 | 分组 | JSON 导入/导出 | 单击预览；双击打开 |
+| 符号搜索（Symbol Search） | 当前分析引擎的工作区符号（Workspace Symbols） | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击预览；双击打开 |
+| 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | — | — | 提供程序（Provider）层级 | — | 单击预览；双击打开 |
+| 工程诊断（Project Diagnostics） | 引擎/提供程序状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | 源码诊断单击预览；双击打开 |
+| 父类型（Supertypes）/子类型（Subtypes） | clangd 类型层次（Type Hierarchy）与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击预览；双击打开 |
+| 包含文件（Includes）/被包含关系（Included By） | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击/双击关系行；右键打开目标 |
+| 关系图（Relationship Graph） | Call、Type、Include 与定义关系仓库 | 只在显式扩展时查询 | 面板生命周期 | 已加载图搜索 | 多关系、有界扩展 | Text、JSON、Mermaid | 单击预览；双击打开 |
 
 `—` 表示该能力不适用于对应窗口，而不是功能异常。
 
