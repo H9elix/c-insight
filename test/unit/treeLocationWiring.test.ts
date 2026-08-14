@@ -6,6 +6,10 @@ const treeNode = readFileSync("src/views/treeNode.ts", "utf8");
 const registry = readFileSync("src/views/viewRegistry.ts", "utf8");
 const history = readFileSync("src/history/navigationHistoryExplorer.ts", "utf8");
 const diagnostics = readFileSync("src/diagnostics/projectDiagnostics.ts", "utf8");
+const navigationCommands = readFileSync(
+  "src/commands/navigationCommands.ts",
+  "utf8",
+);
 const manifest = readFileSync("package.json", "utf8");
 
 describe("tree location interaction wiring", () => {
@@ -27,5 +31,20 @@ describe("tree location interaction wiring", () => {
   it("keeps explicit right-click editor navigation available", () => {
     assert.match(manifest, /viewItem == documentSymbolLocation/);
     assert.match(manifest, /viewItem == diagnosticLocation/);
+  });
+
+  it("defers cursor-follow refresh only for tree double-click navigation", () => {
+    assert.match(
+      navigationCommands,
+      /controller\.beginProgrammaticNavigation\(location\)/,
+    );
+    assert.match(
+      navigationCommands,
+      /controller\.completeProgrammaticNavigation\(navigation\)/,
+    );
+    assert.match(
+      navigationCommands,
+      /controller\.cancelProgrammaticNavigation\(navigation\)/,
+    );
   });
 });
