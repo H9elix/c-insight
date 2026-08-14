@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.21.2
+
+- Removed arbitrary hard wrapping from every Markdown document under `docs/` while preserving headings, lists, tables, fenced code, HTML markers, and intentional block boundaries.
+- Added a dependency-free prose normalizer and quality gate so generated or manually edited documentation cannot silently reintroduce inappropriate continuation-line breaks.
+- Updated the bilingual generated command-reference source to emit natural paragraphs without fixed-column wrapping.
+
 ## 0.21.1
 
 - Prevented a tree-result double-click from immediately replacing cursor-driven

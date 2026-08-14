@@ -2,250 +2,58 @@
 
 ## Second phase completion
 
-Versions 0.14.0 through 0.16.3 completed the planned References, Call
-Hierarchy, and Type Hierarchy semantic-evidence, restoration, search, and
-export work. Version 0.16.3 completed compatibility regression and user-guide
-auditing. The deferred items below remain deliberately outside this phase.
+Versions 0.14.0 through 0.16.3 completed the planned References, Call Hierarchy, and Type Hierarchy semantic-evidence, restoration, search, and export work. Version 0.16.3 completed compatibility regression and user-guide auditing. The deferred items below remain deliberately outside this phase.
 
 ## Third phase performance and reliability
 
-Version 0.17.0 established a versioned synthetic large-workspace baseline for
-reference classification, graph construction/snapshotting, hierarchy export,
-and preview scrolling. Subsequent third-phase work will use this baseline while
-adding request scheduling, large-result resource controls, interaction
-consistency, diagnostics, and real FFmpeg acceptance measurements.
-Version 0.17.1 introduced priority-aware semantic request scheduling, bounded
-background concurrency, cancellation before dispatch, and safe coalescing
-within a shared cancellation scope.
-Version 0.17.2 bounded References tree materialization and detail caches,
-introduced cancellable record-limited References bulk output, and applied a
-shared encoded-size guard to all file exports.
-Version 0.17.3 unified idle, loading, empty, cancelled, stale, limited, and
-error presentation across the demand-driven navigation trees and aligned both
-Call Hierarchy directions on the same expansion-failure behavior.
-Version 0.17.4 added centralized runtime observability for semantic scheduling,
-latency, caches, and resource-limit hits in Project Diagnostics and its
-shareable reports.
-Version 0.17.5 completed the third phase with a repeatable read-only clangd 20
-FFmpeg acceptance harness, full regression gates, packaged acceptance evidence,
-and a final documentation audit. Fourth-phase candidates remain deferred.
-Version 0.17.6 added maintainer metadata, packaged contributor/security/privacy
-policies, an About command, and diagnostic extension-host information. It does
-not reactivate deferred fourth-phase feature work.
-Version 0.18.0 reactivated only the optional Microsoft C/C++ engine
-investigation. It adds an isolated, repeatable provider probe and records the
-public-API boundary; it does not switch C Insight away from clangd. A production
-adapter remains conditional on the probe evidence and explicit follow-up work.
-Version 0.18.1 implemented the first opt-in production adapter for the proven
-public Provider surface. clangd remains the default; Type Hierarchy and
-clangd-specific lifecycle/index evidence intentionally degrade in Microsoft
-mode.
-Version 0.18.2 made that adapter fail closed for disabled or known-ambiguous
-Provider environments, added engine-specific diagnostics evidence, and
-prevented semantic session state from crossing engine boundaries.
-Version 0.18.3 adds engine-labelled, per-method semantic request timing and
-outcome evidence, separates Microsoft Provider activation latency, and exposes
-the results through Project Diagnostics and shareable reports.
-Version 0.18.4 serializes and demand-gates Microsoft Call Hierarchy work,
-invalidates Provider-owned hierarchy items after failures, and preserves the
-last successful Code Preview through transient Provider interruptions.
-Version 0.18.5 decouples Code Preview Definition completion from Context
-enrichment and defaults Microsoft Callers expansion to a References-based
-fallback, avoiding the confirmed cpptools Incoming Calls crash path.
-Version 0.18.6 bounds semantic-token rendering latency, falls back to lexical
-highlighting, avoids native automatic Call Hierarchy roots in Microsoft safe
-mode, and verifies exact FFmpeg Preview targets including in-preview clicks.
-Version 0.18.7 removes the empty-preview retention and synthetic automatic-root
-workarounds after strict regression proved them unnecessary. Native root
-preparation is restored for Callees compatibility, while safe Callers expansion
-and semantic-token timeout fallback remain in force.
-Version 0.18.8 fixes the remaining safe-Callers mapping gap: cpptools can return
-flat C function symbols with the `Interface` kind despite providing a function
-signature and full body range. A narrowly scoped compatibility rule now maps
-those references to their enclosing function, covered by the real FFmpeg host
-regression.
-Version 0.18.9 makes empty References-based Callers evidence explicitly
-non-conclusive and adds a one-time Microsoft-engine notice explaining that the
-Microsoft C/C++ language service (cpptools) supplies semantic queries rather
-than compilation, with performance and results that may differ from clangd.
-Version 0.18.10 records References-based expansion evidence per call node and
-distinguishes a query with no returned references from returned references that
-could not be mapped to enclosing caller functions.
-Version 0.18.11 aggregates that evidence into Project Diagnostics and exported
-reports, including queried nodes, total/mapped/unmapped references, and resolved
-caller functions. It also shortens the one-time Microsoft-engine notice.
-Version 0.18.12 instruments Microsoft native Outgoing Calls per loaded node,
-including success, failure, cancellation, empty results, returned callees, and
-latency. The evidence is exposed through Project Diagnostics and verified by a
-non-empty real FFmpeg `decode_read` Callees query before any fallback is added.
-Version 0.18.13 instruments Microsoft Definition, Declaration, References, and
-Code Preview semantic-token stages so Provider empty/failure/cancellation,
-References post-processing, Preview timeout/failure, and lexical fallback are
-separate evidence. Real FFmpeg coverage includes cross-file, header, macro, and
-no-symbol cases.
-Version 0.18.14 validates Microsoft Call Hierarchy interaction consistency in a
-real Extension Host: shared Pin state blocks cursor updates but permits explicit
-refresh, both directions expand to depth one, session depth is captured, and
-cache invalidation clears incoming/outgoing state. Existing pure-model gates
-continue to cover loaded search, all export formats, bounded path search, and
-session compatibility without automating modal pickers.
-Version 0.18.15 fixes transient Call Hierarchy banner identity so repeated
-Pin/Unpin rebuilding retains exactly one Microsoft Callers mode row and never
-converts or accumulates it as ordinary tree data.
-Version 0.18.16 applies measured Microsoft resource controls: explicit
-direction-only Call Hierarchy refresh no longer requests or clears References,
-and a real FFmpeg rapid-cursor regression bounds 20 moves to one debounced
-semantic cycle with an empty scheduler afterward. Existing multi-view, depth,
-timing, and cache evidence remain part of the same host regression.
-Version 0.18.17 completes the engine-presentation audit: Microsoft mode is
-consistently named Microsoft C/C++ language service (cpptools), its empty
-Context and compilation-database lifecycle actions no longer suggest restarting
-clangd, and shared References evidence explanations no longer attribute
-Provider results to clangd while stable evidence identifiers remain compatible.
-Version 0.18.18 closes the staged Microsoft-engine acceptance with isolated
-fixture and real FFmpeg Extension Host evidence for navigation, Preview, safe
-Callers, native Callees, interaction state, caches, and bounded request demand.
-The acceptance report records the supported public-API boundary, while the
-standard clangd host suite now selects and restores its engine independently of
-previous Microsoft test-profile state.
-Version 0.18.19 removes provider-conflict false positives for disabled
-Microsoft IntelliSense and disabled LLVM clangd language services. Its optional
-quick fix requires confirmation, writes only the narrowest current workspace
-scope, records prior values, and restores them only if the user has not changed
-the setting afterward.
-Version 0.18.20 corrects the scope assumption discovered in real WSL use:
-LLVM's `clangd.enable` does not support Workspace Folder writes. The quick fix
-now uses the supported Workspace target, names the exact single-folder
-`.vscode/settings.json` URI or shared multi-root scope before confirmation,
-reports write failures, and keeps failed restore records for retry.
-Version 0.18.21 removes the competing notifications seen when Microsoft startup
-itself rejects an active LLVM clangd Provider. That path now shows one targeted
-failure with a reversible **Disable LLVM clangd for This Workspace** action;
-unrelated Microsoft startup failures retain their own settings guidance.
-Version 0.18.22 fixes the reciprocal activation race in clangd mode: cpptools
-availability plus its effective IntelliSense setting is checked for active
-C/C++ documents without forcing activation. Editor, configuration, and
-extension-list changes re-run the check, with session-level prompt
-deduplication.
-Version 0.21.0 unifies all ordinary source-location TreeView results on one
-interaction path: the first activation previews immediately and a configurable
-second activation opens the same location in the editor. Document Symbols,
-Navigation History, source diagnostics, and every semantic hierarchy now share
-the same policy while action/status nodes and explicit Open Location commands
-retain their specialized behavior.
-Version 0.21.1 keeps that selected tree result stable after editor navigation:
-the opening editor and programmatic selection events no longer replace
-cursor-driven views, which resume only after a mouse or keyboard move to a
-different position. Active-document views continue to switch files immediately.
+Version 0.17.0 established a versioned synthetic large-workspace baseline for reference classification, graph construction/snapshotting, hierarchy export, and preview scrolling. Subsequent third-phase work will use this baseline while adding request scheduling, large-result resource controls, interaction consistency, diagnostics, and real FFmpeg acceptance measurements. Version 0.17.1 introduced priority-aware semantic request scheduling, bounded background concurrency, cancellation before dispatch, and safe coalescing within a shared cancellation scope. Version 0.17.2 bounded References tree materialization and detail caches, introduced cancellable record-limited References bulk output, and applied a shared encoded-size guard to all file exports. Version 0.17.3 unified idle, loading, empty, cancelled, stale, limited, and error presentation across the demand-driven navigation trees and aligned both Call Hierarchy directions on the same expansion-failure behavior. Version 0.17.4 added centralized runtime observability for semantic scheduling, latency, caches, and resource-limit hits in Project Diagnostics and its shareable reports. Version 0.17.5 completed the third phase with a repeatable read-only clangd 20 FFmpeg acceptance harness, full regression gates, packaged acceptance evidence, and a final documentation audit. Fourth-phase candidates remain deferred. Version 0.17.6 added maintainer metadata, packaged contributor/security/privacy policies, an About command, and diagnostic extension-host information. It does not reactivate deferred fourth-phase feature work. Version 0.18.0 reactivated only the optional Microsoft C/C++ engine investigation. It adds an isolated, repeatable provider probe and records the public-API boundary; it does not switch C Insight away from clangd. A production adapter remains conditional on the probe evidence and explicit follow-up work. Version 0.18.1 implemented the first opt-in production adapter for the proven public Provider surface. clangd remains the default; Type Hierarchy and clangd-specific lifecycle/index evidence intentionally degrade in Microsoft mode. Version 0.18.2 made that adapter fail closed for disabled or known-ambiguous Provider environments, added engine-specific diagnostics evidence, and prevented semantic session state from crossing engine boundaries. Version 0.18.3 adds engine-labelled, per-method semantic request timing and outcome evidence, separates Microsoft Provider activation latency, and exposes the results through Project Diagnostics and shareable reports. Version 0.18.4 serializes and demand-gates Microsoft Call Hierarchy work, invalidates Provider-owned hierarchy items after failures, and preserves the last successful Code Preview through transient Provider interruptions. Version 0.18.5 decouples Code Preview Definition completion from Context enrichment and defaults Microsoft Callers expansion to a References-based fallback, avoiding the confirmed cpptools Incoming Calls crash path. Version 0.18.6 bounds semantic-token rendering latency, falls back to lexical highlighting, avoids native automatic Call Hierarchy roots in Microsoft safe mode, and verifies exact FFmpeg Preview targets including in-preview clicks. Version 0.18.7 removes the empty-preview retention and synthetic automatic-root workarounds after strict regression proved them unnecessary. Native root preparation is restored for Callees compatibility, while safe Callers expansion and semantic-token timeout fallback remain in force. Version 0.18.8 fixes the remaining safe-Callers mapping gap: cpptools can return flat C function symbols with the `Interface` kind despite providing a function signature and full body range. A narrowly scoped compatibility rule now maps those references to their enclosing function, covered by the real FFmpeg host regression. Version 0.18.9 makes empty References-based Callers evidence explicitly non-conclusive and adds a one-time Microsoft-engine notice explaining that the Microsoft C/C++ language service (cpptools) supplies semantic queries rather than compilation, with performance and results that may differ from clangd. Version 0.18.10 records References-based expansion evidence per call node and distinguishes a query with no returned references from returned references that could not be mapped to enclosing caller functions. Version 0.18.11 aggregates that evidence into Project Diagnostics and exported reports, including queried nodes, total/mapped/unmapped references, and resolved caller functions. It also shortens the one-time Microsoft-engine notice. Version 0.18.12 instruments Microsoft native Outgoing Calls per loaded node, including success, failure, cancellation, empty results, returned callees, and latency. The evidence is exposed through Project Diagnostics and verified by a non-empty real FFmpeg `decode_read` Callees query before any fallback is added. Version 0.18.13 instruments Microsoft Definition, Declaration, References, and Code Preview semantic-token stages so Provider empty/failure/cancellation, References post-processing, Preview timeout/failure, and lexical fallback are separate evidence. Real FFmpeg coverage includes cross-file, header, macro, and no-symbol cases. Version 0.18.14 validates Microsoft Call Hierarchy interaction consistency in a real Extension Host: shared Pin state blocks cursor updates but permits explicit refresh, both directions expand to depth one, session depth is captured, and cache invalidation clears incoming/outgoing state. Existing pure-model gates continue to cover loaded search, all export formats, bounded path search, and session compatibility without automating modal pickers. Version 0.18.15 fixes transient Call Hierarchy banner identity so repeated Pin/Unpin rebuilding retains exactly one Microsoft Callers mode row and never converts or accumulates it as ordinary tree data. Version 0.18.16 applies measured Microsoft resource controls: explicit direction-only Call Hierarchy refresh no longer requests or clears References, and a real FFmpeg rapid-cursor regression bounds 20 moves to one debounced semantic cycle with an empty scheduler afterward. Existing multi-view, depth, timing, and cache evidence remain part of the same host regression. Version 0.18.17 completes the engine-presentation audit: Microsoft mode is consistently named Microsoft C/C++ language service (cpptools), its empty Context and compilation-database lifecycle actions no longer suggest restarting clangd, and shared References evidence explanations no longer attribute Provider results to clangd while stable evidence identifiers remain compatible. Version 0.18.18 closes the staged Microsoft-engine acceptance with isolated fixture and real FFmpeg Extension Host evidence for navigation, Preview, safe Callers, native Callees, interaction state, caches, and bounded request demand. The acceptance report records the supported public-API boundary, while the standard clangd host suite now selects and restores its engine independently of previous Microsoft test-profile state. Version 0.18.19 removes provider-conflict false positives for disabled Microsoft IntelliSense and disabled LLVM clangd language services. Its optional quick fix requires confirmation, writes only the narrowest current workspace scope, records prior values, and restores them only if the user has not changed the setting afterward. Version 0.18.20 corrects the scope assumption discovered in real WSL use: LLVM's `clangd.enable` does not support Workspace Folder writes. The quick fix now uses the supported Workspace target, names the exact single-folder `.vscode/settings.json` URI or shared multi-root scope before confirmation, reports write failures, and keeps failed restore records for retry. Version 0.18.21 removes the competing notifications seen when Microsoft startup itself rejects an active LLVM clangd Provider. That path now shows one targeted failure with a reversible **Disable LLVM clangd for This Workspace** action; unrelated Microsoft startup failures retain their own settings guidance. Version 0.18.22 fixes the reciprocal activation race in clangd mode: cpptools availability plus its effective IntelliSense setting is checked for active C/C++ documents without forcing activation. Editor, configuration, and extension-list changes re-run the check, with session-level prompt deduplication. Version 0.21.0 unifies all ordinary source-location TreeView results on one interaction path: the first activation previews immediately and a configurable second activation opens the same location in the editor. Document Symbols, Navigation History, source diagnostics, and every semantic hierarchy now share the same policy while action/status nodes and explicit Open Location commands retain their specialized behavior. Version 0.21.1 keeps that selected tree result stable after editor navigation: the opening editor and programmatic selection events no longer replace cursor-driven views, which resume only after a mouse or keyboard move to a different position. Active-document views continue to switch files immediately.
 
 ## Deferred fourth phase
 
-Do not implement the fourth-phase feature work until the user explicitly
-reactivates it. Keep the following items as memo-only candidates while the
-third phase focuses on large-workspace validation, performance, resource
-control, interaction consistency, and diagnostics:
+Do not implement the fourth-phase feature work until the user explicitly reactivates it. Keep the following items as memo-only candidates while the third phase focuses on large-workspace validation, performance, resource control, interaction consistency, and diagnostics:
 
-- A complete semantic context menu in Code Preview for Definition,
-  Declaration, References, Callers/Callees, Type Hierarchy, bookmarks, and
-  editor navigation.
-- Include analysis improvements covering compiler builtin paths and bounded,
-  conservative conditional-preprocessor evaluation.
-- Type/Include workspace-session restoration, subject to the safety rules in
-  the dedicated restoration memo below.
-- Cross-procedural pointer/data-flow analysis, complete template instantiation
-  chains, and compiler macro-expansion stacks.
-- Microsoft C/C++ feature parity beyond the 0.18.1 public-Provider adapter,
-  only where a stable public API exists; do not depend on private commands to
-  imitate clangd-only Type Hierarchy, indexing, or protocol evidence.
+- A complete semantic context menu in Code Preview for Definition, Declaration, References, Callers/Callees, Type Hierarchy, bookmarks, and editor navigation.
+- Include analysis improvements covering compiler builtin paths and bounded, conservative conditional-preprocessor evaluation.
+- Type/Include workspace-session restoration, subject to the safety rules in the dedicated restoration memo below.
+- Cross-procedural pointer/data-flow analysis, complete template instantiation chains, and compiler macro-expansion stacks.
+- Microsoft C/C++ feature parity beyond the 0.18.1 public-Provider adapter, only where a stable public API exists; do not depend on private commands to imitate clangd-only Type Hierarchy, indexing, or protocol evidence.
 
-Replanning or third-phase completion does not implicitly authorize these
-features. They remain deferred until explicitly requested.
+Replanning or third-phase completion does not implicitly authorize these features. They remain deferred until explicitly requested.
 
 ## Deferred Code Preview ideas
 
-The following features were intentionally excluded from 0.5.0 and may be
-reconsidered after real-world use:
+The following features were intentionally excluded from 0.5.0 and may be reconsidered after real-world use:
 
-- A complete Code Preview context menu for additional semantic queries beyond
-  the current Definition preview interaction.
-- Persisting and restoring horizontal and vertical scroll positions for every
-  preview history target.
+- A complete Code Preview context menu for additional semantic queries beyond the current Definition preview interaction.
+- Persisting and restoring horizontal and vertical scroll positions for every preview history target.
 ## References classification follow-ups
 
-Version 0.6.1 added confidence-labelled Read, Write, Read/Write, address, and
-macro-related classifications. Version 0.14.0 added a unified evidence model
-so every result records its conclusion, evidence source, stable rule,
-explanation, and confidence. Version 0.14.1 distinguished pointee writes and
-used clangd signatures to conservatively identify mutable reference/pointer
-argument effects. The remaining second-phase work will refine overloaded
-operators, templates, macro expansion provenance, and other cases not exposed
-by standard clangd Document Highlights. Version 0.14.2 then recognized
-punctuation-based overloaded operator references as inferred calls. Version
-0.14.3 added macro-definition and template-declaration provenance. Full
-compiler macro expansion stacks and template instantiation chains remain
-outside the standard clangd reference protocol. Version 0.14.4 completed this
-classification phase with confidence/evidence filters, matching grouping
-modes, and self-describing versioned exports.
+Version 0.6.1 added confidence-labelled Read, Write, Read/Write, address, and macro-related classifications. Version 0.14.0 added a unified evidence model so every result records its conclusion, evidence source, stable rule, explanation, and confidence. Version 0.14.1 distinguished pointee writes and used clangd signatures to conservatively identify mutable reference/pointer argument effects. The remaining second-phase work will refine overloaded operators, templates, macro expansion provenance, and other cases not exposed by standard clangd Document Highlights. Version 0.14.2 then recognized punctuation-based overloaded operator references as inferred calls. Version 0.14.3 added macro-definition and template-declaration provenance. Full compiler macro expansion stacks and template instantiation chains remain outside the standard clangd reference protocol. Version 0.14.4 completed this classification phase with confidence/evidence filters, matching grouping modes, and self-describing versioned exports.
 
 ## Call hierarchy follow-ups
 
-Version 0.7.1 provides bounded call-path search, Mermaid graph export, and
-explicit indirect-call syntax hints. Version 0.10.0 restores the call root and
-maximum loaded depth by re-querying clangd. Version 0.15.0 added bounded,
-direction-specific stable path identities and restores only nodes that were
-actually expanded. Version 0.15.1 added bounded source evidence nodes for
-explicit unresolved function-pointer and member-function-pointer calls without
-guessing runtime targets. Pointer target-set/data-flow analysis remains
-deferred.
+Version 0.7.1 provides bounded call-path search, Mermaid graph export, and explicit indirect-call syntax hints. Version 0.10.0 restores the call root and maximum loaded depth by re-querying clangd. Version 0.15.0 added bounded, direction-specific stable path identities and restores only nodes that were actually expanded. Version 0.15.1 added bounded source evidence nodes for explicit unresolved function-pointer and member-function-pointer calls without guessing runtime targets. Pointer target-set/data-flow analysis remains deferred.
 
 ## Engineering diagnostics
 
-Compilation database discovery, clangd project diagnostics, background index
-progress, reliability reporting, and stale-result markers were implemented in
-the 0.8.x series. Version 0.13.0 added compile-command decomposition,
-conservative header command candidates, fallback-flag visibility, and
-shareable versioned text/JSON reports.
+Compilation database discovery, clangd project diagnostics, background index progress, reliability reporting, and stale-result markers were implemented in the 0.8.x series. Version 0.13.0 added compile-command decomposition, conservative header command candidates, fallback-flag visibility, and shareable versioned text/JSON reports.
 
 ## Session stabilization
 
-Version 0.13.3 completed the deferred 0.10.1 stabilization work with serialized
-saves, startup cursor-follow ordering, cancellable sectioned progress, remote
-URI availability checks, partial-failure isolation, and a total serialized
-snapshot byte budget. Exact Call/Type/Include per-node expansion restoration
-remains governed by their separate roadmap notes.
+Version 0.13.3 completed the deferred 0.10.1 stabilization work with serialized saves, startup cursor-follow ordering, cancellable sectioned progress, remote URI availability checks, partial-failure isolation, and a total serialized snapshot byte budget. Exact Call/Type/Include per-node expansion restoration remains governed by their separate roadmap notes.
 
 ## Type hierarchy
 
-Version 0.11.0 added clangd-backed Supertypes and Subtypes trees, bounded lazy
-expansion, search, and export. Version 0.16.0 added explicit relationship,
-protocol evidence, confidence, type-kind, declaration, and duplicate/cycle
-explanations to the tree and exports. Exact cross-session expansion restoration
-remains deferred until real-world usage justifies adding Type Hierarchy to the
-unified workspace snapshot. Version 0.16.1 added local kind/relationship
-filters plus depth- and path-aware search over loaded nodes. Version 0.16.2
-added loaded-subgraph statistics and explicit depth/node truncation metadata
-to every Type Hierarchy export format.
+Version 0.11.0 added clangd-backed Supertypes and Subtypes trees, bounded lazy expansion, search, and export. Version 0.16.0 added explicit relationship, protocol evidence, confidence, type-kind, declaration, and duplicate/cycle explanations to the tree and exports. Exact cross-session expansion restoration remains deferred until real-world usage justifies adding Type Hierarchy to the unified workspace snapshot. Version 0.16.1 added local kind/relationship filters plus depth- and path-aware search over loaded nodes. Version 0.16.2 added loaded-subgraph statistics and explicit depth/node truncation metadata to every Type Hierarchy export format.
 
 ## Include hierarchy
 
-Version 0.11.2 added compile-command-aware Includes and an on-demand reverse
-Included By index, with lazy expansion, bounded search/export, classification,
-and cycle/duplicate handling. Exact compiler builtin include-path discovery,
-conditional-preprocessor evaluation, and cross-session tree restoration remain
-deferred.
+Version 0.11.2 added compile-command-aware Includes and an on-demand reverse Included By index, with lazy expansion, bounded search/export, classification, and cycle/duplicate handling. Exact compiler builtin include-path discovery, conditional-preprocessor evaluation, and cross-session tree restoration remain deferred.
 
 ## Deferred Type/Include workspace restoration
 
-Do not implement Type Hierarchy or Include Hierarchy workspace-session
-restoration in the current 0.11.x plan. Their roots, loaded depths, and
-per-node expansion state remain runtime-only.
+Do not implement Type Hierarchy or Include Hierarchy workspace-session restoration in the current 0.11.x plan. Their roots, loaded depths, and per-node expansion state remain runtime-only.
 
-If revisited, restoration should save stable root file/position identities and
-loaded maximum depths, then re-query relationships after startup rather than
-serializing clangd's opaque temporary data. Included By restoration must be
-delayed, visible, and cancellable so reopening a large workspace never starts
-an unexpected reverse-index scan.
+If revisited, restoration should save stable root file/position identities and loaded maximum depths, then re-query relationships after startup rather than serializing clangd's opaque temporary data. Included By restoration must be delayed, visible, and cancellable so reopening a large workspace never starts an unexpected reverse-index scan.
 
-Reconsider this work only if real usage shows that repeatedly rebuilding these
-trees is disruptive. Relationship Graph session restoration is already
-implemented independently and does not restore these tree views.
+Reconsider this work only if real usage shows that repeatedly rebuilding these trees is disruptive. Relationship Graph session restoration is already implemented independently and does not restore these tree views.
