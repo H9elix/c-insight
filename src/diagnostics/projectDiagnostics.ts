@@ -961,11 +961,9 @@ function diagnosticDetail(
       uri: document.uri,
       range: diagnostic.range,
     },
-  };
-  node.command = {
-    command: "cInsight.openLocation",
-    title: "Open Diagnostic",
-    arguments: [node],
+    previewMode: "reference",
+    previewTitle: diagnostic.message,
+    contextValue: "diagnosticLocation",
   };
   return node;
 }

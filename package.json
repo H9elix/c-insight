@@ -1034,7 +1034,7 @@
       "view/item/context": [
         {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation || viewItem == unresolvedIncludeLocation",
+          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == documentSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation || viewItem == unresolvedIncludeLocation || viewItem == diagnosticLocation",
           "group": "navigation@1"
         },
         {

@@ -1,10 +1,13 @@
 import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
+import { readConfiguration } from "../configuration/configuration";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import { NavigationSource } from "../history/navigationHistoryModel";
 import { COMMANDS, INTERNAL_COMMANDS } from "../ids";
 import { LocationResult } from "../models/types";
+import { TreeLocationClickClassifier } from "../utils/treeLocationInteraction";
 import { CodePreviewProvider, PreviewMode } from "../views/codePreviewProvider";
+import type { TreeNode } from "../views/treeNode";
 import { RegisterCommand } from "./commandRegistrar";
 
 export type ActivePosition = () => { uri: vscode.Uri; position: vscode.Position } | undefined;
@@ -16,6 +19,7 @@ export function registerNavigationCommands(
   preview: CodePreviewProvider,
   activePosition: ActivePosition,
 ): void {
+  const treeClicks = new TreeLocationClickClassifier();
   register(COMMANDS.OPEN_LOCATION, async (value: unknown) => {
     const candidate = value as LocationResult & {
       location?: LocationResult; previewMode?: PreviewMode; previewTitle?: string;
@@ -33,6 +37,39 @@ export function registerNavigationCommands(
     const editor = await vscode.window.showTextDocument(document, { preview: true, preserveFocus: false });
     editor.selection = new vscode.Selection(location.range.start, location.range.start);
     editor.revealRange(location.range, vscode.TextEditorRevealType.InCenter);
+  });
+  register(INTERNAL_COMMANDS.ACTIVATE_TREE_LOCATION, async (
+    value: unknown,
+    scope: unknown,
+  ) => {
+    const node = value as TreeNode | undefined;
+    if (!node?.location) return;
+    const key = treeLocationKey(
+      typeof scope === "string" ? scope : "unknown",
+      node,
+    );
+    const activation = treeClicks.classify(
+      key,
+      readConfiguration().navigationDoubleClickInterval,
+    );
+    let location = node.location;
+    let mode = (node.previewMode ?? "reference") as PreviewMode;
+    let title = node.previewTitle ?? node.label;
+    let source = node.navigationSource ?? "selection";
+    if (node.historyEntryId !== undefined) {
+      const selected = history.select(node.historyEntryId);
+      if (!selected) return;
+      location = history.entryLocation(selected);
+      mode = selected.mode;
+      title = selected.title;
+      source = "history";
+    }
+    if (activation === "preview") {
+      await preview.showLocation(location, mode, title, source);
+      return;
+    }
+    preview.preserveForEditorOpen();
+    await openEditorLocation(location);
   });
   register(INTERNAL_COMMANDS.PREVIEW_LOCATION, async (
     value: unknown, mode: unknown, title: unknown, source: unknown,
@@ -54,4 +91,28 @@ export function registerNavigationCommands(
       location: locations[0], contextValue: "historyLocation",
     });
   });
+}
+
+function treeLocationKey(scope: string, node: TreeNode): string {
+  const location = node.location!;
+  const stableNode = node.id ?? [
+    node.contextValue ?? "location",
+    location.uri.toString(),
+    location.range.start.line,
+    location.range.start.character,
+    location.range.end.line,
+    location.range.end.character,
+    node.label,
+  ].join(":");
+  return `${scope}\0${stableNode}`;
+}
+
+async function openEditorLocation(location: LocationResult): Promise<void> {
+  const document = await vscode.workspace.openTextDocument(location.uri);
+  const editor = await vscode.window.showTextDocument(document, {
+    preview: true,
+    preserveFocus: false,
+  });
+  editor.selection = new vscode.Selection(location.range.start, location.range.start);
+  editor.revealRange(location.range, vscode.TextEditorRevealType.InCenter);
 }

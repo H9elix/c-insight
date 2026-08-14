@@ -170,6 +170,10 @@ export class CodePreviewProvider
     void this.render();
   }
 
+  preserveForEditorOpen(): void {
+    this.clearGuard.arm();
+  }
+
   handleDocumentChange(document: vscode.TextDocument): void {
     const prefix = `${document.uri.toString()}\0`;
     for (const key of this.semanticTokens.keys()) {

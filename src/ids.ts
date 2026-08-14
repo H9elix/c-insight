@@ -110,7 +110,7 @@ export const COMMANDS = {
 
 export const INTERNAL_COMMANDS = {
   PREVIEW_LOCATION: "cInsight.previewLocation",
-  HISTORY_PREVIEW: "cInsight.history.preview",
+  ACTIVATE_TREE_LOCATION: "cInsight.activateTreeLocation",
   REFERENCES_FOCUS: "cInsight.references.focus",
   CALLERS_FOCUS: "cInsight.callers.focus",
   CALLEES_FOCUS: "cInsight.callees.focus",
