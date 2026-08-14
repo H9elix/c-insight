@@ -81,6 +81,7 @@ async function runClangdAcceptance(): Promise<void> {
     "cInsight.showIncomingCalls",
     "cInsight.showOutgoingCalls",
     "cInsight.previewLocation",
+    "cInsight.activateTreeLocation",
     "cInsight.references.search",
     "cInsight.references.groupBy",
     "cInsight.references.scope",
@@ -104,7 +105,6 @@ async function runClangdAcceptance(): Promise<void> {
     "cInsight.restoreProviderSettings",
     "cInsight.diagnostics.refresh",
     "cInsight.openProjectDiagnostics",
-    "cInsight.history.preview",
     "cInsight.history.filter",
     "cInsight.history.clear",
     "cInsight.bookmarks.addCurrent",
@@ -242,6 +242,33 @@ async function runClangdAcceptance(): Promise<void> {
     definitionLocation,
     "definition",
     "Calculator::add",
+  );
+  const treeLocationNode = {
+    id: "e2e-definition",
+    label: "Calculator::add",
+    location: definitionLocation,
+    previewMode: "definition",
+    previewTitle: "Calculator::add",
+    contextValue: "documentSymbolLocation",
+  };
+  const firstTreeActivation = vscode.commands.executeCommand(
+    "cInsight.activateTreeLocation",
+    treeLocationNode,
+    "cInsight.symbols",
+  );
+  const secondTreeActivation = vscode.commands.executeCommand(
+    "cInsight.activateTreeLocation",
+    treeLocationNode,
+    "cInsight.symbols",
+  );
+  await Promise.all([firstTreeActivation, secondTreeActivation]);
+  assert.equal(
+    vscode.window.activeTextEditor?.document.uri.toString(),
+    definitionLocation.uri.toString(),
+  );
+  assert.equal(
+    vscode.window.activeTextEditor?.selection.active.line,
+    definitionLocation.range.start.line,
   );
   await vscode.commands.executeCommand("cInsight.findReferences");
   await vscode.commands.executeCommand("cInsight.references.showAll");

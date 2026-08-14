@@ -208,12 +208,11 @@ export class NavigationHistoryExplorer implements vscode.Disposable {
         `${historyOriginLabel(entry.origin)} · ${new Date(entry.timestamp).toLocaleString()}`,
       icon: new vscode.ThemeIcon(historyOriginIcon(entry.origin)),
       location,
+      previewMode: entry.mode,
+      previewTitle: entry.title,
+      navigationSource: "history",
+      historyEntryId: entry.id,
       contextValue: "historyLocation",
-      command: {
-        command: "cInsight.history.preview",
-        title: vscode.l10n.t("Preview Navigation History"),
-        arguments: [entry],
-      },
     };
   }
 }

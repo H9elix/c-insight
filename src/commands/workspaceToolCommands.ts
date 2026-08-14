@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
-import { NavigationHistoryEntry } from "../history/navigationHistoryModel";
-import { COMMANDS, INTERNAL_COMMANDS } from "../ids";
+import { COMMANDS } from "../ids";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
-import { ViewRegistry } from "../views/viewRegistry";
 import { RegisterCommand } from "./commandRegistrar";
 
 interface WorkspaceToolDependencies {
@@ -13,7 +11,6 @@ interface WorkspaceToolDependencies {
   bookmarks: BookmarkExplorer;
   symbolSearch: SymbolSearchExplorer;
   workspaceSession: WorkspaceSessionManager;
-  views: ViewRegistry;
   restoreWorkspaceSession: () => Promise<boolean>;
 }
 
@@ -21,15 +18,7 @@ export function registerWorkspaceToolCommands(
   register: RegisterCommand,
   dependencies: WorkspaceToolDependencies,
 ): void {
-  const { history, bookmarks, symbolSearch, workspaceSession, views, restoreWorkspaceSession } = dependencies;
-  register(INTERNAL_COMMANDS.HISTORY_PREVIEW, async (value: unknown) => {
-    const selected = history.select((value as NavigationHistoryEntry).id);
-    if (selected) {
-      await views.preview.showLocation(
-        history.entryLocation(selected), selected.mode, selected.title, "history",
-      );
-    }
-  });
+  const { history, bookmarks, symbolSearch, workspaceSession, restoreWorkspaceSession } = dependencies;
   register(COMMANDS.HISTORY_FILTER, () => history.chooseFilter());
   register(COMMANDS.HISTORY_CLEAR, () => history.clear());
   register(COMMANDS.BOOKMARKS_ADD_CURRENT, () => bookmarks.addCurrent());

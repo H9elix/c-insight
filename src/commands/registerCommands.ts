@@ -45,7 +45,7 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
   registerDiagnosticCommands(register, d.manager, d.projectDiagnostics);
   registerWorkspaceToolCommands(register, {
     history: d.navigationHistory, bookmarks: d.bookmarks, symbolSearch: d.symbolSearch,
-    workspaceSession: d.workspaceSession, views: d.views,
+    workspaceSession: d.workspaceSession,
     restoreWorkspaceSession: d.restoreWorkspaceSession,
   });
   registerHierarchyCommands(register, d.typeHierarchy, d.includeHierarchy, activePosition);

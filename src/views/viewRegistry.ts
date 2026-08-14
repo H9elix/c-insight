@@ -51,7 +51,7 @@ import { ReferenceExplorer } from "./referenceExplorer";
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
-import { COMMANDS, CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
+import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
@@ -148,6 +148,7 @@ export class ViewRegistry implements vscode.Disposable {
       [VIEWS.STATUS, this.status],
     ];
     for (const [id, provider] of providers) {
+      provider.setInteractionScope(id);
       const tracksNavigation = new Set<ViewId>([
         VIEWS.CONTEXT, VIEWS.REFERENCES, VIEWS.CALLERS, VIEWS.CALLEES, VIEWS.SYMBOLS,
       ]).has(id);
@@ -1459,8 +1460,9 @@ export class ViewRegistry implements vscode.Disposable {
         description: info.containerName,
         icon: new vscode.ThemeIcon(symbolKindIconId(info.kind)),
         location,
+        previewMode: "definition",
+        previewTitle: info.name,
         contextValue: "documentSymbolLocation",
-        command: this.openDocumentSymbolCommand(location, info.name),
       };
     }
     const document = symbol as DocumentSymbol;
@@ -1473,20 +1475,10 @@ export class ViewRegistry implements vscode.Disposable {
       description: document.detail,
       icon: new vscode.ThemeIcon(symbolKindIconId(document.kind)),
       location,
+      previewMode: "definition",
+      previewTitle: document.name,
       contextValue: "documentSymbolLocation",
-      command: this.openDocumentSymbolCommand(location, document.name),
       children: document.children?.map((child) => this.symbolNode(uri, child)),
-    };
-  }
-
-  private openDocumentSymbolCommand(
-    location: LocationResult,
-    label: string,
-  ): vscode.Command {
-    return {
-      command: COMMANDS.OPEN_LOCATION,
-      title: vscode.l10n.t("Open Location"),
-      arguments: [{ location, label, contextValue: "documentSymbolLocation" }],
     };
   }
 

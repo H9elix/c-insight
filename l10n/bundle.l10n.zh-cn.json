@@ -99,7 +99,6 @@
   "No navigation history": "暂无导航历史",
   "No history matches the current filter": "未找到符合当前筛选条件的历史记录",
   " · current": " · 当前",
-  "Preview Navigation History": "预览导航历史",
   "Definition": "定义",
   "Declaration": "声明",
   "Reference": "引用",
@@ -324,6 +323,5 @@
   "Display limit reached ({displayed} / {total})": "已达到显示上限（{displayed} / {total}）",
   "narrow filters or raise maximumDisplayedResults": "请缩小筛选范围或提高 maximumDisplayedResults",
   "Qualified name": "限定名",
-  "Type / signature": "类型 / 签名",
-  "Open Location": "打开位置"
+  "Type / signature": "类型 / 签名"
 }

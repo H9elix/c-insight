@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { CallNode, LocationResult } from "../models/types";
 import type { NavigationMode } from "../history/navigationHistoryModel";
+import type { NavigationSource } from "../history/navigationHistoryModel";
 import type { TypeHierarchyEvidence } from "../utils/typeHierarchy";
 import {
   ViewStatusKind,
@@ -18,6 +19,8 @@ export interface TreeNode {
   location?: LocationResult;
   previewMode?: NavigationMode;
   previewTitle?: string;
+  navigationSource?: NavigationSource;
+  historyEntryId?: number;
   contextValue?: string;
   loadChildren?: () => Promise<TreeNode[]>;
   resolveVisible?: () => Promise<void>;
@@ -58,11 +61,16 @@ export class MutableTreeProvider
   implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable
 {
   private roots: TreeNode[] = [];
+  private interactionScope = "unregistered";
   private readonly emitter = new vscode.EventEmitter<
     TreeNode | undefined | null | void
   >();
 
   readonly onDidChangeTreeData = this.emitter.event;
+
+  setInteractionScope(scope: string): void {
+    this.interactionScope = scope;
+  }
 
   setRoots(roots: TreeNode[]): void {
     this.roots = roots;
@@ -98,13 +106,9 @@ export class MutableTreeProvider
       item.command = node.command;
     } else if (node.location) {
       item.command = {
-        command: "cInsight.previewLocation",
-        title: "Preview",
-        arguments: [
-          node.location,
-          node.previewMode ?? "reference",
-          node.previewTitle ?? node.label,
-        ],
+        command: "cInsight.activateTreeLocation",
+        title: "Preview or Open",
+        arguments: [node, this.interactionScope],
       };
       item.contextValue = node.contextValue ?? "location";
     }
