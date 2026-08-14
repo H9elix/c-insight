@@ -122,7 +122,7 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `contextController.ts` | 编辑器/光标防抖、generation、取消源、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `contextController.ts` | 编辑器/光标防抖、generation、取消源、树双击后的随光标抑制、轻量与延迟详情查询、可靠性计算及结果分发。 |
 | `navigationDemand.ts` | 根据各导航窗口可见性和引擎能力，纯函数计算定义（Definition）、悬停信息（Hover）、引用（References）、调用者（Callers）、被调用者（Callees）等需求。 |
 
 修改自动刷新行为时必须补充 `navigationDemand.test.ts`，证明隐藏窗口不会意外请求。
@@ -260,6 +260,7 @@ Owner→Defined Entity。屏幕上的父子方向不得反向污染导出语义�
 | `exportWriter.ts` | VS Code 文件选择和受预算保护的导出写入。 |
 | `mermaid.ts` | Mermaid 标签转义和调用边渲染。 |
 | `viewPin.ts` | 固定（Pin）状态下自动/手动更新的统一纯策略。 |
+| `cursorFollowSuppression.ts` | 记录树双击的编辑器目标，过滤程序化编辑器/选区事件，并在鼠标或键盘移动到其他位置时恢复随光标刷新。 |
 
 ## 5. 本地化
 

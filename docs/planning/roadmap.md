@@ -133,6 +133,10 @@ second activation opens the same location in the editor. Document Symbols,
 Navigation History, source diagnostics, and every semantic hierarchy now share
 the same policy while action/status nodes and explicit Open Location commands
 retain their specialized behavior.
+Version 0.21.1 keeps that selected tree result stable after editor navigation:
+the opening editor and programmatic selection events no longer replace
+cursor-driven views, which resume only after a mouse or keyboard move to a
+different position. Active-document views continue to switch files immediately.
 
 ## Deferred fourth phase
 

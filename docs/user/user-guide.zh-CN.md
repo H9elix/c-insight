@@ -305,12 +305,17 @@ maximum-nodes、cancelled 和 possible-indirect-call 等状态。Mermaid 箭头�
   导航历史（Navigation History）、书签（Bookmarks）、符号结果和工程诊断（Project Diagnostics）中单击源码位置节点：
   更新代码预览，不主动移动主编辑器。
 - 双击同一源码位置节点：在主编辑器中打开代码预览所显示的同一位置并居中。文档符号
-  （Document Symbols）也遵循此规则；具有子项的节点仍通过左侧展开箭头展开。
+  （Document Symbols）也遵循此规则；具有子项的节点仍通过左侧展开箭头展开。双击本身
+  不会让上下文、代码预览、引用、调用者或被调用者跟随新编辑器光标刷新；使用鼠标或
+  键盘将编辑器光标移动到其他位置后，才恢复现有的随光标刷新。文档符号和工程诊断仍
+  会立即跟随活动文件。
 - 在位置节点的右键菜单中选择打开位置（Open Location）：在主编辑器中打开。
 
 VS Code 的公共 TreeView API 不提供原生双击事件，因此 C Insight 将同一节点在
 `cInsight.navigation.doubleClickInterval` 时间内的第二次激活识别为双击；快速连续按两次
 Enter 也会产生相同行为。第一次激活始终立即更新代码预览，不会等待双击超时。
+只有统一树位置双击使用上述延迟跟随规则；打开位置、转到定义、代码预览内打开和关系图
+导航仍保持原有的立即跟随行为。
 
 ### 代码预览（Code Preview）工具栏
 

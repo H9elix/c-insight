@@ -141,7 +141,9 @@ and safety-limit markers.
    the cursor automatically.
 3. Expand References, Callers, or Callees. Single-clicking any source-location
    tree result updates Code Preview without moving the editor; double-clicking
-   opens that exact location. Use **Open Location** for immediate navigation.
+   opens that exact location. Cursor-driven views retain the selected result
+   until you move the editor cursor with the mouse or keyboard. Use **Open
+   Location** for immediate navigation.
 4. Single-click a symbol inside Code Preview to preview its definition. A
    pointer cursor identifies semantic symbols that can continue navigation. A
    double-click opens the exact source position in the main editor.
