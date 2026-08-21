@@ -16,10 +16,19 @@ export class HierarchyTreeState {
   }
 
   record(key: string, recursive: boolean): { duplicate: boolean } {
+    const duplicate = this.observe(key, recursive);
+    this.consume();
+    return { duplicate };
+  }
+
+  observe(key: string, recursive: boolean): boolean {
     const duplicate = !recursive && this.seen.has(key);
     this.seen.add(key);
-    this.count += 1;
-    return { duplicate };
+    return duplicate;
+  }
+
+  consume(count = 1): void {
+    this.count += Math.max(0, count);
   }
 
   atLimit(maximumNodes: number): boolean {
