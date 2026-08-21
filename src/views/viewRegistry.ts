@@ -1459,21 +1459,19 @@ export class ViewRegistry implements vscode.Disposable {
     const atDepthLimit = depth >= maximumDepth;
     const recursive = state.recursion !== undefined;
     const expandable = occurrence.canonical && !recursive && !atDepthLimit;
-    const status = occurrence.canonical
-      ? recursive
-        ? state.recursion === "direct"
-          ? "direct recursion"
-          : "indirect recursion"
-        : state.duplicate
-          ? "duplicate"
-          : undefined
-      : undefined;
+    const status = recursive
+      ? state.recursion === "direct"
+        ? "direct recursion"
+        : "indirect recursion"
+      : occurrence.canonical && state.duplicate
+        ? "duplicate"
+        : undefined;
     const description = occurrence.fallback
       ? [
           vscode.l10n.t("call location unavailable"),
           `${vscode.workspace.asRelativePath(uri)}:${location.range.start.line + 1}`,
           status,
-          atDepthLimit && occurrence.canonical ? "max depth" : undefined,
+          atDepthLimit ? "max depth" : undefined,
         ]
       : [
           `${vscode.workspace.asRelativePath(uri)}:${location.range.start.line + 1}`,
@@ -1482,7 +1480,7 @@ export class ViewRegistry implements vscode.Disposable {
             total: occurrence.total,
           }),
           status,
-          atDepthLimit && occurrence.canonical ? "max depth" : undefined,
+          atDepthLimit ? "max depth" : undefined,
         ];
     const node: TreeNode = {
       id: `${direction}:occurrence:${ancestors.join(">")}:${occurrence.id}`,
@@ -1501,7 +1499,7 @@ export class ViewRegistry implements vscode.Disposable {
       previewTitle: occurrence.value.raw.name,
       callKey: occurrence.semanticKey,
       callDepth: depth,
-      callNode: occurrence.value,
+      callNode: occurrence.canonical ? occurrence.value : undefined,
       callPath: expandable
         ? [...ancestors, occurrence.semanticKey].join("\u0000")
         : undefined,
