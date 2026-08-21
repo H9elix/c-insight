@@ -27,8 +27,15 @@ export function cursorQueryDemand(
     definitions:
       visibility.context ||
       visibility.preview ||
-      visibility.references,
-    declarations: visibility.context || visibility.references,
+      visibility.references ||
+      visibility.callers ||
+      visibility.callees,
+    declarations:
+      visibility.context ||
+      visibility.preview ||
+      visibility.references ||
+      visibility.callers ||
+      visibility.callees,
     callRoots:
       visibility.context ||
       visibility.references ||

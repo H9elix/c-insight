@@ -37,6 +37,8 @@ describe("navigation visibility query demand", () => {
     const callers = cursorQueryDemand({ ...hidden, callers: true });
     assert.equal(callers.references, false);
     assert.equal(callers.callRoots, true);
+    assert.equal(callers.definitions, true);
+    assert.equal(callers.declarations, true);
     assert.equal(callers.incomingCount, false);
     assert.equal(callers.outgoingCount, false);
 
@@ -51,6 +53,7 @@ describe("navigation visibility query demand", () => {
   it("keeps preview lightweight and context self-contained", () => {
     const preview = cursorQueryDemand({ ...hidden, preview: true });
     assert.equal(preview.definitions, true);
+    assert.equal(preview.declarations, true);
     assert.equal(preview.callRoots, false);
     assert.equal(preview.hover, false);
 

@@ -17,12 +17,19 @@ import {
 } from "../utils/cursorFollowSuppression";
 
 export class ContextController implements vscode.Disposable {
+  private static readonly definitionRetryDelays = [2_000, 10_000];
   private timer?: NodeJS.Timeout;
   private detailsTimer?: NodeJS.Timeout;
   private cancellation?: vscode.CancellationTokenSource;
+  private definitionRefreshCancellation?: vscode.CancellationTokenSource;
+  private readonly definitionRetryTimers = new Set<NodeJS.Timeout>();
   private generation = 0;
   private pinned = false;
-  private current?: { uri: vscode.Uri; position: vscode.Position };
+  private current?: {
+    uri: vscode.Uri;
+    position: vscode.Position;
+    generation: number;
+  };
   private readonly cursorFollowSuppression = new CursorFollowSuppression();
   private readonly disposables: vscode.Disposable[] = [];
 
@@ -126,6 +133,68 @@ export class ContextController implements vscode.Disposable {
     }
   }
 
+  async refreshPreferredDefinitionLocations(): Promise<boolean> {
+    const current = this.current;
+    if (
+      this.pinned ||
+      !current ||
+      current.generation !== this.generation ||
+      !this.views.navigationVisible ||
+      !this.views.preferredDefinitionNeedsUpgrade ||
+      this.cursorFollowSuppression.suppressAutomaticUpdate(
+        current.uri.toString(),
+      )
+    ) {
+      return false;
+    }
+    this.definitionRefreshCancellation?.cancel();
+    this.definitionRefreshCancellation?.dispose();
+    const cancellation = new vscode.CancellationTokenSource();
+    this.definitionRefreshCancellation = cancellation;
+    const generation = this.generation;
+    try {
+      const [definitions, declarations] = await Promise.all([
+        this.analysis.definition(
+          current.uri,
+          current.position,
+          cancellation.token,
+        ),
+        this.analysis.declaration(
+          current.uri,
+          current.position,
+          cancellation.token,
+        ),
+      ]);
+      if (
+        cancellation.token.isCancellationRequested ||
+        generation !== this.generation ||
+        current !== this.current
+      ) {
+        return false;
+      }
+      const upgraded = await this.views.updatePreferredDefinitionLocations(
+        definitions,
+        declarations,
+      );
+      if (upgraded) {
+        this.clearDefinitionRetryTimers();
+      }
+      return upgraded;
+    } catch (error) {
+      if (!cancellation.token.isCancellationRequested) {
+        this.output.appendLine(
+          `Preferred definition refresh failed: ${String(error)}`,
+        );
+      }
+      return false;
+    } finally {
+      if (this.definitionRefreshCancellation === cancellation) {
+        this.definitionRefreshCancellation = undefined;
+      }
+      cancellation.dispose();
+    }
+  }
+
   beginProgrammaticNavigation(
     location: LocationResult,
   ): number {
@@ -201,8 +270,9 @@ export class ContextController implements vscode.Disposable {
         incomingRequested: demand.incomingCount,
         outgoingRequested: demand.outgoingCount,
       };
-      this.current = { uri, position };
+      this.current = { uri, position, generation };
       this.views.updateContext(context, intent);
+      this.schedulePreferredDefinitionRetries(generation);
       return context;
     } catch (error) {
       if (
@@ -308,20 +378,6 @@ export class ContextController implements vscode.Disposable {
             return [];
           })
         : Promise.resolve([]);
-      void definitionRequest.then((definitions) => {
-        if (
-          definitions[0] &&
-          generation === this.generation &&
-          !cancellation.token.isCancellationRequested
-        ) {
-          void this.views.preview.showLocation(
-            definitions[0],
-            "definition",
-            "Definition",
-            "context",
-          );
-        }
-      });
       const base = await this.resolveBase(
         uri,
         position,
@@ -333,7 +389,7 @@ export class ContextController implements vscode.Disposable {
       if (!base) {
         return;
       }
-      this.current = { uri, position };
+      this.current = { uri, position, generation };
       if (
         !demand.references &&
         !demand.incomingCount &&
@@ -343,6 +399,7 @@ export class ContextController implements vscode.Disposable {
           { ...base, detailsPending: false },
           intent,
         );
+        this.schedulePreferredDefinitionRetries(generation);
         if (this.cancellation === cancellation) {
           this.cancellation = undefined;
         }
@@ -350,6 +407,7 @@ export class ContextController implements vscode.Disposable {
         return;
       }
       this.views.updateContext(base, intent);
+      this.schedulePreferredDefinitionRetries(generation);
       const detailDelay = readConfiguration().followCursorDetailsDelay;
       this.detailsTimer = setTimeout(() => {
         void this.resolveDetails(base, cancellation, intent, demand);
@@ -446,6 +504,36 @@ export class ContextController implements vscode.Disposable {
     this.cancellation?.cancel();
     this.cancellation?.dispose();
     this.cancellation = undefined;
+    this.definitionRefreshCancellation?.cancel();
+    this.definitionRefreshCancellation?.dispose();
+    this.definitionRefreshCancellation = undefined;
+    this.clearDefinitionRetryTimers();
+  }
+
+  private schedulePreferredDefinitionRetries(generation: number): void {
+    this.clearDefinitionRetryTimers();
+    if (!this.views.preferredDefinitionNeedsUpgrade) {
+      return;
+    }
+    for (const delay of ContextController.definitionRetryDelays) {
+      const timer = setTimeout(() => {
+        this.definitionRetryTimers.delete(timer);
+        if (
+          generation === this.generation &&
+          this.views.preferredDefinitionNeedsUpgrade
+        ) {
+          void this.refreshPreferredDefinitionLocations();
+        }
+      }, delay);
+      this.definitionRetryTimers.add(timer);
+    }
+  }
+
+  private clearDefinitionRetryTimers(): void {
+    for (const timer of this.definitionRetryTimers) {
+      clearTimeout(timer);
+    }
+    this.definitionRetryTimers.clear();
   }
 
 
@@ -538,7 +626,7 @@ function manualDemand(intent: ViewUpdateIntent): CursorQueryDemand {
   return {
     active: true,
     definitions: true,
-    declarations: false,
+    declarations: true,
     callRoots: true,
     hover: false,
     symbolInfo: false,

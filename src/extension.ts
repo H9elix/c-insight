@@ -635,10 +635,15 @@ export async function activate(
       }
     }),
     manager.onDidChangeIndexProgress((progress) => {
+      const indexCompleted =
+        indexWasRunning && progress.status === "idle";
       if (progress.status === "indexing" && !indexWasRunning) {
         views.markResultsStale("background indexing restarted");
       }
       indexWasRunning = progress.status === "indexing";
+      if (indexCompleted) {
+        void controller.refreshPreferredDefinitionLocations();
+      }
       reliabilityStatusBar.update(
         projectDiagnostics.currentReliability,
         progress,

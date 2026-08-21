@@ -58,6 +58,11 @@ import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
+import {
+  functionLocationSignature,
+  preferredFunctionLocation,
+  PreferredFunctionLocation,
+} from "../utils/definitionLocation";
 
 export class ViewRegistry implements vscode.Disposable {
   readonly context = new MutableTreeProvider();
@@ -76,9 +81,11 @@ export class ViewRegistry implements vscode.Disposable {
     outgoing: new HierarchyTreeState(),
   };
   private callRootSignature = "";
+  private callRootDisplaySignature = "";
   private callExpansion?: vscode.CancellationTokenSource;
   private readonly callViewState = new CallHierarchyViewState();
   private currentSymbolName?: string;
+  private currentPreferredLocation?: PreferredFunctionLocation<LocationResult>;
   private reliability: AnalysisReliability = {
     level: "reliable",
     issues: [],
@@ -218,6 +225,12 @@ export class ViewRegistry implements vscode.Disposable {
     const primary = context.callRoots[0];
     this.currentSymbolName =
       context.qualifiedName ?? context.name ?? primary?.raw.name;
+    const preferredLocation = this.preferredLocation(
+      context.definitions,
+      context.declarations,
+      primary,
+    );
+    this.currentPreferredLocation = preferredLocation;
     const hover = context.hover?.replace(/```[\w+-]*|```/g, "").trim();
     const roots: TreeNode[] = [
       {
@@ -325,11 +338,10 @@ export class ViewRegistry implements vscode.Disposable {
     );
     this.context.setRoots(roots);
 
-    const preferred = context.definitions[0] ?? context.declarations[0];
-    if (preferred && this.preview.visible) {
+    if (preferredLocation && this.preview.visible) {
       void this.preview.showLocation(
-        preferred,
-        context.definitions.length > 0 ? "definition" : "declaration",
+        preferredLocation.location,
+        preferredLocation.kind === "definition" ? "definition" : "declaration",
         context.qualifiedName ?? context.name ?? "Symbol",
         "context",
       );
@@ -367,12 +379,14 @@ export class ViewRegistry implements vscode.Disposable {
       Boolean(intent.manualCallHierarchy)
     );
     const callRootSignature = context.callRoots.map((root) => root.key).join("|");
+    const callRootDisplaySignature = functionLocationSignature(preferredLocation);
     if (
       allowCallUpdate &&
       (callRootSignature !== this.callRootSignature ||
         intent.manualCallHierarchy)
     ) {
       this.callRootSignature = callRootSignature;
+      this.callRootDisplaySignature = callRootDisplaySignature;
       if (this.callViewState.pinned && intent.manualCallHierarchy) {
         this.callViewState.replacePinnedSymbol(this.currentSymbolName);
       }
@@ -380,17 +394,79 @@ export class ViewRegistry implements vscode.Disposable {
       this.callTreeState.outgoing.reset();
       this.expandedCallPaths.incoming.clear();
       this.expandedCallPaths.outgoing.clear();
-      const callerRoots = context.callRoots.map((root) =>
-        this.callTreeNode(root, "incoming", [], 0),
+      const callerRoots = context.callRoots.map((root, index) =>
+        this.callTreeNode(
+          root,
+          "incoming",
+          [],
+          0,
+          index === 0 ? preferredLocation : undefined,
+        ),
       );
-      const calleeRoots = context.callRoots.map((root) =>
-        this.callTreeNode(root, "outgoing", [], 0),
+      const calleeRoots = context.callRoots.map((root, index) =>
+        this.callTreeNode(
+          root,
+          "outgoing",
+          [],
+          0,
+          index === 0 ? preferredLocation : undefined,
+        ),
       );
       this.callResultsStaleReason = undefined;
       this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
       this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
       void this.expandDefaultDepth(intent.manualCallDirection);
+    } else if (
+      allowCallUpdate &&
+      callRootSignature === this.callRootSignature &&
+      callRootDisplaySignature !== this.callRootDisplaySignature
+    ) {
+      this.callRootDisplaySignature = callRootDisplaySignature;
+      this.updateCallRootPresentation(preferredLocation);
     }
+  }
+
+  async updatePreferredDefinitionLocations(
+    definitions: LocationResult[],
+    declarations: LocationResult[],
+  ): Promise<boolean> {
+    const root = this.callDataRoots(this.callers)
+      .find((node) => node.callNode && node.callDepth === 0)
+      ?.callNode ??
+      this.callDataRoots(this.callees)
+        .find((node) => node.callNode && node.callDepth === 0)
+        ?.callNode;
+    const preferred = this.preferredLocation(definitions, declarations, root);
+    this.currentPreferredLocation = preferred;
+    if (!preferred) {
+      return false;
+    }
+    if (this.preview.visible) {
+      await this.preview.showLocation(
+        preferred.location,
+        preferred.kind === "definition" ? "definition" : "declaration",
+        this.currentSymbolName ?? "Symbol",
+        "context",
+      );
+    }
+    const signature = functionLocationSignature(preferred);
+    if (
+      !this.callViewState.pinned &&
+      signature !== this.callRootDisplaySignature &&
+      (this.isViewVisible(VIEWS.CALLERS) || this.isViewVisible(VIEWS.CALLEES))
+    ) {
+      this.callRootDisplaySignature = signature;
+      this.updateCallRootPresentation(preferred);
+    }
+    return preferred.kind === "definition";
+  }
+
+  get preferredDefinitionNeedsUpgrade(): boolean {
+    return this.currentPreferredLocation?.kind === "declaration-fallback" &&
+      ((this.preview.visible && !this.preview.isLocked) ||
+        (!this.callViewState.pinned &&
+          (this.isViewVisible(VIEWS.CALLERS) ||
+            this.isViewVisible(VIEWS.CALLEES))));
   }
 
   updateReferences(
@@ -597,6 +673,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   clearContext(): void {
+    this.currentPreferredLocation = undefined;
     this.context.setRoots([
       viewStatusNode(vscode.l10n.t("Place the cursor on a C/C++ symbol"), "idle"),
     ]);
@@ -616,6 +693,7 @@ export class ViewRegistry implements vscode.Disposable {
         }),
       ]);
       this.callRootSignature = "";
+      this.callRootDisplaySignature = "";
     }
   }
 
@@ -676,6 +754,7 @@ export class ViewRegistry implements vscode.Disposable {
     this.stopCallExpansion();
     this.callRepository.invalidate();
     this.callRootSignature = "";
+    this.callRootDisplaySignature = "";
   }
 
   async promptExpandCallHierarchy(
@@ -1234,6 +1313,53 @@ export class ViewRegistry implements vscode.Disposable {
       );
   }
 
+  private preferredLocation(
+    definitions: LocationResult[],
+    declarations: LocationResult[],
+    root?: CallNode,
+  ): PreferredFunctionLocation<LocationResult> | undefined {
+    const fallback = root
+      ? {
+          uri: vscode.Uri.parse(root.raw.uri),
+          range: this.analysis.toVsRange(root.raw.selectionRange),
+        }
+      : undefined;
+    return preferredFunctionLocation(definitions, declarations, fallback);
+  }
+
+  private updateCallRootPresentation(
+    presentation: PreferredFunctionLocation<LocationResult> | undefined,
+  ): void {
+    if (!presentation) {
+      return;
+    }
+    for (const provider of [this.callers, this.callees]) {
+      const root = this.callDataRoots(provider)
+        .find((node) => node.callNode && node.callDepth === 0);
+      if (root) {
+        this.applyCallRootPresentation(root, presentation);
+        provider.refresh(root);
+      }
+    }
+  }
+
+  private applyCallRootPresentation(
+    node: TreeNode,
+    presentation: PreferredFunctionLocation<LocationResult>,
+  ): void {
+    const { location, kind } = presentation;
+    const target = `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`;
+    node.location = location;
+    node.previewMode = kind === "definition" ? "definition" : "declaration";
+    node.previewTitle = node.label;
+    node.description = kind === "definition"
+      ? vscode.l10n.t("Definition · {location}", { location: target })
+      : vscode.l10n.t("Declaration fallback · {location}", { location: target });
+    node.tooltip = kind === "definition"
+      ? `${location.uri.fsPath}:${location.range.start.line + 1}`
+      : vscode.l10n.t("A function definition is not available yet. Using the provider declaration at {location}.", { location: `${location.uri.fsPath}:${location.range.start.line + 1}` });
+  }
+
   private noCallsNode(
     direction: "incoming" | "outgoing",
     node?: CallNode,
@@ -1266,11 +1392,13 @@ export class ViewRegistry implements vscode.Disposable {
     direction: "incoming" | "outgoing",
     ancestors: string[],
     depth: number,
+    presentation?: PreferredFunctionLocation<LocationResult>,
   ): TreeNode {
-    const location: LocationResult = {
+    const providerLocation: LocationResult = {
       uri: vscode.Uri.parse(node.raw.uri),
       range: this.analysis.toVsRange(node.raw.selectionRange),
     };
+    const location = presentation?.location ?? providerLocation;
     const recursion = recursionKind(node.key, ancestors);
     const recursive = recursion !== undefined;
     const { duplicate } = this.callTreeState[direction].record(
@@ -1281,7 +1409,7 @@ export class ViewRegistry implements vscode.Disposable {
       .getConfiguration("cInsight.callHierarchy")
       .get<number>("maximumDepth", 10);
     const atDepthLimit = depth >= maximumDepth;
-    return {
+    const root: TreeNode = {
       id: `${direction}:${ancestors.join(">")}:${node.key}`,
       label: node.raw.name,
       description: `${
@@ -1314,6 +1442,10 @@ export class ViewRegistry implements vscode.Disposable {
             depth + 1,
           ),
     };
+    if (depth === 0 && presentation) {
+      this.applyCallRootPresentation(root, presentation);
+    }
+    return root;
   }
 
   private async loadCallChildren(
