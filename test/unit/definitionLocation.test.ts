@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   functionLocationSignature,
+  independentDeclarationLocations,
   preferredFunctionLocation,
 } from "../../src/utils/definitionLocation";
 
@@ -57,6 +58,28 @@ describe("preferred function location", () => {
     assert.notEqual(
       functionLocationSignature(definition),
       functionLocationSignature(fallback),
+    );
+  });
+
+  it("keeps every independent declaration in provider order", () => {
+    const definition = location("file:///source.c", 20);
+    const first = location("file:///first.h", 4);
+    const second = location("file:///second.h", 8);
+
+    assert.deepEqual(
+      independentDeclarationLocations(
+        [definition],
+        [first, definition, first, second],
+      ),
+      [first, second],
+    );
+  });
+
+  it("hides a declaration already represented by the tree node", () => {
+    const declaration = location("file:///header.h", 4);
+    assert.deepEqual(
+      independentDeclarationLocations([], [declaration], declaration),
+      [],
     );
   });
 });

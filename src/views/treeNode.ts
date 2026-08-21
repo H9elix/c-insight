@@ -29,7 +29,11 @@ export interface TreeNode {
   callDepth?: number;
   callNode?: CallNode;
   callPath?: string;
-  callSupplement?: "caller-definition";
+  callSupplement?: "call-declaration";
+  callSymbolLocations?: {
+    definitions: LocationResult[];
+    declarations: LocationResult[];
+  };
   parent?: TreeNode;
   bookmarkId?: string;
   bookmarkGroup?: string;

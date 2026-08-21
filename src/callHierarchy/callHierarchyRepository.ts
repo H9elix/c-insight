@@ -5,7 +5,7 @@ import type {
   CallHierarchyOutgoingCall,
 } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
-import { CallNode } from "../models/types";
+import { CallNode, LocationResult } from "../models/types";
 import { LruPromiseCache } from "../utils/lruPromiseCache";
 import { callHierarchyKey } from "../utils/callHierarchy";
 import {
@@ -28,6 +28,11 @@ export interface MicrosoftCallerEvidenceStats {
   callerFunctions: number;
 }
 
+export interface CallSymbolLocations {
+  definitions: LocationResult[];
+  declarations: LocationResult[];
+}
+
 export class CallHierarchyRepository {
   private readonly microsoftIncomingEvidence = new Map<string, MicrosoftCallerEvidence>();
   private readonly microsoftOutgoingEvidence = new Map<string, MicrosoftCalleeEvidence>();
@@ -37,11 +42,13 @@ export class CallHierarchyRepository {
   private readonly outgoingCache: LruPromiseCache<
     CallHierarchyOutgoingCall[]
   >;
+  private readonly symbolLocationCache: LruPromiseCache<CallSymbolLocations>;
 
   constructor(private readonly analysis: AnalysisService) {
     const size = configuredCacheSize();
     this.incomingCache = new LruPromiseCache(size);
     this.outgoingCache = new LruPromiseCache(size);
+    this.symbolLocationCache = new LruPromiseCache(size);
   }
 
   prepare(
@@ -76,6 +83,24 @@ export class CallHierarchyRepository {
         ? this.observedMicrosoftOutgoing(node, token)
         : this.analysis.outgoingCalls(node, token),
     );
+  }
+
+  symbolLocations(
+    node: CallNode,
+    token?: vscode.CancellationToken,
+  ): Promise<CallSymbolLocations> {
+    return this.symbolLocationCache.getOrCreate(node.key, async () => {
+      const uri = vscode.Uri.parse(node.raw.uri);
+      const position = new vscode.Position(
+        node.raw.selectionRange.start.line,
+        node.raw.selectionRange.start.character,
+      );
+      const [definitions, declarations] = await Promise.all([
+        this.analysis.definition(uri, position, token),
+        this.analysis.declaration(uri, position, token),
+      ]);
+      return { definitions, declarations };
+    });
   }
 
   stats(direction: CallDirection): { hits: number; misses: number } {
@@ -117,8 +142,10 @@ export class CallHierarchyRepository {
     const size = configuredCacheSize();
     this.incomingCache.resize(size);
     this.outgoingCache.resize(size);
+    this.symbolLocationCache.resize(size);
     this.incomingCache.clear();
     this.outgoingCache.clear();
+    this.symbolLocationCache.clear();
     this.microsoftIncomingEvidence.clear();
     this.microsoftOutgoingEvidence.clear();
   }
