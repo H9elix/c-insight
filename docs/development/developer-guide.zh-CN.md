@@ -139,10 +139,13 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 | 文件 | 管理的功能 |
 | --- | --- |
 | `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、方向独立 LRU、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
+| `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，并把每组最早调用点标记为唯一规范展开点。它是无 VS Code 依赖的纯模型。 |
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
 | `microsoftCalleeEvidenceModel.ts` | 汇总 Microsoft 原生传出调用（Outgoing Calls）的成功、空、失败、取消和耗时证据。 |
 
 clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，不能只保存显示字段后重建对象。Microsoft 传入调用（Incoming Calls）曾触发 cpptools 原生崩溃，因此安全回退（fallback）路径不能未经实测替换为原生调用。
+
+调用者（Callers）/被调用者（Callees）树不会为一个语义函数建立额外的“函数 → 调用位置”层。`ViewRegistry` 将投影结果直接物化为调用点节点；只有规范调用点持有 `callPath` 和下一层加载器，其他同名调用点只负责代码预览（Code Preview）和编辑器导航。批量展开及会话恢复必须沿规范节点的语义路径运行，而搜索和导出必须保留每一个已显示调用点。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 
@@ -330,7 +333,7 @@ npm run package
 | 新增语义查询 | `analysisService.ts` | 引擎适配器、调度、浏览器（Explorer）、诊断和测试 |
 | 修改光标自动刷新 | `contextController.ts` | `navigationDemand.ts`、可见性测试 |
 | 修改引用（References）分类 | `referenceModel.ts` | `referenceExplorer.ts`、导出、用户手册和单测 |
-| 修改调用者（Callers）/被调用者（Callees） | `callHierarchyRepository.ts`、`viewRegistry.ts` | 固定（Pin）状态、层级工具、关系图（Graph）和会话兼容 |
+| 修改调用者（Callers）/被调用者（Callees） | `callOccurrenceModel.ts`、`callHierarchyRepository.ts`、`viewRegistry.ts` | 调用点排序与规范节点、固定（Pin）状态、层级工具、关系图（Graph）和会话兼容 |
 | 修改类型/包含（Type/Include） | 对应仓库（Repository）和浏览器（Explorer） | 通用层级状态/导出、关系图、缓存失效 |
 | 修改代码预览（Code Preview） | `codePreviewProvider.ts` | highlight/range/history/clear guard、CSP 与 E2E |
 | 修改关系图（Graph） | `relationshipGraphPanel.ts` | `graphModel.ts`、会话模型（session model）、资源释放测试 |

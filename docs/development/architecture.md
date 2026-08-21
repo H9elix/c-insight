@@ -46,6 +46,8 @@ Panel disposal distinguishes a user-close from extension shutdown. A user-close 
 
 Callers/Callees trees and Relationship Graph share a `CallHierarchyRepository`, including separate bounded Incoming and Outgoing caches and the opaque clangd call items needed by follow-up requests. The graph maps every result into semantic Caller → Callee edges and merges stable node IDs. Supertypes/Subtypes trees and Relationship Graph likewise share a `TypeHierarchyRepository`; inheritance edges are normalized as Supertype → Subtype before entering the graph model.
 
+The trees project each semantic Incoming/Outgoing relation into source-ordered occurrence nodes through `callOccurrenceModel.ts`. Exact duplicate ranges are removed, every visible occurrence consumes the direction-specific node budget, and only the earliest occurrence retains the stable semantic expansion path and opaque item used for the next lazy query. Other occurrences are navigation leaves. The semantic Relationship Graph remains deduplicated and does not inherit this presentation projection.
+
 Callers and Callees also share one `CallHierarchyViewState` for pin ownership, the pinned symbol, and stale transitions; direction-specific expansion trees and caches remain isolated.
 
 Includes/Included By trees and Relationship Graph share an `IncludeHierarchyRepository`. It owns the resolver, forward promise cache, and single reverse workspace index. File-graph creation and forward expansion call only `forward`; only an explicit Included By expansion path calls `incoming`, which is the sole operation that can build the reverse index. Include edges are normalized as Includer → Included.
