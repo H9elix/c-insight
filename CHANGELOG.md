@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.0
+
+- Flattened every returned Callers and Callees call site directly beneath its semantic parent, ordered by source location, instead of hiding call sites under an extra function-node level.
+- Made only the earliest occurrence of each semantic caller or callee expandable while every occurrence previews and opens its exact call line; empty provider ranges retain an explicit definition-location fallback.
+- Preserved lazy engine queries, recursion/depth handling, exact expansion paths, search, exports, independent node budgets, and unresolved indirect-call evidence under the occurrence-based tree.
+- Added pure projection coverage and a real clangd Extension Host regression for two `add` and three `main` call sites, plus automatic discovery of the installed Microsoft cpptools test extension.
+
 ## 0.21.2
 
 - Removed arbitrary hard wrapping from every Markdown document under `docs/` while preserving headings, lists, tables, fenced code, HTML markers, and intentional block boundaries.

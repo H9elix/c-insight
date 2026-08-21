@@ -98,7 +98,7 @@ References-based Callers path without invoking native Incoming Calls.
   viewport-virtualized SVG rendering, preview, and editor navigation
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
-- Source snippets directly in References, Callers, and Callees result rows
+- Source snippets in References rows and Callers/Callees tooltips, with every call occurrence retaining its exact source location
 - Document symbol outline and a Symbol Search view with live clangd workspace
   queries, type filtering, and configurable grouping
 - Session navigation history with shared Code Preview Back/Forward
@@ -302,17 +302,9 @@ stale marker.
 
 ### Advanced Call Hierarchy
 
-Callers and Callees distinguish definition nodes from their call-site
-children, show source locations and merged call counts, and label direct
-recursion, indirect recursion, and duplicate functions. Incoming and Outgoing
-requests use separate bounded LRU caches and coalesce concurrent requests.
-Caches are invalidated by source edits, clangd restarts, and call-hierarchy
-configuration changes.
+Callers and Callees keep the current function definition as the root, then flatten every returned call site directly beneath its semantic parent in source order. Repeated rows retain the caller or callee function name and exact source location; only the earliest occurrence of each semantic function has a disclosure arrow and lazily loads the next semantic level. Incoming and Outgoing requests use separate bounded LRU caches and coalesce concurrent requests. Caches are invalidated by source edits, clangd restarts, and call-hierarchy configuration changes.
 
-Use **Expand Callers/Callees to Depth** to load a bounded subtree. The operation
-can be cancelled and respects `maximumDepth` and `maximumNodes`. Search operates
-only on the tree already loaded in memory. Text and JSON export likewise avoid
-triggering hidden expansion.
+Use **Expand Callers/Callees to Depth** to load a bounded subtree. The operation can be cancelled and respects semantic `maximumDepth`; `maximumNodes` counts each displayed call occurrence. Search operates only on the tree already loaded in memory and returns individual call sites. Text, JSON, and Mermaid exports likewise avoid hidden expansion and retain repeated occurrence locations.
 
 Use **Find Caller/Callee Path** to search the semantic graph from the current
 root to a function-name fragment. Path search is cancellable, reuses hierarchy
