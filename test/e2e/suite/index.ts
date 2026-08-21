@@ -170,6 +170,10 @@ async function runClangdAcceptance(): Promise<void> {
     assert.ok(commands.includes(command), `${command} was not registered`);
   }
 
+  await verifyFlatCallOccurrences();
+  await vscode.window.showTextDocument(document);
+  editor.selection = new vscode.Selection(position, position);
+
   await vscode.commands.executeCommand("cInsight.relationshipGraph.show");
   await waitFor(
     async () =>
@@ -295,6 +299,145 @@ async function runClangdAcceptance(): Promise<void> {
   await vscode.commands.executeCommand("cInsight.callHierarchy.stopExpansion");
 
   assert.ok(references.length >= 2);
+}
+
+interface CallOccurrenceProbe {
+  label: string;
+  uri: string;
+  line: number;
+  character: number;
+  depth: number;
+  canonical: boolean;
+  expandable: boolean;
+  previewMode?: string;
+}
+
+interface CallHierarchyProbe {
+  incomingRoots: string[];
+  outgoingRoots: string[];
+  incomingOccurrences: CallOccurrenceProbe[];
+  outgoingOccurrences: CallOccurrenceProbe[];
+}
+
+async function verifyFlatCallOccurrences(): Promise<void> {
+  const workspace = vscode.workspace.workspaceFolders?.[0]?.uri ??
+    assert.fail("The C++ fixture workspace was not opened");
+  const uri = vscode.Uri.joinPath(workspace, "src", "call_sites.c");
+  const document = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(document);
+  const reportDefinition = findPosition(document, "static void report", "report");
+  const addDefinition = findPosition(document, "static int add", "add");
+  const addStart = addDefinition.line;
+  const mainStart = findPosition(document, "int main", "main").line;
+  const reportCalls = Array.from({ length: document.lineCount }, (_, line) => ({
+    line,
+    text: document.lineAt(line).text,
+  }))
+    .filter(({ line, text }) => line !== reportDefinition.line && text.includes("report("))
+    .map(({ line }) => line);
+  const addCalls = reportCalls.filter((line) => line > addStart && line < mainStart);
+  const mainCalls = reportCalls.filter((line) => line > mainStart);
+  assert.equal(addCalls.length, 2);
+  assert.equal(mainCalls.length, 3);
+
+  editor.selection = new vscode.Selection(reportDefinition, reportDefinition);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.incomingRoots.includes("report") ? state : undefined;
+  }, "Callers did not prepare report as the root");
+  await vscode.commands.executeCommand(
+    "cInsight.test.expandCallHierarchy",
+    "incoming",
+    1,
+  );
+  const incoming = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const direct = state.incomingOccurrences.filter((item) => item.depth === 1);
+    return direct.length === 5 ? direct : undefined;
+  }, "Callers did not flatten all five report call sites");
+  assert.deepEqual(incoming.map((item) => item.label), [
+    "add",
+    "add",
+    "main",
+    "main",
+    "main",
+  ]);
+  assert.deepEqual(incoming.map((item) => item.line), [...addCalls, ...mainCalls]);
+  assert.deepEqual(
+    incoming.filter((item) => item.canonical).map((item) => [item.label, item.line]),
+    [
+      ["add", addCalls[0]],
+      ["main", mainCalls[0]],
+    ],
+  );
+  assert.ok(incoming.filter((item) => item.canonical).every((item) => item.expandable));
+  assert.ok(incoming.every((item) => item.previewMode === "caller"));
+
+  const activated = await vscode.commands.executeCommand<boolean>(
+    "cInsight.test.activateCallOccurrence",
+    "incoming",
+    "main",
+    2,
+  );
+  assert.equal(activated, true);
+  const preview = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<{
+      uri?: string;
+      range?: { start: { line: number } };
+    }>("cInsight.test.previewState");
+    return state?.uri === uri.toString() &&
+      state.range?.start.line === mainCalls[1]
+      ? state
+      : undefined;
+  }, "Selecting a caller occurrence did not preview its exact call site");
+  assert.equal(preview.range?.start.line, mainCalls[1]);
+
+  editor.selection = new vscode.Selection(addDefinition, addDefinition);
+  await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.outgoingRoots.includes("add") ? state : undefined;
+  }, "Callees did not prepare add as the root");
+  await vscode.commands.executeCommand(
+    "cInsight.test.expandCallHierarchy",
+    "outgoing",
+    1,
+  );
+  const outgoing = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const direct = state.outgoingOccurrences.filter((item) => item.depth === 1);
+    return direct.length === 2 ? direct : undefined;
+  }, "Callees did not flatten both calls to report");
+  assert.deepEqual(outgoing.map((item) => item.label), ["report", "report"]);
+  assert.deepEqual(outgoing.map((item) => item.line), addCalls);
+  assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);
+  assert.ok(outgoing.every((item) => item.previewMode === "callee-call-site"));
+}
+
+function findPosition(
+  document: vscode.TextDocument,
+  lineFragment: string,
+  symbol: string,
+): vscode.Position {
+  for (let line = 0; line < document.lineCount; line += 1) {
+    const text = document.lineAt(line).text;
+    if (!text.includes(lineFragment)) {
+      continue;
+    }
+    const character = text.indexOf(symbol);
+    assert.ok(character >= 0, `Could not find ${symbol} in ${lineFragment}`);
+    return new vscode.Position(line, character + 1);
+  }
+  return assert.fail(`Could not find line containing ${lineFragment}`);
 }
 
 async function waitFor<T>(

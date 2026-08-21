@@ -406,6 +406,14 @@ export async function activate(
         (direction: "incoming" | "outgoing", depth: number) =>
           views.expandCallHierarchyToDepth(direction, depth),
       ),
+      vscode.commands.registerCommand(
+        "cInsight.test.activateCallOccurrence",
+        (
+          direction: "incoming" | "outgoing",
+          label: string,
+          ordinal: number,
+        ) => views.activateCallOccurrenceForTest(direction, label, ordinal),
+      ),
       vscode.commands.registerCommand("cInsight.test.invalidateCallHierarchy", () =>
         views.invalidateCallHierarchy(),
       ),

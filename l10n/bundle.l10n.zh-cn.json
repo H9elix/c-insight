@@ -323,5 +323,8 @@
   "Display limit reached ({displayed} / {total})": "已达到显示上限（{displayed} / {total}）",
   "narrow filters or raise maximumDisplayedResults": "请缩小筛选范围或提高 maximumDisplayedResults",
   "Qualified name": "限定名",
-  "Type / signature": "类型 / 签名"
+  "Type / signature": "类型 / 签名",
+  "call location unavailable": "调用位置不可用",
+  "call {ordinal}/{total}": "调用 {ordinal}/{total}",
+  "The analysis engine returned this relationship without a call-site range. The definition location is shown instead.": "分析引擎返回了该调用关系，但没有提供调用位置范围，因此改为显示定义位置。"
 }
