@@ -13,6 +13,7 @@ import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
 import {
   CallOccurrence,
+  callerPresentationRows,
   projectCallOccurrences,
 } from "../callHierarchy/callOccurrenceModel";
 import { microsoftEmptyCallersMessage } from "../callHierarchy/microsoftCallerFallbackModel";
@@ -547,10 +548,13 @@ export class ViewRegistry implements vscode.Disposable {
     pinnedStale: boolean;
     incomingRoots: string[];
     outgoingRoots: string[];
+    incomingRootLocations: CallerDefinitionSnapshot[];
+    outgoingRootLocations: CallerDefinitionSnapshot[];
     incomingLabels: string[];
     outgoingLabels: string[];
     incomingOccurrences: CallOccurrenceSnapshot[];
     outgoingOccurrences: CallOccurrenceSnapshot[];
+    incomingDefinitions: CallerDefinitionSnapshot[];
     loadedIncoming: number;
     loadedOutgoing: number;
     incomingCache: { hits: number; misses: number };
@@ -569,10 +573,13 @@ export class ViewRegistry implements vscode.Disposable {
       outgoingRoots: this.callees.getRoots()
         .filter((node) => node.callNode && node.callDepth === 0)
         .map((node) => node.label),
+      incomingRootLocations: callRootSnapshots(this.callers.getRoots()),
+      outgoingRootLocations: callRootSnapshots(this.callees.getRoots()),
       incomingLabels: this.callers.getRoots().map((node) => node.label),
       outgoingLabels: this.callees.getRoots().map((node) => node.label),
       incomingOccurrences: callOccurrenceSnapshots(this.callers.getRoots()),
       outgoingOccurrences: callOccurrenceSnapshots(this.callees.getRoots()),
+      incomingDefinitions: callerDefinitionSnapshots(this.callers.getRoots()),
       loadedIncoming: flattenLoadedCallNodes(this.callers.getRoots()).length,
       loadedOutgoing: flattenLoadedCallNodes(this.callees.getRoots()).length,
       incomingCache: this.callRepository.stats("incoming"),
@@ -599,6 +606,24 @@ export class ViewRegistry implements vscode.Disposable {
       "cInsight.activateTreeLocation",
       occurrence,
       direction === "incoming" ? VIEWS.CALLERS : VIEWS.CALLEES,
+    );
+    return true;
+  }
+
+  async activateCallerDefinitionForTest(label: string): Promise<boolean> {
+    const definition = flattenLoadedCallNavigationNodes(this.callers.getRoots())
+      .find(
+        (node) =>
+          node.callSupplement === "caller-definition" &&
+          node.label.startsWith(`${label} ·`),
+      );
+    if (!definition?.location) {
+      return false;
+    }
+    await vscode.commands.executeCommand(
+      "cInsight.activateTreeLocation",
+      definition,
+      VIEWS.CALLERS,
     );
     return true;
   }
@@ -797,7 +822,7 @@ export class ViewRegistry implements vscode.Disposable {
   ): Promise<void> {
     const provider =
       direction === "incoming" ? this.callers : this.callees;
-    const nodes = flattenLoadedCallNodes(provider.getRoots());
+    const nodes = flattenLoadedCallNavigationNodes(provider.getRoots());
     if (nodes.length === 0) {
       void vscode.window.showInformationMessage(
         vscode.l10n.t("C Insight: No loaded call hierarchy nodes to search."),
@@ -1567,21 +1592,71 @@ export class ViewRegistry implements vscode.Disposable {
       });
     }
     this.callTreeState[direction].consume(visible.length);
-    const children = visible.map((candidate) =>
-      candidate.kind === "additional"
-        ? candidate.node
-        : this.callOccurrenceNode(
-            candidate.occurrence,
-            direction,
-            ancestors,
-            depth,
-            states.get(candidate.occurrence.semanticKey)!,
-          ),
-    );
+    const children = direction === "incoming"
+      ? callerPresentationRows(
+          visible
+            .filter(
+              (candidate): candidate is Extract<
+                CallChildCandidate,
+                { kind: "occurrence" }
+              > => candidate.kind === "occurrence",
+            )
+            .map((candidate) => candidate.occurrence),
+        ).map((row) =>
+          row.kind === "occurrence"
+            ? this.callOccurrenceNode(
+                row.occurrence,
+                direction,
+                ancestors,
+                depth,
+                states.get(row.occurrence.semanticKey)!,
+              )
+            : this.callerDefinitionNode(
+                row.semanticKey,
+                row.value,
+                ancestors,
+              ),
+        )
+      : visible.map((candidate) =>
+          candidate.kind === "additional"
+            ? candidate.node
+            : this.callOccurrenceNode(
+                candidate.occurrence,
+                direction,
+                ancestors,
+                depth,
+                states.get(candidate.occurrence.semanticKey)!,
+              ),
+        );
     if (visible.length < candidates.length) {
       children.push(limitNode(vscode.l10n.t("Call hierarchy node limit reached")));
     }
     return children;
+  }
+
+  private callerDefinitionNode(
+    semanticKey: string,
+    caller: CallNode,
+    ancestors: string[],
+  ): TreeNode {
+    const location: LocationResult = {
+      uri: vscode.Uri.parse(caller.raw.uri),
+      range: this.analysis.toVsRange(caller.raw.selectionRange),
+    };
+    const target = `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`;
+    return {
+      id: `incoming:definition:${ancestors.join(">")}:${semanticKey}`,
+      label: vscode.l10n.t("{name} · Definition", { name: caller.raw.name }),
+      description: target,
+      tooltip: vscode.l10n.t("Caller function definition at {location}", {
+        location: `${location.uri.fsPath}:${location.range.start.line + 1}`,
+      }),
+      location,
+      previewMode: "definition",
+      previewTitle: caller.raw.name,
+      callSupplement: "caller-definition",
+      icon: new vscode.ThemeIcon("go-to-file"),
+    };
   }
 
   private callOccurrenceNode(
@@ -1844,6 +1919,13 @@ interface CallOccurrenceSnapshot {
   previewMode?: PreviewMode;
 }
 
+interface CallerDefinitionSnapshot {
+  label: string;
+  uri: string;
+  line: number;
+  character: number;
+}
+
 interface CallOccurrenceGroupState {
   recursion?: "direct" | "indirect";
   duplicate: boolean;
@@ -1918,6 +2000,33 @@ function callOccurrenceSnapshots(roots: TreeNode[]): CallOccurrenceSnapshot[] {
     }));
 }
 
+function callerDefinitionSnapshots(roots: TreeNode[]): CallerDefinitionSnapshot[] {
+  return flattenLoadedCallNavigationNodes(roots)
+    .filter(
+      (node) =>
+        node.callSupplement === "caller-definition" && node.location,
+    )
+    .map((node) => ({
+      label: node.label,
+      uri: node.location!.uri.toString(),
+      line: node.location!.range.start.line,
+      character: node.location!.range.start.character,
+    }));
+}
+
+function callRootSnapshots(roots: TreeNode[]): CallerDefinitionSnapshot[] {
+  return roots
+    .filter(
+      (node) => node.callNode && node.callDepth === 0 && node.location,
+    )
+    .map((node) => ({
+      label: node.label,
+      uri: node.location!.uri.toString(),
+      line: node.location!.range.start.line,
+      character: node.location!.range.start.character,
+    }));
+}
+
 function hasPathOrDescendant(paths: Set<string>, candidate: string): boolean {
   const prefix = `${candidate}\u0000`;
   for (const path of paths) {
@@ -1951,6 +2060,22 @@ function flattenLoadedCallNodes(roots: TreeNode[]): TreeNode[] {
   return output;
 }
 
+function flattenLoadedCallNavigationNodes(roots: TreeNode[]): TreeNode[] {
+  const output: TreeNode[] = [];
+  const visit = (nodes: TreeNode[]): void => {
+    for (const node of nodes) {
+      if (node.callKey || node.callSupplement === "caller-definition") {
+        output.push(node);
+      }
+      if (node.children) {
+        visit(node.children);
+      }
+    }
+  };
+  visit(roots);
+  return output;
+}
+
 function maximumLoadedDepth(roots: TreeNode[]): number {
   return flattenLoadedCallNodes(roots).reduce(
     (maximum, node) => Math.max(maximum, node.callDepth ?? 0),
@@ -1965,6 +2090,8 @@ function callExportNode(node: TreeNode): HierarchyExportNode {
     uri: node.location?.uri.toString(),
     line: node.location ? node.location.range.start.line + 1 : undefined,
     states: hierarchyNodeStates(node.label, node.description),
-    children: node.children?.map(callExportNode) ?? [],
+    children: node.children
+      ?.filter((child) => child.callSupplement !== "caller-definition")
+      .map(callExportNode) ?? [],
   };
 }
