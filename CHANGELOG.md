@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.3
+
+- Replaced non-expandable per-caller definition leaves with independent declarations for the semantic function whose Callers node is being expanded.
+- Prepended every deduplicated declaration distinct from the implementation, while using the opaque Call Hierarchy item as implementation evidence when Definition and Declaration providers return the same header location.
+- Added bounded lazy Definition/Declaration caching per expanded caller node; declaration failures do not suppress call results, and declaration navigation remains outside call depth, node budgets, paths, sessions, and semantic exports.
+- Added real clangd coverage for root and nested declarations, declaration preview navigation, provider-location disambiguation, and removal of the former definition leaves, plus Microsoft Extension Host regression.
+
 ## 0.22.2
 
 - Preferred function implementation locations for Code Preview and both Callers/Callees roots while retaining the analysis provider's original opaque Call Hierarchy item for semantic queries.
