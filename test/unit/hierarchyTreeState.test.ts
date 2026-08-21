@@ -13,6 +13,12 @@ describe("hierarchy tree state", () => {
     assert.equal(callers.loadedNodes, 3);
     assert.equal(callers.atLimit(3), true);
     assert.equal(callers.remaining(5), 2);
+
+    assert.equal(callers.observe("g", false), false);
+    assert.equal(callers.observe("g", false), true);
+    assert.equal(callers.loadedNodes, 3);
+    callers.consume(2);
+    assert.equal(callers.loadedNodes, 5);
     assert.equal(callees.loadedNodes, 0);
   });
 
