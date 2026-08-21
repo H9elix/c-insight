@@ -122,7 +122,6 @@
   "viewWelcome.0": "Open a C or C++ file to inspect the symbol under the cursor.\n[Restart clangd](command:cInsight.restartClangd)",
   "viewWelcome.1": "Open a C or C++ file to inspect the symbol under the cursor.\n[Open Project Diagnostics](command:cInsight.openProjectDiagnostics)",
   "viewWelcome.2": "[Search workspace symbols](command:cInsight.searchSymbols)",
-  "viewWelcome.3": "[Search workspace symbols](command:cInsight.searchSymbols)",
   "viewWelcome.4": "Place the cursor in a C/C++ file, then [show its include hierarchy](command:cInsight.includeHierarchy.showIncludes).",
   "viewWelcome.5": "Place the cursor in a C/C++ file, then [find files that include it](command:cInsight.includeHierarchy.showIncludedBy).",
   "configuration.cInsight.engine.description": "Semantic analysis engine. Changing this setting requires Reload Window.",

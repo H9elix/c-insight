@@ -21,7 +21,6 @@ import type {
   CallHierarchySessionState,
   ReferenceSessionState,
 } from "../session/workspaceSession";
-import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import type { NavigationVisibility } from "../context/navigationDemand";
 import { IncludeHierarchyExplorer } from "../includeHierarchy/includeHierarchyExplorer";
@@ -112,7 +111,6 @@ export class ViewRegistry implements vscode.Disposable {
     private readonly analysis: AnalysisService,
     history: NavigationHistoryExplorer,
     bookmarks: BookmarkExplorer,
-    symbolSearch: SymbolSearchExplorer,
     typeHierarchy: TypeHierarchyExplorer,
     includeHierarchy: IncludeHierarchyExplorer,
     private readonly callRepository: CallHierarchyRepository,
@@ -143,7 +141,6 @@ export class ViewRegistry implements vscode.Disposable {
       [VIEWS.CALLEES, this.callees],
       [VIEWS.HISTORY, history.provider],
       [VIEWS.BOOKMARKS, bookmarks.provider],
-      [VIEWS.WORKSPACE_SYMBOLS, symbolSearch.provider],
       [VIEWS.SUPERTYPES, typeHierarchy.supertypes],
       [VIEWS.SUBTYPES, typeHierarchy.subtypes],
       [VIEWS.INCLUDES, includeHierarchy.includes],

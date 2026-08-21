@@ -122,7 +122,6 @@
   "viewWelcome.0": "打开 C 或 C++ 文件以查看光标所在符号。\n[重启 clangd](command:cInsight.restartClangd)",
   "viewWelcome.1": "打开 C 或 C++ 文件以查看光标所在符号。\n[打开工程诊断](command:cInsight.openProjectDiagnostics)",
   "viewWelcome.2": "[搜索工作区符号](command:cInsight.searchSymbols)",
-  "viewWelcome.3": "[搜索工作区符号](command:cInsight.searchSymbols)",
   "viewWelcome.4": "将光标置于 C/C++ 文件中，然后[显示其包含层次](command:cInsight.includeHierarchy.showIncludes)。",
   "viewWelcome.5": "将光标置于 C/C++ 文件中，然后[查找包含该文件的文件](command:cInsight.includeHierarchy.showIncludedBy)。",
   "configuration.cInsight.engine.description": "语义分析引擎。更改此设置后需要重新加载窗口。",

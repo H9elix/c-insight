@@ -170,6 +170,7 @@ async function runClangdAcceptance(): Promise<void> {
     assert.ok(commands.includes(command), `${command} was not registered`);
   }
 
+  await verifyPersistentSymbolSearch();
   await verifyFlatCallOccurrences();
   await vscode.window.showTextDocument(document);
   editor.selection = new vscode.Selection(position, position);
@@ -301,6 +302,44 @@ async function runClangdAcceptance(): Promise<void> {
   assert.ok(references.length >= 2);
 }
 
+interface SymbolSearchProbe {
+  query: string;
+  results: number;
+  visibleResults: number;
+  viewResolved: boolean;
+  loading: boolean;
+}
+
+async function verifyPersistentSymbolSearch(): Promise<void> {
+  await vscode.commands.executeCommand("cInsight.searchSymbols");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<SymbolSearchProbe>(
+      "cInsight.test.symbolSearchState",
+    );
+    return state.viewResolved ? state : undefined;
+  }, "The persistent Symbol Search webview did not resolve");
+  await vscode.commands.executeCommand(
+    "cInsight.test.symbolSearchQuery",
+    "Calculator",
+  );
+  const searched = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<SymbolSearchProbe>(
+      "cInsight.test.symbolSearchState",
+    );
+    return !state.loading && state.query === "Calculator" &&
+      state.visibleResults > 0
+      ? state
+      : undefined;
+  }, "The persistent Symbol Search input did not produce workspace results");
+  assert.ok(searched.results >= searched.visibleResults);
+  await vscode.commands.executeCommand("cInsight.symbolSearch.clear");
+  const cleared = await vscode.commands.executeCommand<SymbolSearchProbe>(
+    "cInsight.test.symbolSearchState",
+  );
+  assert.equal(cleared.query, "");
+  assert.equal(cleared.visibleResults, 0);
+}
+
 interface CallOccurrenceProbe {
   label: string;
   uri: string;
@@ -348,18 +387,13 @@ async function verifyFlatCallOccurrences(): Promise<void> {
     );
     return state.incomingRoots.includes("report") ? state : undefined;
   }, "Callers did not prepare report as the root");
-  await vscode.commands.executeCommand(
-    "cInsight.test.expandCallHierarchy",
-    "incoming",
-    1,
-  );
   const incoming = await waitFor(async () => {
     const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
       "cInsight.test.callHierarchyState",
     );
     const direct = state.incomingOccurrences.filter((item) => item.depth === 1);
     return direct.length === 5 ? direct : undefined;
-  }, "Callers did not flatten all five report call sites");
+  }, "Callers did not automatically expand and flatten all five report call sites");
   assert.deepEqual(incoming.map((item) => item.label), [
     "add",
     "add",
@@ -405,18 +439,13 @@ async function verifyFlatCallOccurrences(): Promise<void> {
     );
     return state.outgoingRoots.includes("add") ? state : undefined;
   }, "Callees did not prepare add as the root");
-  await vscode.commands.executeCommand(
-    "cInsight.test.expandCallHierarchy",
-    "outgoing",
-    1,
-  );
   const outgoing = await waitFor(async () => {
     const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
       "cInsight.test.callHierarchyState",
     );
     const direct = state.outgoingOccurrences.filter((item) => item.depth === 1);
     return direct.length === 2 ? direct : undefined;
-  }, "Callees did not flatten both calls to report");
+  }, "Callees did not automatically expand and flatten both calls to report");
   assert.deepEqual(outgoing.map((item) => item.label), ["report", "report"]);
   assert.deepEqual(outgoing.map((item) => item.line), addCalls);
   assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);

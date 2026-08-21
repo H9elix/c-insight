@@ -1,89 +1,123 @@
+import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { SymbolInformation, SymbolKind } from "vscode-languageclient/node";
 import { AnalysisService } from "../analysis/analysisService";
-import { MutableTreeProvider, TreeNode } from "../views/treeNode";
+import { VIEWS } from "../ids";
+import type { SymbolSearchSessionState } from "../session/workspaceSession";
+import { TreeNode } from "../views/treeNode";
 import {
   filterWorkspaceSymbols,
   groupWorkspaceSymbols,
   SymbolGrouping,
   WorkspaceSymbolRecord,
 } from "./symbolSearchModel";
-import type { SymbolSearchSessionState } from "../session/workspaceSession";
-import { symbolKindIconId } from "./symbolPresentation";
+import {
+  parseSymbolSearchWebviewMessage,
+  renderSymbolSearchWebview,
+} from "./symbolSearchWebview";
 
-interface SearchItem extends vscode.QuickPickItem {
-  symbol: WorkspaceSymbolRecord;
+interface SymbolSearchViewSymbol {
+  id: string;
+  name: string;
+  description: string;
+  tooltip: string;
+  icon: string;
+  iconClass: string;
 }
 
-export class SymbolSearchExplorer implements vscode.Disposable {
-  readonly provider = new MutableTreeProvider();
+interface SymbolSearchViewGroup {
+  label: string;
+  symbols: SymbolSearchViewSymbol[];
+}
+
+interface SymbolSearchViewState {
+  type: "state";
+  query: string;
+  status: string;
+  flat: boolean;
+  groups: SymbolSearchViewGroup[];
+}
+
+export class SymbolSearchExplorer
+  implements vscode.WebviewViewProvider, vscode.Disposable
+{
   private query = "";
   private results: WorkspaceSymbolRecord[] = [];
   private selectedKinds = new Set<number>();
   private generation = 0;
+  private loading = false;
+  private error?: string;
+  private timer?: NodeJS.Timeout;
+  private view?: vscode.WebviewView;
+  private readonly viewDisposables: vscode.Disposable[] = [];
 
-  constructor(private readonly analysis: AnalysisService) {
+  constructor(private readonly analysis: AnalysisService) {}
+
+  resolveWebviewView(webviewView: vscode.WebviewView): void {
+    this.disposeViewListeners();
+    this.view = webviewView;
+    webviewView.webview.options = { enableScripts: true };
+    webviewView.webview.html = renderSymbolSearchWebview({
+      cspSource: webviewView.webview.cspSource,
+      nonce: randomBytes(16).toString("hex"),
+      placeholder: vscode.l10n.t("Type a function, variable, type, or macro name"),
+      clearTitle: vscode.l10n.t("Clear Workspace Symbol Search"),
+      resultsLabel: vscode.l10n.t("Workspace Symbol Results"),
+    });
+    this.viewDisposables.push(
+      webviewView.webview.onDidReceiveMessage((value: unknown) => {
+        const message = parseSymbolSearchWebviewMessage(value);
+        if (!message) {
+          return;
+        }
+        if (message.type === "query") {
+          this.scheduleSearch(message.query);
+        } else if (message.type === "clear") {
+          this.clear();
+        } else if (message.type === "ready") {
+          this.publish();
+        } else {
+          void this.activate(message.id);
+        }
+      }),
+      webviewView.onDidChangeVisibility(() => {
+        if (webviewView.visible) {
+          this.publish();
+        }
+      }),
+      webviewView.onDidDispose(() => {
+        if (this.view === webviewView) {
+          this.view = undefined;
+        }
+        this.disposeViewListeners();
+      }),
+    );
     this.publish();
   }
 
   async openSearch(): Promise<void> {
-    const picker = vscode.window.createQuickPick<SearchItem>();
-    picker.title = vscode.l10n.t("C Insight: Search Workspace Symbols");
-    picker.placeholder = vscode.l10n.t("Type a function, variable, type, or macro name");
-    picker.matchOnDescription = true;
-    picker.matchOnDetail = true;
-    picker.busy = false;
-    picker.value = this.query;
-    let timer: NodeJS.Timeout | undefined;
-    const update = (): void => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        timer = undefined;
-        void this.search(picker.value, picker);
-      }, this.debounce);
-    };
-    const disposables: vscode.Disposable[] = [];
-    disposables.push(
-      picker.onDidChangeValue(update),
-      picker.onDidAccept(() => {
-        const selected = picker.selectedItems[0] ?? picker.activeItems[0];
-        if (selected) {
-          void vscode.commands.executeCommand(
-            "cInsight.openLocation",
-            this.node(selected.symbol),
-          );
-          picker.hide();
-        }
-      }),
-      picker.onDidHide(() => {
-        if (timer) {
-          clearTimeout(timer);
-        }
-        while (disposables.length > 0) {
-          disposables.pop()?.dispose();
-        }
-        picker.dispose();
-      }),
-    );
-    picker.show();
-    if (picker.value.trim()) {
-      await this.search(picker.value, picker);
-    }
+    await vscode.commands.executeCommand(`${VIEWS.WORKSPACE_SYMBOLS}.focus`);
+    this.view?.show(false);
+    await this.view?.webview.postMessage({ type: "focus" });
   }
 
   async refresh(): Promise<void> {
-    if (this.query) {
-      await this.search(this.query);
+    if (this.query.trim()) {
+      await this.searchNow(this.query);
+    } else {
+      this.publish();
     }
   }
 
   clear(): void {
+    this.cancelTimer();
     this.generation += 1;
     this.query = "";
     this.results = [];
+    this.loading = false;
+    this.error = undefined;
     this.publish();
+    void this.view?.webview.postMessage({ type: "focus" });
   }
 
   async chooseGrouping(): Promise<void> {
@@ -152,121 +186,163 @@ export class SymbolSearchExplorer implements vscode.Disposable {
       state.selectedKinds.filter((kind) => Number.isInteger(kind)),
     );
     if (state.query.trim()) {
-      await this.search(state.query);
+      await this.searchNow(state.query);
     } else {
+      this.query = state.query;
       this.publish();
     }
+  }
+
+  interactionState(): {
+    query: string;
+    results: number;
+    visibleResults: number;
+    viewResolved: boolean;
+    loading: boolean;
+  } {
+    return {
+      query: this.query,
+      results: this.results.length,
+      visibleResults: this.visibleResults.length,
+      viewResolved: this.view !== undefined,
+      loading: this.loading,
+    };
+  }
+
+  searchForTest(query: string): Promise<void> {
+    return this.searchNow(query);
   }
 
   dispose(): void {
+    this.cancelTimer();
     this.generation += 1;
-    this.provider.dispose();
+    this.disposeViewListeners();
+    this.view = undefined;
   }
 
-  private async search(
-    query: string,
-    picker?: vscode.QuickPick<SearchItem>,
-  ): Promise<void> {
-    const trimmed = query.trim();
-    this.query = trimmed;
+  private scheduleSearch(query: string): void {
+    this.cancelTimer();
+    this.query = query;
+    this.error = undefined;
     const generation = ++this.generation;
-    if (!trimmed) {
+    if (!query.trim()) {
       this.results = [];
+      this.loading = false;
       this.publish();
-      if (picker) {
-        picker.items = [];
-        picker.busy = false;
-      }
       return;
     }
-    if (picker) {
-      picker.busy = true;
+    this.loading = true;
+    this.publish();
+    this.timer = setTimeout(() => {
+      this.timer = undefined;
+      void this.executeSearch(query, generation);
+    }, this.debounce);
+  }
+
+  private async searchNow(query: string): Promise<void> {
+    this.cancelTimer();
+    this.query = query;
+    this.error = undefined;
+    const generation = ++this.generation;
+    if (!query.trim()) {
+      this.results = [];
+      this.loading = false;
+      this.publish();
+      return;
     }
+    this.loading = true;
+    this.publish();
+    await this.executeSearch(query, generation);
+  }
+
+  private async executeSearch(query: string, generation: number): Promise<void> {
     try {
-      const raw = await this.analysis.workspaceSymbols(trimmed);
+      const raw = await this.analysis.workspaceSymbols(query.trim());
       if (generation !== this.generation) {
         return;
       }
       this.results = raw.map(toRecord);
-      this.publish();
-      if (picker) {
-        picker.items = this.visibleResults.map((symbol) => ({
-          label: symbol.name,
-          description: [symbol.kindLabel, symbol.containerName]
-            .filter(Boolean)
-            .join(" · "),
-          detail: vscode.workspace.asRelativePath(vscode.Uri.parse(symbol.uri)),
-          symbol,
-        }));
-      }
+      this.error = undefined;
     } catch (error) {
-      if (generation === this.generation) {
-        this.provider.setRoots([
-          {
-            label: vscode.l10n.t("Symbol search failed: {error}", { error: String(error) }),
-            icon: new vscode.ThemeIcon("error"),
-          },
-        ]);
+      if (generation !== this.generation) {
+        return;
       }
+      this.results = [];
+      this.error = vscode.l10n.t("Symbol search failed: {error}", {
+        error: String(error),
+      });
     } finally {
-      if (picker && generation === this.generation) {
-        picker.busy = false;
+      if (generation === this.generation) {
+        this.loading = false;
+        this.publish();
       }
     }
   }
 
-  private publish(): void {
-    if (!this.query) {
-      this.provider.setRoots([
-        {
-          label: vscode.l10n.t("Search workspace symbols"),
-          description: vscode.l10n.t("functions, variables, types, macros"),
-          icon: new vscode.ThemeIcon("search"),
-          command: {
-            command: "cInsight.searchSymbols",
-            title: vscode.l10n.t("Search Workspace Symbols"),
-          },
-        },
-      ]);
-      return;
-    }
-    const visible = this.visibleResults;
-    if (visible.length === 0) {
-      this.provider.setRoots([
-        {
-          label: vscode.l10n.t("No symbols found for “{query}”", { query: this.query }),
-          icon: new vscode.ThemeIcon("info"),
-        },
-      ]);
-      return;
-    }
-    const groups = groupWorkspaceSymbols(visible, this.grouping);
-    if (this.grouping === "flat") {
-      this.provider.setRoots(groups[0].symbols.map((symbol) => this.node(symbol)));
-      return;
-    }
-    this.provider.setRoots(
-      groups.map((group) => ({
-        label: group.label,
-        description: `${group.symbols.length}`,
-        icon: new vscode.ThemeIcon(
-          this.grouping === "type" ? "symbol-key" : "folder",
-        ),
-        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-        children: group.symbols.map((symbol) => this.node(symbol)),
-      })),
+  private async activate(id: string): Promise<void> {
+    const symbol = this.visibleResults.find(
+      (candidate) => symbolSearchId(candidate) === id,
     );
+    if (!symbol) {
+      return;
+    }
+    await vscode.commands.executeCommand(
+      "cInsight.activateTreeLocation",
+      this.node(symbol),
+      VIEWS.WORKSPACE_SYMBOLS,
+    );
+  }
+
+  private publish(): void {
+    void this.view?.webview.postMessage(this.viewState());
+  }
+
+  private viewState(): SymbolSearchViewState {
+    const visible = this.loading ? [] : this.visibleResults;
+    const groups = visible.length > 0
+      ? groupWorkspaceSymbols(visible, this.grouping)
+      : [];
+    return {
+      type: "state",
+      query: this.query,
+      status: this.error ??
+        (this.loading
+          ? vscode.l10n.t("Searching workspace symbols…")
+          : !this.query.trim()
+            ? vscode.l10n.t("Type a function, variable, type, or macro name")
+            : visible.length === 0
+              ? vscode.l10n.t("No symbols found for “{query}”", {
+                  query: this.query.trim(),
+                })
+              : vscode.l10n.t("{count} workspace symbols", {
+                  count: visible.length,
+                })),
+      flat: this.grouping === "flat",
+      groups: groups.map((group) => ({
+        label: group.label,
+        symbols: group.symbols.map((symbol) => this.viewSymbol(symbol)),
+      })),
+    };
+  }
+
+  private viewSymbol(symbol: WorkspaceSymbolRecord): SymbolSearchViewSymbol {
+    const uri = vscode.Uri.parse(symbol.uri);
+    const location = `${vscode.workspace.asRelativePath(uri)}:${symbol.line + 1}`;
+    const icon = symbolWebviewIcon(symbol.kind);
+    return {
+      id: symbolSearchId(symbol),
+      name: symbol.name,
+      description: [symbol.containerName, location].filter(Boolean).join(" · "),
+      tooltip: `${symbol.kindLabel}\n${uri.fsPath}:${symbol.line + 1}:${symbol.character + 1}`,
+      ...icon,
+    };
   }
 
   private node(symbol: WorkspaceSymbolRecord): TreeNode {
     const uri = vscode.Uri.parse(symbol.uri);
     return {
+      id: `workspace-symbol:${symbolSearchId(symbol)}`,
       label: symbol.name,
-      description:
-        symbol.containerName ??
-        `${vscode.workspace.asRelativePath(uri)}:${symbol.line + 1}`,
-      tooltip: `${symbol.kindLabel}\n${uri.fsPath}:${symbol.line + 1}:${symbol.character + 1}`,
-      icon: new vscode.ThemeIcon(symbolIcon(symbol.kind)),
       location: {
         uri,
         range: new vscode.Range(
@@ -307,6 +383,29 @@ export class SymbolSearchExplorer implements vscode.Disposable {
       .getConfiguration("cInsight.symbolSearch")
       .get<number>("debounce", 250);
   }
+
+  private cancelTimer(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
+  }
+
+  private disposeViewListeners(): void {
+    while (this.viewDisposables.length > 0) {
+      this.viewDisposables.pop()?.dispose();
+    }
+  }
+}
+
+function symbolSearchId(symbol: WorkspaceSymbolRecord): string {
+  return JSON.stringify([
+    symbol.uri,
+    symbol.line,
+    symbol.character,
+    symbol.kind,
+    symbol.name,
+  ]);
 }
 
 function toRecord(symbol: SymbolInformation): WorkspaceSymbolRecord {
@@ -329,7 +428,34 @@ function distinctKinds(
   ].sort((left, right) => left[1].localeCompare(right[1]));
 }
 
-const symbolIcon = symbolKindIconId;
+function symbolWebviewIcon(kind: number): { icon: string; iconClass: string } {
+  if (
+    kind === SymbolKind.Class ||
+    kind === SymbolKind.Struct ||
+    kind === SymbolKind.Interface ||
+    kind === SymbolKind.Enum ||
+    kind === SymbolKind.TypeParameter
+  ) {
+    return { icon: "T", iconClass: "kind-type" };
+  }
+  if (
+    kind === SymbolKind.Variable ||
+    kind === SymbolKind.Constant ||
+    kind === SymbolKind.Field ||
+    kind === SymbolKind.Property ||
+    kind === SymbolKind.EnumMember
+  ) {
+    return { icon: "◆", iconClass: "kind-value" };
+  }
+  if (
+    kind === SymbolKind.Namespace ||
+    kind === SymbolKind.Module ||
+    kind === SymbolKind.Package
+  ) {
+    return { icon: "N", iconClass: "kind-namespace" };
+  }
+  return { icon: "ƒ", iconClass: "kind-function" };
+}
 
 function symbolKindLabel(kind: number): string {
   const labels: Partial<Record<number, string>> = {
