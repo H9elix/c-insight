@@ -92,6 +92,10 @@ export class CodePreviewProvider
     return this.view?.visible ?? false;
   }
 
+  get isLocked(): boolean {
+    return this.locked;
+  }
+
   constructor(
     private readonly analysis: AnalysisService,
     private readonly navigationHistory: NavigationHistoryExplorer,
