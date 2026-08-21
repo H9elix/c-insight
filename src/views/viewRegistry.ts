@@ -578,6 +578,7 @@ export class ViewRegistry implements vscode.Disposable {
     incomingOccurrences: CallOccurrenceSnapshot[];
     outgoingOccurrences: CallOccurrenceSnapshot[];
     incomingDeclarations: CallLocationSnapshot[];
+    incomingNavigationLabels: string[];
     loadedIncoming: number;
     loadedOutgoing: number;
     incomingCache: { hits: number; misses: number };
@@ -603,6 +604,9 @@ export class ViewRegistry implements vscode.Disposable {
       incomingOccurrences: callOccurrenceSnapshots(this.callers.getRoots()),
       outgoingOccurrences: callOccurrenceSnapshots(this.callees.getRoots()),
       incomingDeclarations: callerDeclarationSnapshots(this.callers.getRoots()),
+      incomingNavigationLabels: flattenLoadedCallNavigationNodes(
+        this.callers.getRoots(),
+      ).map((node) => node.label),
       loadedIncoming: flattenLoadedCallNodes(this.callers.getRoots()).length,
       loadedOutgoing: flattenLoadedCallNodes(this.callees.getRoots()).length,
       incomingCache: this.callRepository.stats("incoming"),
@@ -1663,10 +1667,15 @@ export class ViewRegistry implements vscode.Disposable {
     node: CallNode,
     locations: CallSymbolLocations,
   ): TreeNode[] {
+    const providerLocation: LocationResult = {
+      uri: vscode.Uri.parse(node.raw.uri),
+      range: this.analysis.toVsRange(node.raw.selectionRange),
+    };
     const declarations = independentDeclarationLocations(
       locations.definitions,
       locations.declarations,
       owner.location,
+      providerLocation,
     );
     return declarations.map((location, index) => {
       const target = `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`;

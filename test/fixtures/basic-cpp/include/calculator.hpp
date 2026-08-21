@@ -12,3 +12,5 @@ public:
 };
 
 class ScientificCalculator : public Calculator {};
+
+int calculate();
