@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-  CallHierarchyIncomingCall,
   CallHierarchyOutgoingCall,
   DocumentSymbol,
   SymbolInformation,
@@ -12,6 +11,10 @@ import {
 import { AnalysisReliability } from "../diagnostics/analysisReliability";
 import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
+import {
+  CallOccurrence,
+  projectCallOccurrences,
+} from "../callHierarchy/callOccurrenceModel";
 import { microsoftEmptyCallersMessage } from "../callHierarchy/microsoftCallerFallbackModel";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import type {
@@ -472,6 +475,8 @@ export class ViewRegistry implements vscode.Disposable {
     outgoingRoots: string[];
     incomingLabels: string[];
     outgoingLabels: string[];
+    incomingOccurrences: CallOccurrenceSnapshot[];
+    outgoingOccurrences: CallOccurrenceSnapshot[];
     loadedIncoming: number;
     loadedOutgoing: number;
     incomingCache: { hits: number; misses: number };
@@ -492,6 +497,8 @@ export class ViewRegistry implements vscode.Disposable {
         .map((node) => node.label),
       incomingLabels: this.callers.getRoots().map((node) => node.label),
       outgoingLabels: this.callees.getRoots().map((node) => node.label),
+      incomingOccurrences: callOccurrenceSnapshots(this.callers.getRoots()),
+      outgoingOccurrences: callOccurrenceSnapshots(this.callees.getRoots()),
       loadedIncoming: flattenLoadedCallNodes(this.callers.getRoots()).length,
       loadedOutgoing: flattenLoadedCallNodes(this.callees.getRoots()).length,
       incomingCache: this.callRepository.stats("incoming"),
@@ -500,6 +507,26 @@ export class ViewRegistry implements vscode.Disposable {
       calleeEvidence: this.callRepository.microsoftCalleeEvidenceStats(),
       session: this.callHierarchySessionState(),
     };
+  }
+
+  async activateCallOccurrenceForTest(
+    direction: "incoming" | "outgoing",
+    label: string,
+    ordinal: number,
+  ): Promise<boolean> {
+    const provider = direction === "incoming" ? this.callers : this.callees;
+    const occurrence = flattenLoadedCallNodes(provider.getRoots())
+      .filter((node) => (node.callDepth ?? 0) > 0 && node.label === label)
+      .sort(compareTreeNodeLocations)[ordinal - 1];
+    if (!occurrence?.location) {
+      return false;
+    }
+    await vscode.commands.executeCommand(
+      "cInsight.activateTreeLocation",
+      occurrence,
+      direction === "incoming" ? VIEWS.CALLERS : VIEWS.CALLEES,
+    );
+    return true;
   }
 
   expandCallHierarchyToDepth(
@@ -1049,7 +1076,8 @@ export class ViewRegistry implements vscode.Disposable {
     while (queue.length > 0 && !token.isCancellationRequested) {
       const node = queue.shift()!;
       if (
-        node.callKey === undefined ||
+        node.callPath === undefined ||
+        (node.loadChildren === undefined && node.children === undefined) ||
         (node.callDepth ?? 0) >= depth ||
         this.callTreeState[direction].atLimit(this.maximumCallNodes())
       ) {
@@ -1070,7 +1098,7 @@ export class ViewRegistry implements vscode.Disposable {
         // resolve an otherwise successfully loaded node. Keep the data and
         // exact expansion path; reveal is presentation-only.
       }
-      queue.push(...children.filter((child) => child.callKey !== undefined));
+      queue.push(...children.filter((child) => child.callPath !== undefined));
     }
   }
 
@@ -1268,67 +1296,232 @@ export class ViewRegistry implements vscode.Disposable {
         : vscode.TreeItemCollapsibleState.Collapsed,
       loadChildren: recursive || atDepthLimit
         ? undefined
-        : async () => {
-            if (this.callTreeState[direction].atLimit(this.maximumCallNodes())) {
-              return [limitNode("Call hierarchy node limit reached")];
-            }
-            const lineage = [...ancestors, node.key];
-            if (direction === "incoming") {
-              try {
-                const calls = await this.callRepository.incoming(
-                  node,
-                  this.callExpansion?.token,
-                );
-                const remaining = this.callTreeState[direction].remaining(
-                  this.maximumCallNodes(),
-                );
-                const children = calls.slice(0, remaining).map((call) =>
-                  this.incomingNode(call, lineage, direction, depth + 1),
-                );
-                if (children.length < calls.length) {
-                  children.push(
-                    limitNode(vscode.l10n.t("Call hierarchy node limit reached")),
-                  );
-                }
-                return children.length > 0
-                  ? children
-                  : [this.noCallsNode("incoming", node)];
-              } catch (error) {
-                return [this.callQueryError("Callers", error)];
-              }
-            }
-            try {
-              const calls = await this.callRepository.outgoing(
-                node,
-                this.callExpansion?.token,
-              );
-              const remaining = this.callTreeState[direction].remaining(
-                this.maximumCallNodes(),
-              );
-              const children = calls.slice(0, remaining).map((call) =>
-                this.outgoingNode(
-                  call,
-                  lineage,
-                  direction,
-                  vscode.Uri.parse(node.raw.uri),
-                  depth + 1,
-                ),
-              );
-              if (children.length < calls.length) {
-                children.push(limitNode(vscode.l10n.t("Call hierarchy node limit reached")));
-              }
-              const unresolved = await this.unresolvedIndirectCallNodes(
-                node,
-                calls.flatMap((call) => call.fromRanges),
-              );
-              return children.length + unresolved.length > 0
-                ? [...children, ...unresolved]
-                : [this.noCallsNode("outgoing")];
-            } catch (error) {
-              return [this.callQueryError("Callees", error)];
-            }
-          },
+        : () => this.loadCallChildren(
+            node,
+            direction,
+            [...ancestors, node.key],
+            depth + 1,
+          ),
     };
+  }
+
+  private async loadCallChildren(
+    node: CallNode,
+    direction: "incoming" | "outgoing",
+    ancestors: string[],
+    depth: number,
+  ): Promise<TreeNode[]> {
+    if (this.callTreeState[direction].atLimit(this.maximumCallNodes())) {
+      return [limitNode(vscode.l10n.t("Call hierarchy node limit reached"))];
+    }
+    if (direction === "incoming") {
+      try {
+        const calls = await this.callRepository.incoming(
+          node,
+          this.callExpansion?.token,
+        );
+        const occurrences = projectCallOccurrences(
+          calls.map((call) => {
+            const caller = this.analysis.callNode(call.from);
+            return {
+              semanticKey: caller.key,
+              callSiteUri: call.from.uri,
+              ranges: call.fromRanges,
+              fallbackUri: caller.raw.uri,
+              fallbackRange: caller.raw.selectionRange,
+              value: caller,
+            };
+          }),
+        );
+        const children = this.materializeCallOccurrences(
+          occurrences,
+          direction,
+          ancestors,
+          depth,
+          [],
+        );
+        return children.length > 0
+          ? children
+          : [this.noCallsNode("incoming", node)];
+      } catch (error) {
+        return [this.callQueryError("Callers", error)];
+      }
+    }
+    try {
+      const calls = await this.callRepository.outgoing(
+        node,
+        this.callExpansion?.token,
+      );
+      const occurrences = projectCallOccurrences(
+        calls.map((call) => {
+          const callee = this.analysis.callNode(call.to);
+          return {
+            semanticKey: callee.key,
+            callSiteUri: node.raw.uri,
+            ranges: call.fromRanges,
+            fallbackUri: callee.raw.uri,
+            fallbackRange: callee.raw.selectionRange,
+            value: callee,
+          };
+        }),
+      );
+      const unresolved = await this.unresolvedIndirectCallNodes(
+        node,
+        calls.flatMap((call) => call.fromRanges),
+      );
+      const children = this.materializeCallOccurrences(
+        occurrences,
+        direction,
+        ancestors,
+        depth,
+        unresolved,
+      );
+      return children.length > 0
+        ? children
+        : [this.noCallsNode("outgoing")];
+    } catch (error) {
+      return [this.callQueryError("Callees", error)];
+    }
+  }
+
+  private materializeCallOccurrences(
+    occurrences: CallOccurrence<CallNode>[],
+    direction: "incoming" | "outgoing",
+    ancestors: string[],
+    depth: number,
+    additionalNodes: TreeNode[],
+  ): TreeNode[] {
+    const candidates: CallChildCandidate[] = [
+      ...occurrences.map((occurrence): CallChildCandidate => ({
+        kind: "occurrence",
+        occurrence,
+      })),
+      ...additionalNodes.map((node): CallChildCandidate => ({
+        kind: "additional",
+        node,
+      })),
+    ].sort(compareCallChildCandidates);
+    const remaining = this.callTreeState[direction].remaining(
+      this.maximumCallNodes(),
+    );
+    const visible = candidates.slice(0, remaining);
+    const states = new Map<string, CallOccurrenceGroupState>();
+    for (const candidate of visible) {
+      if (candidate.kind !== "occurrence") {
+        continue;
+      }
+      const { semanticKey } = candidate.occurrence;
+      if (states.has(semanticKey)) {
+        continue;
+      }
+      const recursion = recursionKind(semanticKey, ancestors);
+      states.set(semanticKey, {
+        recursion,
+        duplicate: this.callTreeState[direction].observe(
+          semanticKey,
+          recursion !== undefined,
+        ),
+      });
+    }
+    this.callTreeState[direction].consume(visible.length);
+    const children = visible.map((candidate) =>
+      candidate.kind === "additional"
+        ? candidate.node
+        : this.callOccurrenceNode(
+            candidate.occurrence,
+            direction,
+            ancestors,
+            depth,
+            states.get(candidate.occurrence.semanticKey)!,
+          ),
+    );
+    if (visible.length < candidates.length) {
+      children.push(limitNode(vscode.l10n.t("Call hierarchy node limit reached")));
+    }
+    return children;
+  }
+
+  private callOccurrenceNode(
+    occurrence: CallOccurrence<CallNode>,
+    direction: "incoming" | "outgoing",
+    ancestors: string[],
+    depth: number,
+    state: CallOccurrenceGroupState,
+  ): TreeNode {
+    const uri = vscode.Uri.parse(occurrence.uri);
+    const location: LocationResult = {
+      uri,
+      range: this.analysis.toVsRange(occurrence.range),
+    };
+    const maximumDepth = vscode.workspace
+      .getConfiguration("cInsight.callHierarchy")
+      .get<number>("maximumDepth", 10);
+    const atDepthLimit = depth >= maximumDepth;
+    const recursive = state.recursion !== undefined;
+    const expandable = occurrence.canonical && !recursive && !atDepthLimit;
+    const status = occurrence.canonical
+      ? recursive
+        ? state.recursion === "direct"
+          ? "direct recursion"
+          : "indirect recursion"
+        : state.duplicate
+          ? "duplicate"
+          : undefined
+      : undefined;
+    const description = occurrence.fallback
+      ? [
+          vscode.l10n.t("call location unavailable"),
+          `${vscode.workspace.asRelativePath(uri)}:${location.range.start.line + 1}`,
+          status,
+          atDepthLimit && occurrence.canonical ? "max depth" : undefined,
+        ]
+      : [
+          `${vscode.workspace.asRelativePath(uri)}:${location.range.start.line + 1}`,
+          vscode.l10n.t("call {ordinal}/{total}", {
+            ordinal: occurrence.ordinal,
+            total: occurrence.total,
+          }),
+          status,
+          atDepthLimit && occurrence.canonical ? "max depth" : undefined,
+        ];
+    const node: TreeNode = {
+      id: `${direction}:occurrence:${ancestors.join(">")}:${occurrence.id}`,
+      label: occurrence.value.raw.name,
+      description: description.filter(Boolean).join(" · "),
+      tooltip: occurrence.fallback
+        ? vscode.l10n.t("The analysis engine returned this relationship without a call-site range. The definition location is shown instead.")
+        : `${uri.fsPath}:${location.range.start.line + 1}`,
+      location,
+      previewMode:
+        occurrence.fallback && direction === "outgoing"
+          ? "callee-definition"
+          : direction === "incoming"
+            ? "caller"
+            : "callee-call-site",
+      previewTitle: occurrence.value.raw.name,
+      callKey: occurrence.semanticKey,
+      callDepth: depth,
+      callNode: occurrence.value,
+      callPath: expandable
+        ? [...ancestors, occurrence.semanticKey].join("\u0000")
+        : undefined,
+      icon: new vscode.ThemeIcon(recursive ? "debug-restart" : "symbol-method"),
+      collapsibleState: expandable
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None,
+      loadChildren: expandable
+        ? () => this.loadCallChildren(
+            occurrence.value,
+            direction,
+            [...ancestors, occurrence.semanticKey],
+            depth + 1,
+          )
+        : undefined,
+    };
+    if (!occurrence.fallback) {
+      node.resolveVisible = () => this.enrichCallOccurrenceNode(node);
+    }
+    return node;
   }
 
   private callQueryError(noun: "Callers" | "Callees", error: unknown): TreeNode {
@@ -1342,24 +1535,6 @@ export class ViewRegistry implements vscode.Disposable {
           ? vscode.l10n.t("Set cInsight.clangd.path to a clangd 20+ executable and restart clangd.")
           : String(error),
       },
-    );
-  }
-
-  private incomingNode(
-    call: CallHierarchyIncomingCall,
-    ancestors: string[],
-    direction: "incoming",
-    depth: number,
-  ): TreeNode {
-    const node = this.analysis.callNode(call.from);
-    const treeNode = this.callTreeNode(node, direction, ancestors, depth);
-    treeNode.previewMode = "caller";
-    treeNode.description = `${call.fromRanges.length} call${call.fromRanges.length === 1 ? "" : "s"} · ${treeNode.description ?? ""}`;
-    return this.withCallSites(
-      treeNode,
-      vscode.Uri.parse(call.from.uri),
-      call.fromRanges,
-      "caller",
     );
   }
 
@@ -1415,25 +1590,6 @@ export class ViewRegistry implements vscode.Disposable {
       }));
   }
 
-  private outgoingNode(
-    call: CallHierarchyOutgoingCall,
-    ancestors: string[],
-    direction: "outgoing",
-    callerUri: vscode.Uri,
-    depth: number,
-  ): TreeNode {
-    const node = this.analysis.callNode(call.to);
-    const treeNode = this.callTreeNode(node, direction, ancestors, depth);
-    treeNode.previewMode = "callee-definition";
-    treeNode.description = `${call.fromRanges.length} call${call.fromRanges.length === 1 ? "" : "s"} · ${treeNode.description ?? ""}`;
-    return this.withCallSites(
-      treeNode,
-      callerUri,
-      call.fromRanges,
-      "callee-call-site",
-    );
-  }
-
   private locationNode(
     location: LocationResult,
     label: string,
@@ -1482,31 +1638,7 @@ export class ViewRegistry implements vscode.Disposable {
     };
   }
 
-  private withCallSites(
-    node: TreeNode,
-    uri: vscode.Uri,
-    ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>,
-    mode: PreviewMode,
-  ): TreeNode {
-    const nested = node.loadChildren;
-    node.loadChildren = async () => {
-      const callSites = ranges.map((range, index) =>
-        this.locationNode(
-          {
-            uri,
-            range: this.analysis.toVsRange(range),
-          },
-          `Call ${index + 1} · Line ${range.start.line + 1}`,
-          mode,
-        ),
-      );
-      const descendants = nested ? await nested() : [];
-      return [...callSites, ...descendants];
-    };
-    return node;
-  }
-
-  private async enrichSourceNode(node: TreeNode): Promise<void> {
+  private async enrichCallOccurrenceNode(node: TreeNode): Promise<void> {
     if (!node.location) {
       return;
     }
@@ -1517,7 +1649,6 @@ export class ViewRegistry implements vscode.Disposable {
       );
       const line = source?.trim();
       if (line) {
-        node.label = `${node.location.range.start.line + 1}  ${line}`;
         const indirect =
           node.previewMode === "callee-call-site" &&
           looksLikeExplicitIndirectCall(
@@ -1540,6 +1671,110 @@ export class ViewRegistry implements vscode.Disposable {
     }
   }
 
+  private async enrichSourceNode(node: TreeNode): Promise<void> {
+    if (!node.location) {
+      return;
+    }
+    try {
+      const source = await this.sourceLines.line(
+        node.location.uri,
+        node.location.range.start.line,
+      );
+      const line = source?.trim();
+      if (line) {
+        node.label = `${node.location.range.start.line + 1}  ${line}`;
+        node.tooltip = `${node.location.uri.fsPath}:${node.location.range.start.line + 1}\n${line}`;
+      }
+    } catch {
+      // Keep the location-only label when a virtual or missing file cannot load.
+    }
+  }
+
+}
+
+interface CallOccurrenceSnapshot {
+  label: string;
+  uri: string;
+  line: number;
+  character: number;
+  depth: number;
+  canonical: boolean;
+  expandable: boolean;
+  previewMode?: PreviewMode;
+}
+
+interface CallOccurrenceGroupState {
+  recursion?: "direct" | "indirect";
+  duplicate: boolean;
+}
+
+type CallChildCandidate =
+  | { kind: "occurrence"; occurrence: CallOccurrence<CallNode> }
+  | { kind: "additional"; node: TreeNode };
+
+function compareCallChildCandidates(
+  left: CallChildCandidate,
+  right: CallChildCandidate,
+): number {
+  const leftLocation = callChildLocation(left);
+  const rightLocation = callChildLocation(right);
+  return (
+    leftLocation.uri.localeCompare(rightLocation.uri) ||
+    leftLocation.line - rightLocation.line ||
+    leftLocation.character - rightLocation.character ||
+    (left.kind === "occurrence" ? left.occurrence.semanticKey : left.node.id ?? "")
+      .localeCompare(
+        right.kind === "occurrence"
+          ? right.occurrence.semanticKey
+          : right.node.id ?? "",
+      )
+  );
+}
+
+function callChildLocation(candidate: CallChildCandidate): {
+  uri: string;
+  line: number;
+  character: number;
+} {
+  if (candidate.kind === "occurrence") {
+    return {
+      uri: candidate.occurrence.uri,
+      line: candidate.occurrence.range.start.line,
+      character: candidate.occurrence.range.start.character,
+    };
+  }
+  return {
+    uri: candidate.node.location?.uri.toString() ?? "",
+    line: candidate.node.location?.range.start.line ?? 0,
+    character: candidate.node.location?.range.start.character ?? 0,
+  };
+}
+
+function compareTreeNodeLocations(left: TreeNode, right: TreeNode): number {
+  return (
+    (left.location?.uri.toString() ?? "").localeCompare(
+      right.location?.uri.toString() ?? "",
+    ) ||
+    (left.location?.range.start.line ?? 0) -
+      (right.location?.range.start.line ?? 0) ||
+    (left.location?.range.start.character ?? 0) -
+      (right.location?.range.start.character ?? 0)
+  );
+}
+
+function callOccurrenceSnapshots(roots: TreeNode[]): CallOccurrenceSnapshot[] {
+  return flattenLoadedCallNodes(roots)
+    .filter((node) => (node.callDepth ?? 0) > 0 && node.location)
+    .map((node) => ({
+      label: node.label,
+      uri: node.location!.uri.toString(),
+      line: node.location!.range.start.line,
+      character: node.location!.range.start.character,
+      depth: node.callDepth ?? 0,
+      canonical: node.callPath !== undefined,
+      expandable: node.loadChildren !== undefined || node.children !== undefined,
+      previewMode: node.previewMode,
+    }));
 }
 
 function hasPathOrDescendant(paths: Set<string>, candidate: string): boolean {
