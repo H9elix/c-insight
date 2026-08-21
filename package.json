@@ -1612,7 +1612,7 @@
         },
         "cInsight.callHierarchy.defaultDepth": {
           "type": "number",
-          "default": 0,
+          "default": 1,
           "minimum": 0,
           "maximum": 10,
           "description": "%configuration.cInsight.callHierarchy.defaultDepth.description%"

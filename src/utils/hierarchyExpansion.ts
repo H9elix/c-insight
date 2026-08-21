@@ -11,6 +11,22 @@ export interface HierarchyExpansionState {
   maximumDepth: number;
 }
 
+export function defaultCallExpansionDirections(
+  visibility: { callers: boolean; callees: boolean },
+  manualDirection?: "incoming" | "outgoing",
+): Array<"incoming" | "outgoing"> {
+  if (manualDirection) {
+    return [manualDirection];
+  }
+  return [
+    visibility.callers ? "incoming" as const : undefined,
+    visibility.callees ? "outgoing" as const : undefined,
+  ].filter(
+    (direction): direction is "incoming" | "outgoing" =>
+      direction !== undefined,
+  );
+}
+
 export function hierarchyExpansionStopReason(
   state: HierarchyExpansionState,
 ): HierarchyExpansionStopReason | undefined {

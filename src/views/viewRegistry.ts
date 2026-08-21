@@ -39,6 +39,7 @@ import {
 } from "../utils/callHierarchy";
 import { findCallPaths } from "../utils/callPath";
 import {
+  defaultCallExpansionDirections,
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
 } from "../utils/hierarchyExpansion";
@@ -391,7 +392,7 @@ export class ViewRegistry implements vscode.Disposable {
       this.callResultsStaleReason = undefined;
       this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
       this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
-      void this.expandDefaultDepth();
+      void this.expandDefaultDepth(intent.manualCallDirection);
     }
   }
 
@@ -693,7 +694,7 @@ export class ViewRegistry implements vscode.Disposable {
           ? vscode.l10n.t("Expand Callers to Depth")
           : vscode.l10n.t("Expand Callees to Depth"),
       value: String(
-        Math.max(1, configuration.get<number>("defaultDepth", 0)),
+        Math.max(1, configuration.get<number>("defaultDepth", 1)),
       ),
       prompt: vscode.l10n.t("Enter a depth from 1 to {maximum}", { maximum: maximumDepth }),
       validateInput: (input) => {
@@ -933,19 +934,32 @@ export class ViewRegistry implements vscode.Disposable {
     this.lifecycle.dispose();
   }
 
-  private async expandDefaultDepth(): Promise<void> {
+  private async expandDefaultDepth(
+    manualDirection?: "incoming" | "outgoing",
+  ): Promise<void> {
     const depth = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
-      .get<number>("defaultDepth", 0);
+      .get<number>("defaultDepth", 1);
     if (depth <= 0 || this.callRootSignature.length === 0) {
+      return;
+    }
+    const directions = defaultCallExpansionDirections(
+      {
+        callers: this.isViewVisible(VIEWS.CALLERS),
+        callees: this.isViewVisible(VIEWS.CALLEES),
+      },
+      manualDirection,
+    );
+    if (directions.length === 0) {
       return;
     }
     this.stopCallExpansion();
     const cancellation = new vscode.CancellationTokenSource();
     this.callExpansion = cancellation;
     try {
-      await this.expandDirection("incoming", depth, cancellation.token);
-      await this.expandDirection("outgoing", depth, cancellation.token);
+      for (const direction of directions) {
+        await this.expandDirection(direction, depth, cancellation.token);
+      }
     } catch {
       // Cursor movement and refreshes routinely cancel automatic expansion.
     } finally {
