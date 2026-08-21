@@ -359,7 +359,8 @@ interface CallHierarchyProbe {
   outgoingRootLocations: LocationProbe[];
   incomingOccurrences: CallOccurrenceProbe[];
   outgoingOccurrences: CallOccurrenceProbe[];
-  incomingDefinitions: LocationProbe[];
+  incomingDeclarations: LocationProbe[];
+  incomingNavigationLabels: string[];
 }
 
 interface LocationProbe {
@@ -374,15 +375,28 @@ async function verifyPreferredDefinitionRoots(): Promise<void> {
     assert.fail("The C++ fixture workspace was not opened");
   const mainUri = vscode.Uri.joinPath(workspace, "src", "main.cpp");
   const definitionUri = vscode.Uri.joinPath(workspace, "src", "calculator.cpp");
+  const declarationUri = vscode.Uri.joinPath(workspace, "include", "calculator.hpp");
   const document = await vscode.workspace.openTextDocument(mainUri);
   const editor = await vscode.window.showTextDocument(document);
   const call = findPosition(document, "return calculator.sumTo", "sumTo");
-  const callerDefinition = findPosition(document, "int calculate", "calculate");
   const definitionDocument = await vscode.workspace.openTextDocument(definitionUri);
   const targetDefinition = findPosition(
     definitionDocument,
     "int Calculator::sumTo",
     "sumTo",
+  );
+  const declarationDocument = await vscode.workspace.openTextDocument(
+    declarationUri,
+  );
+  const targetDeclaration = findPosition(
+    declarationDocument,
+    "int sumTo",
+    "sumTo",
+  );
+  const callerDeclaration = findPosition(
+    declarationDocument,
+    "int calculate",
+    "calculate",
   );
   editor.selection = new vscode.Selection(call, call);
   await vscode.commands.executeCommand("cInsight.showIncomingCalls");
@@ -393,19 +407,25 @@ async function verifyPreferredDefinitionRoots(): Promise<void> {
     );
     const incomingRoot = value.incomingRootLocations[0];
     const outgoingRoot = value.outgoingRootLocations[0];
-    const caller = value.incomingDefinitions.find((item) =>
-      item.label.startsWith("calculate ·"),
+    const declaration = value.incomingDeclarations.find((item) =>
+      item.label.startsWith("sumTo ·"),
     );
     return incomingRoot?.uri === definitionUri.toString() &&
       incomingRoot.line === targetDefinition.line &&
       outgoingRoot?.uri === definitionUri.toString() &&
       outgoingRoot.line === targetDefinition.line &&
-      caller?.uri === mainUri.toString() &&
-      caller.line === callerDefinition.line
+      declaration?.uri === declarationUri.toString() &&
+      declaration.line === targetDeclaration.line
       ? value
       : undefined;
-  }, "Definition-preferred roots or caller definition rows were not produced");
+  }, "Definition-preferred roots or root declaration rows were not produced");
   assert.equal(state.incomingRootLocations[0].label, "sumTo");
+  assert.equal(state.incomingDeclarations[0]?.label, "sumTo · Declaration");
+  assert.ok(
+    state.incomingNavigationLabels.every((label) =>
+      !label.includes("· Definition")
+    ),
+  );
 
   const preview = await vscode.commands.executeCommand<{
     uri?: string;
@@ -415,8 +435,8 @@ async function verifyPreferredDefinitionRoots(): Promise<void> {
   assert.equal(preview?.range?.start.line, targetDefinition.line);
 
   const activated = await vscode.commands.executeCommand<boolean>(
-    "cInsight.test.activateCallerDefinition",
-    "calculate",
+    "cInsight.test.activateCallerDeclaration",
+    "sumTo",
   );
   assert.equal(activated, true);
   await waitFor(async () => {
@@ -424,11 +444,40 @@ async function verifyPreferredDefinitionRoots(): Promise<void> {
       uri?: string;
       range?: { start: { line: number } };
     }>("cInsight.test.previewState");
-    return current?.uri === mainUri.toString() &&
-      current.range?.start.line === callerDefinition.line
+    return current?.uri === declarationUri.toString() &&
+      current.range?.start.line === targetDeclaration.line
       ? current
       : undefined;
-  }, "Selecting the caller definition row did not preview its definition");
+  }, "Selecting the root declaration row did not preview its declaration");
+
+  await vscode.commands.executeCommand(
+    "cInsight.test.expandCallHierarchy",
+    "incoming",
+    2,
+  );
+  const nested = await waitFor(async () => {
+    const value = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const declaration = value.incomingDeclarations.find((item) =>
+      item.label.startsWith("calculate ·"),
+    );
+    return declaration?.uri === declarationUri.toString() &&
+      declaration.line === callerDeclaration.line
+      ? value
+      : undefined;
+  }, "Expanding calculate did not add its independent declaration");
+  assert.equal(
+    nested.incomingDeclarations.filter((item) =>
+      item.label.startsWith("calculate ·")
+    ).length,
+    1,
+  );
+  assert.ok(
+    nested.incomingOccurrences.some((item) =>
+      item.label === "calculate" && item.line === call.line
+    ),
+  );
 }
 
 async function verifyFlatCallOccurrences(): Promise<void> {

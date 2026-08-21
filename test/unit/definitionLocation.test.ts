@@ -82,4 +82,33 @@ describe("preferred function location", () => {
       [],
     );
   });
+
+  it("uses a distinct call provider location when definition returns the declaration", () => {
+    const declaration = location("file:///header.h", 4);
+    const callSite = location("file:///caller.c", 30);
+    const providerDefinition = location("file:///source.c", 20);
+    assert.deepEqual(
+      independentDeclarationLocations(
+        [declaration],
+        [declaration],
+        callSite,
+        providerDefinition,
+      ),
+      [declaration],
+    );
+  });
+
+  it("hides a provider location returned by both definition and declaration", () => {
+    const shared = location("file:///source.c", 20);
+    const callSite = location("file:///caller.c", 30);
+    assert.deepEqual(
+      independentDeclarationLocations(
+        [shared],
+        [shared],
+        callSite,
+        shared,
+      ),
+      [],
+    );
+  });
 });

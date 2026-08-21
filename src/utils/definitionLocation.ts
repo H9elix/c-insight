@@ -55,6 +55,8 @@ export function sameDefinitionLocation(
  * Keeps provider declarations that are distinct from every known definition
  * and from the location already represented by the owning tree node.
  * Exact duplicate declarations are removed without changing provider order.
+ * When Definition and Declaration both point at a declaration, a distinct
+ * Call Hierarchy provider location is used as implementation evidence.
  */
 export function independentDeclarationLocations<
   T extends ComparableDefinitionLocation,
@@ -62,11 +64,24 @@ export function independentDeclarationLocations<
   definitions: readonly T[],
   declarations: readonly T[],
   displayedLocation?: ComparableDefinitionLocation,
+  providerLocation?: ComparableDefinitionLocation,
 ): T[] {
+  const distinctDefinitions = definitions.filter(
+    (definition) =>
+      !declarations.some((declaration) =>
+        sameDefinitionLocation(definition, declaration)
+      ),
+  );
+  const effectiveDefinitions: readonly ComparableDefinitionLocation[] =
+    distinctDefinitions.length > 0
+      ? distinctDefinitions
+      : providerLocation
+        ? [providerLocation]
+        : definitions;
   const result: T[] = [];
   for (const declaration of declarations) {
     if (
-      definitions.some((definition) =>
+      effectiveDefinitions.some((definition) =>
         sameDefinitionLocation(definition, declaration)
       ) ||
       (displayedLocation !== undefined &&
