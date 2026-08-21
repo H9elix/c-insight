@@ -1,14 +1,14 @@
 import { accessSync } from "node:fs";
 import * as path from "node:path";
 import { runTests } from "@vscode/test-electron";
+import { resolveCpptoolsExtensionPath } from "./cpptoolsExtensionPath";
 import { isolatedTestLaunchArgs } from "./testLaunchArgs";
 
 async function main(): Promise<void> {
   const project = path.resolve(__dirname, "../../..");
   const workspace = process.env.C_INSIGHT_FFMPEG_WORKSPACE ??
     "/home/user/projects/FFmpeg";
-  const cpptools = process.env.C_INSIGHT_CPPTOOLS_EXTENSION_PATH ??
-    "/home/user/.vscode-server/extensions/ms-vscode.cpptools-1.32.2-linux-x64";
+  const cpptools = resolveCpptoolsExtensionPath();
   accessSync(path.join(workspace, "tools", "decode_simple.c"));
   accessSync(path.join(cpptools, "package.json"));
   const runtimeLibraries = path.join(
