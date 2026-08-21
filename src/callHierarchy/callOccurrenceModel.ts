@@ -29,6 +29,10 @@ export interface CallOccurrence<T> {
   value: T;
 }
 
+export type CallerPresentationRow<T> =
+  | { kind: "occurrence"; occurrence: CallOccurrence<T> }
+  | { kind: "definition"; semanticKey: string; value: T };
+
 /**
  * Converts semantic call-hierarchy relations into source-ordered call sites.
  * Exact duplicate ranges are discarded and the earliest occurrence for each
@@ -94,6 +98,28 @@ export function projectCallOccurrences<T>(
       ? locationOrder
       : left.semanticKey.localeCompare(right.semanticKey);
   });
+}
+
+/** Adds one definition row after the final visible occurrence of each caller. */
+export function callerPresentationRows<T>(
+  occurrences: readonly CallOccurrence<T>[],
+): CallerPresentationRow<T>[] {
+  const lastOccurrence = new Map<string, number>();
+  occurrences.forEach((occurrence, index) => {
+    lastOccurrence.set(occurrence.semanticKey, index);
+  });
+  const rows: CallerPresentationRow<T>[] = [];
+  occurrences.forEach((occurrence, index) => {
+    rows.push({ kind: "occurrence", occurrence });
+    if (lastOccurrence.get(occurrence.semanticKey) === index) {
+      rows.push({
+        kind: "definition",
+        semanticKey: occurrence.semanticKey,
+        value: occurrence.value,
+      });
+    }
+  });
+  return rows;
 }
 
 export function compareCallOccurrenceLocations(

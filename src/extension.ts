@@ -426,6 +426,10 @@ export async function activate(
           ordinal: number,
         ) => views.activateCallOccurrenceForTest(direction, label, ordinal),
       ),
+      vscode.commands.registerCommand(
+        "cInsight.test.activateCallerDefinition",
+        (label: string) => views.activateCallerDefinitionForTest(label),
+      ),
       vscode.commands.registerCommand("cInsight.test.invalidateCallHierarchy", () =>
         views.invalidateCallHierarchy(),
       ),
