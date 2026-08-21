@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CallOccurrenceInput,
-  callerPresentationRows,
   projectCallOccurrences,
 } from "../../src/callHierarchy/callOccurrenceModel";
 
@@ -93,29 +92,6 @@ describe("call occurrence projection", () => {
     );
   });
 
-  it("adds one definition row after the final occurrence of each caller", () => {
-    const occurrences = projectCallOccurrences([
-      input("add", "add", [range(10, 4), range(11, 4)]),
-      input("main", "main", [range(21, 4), range(22, 4), range(23, 4)]),
-    ]);
-
-    assert.deepEqual(
-      callerPresentationRows(occurrences).map((row) =>
-        row.kind === "occurrence"
-          ? `${row.occurrence.value.name}:call:${row.occurrence.ordinal}`
-          : `${row.value.name}:definition`,
-      ),
-      [
-        "add:call:1",
-        "add:call:2",
-        "add:definition",
-        "main:call:1",
-        "main:call:2",
-        "main:call:3",
-        "main:definition",
-      ],
-    );
-  });
 });
 
 function input(

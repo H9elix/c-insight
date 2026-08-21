@@ -51,6 +51,37 @@ export function sameDefinitionLocation(
     left.range.end.character === right.range.end.character;
 }
 
+/**
+ * Keeps provider declarations that are distinct from every known definition
+ * and from the location already represented by the owning tree node.
+ * Exact duplicate declarations are removed without changing provider order.
+ */
+export function independentDeclarationLocations<
+  T extends ComparableDefinitionLocation,
+>(
+  definitions: readonly T[],
+  declarations: readonly T[],
+  displayedLocation?: ComparableDefinitionLocation,
+): T[] {
+  const result: T[] = [];
+  for (const declaration of declarations) {
+    if (
+      definitions.some((definition) =>
+        sameDefinitionLocation(definition, declaration)
+      ) ||
+      (displayedLocation !== undefined &&
+        sameDefinitionLocation(displayedLocation, declaration)) ||
+      result.some((existing) =>
+        sameDefinitionLocation(existing, declaration)
+      )
+    ) {
+      continue;
+    }
+    result.push(declaration);
+  }
+  return result;
+}
+
 export function functionLocationSignature(
   value: PreferredFunctionLocation<ComparableDefinitionLocation> | undefined,
 ): string {

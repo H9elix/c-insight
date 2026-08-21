@@ -427,8 +427,8 @@ export async function activate(
         ) => views.activateCallOccurrenceForTest(direction, label, ordinal),
       ),
       vscode.commands.registerCommand(
-        "cInsight.test.activateCallerDefinition",
-        (label: string) => views.activateCallerDefinitionForTest(label),
+        "cInsight.test.activateCallerDeclaration",
+        (label: string) => views.activateCallerDeclarationForTest(label),
       ),
       vscode.commands.registerCommand("cInsight.test.invalidateCallHierarchy", () =>
         views.invalidateCallHierarchy(),
