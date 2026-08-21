@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.1
+
+- Changed the default Callers and Callees root expansion depth from zero to one while dispatching automatic expansion only for the currently visible direction; explicit direction commands remain independent.
+- Replaced the modal workspace-symbol picker with a persistent Symbol Search input fixed above its independently scrollable results, while retaining debounce, grouping, kind filtering, session restore, single-click preview, double-click open, and right-click actions.
+- Added pure Webview CSP/message-validation coverage and real clangd Extension Host regressions for persistent symbol queries and automatic call-root expansion.
+
 ## 0.22.0
 
 - Flattened every returned Callers and Callees call site directly beneath its semantic parent, ordered by source location, instead of hiding call sites under an extra function-node level.

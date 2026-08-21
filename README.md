@@ -99,8 +99,8 @@ References-based Callers path without invoking native Incoming Calls.
 - Cursor-following context with symbol identity, type/signature, definition,
   declaration, reference count, and first-level caller/callee counts
 - Source snippets in References rows and Callers/Callees tooltips, with every call occurrence retaining its exact source location
-- Document symbol outline and a Symbol Search view with live clangd workspace
-  queries, type filtering, and configurable grouping
+- Document symbol outline and a Symbol Search view with a persistent top input,
+  live workspace queries, type filtering, and configurable grouping
 - Session navigation history with shared Code Preview Back/Forward
 - Workspace-persistent grouped bookmarks with filtering, sorting, JSON
   import/export, group management, and stale relocation
@@ -156,9 +156,10 @@ and safety-limit markers.
    Pin/Unpin title-bar buttons. The Code Preview lock only prevents editor
    cursor updates and still permits single-click definition browsing inside
    the preview.
-8. Open Symbol Search and use its search button for workspace-wide function,
-   variable, type, and macro lookup. Select a result to preview it, or use Open
-   Location and Add Bookmark from its context menu.
+8. Open Symbol Search and type in the input that remains fixed at the top for
+   workspace-wide function, variable, type, and macro lookup. Select a result
+   to preview it, double-click to open it, or right-click for Open Location and
+   Add Bookmark.
 9. Reopen the same folder or `.code-workspace` to restore the previous C
    Insight browsing session. Restore is sectioned, cancellable, Remote-aware,
    and completed before cursor following starts. Call hierarchy data is queried
@@ -197,11 +198,12 @@ reported in the C Insight output channel as `Slow clangd request`.
 
 ### Symbol Search
 
-Symbol Search sends debounced `workspace/symbol` queries to clangd as you type.
-Results remain in the view after the picker closes. Its title buttons search,
-filter symbol kinds, change grouping, refresh the last query, or clear it.
-Selecting a result updates Code Preview; its context menu opens the editor or
-adds a workspace bookmark.
+Symbol Search keeps its search input fixed above an independently scrollable
+result area and sends debounced workspace-symbol queries to the active analysis
+engine as you type. Its title buttons focus the existing input, filter symbol
+kinds, change grouping, refresh the last query, or clear it. Selecting a result
+updates Code Preview; double-clicking opens the editor, and its context actions
+open the editor or add a workspace bookmark.
 
 ### Bookmarks
 

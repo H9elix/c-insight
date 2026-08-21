@@ -185,7 +185,8 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `bookmarks/bookmarkModel.ts` | 书签分组、排序、过滤、重命名、去重、导入导出和符号重定位算法。 |
 | `bookmarks/bookmarkExplorer.ts` | workspaceState 持久化、TreeView、文件访问和命令交互。 |
 | `symbols/symbolSearchModel.ts` | 工作区符号（Workspace Symbols）的过滤、类型/文件/目录分组和结果上限。 |
-| `symbols/symbolSearchExplorer.ts` | 防抖查询、generation、结果树、选择预览和会话状态。 |
+| `symbols/symbolSearchExplorer.ts` | 符号搜索（Symbol Search）的 Webview View 提供程序、防抖查询、generation、分组/过滤、统一导航和会话状态；文件读取与命令执行仍由扩展宿主持有。 |
+| `symbols/symbolSearchWebview.ts` | 顶部常驻搜索框、独立滚动结果区、严格 CSP、HTML 属性转义及入站消息白名单；动态符号文字仅通过 DOM `textContent` 写入。 |
 | `symbols/symbolPresentation.ts` | 文档/工作区符号（Document/Workspace Symbols）的“大纲”（Outline）风格 ThemeIcon 映射。 |
 
 ### 4.11 会话 `src/session`

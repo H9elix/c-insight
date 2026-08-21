@@ -76,8 +76,10 @@ export class SymbolSearchExplorer
           this.clear();
         } else if (message.type === "ready") {
           this.publish();
-        } else {
+        } else if (message.type === "activate") {
           void this.activate(message.id);
+        } else {
+          void this.showContextActions(message.id);
         }
       }),
       webviewView.onDidChangeVisibility(() => {
@@ -291,6 +293,31 @@ export class SymbolSearchExplorer
       this.node(symbol),
       VIEWS.WORKSPACE_SYMBOLS,
     );
+  }
+
+  private async showContextActions(id: string): Promise<void> {
+    const symbol = this.visibleResults.find(
+      (candidate) => symbolSearchId(candidate) === id,
+    );
+    if (!symbol) {
+      return;
+    }
+    const selected = await vscode.window.showQuickPick(
+      [
+        {
+          label: vscode.l10n.t("$(go-to-file) Open Location"),
+          command: "cInsight.openLocation",
+        },
+        {
+          label: vscode.l10n.t("$(bookmark) Add Bookmark"),
+          command: "cInsight.bookmarks.add",
+        },
+      ],
+      { title: symbol.name },
+    );
+    if (selected) {
+      await vscode.commands.executeCommand(selected.command, this.node(symbol));
+    }
   }
 
   private publish(): void {

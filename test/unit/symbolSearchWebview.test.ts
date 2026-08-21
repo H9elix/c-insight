@@ -31,6 +31,10 @@ describe("symbol search webview", () => {
       type: "activate",
       id: "symbol:1",
     });
+    assert.deepEqual(parseSymbolSearchWebviewMessage({ type: "context", id: "symbol:1" }), {
+      type: "context",
+      id: "symbol:1",
+    });
     assert.deepEqual(parseSymbolSearchWebviewMessage({ type: "clear" }), {
       type: "clear",
     });

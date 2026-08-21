@@ -347,6 +347,8 @@ Change 引用（Reference） Scope 提供：
 
 树的根节点仍是当前函数的定义。展开节点后，其上游调用者的每一个调用位置（Call Site）都会按文件、行和列的源码顺序直接显示为一行，不再先显示函数节点、再展开额外的调用位置子层。例如 `report` 在 `add` 中调用两次、在 `main` 中调用三次时，展开 `report` 会直接得到两个 `add` 和三个 `main` 节点；每个节点都定位到各自的实际调用行。
 
+默认情况下，新调用者根会自动展开一层，因此调用者窗口可见时会直接显示第一层调用点。只有当前可见的调用方向会自动查询；被调用者窗口隐藏时不会因为调用者展开而附带查询被调用者。将 `cInsight.callHierarchy.defaultDepth` 设为 `0` 可恢复为只显示折叠根节点。
+
 同一语义调用者只有源码位置最早的调用点带展开箭头，用于懒加载该函数的上一层调用者，其余同名调用点是可预览、可打开但不继续查询的叶节点。这样既保留所有调用证据，也不会因为同一个函数内有多处调用而重复执行下一层语义查询。若提供程序没有返回调用位置范围，C Insight 会保留一个标记为“调用位置不可用”的定义位置回退节点。
 
 Microsoft 引用回退结果会显示“基于引用（References-based）”提示。它属于近似结果：普通直接调用通常可以识别，但宏展开、函数指针以及提供程序（Provider）未返回的引用可能缺失。可将 `cInsight.microsoft.callersMode` 改为 `native` 使用 cpptools 原生传入调用（已知对部分跨文件符号存在崩溃风险），或设为 `disabled` 禁用。因此该模式查询为空时不会把提供程序没有提供足够证据误报成“确认没有调用者”：
@@ -393,6 +395,8 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 被调用者（Callees）对应 clangd 传出调用（Outgoing Calls），回答“当前函数调用了哪些函数”。
 
 基本逻辑与调用者相同，但方向相反。展开当前函数后，每一次传出调用直接显示为被调用函数名称相同但源码位置不同的调用点节点；单击或双击均以调用发生的位置为目标，而不是被调用函数的定义。每个语义被调用者只有最早调用点可以继续展开其下一级被调用者；如需查看定义，可在代码预览（Code Preview）中单击该符号，或使用转到定义（Go to Definition）。
+
+被调用者窗口可见时，新根同样默认自动展开一层并直接显示第一层调用点；调用者窗口隐藏时不会附带查询调用者。显式执行显示传入调用（Show Incoming Calls）或显示传出调用（Show Outgoing Calls）时，仅自动展开命令对应的方向。
 
 显式函数指针或成员函数指针调用可能标记为 `possible indirect call`。clangd 无法解析的运行时目标不会被 C Insight 猜测或伪造。
 
@@ -524,9 +528,9 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 ### 4.8 符号搜索（Symbol Search）
 
-符号搜索用于在整个工作区查找 clangd 已索引的函数、变量、类型、方法、枚举、宏等符号。单击标题栏 Search 按钮后，输入内容会以防抖方式发送 `workspace/symbol` 请求；较旧的请求不会覆盖较新的结果。
+符号搜索用于在整个工作区查找当前分析引擎已索引的函数、变量、类型、方法、枚举、宏等符号。搜索输入框永久保留在窗口顶部，结果在下方独立滚动，因此浏览长结果列表时无需滚回底部或顶部重新输入。直接输入文字，或单击标题栏搜索（Search）按钮聚焦已有输入框；内容会以防抖方式发送工作区符号（Workspace Symbols）请求，较旧的请求不会覆盖较新的结果。
 
-搜索选择器关闭后，结果仍保留在符号搜索窗口：
+查询和结果始终保留在符号搜索窗口：
 
 - 单击结果：以定义（Definition）模式在代码预览（Code Preview）中预览，并写入导航历史（Navigation History）。
 - 双击结果：在主编辑器中打开同一符号位置。
@@ -537,7 +541,7 @@ Import 书签校验 JSON 格式后提供两种方式：
 - 刷新（Refresh）：重新执行上一次查询。
 - Clear：清空查询和结果。
 
-结果完整性取决于 clangd 后台索引。索引或工程配置异常只通过统一状态栏提示，不会在符号搜索内重复显示可靠性警告。
+结果完整性取决于当前分析引擎的工作区索引。索引或工程配置异常只通过统一状态栏提示，不会在符号搜索内重复显示可靠性警告。
 
 ### 4.9 文档符号（Document Symbols）
 
@@ -1022,7 +1026,7 @@ C/C++ 编辑器右键菜单还提供：
 
 | 配置 | 类型 | 默认值 | 范围 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.callHierarchy.defaultDepth` | number | `0` | 0–10 | 新根节点自动展开深度；0 表示保持折叠 |
+| `cInsight.callHierarchy.defaultDepth` | number | `1` | 0–10 | 新根节点自动展开深度；默认展开第一层，0 表示保持折叠 |
 | `cInsight.callHierarchy.maximumDepth` | number | `10` | 1–50 | 手动或自动展开允许的最大深度 |
 | `cInsight.callHierarchy.maximumNodes` | number | `2000` | 100–50000 | 调用者（Callers）与被调用者（Callees）每棵树各自允许创建的最大节点数 |
 | `cInsight.callHierarchy.cacheSize` | number | `500` | 10–10000 | Incoming 和 Outgoing 各自缓存的函数请求上限 |
@@ -1125,7 +1129,7 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
   "cInsight.followCursorDelay": 350,
   "cInsight.followCursorDetailsDelay": 1000,
   "cInsight.references.pageSize": 300,
-  "cInsight.callHierarchy.defaultDepth": 0,
+  "cInsight.callHierarchy.defaultDepth": 1,
   "cInsight.callHierarchy.maximumDepth": 8,
   "cInsight.callHierarchy.maximumNodes": 3000,
   "cInsight.callHierarchy.cacheSize": 1000,
