@@ -104,7 +104,6 @@
   "Reference": "引用",
   "Caller": "调用者",
   "Callee": "被调用者",
-  "C Insight: Search Workspace Symbols": "C Insight：搜索工作区符号",
   "Type a function, variable, type, or macro name": "输入函数、变量、类型或宏名称",
   "Symbol Type": "符号类型",
   "No Grouping": "不分组",
@@ -113,9 +112,6 @@
   "Filter Workspace Symbols by Type": "按类型筛选工作区符号",
   "No selection means all symbol types": "不选择表示包含所有符号类型",
   "Symbol search failed: {error}": "符号搜索失败：{error}",
-  "Search workspace symbols": "搜索工作区符号",
-  "functions, variables, types, macros": "函数、变量、类型、宏",
-  "Search Workspace Symbols": "搜索工作区符号",
   "No symbols found for “{query}”": "未找到与“{query}”匹配的符号",
   "Rename C Insight Bookmark": "重命名 C Insight 书签",
   "Bookmark name cannot be empty": "书签名称不能为空",
@@ -326,5 +322,9 @@
   "Type / signature": "类型 / 签名",
   "call location unavailable": "调用位置不可用",
   "call {ordinal}/{total}": "调用 {ordinal}/{total}",
-  "The analysis engine returned this relationship without a call-site range. The definition location is shown instead.": "分析引擎返回了该调用关系，但没有提供调用位置范围，因此改为显示定义位置。"
+  "The analysis engine returned this relationship without a call-site range. The definition location is shown instead.": "分析引擎返回了该调用关系，但没有提供调用位置范围，因此改为显示定义位置。",
+  "Clear Workspace Symbol Search": "清除工作区符号搜索",
+  "Workspace Symbol Results": "工作区符号结果",
+  "Searching workspace symbols…": "正在搜索工作区符号…",
+  "{count} workspace symbols": "{count} 个工作区符号"
 }

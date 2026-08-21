@@ -59,6 +59,11 @@ export async function activate(
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
+  const symbolSearchRegistration = vscode.window.registerWebviewViewProvider(
+    VIEWS.WORKSPACE_SYMBOLS,
+    symbolSearch,
+    { webviewOptions: { retainContextWhenHidden: true } },
+  );
   const typeRepository = new TypeHierarchyRepository(analysis);
   const typeHierarchy = new TypeHierarchyExplorer(analysis, typeRepository);
   const includeRepository = new IncludeHierarchyRepository();
@@ -75,7 +80,6 @@ export async function activate(
     analysis,
     navigationHistory,
     bookmarks,
-    symbolSearch,
     typeHierarchy,
     includeHierarchy,
     callRepository,
@@ -348,6 +352,7 @@ export async function activate(
     navigationHistory,
     bookmarks,
     symbolSearch,
+    symbolSearchRegistration,
     typeHierarchy,
     includeHierarchy,
     relationshipGraph,
@@ -400,6 +405,13 @@ export async function activate(
       ),
       vscode.commands.registerCommand("cInsight.test.callHierarchyState", () =>
         views.callHierarchyInteractionState(),
+      ),
+      vscode.commands.registerCommand("cInsight.test.symbolSearchState", () =>
+        symbolSearch.interactionState(),
+      ),
+      vscode.commands.registerCommand(
+        "cInsight.test.symbolSearchQuery",
+        (query: string) => symbolSearch.searchForTest(query),
       ),
       vscode.commands.registerCommand(
         "cInsight.test.expandCallHierarchy",

@@ -1139,7 +1139,8 @@
         },
         {
           "id": "cInsight.workspaceSymbols",
-          "name": "%view.cInsight.workspaceSymbols.name%"
+          "name": "%view.cInsight.workspaceSymbols.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.symbols",
@@ -1165,10 +1166,6 @@
       {
         "view": "cInsight.symbols",
         "contents": "%viewWelcome.2%"
-      },
-      {
-        "view": "cInsight.workspaceSymbols",
-        "contents": "%viewWelcome.3%"
       },
       {
         "view": "cInsight.includes",
