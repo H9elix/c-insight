@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.2
+
+- Preferred function implementation locations for Code Preview and both Callers/Callees roots while retaining the analysis provider's original opaque Call Hierarchy item for semantic queries.
+- Added explicit declaration fallbacks plus bounded definition-only retries and clangd index-completion upgrades that preserve loaded subtrees, caches, expansion paths, and pin/lock policy.
+- Added one navigable Caller definition row after each semantic caller's visible call occurrences without treating the supplemental row as a call edge, depth, path, node-budget entry, session expansion, or hierarchy export node.
+- Added pure definition-selection and caller-row projection coverage plus real clangd Extension Host regression for header declarations, source definitions, bidirectional root presentation, and caller-definition navigation.
+
 ## 0.22.1
 
 - Changed the default Callers and Callees root expansion depth from zero to one while dispatching automatic expansion only for the currently visible direction; explicit direction commands remain independent.

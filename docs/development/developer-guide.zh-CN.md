@@ -139,13 +139,13 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 | 文件 | 管理的功能 |
 | --- | --- |
 | `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、方向独立 LRU、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
-| `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，并把每组最早调用点标记为唯一规范展开点。它是无 VS Code 依赖的纯模型。 |
+| `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，把每组最早调用点标记为唯一规范展开点，并在调用者（Callers）展示序列中为每个语义调用者追加一次定义行。它是无 VS Code 依赖的纯模型。 |
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
 | `microsoftCalleeEvidenceModel.ts` | 汇总 Microsoft 原生传出调用（Outgoing Calls）的成功、空、失败、取消和耗时证据。 |
 
 clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，不能只保存显示字段后重建对象。Microsoft 传入调用（Incoming Calls）曾触发 cpptools 原生崩溃，因此安全回退（fallback）路径不能未经实测替换为原生调用。
 
-调用者（Callers）/被调用者（Callees）树不会为一个语义函数建立额外的“函数 → 调用位置”层。`ViewRegistry` 将投影结果直接物化为调用点节点；只有规范调用点持有 `callPath` 和下一层加载器，其他同名调用点只负责代码预览（Code Preview）和编辑器导航。批量展开及会话恢复必须沿规范节点的语义路径运行，而搜索和导出必须保留每一个已显示调用点。
+调用者（Callers）/被调用者（Callees）树不会为一个语义函数建立额外的“函数 → 调用位置”层。`ViewRegistry` 将投影结果直接物化为调用点节点；只有规范调用点持有 `callPath` 和下一层加载器，其他同名调用点只负责代码预览（Code Preview）和编辑器导航。调用者定义行是没有 `callKey` 的补充导航节点：搜索可包含它，但批量展开、深度、预算、路径、会话与语义导出必须忽略它。根节点的显示定义位置同样不能写回 `CallHierarchyItem`，否则会破坏 clangd 的不透明 `data` 查询身份。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 

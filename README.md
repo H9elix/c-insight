@@ -85,8 +85,9 @@ References-based Callers path without invoking native Incoming Calls.
 - Explicit `cInsight.engine` selection between managed clangd and the installed
   Microsoft C/C++ language service (cpptools); changing engines requires
   Reload Window
-- Shared Code Preview with highlighted definition, declaration, reference,
-  caller, callee definition, and call-site snippets
+- Shared Code Preview with function-implementation preference, explicit
+  declaration fallback, and highlighted reference, caller, callee definition,
+  and call-site snippets
 - Incoming and outgoing call trees with lazy loading and recursion detection
 - C++ supertype and subtype trees with lazy expansion, search, and export
 - Forward Includes and reverse Included By trees with compile-command-aware
@@ -304,9 +305,9 @@ stale marker.
 
 ### Advanced Call Hierarchy
 
-Callers and Callees keep the current function definition as the root, then flatten every returned call site directly beneath its semantic parent in source order. Repeated rows retain the caller or callee function name and exact source location; only the earliest occurrence of each semantic function has a disclosure arrow and lazily loads the next semantic level. Incoming and Outgoing requests use separate bounded LRU caches and coalesce concurrent requests. Caches are invalidated by source edits, clangd restarts, and call-hierarchy configuration changes.
+Callers and Callees display the current function implementation as the root when the analysis engine can resolve it, while retaining the provider's original opaque Call Hierarchy item for queries. If indexing has not supplied an implementation, the root is explicitly marked as a declaration fallback and upgrades without clearing an already loaded tree. Every returned call site is flattened beneath its semantic parent in source order. Repeated rows retain the caller or callee function name and exact call location; only the earliest occurrence of each semantic function has a disclosure arrow and lazily loads the next semantic level. Callers additionally place one navigable definition row after each unique caller's displayed occurrences. Incoming and Outgoing requests use separate bounded LRU caches and coalesce concurrent requests.
 
-Use **Expand Callers/Callees to Depth** to load a bounded subtree. The operation can be cancelled and respects semantic `maximumDepth`; `maximumNodes` counts each displayed call occurrence. Search operates only on the tree already loaded in memory and returns individual call sites. Text, JSON, and Mermaid exports likewise avoid hidden expansion and retain repeated occurrence locations.
+Use **Expand Callers/Callees to Depth** to load a bounded subtree. The operation can be cancelled and respects semantic `maximumDepth`; `maximumNodes` counts each displayed call occurrence but not supplemental Caller definition rows. Search operates only on the tree already loaded in memory and includes those definition rows. Text, JSON, and Mermaid exports avoid hidden expansion, retain repeated occurrence locations, and exclude supplemental definition rows so they cannot become false call edges.
 
 Use **Find Caller/Callee Path** to search the semantic graph from the current
 root to a function-name fragment. Path search is cancellable, reuses hierarchy
