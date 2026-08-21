@@ -18,7 +18,7 @@ Code Preview incremental context loading is driven by validated `before` and `af
 
 Navigation History is session-scoped and uses one shared cursor for the History view and Code Preview Back/Forward. Bookmarks are intentionally separate: they persist in VS Code workspaceState and retain a captured identifier for best-effort relocation after document edits. Bookmark interchange uses a versioned JSON envelope. Parsing, filtering, sorting, duplicate-position merging, and group mutations are kept in the pure bookmark model; filesystem selection and missing-file checks remain in the VS Code integration.
 
-Symbol Search owns a native tree provider and sends workspace queries through `AnalysisService`. A monotonic generation discards late responses from older search text. Its result nodes reuse the shared location path for preview, history, and bookmarks.
+Symbol Search owns a nonce-restricted Webview View whose search input remains fixed above an independently scrollable result area. The extension host retains all query, filtering, grouping, session, and navigation authority and sends workspace queries through `AnalysisService`; the Webview only emits bounded discriminated input, activation, and context-action messages. Dynamic result text is created with DOM `textContent`, and a monotonic generation discards late responses from older search text. Result nodes reuse the shared location path for single-click preview, double-click editor navigation, history, and bookmarks.
 
 `ReferenceExplorer` is the single owner of References result, filter, paging, stale, reliability, and pin state. `ViewRegistry` delegates updates and context keys to it rather than mirroring mutable pin state.
 

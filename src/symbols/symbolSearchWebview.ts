@@ -9,6 +9,7 @@ export interface SymbolSearchWebviewOptions {
 export type SymbolSearchWebviewMessage =
   | { type: "query"; query: string }
   | { type: "activate"; id: string }
+  | { type: "context"; id: string }
   | { type: "clear" }
   | { type: "ready" };
 
@@ -30,11 +31,11 @@ export function parseSymbolSearchWebviewMessage(
     return { type: "query", query: candidate.query };
   }
   if (
-    candidate.type === "activate" &&
+    (candidate.type === "activate" || candidate.type === "context") &&
     typeof candidate.id === "string" &&
     candidate.id.length <= 8_192
   ) {
-    return { type: "activate", id: candidate.id };
+    return { type: candidate.type, id: candidate.id };
   }
   return undefined;
 }
@@ -99,6 +100,12 @@ export function renderSymbolSearchWebview(
     results.addEventListener('click', (event) => {
       const row = event.target instanceof Element ? event.target.closest('.symbol-row') : undefined;
       if (row) vscode.postMessage({ type: 'activate', id: row.dataset.id });
+    });
+    results.addEventListener('contextmenu', (event) => {
+      const row = event.target instanceof Element ? event.target.closest('.symbol-row') : undefined;
+      if (!row) return;
+      event.preventDefault();
+      vscode.postMessage({ type: 'context', id: row.dataset.id });
     });
     window.addEventListener('message', (event) => {
       const message = event.data;
