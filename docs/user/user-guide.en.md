@@ -1,10 +1,12 @@
 # C Insight User Guide
 
-C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.4`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
 Open a C/C++ folder or multi-root workspace, provide a `compile_commands.json` when possible, and select **C Insight** in the Activity Bar. The default `cInsight.engine` is `clangd`; set it to `microsoft` and reload the window to use the Microsoft C/C++ language service (cpptools).
+
+Cross-compiled bare-metal and embedded Linux projects should generate that database from the real target toolchain. Configure a narrow clangd `--query-driver` allowlist when the driver must supply target and system-header defaults; keep `--sysroot`, `--target`, CPU/ABI options, includes, and defines in compile commands or `.clangd`, not in clangd server arguments. Microsoft mode requires its own cpptools `compileCommands` and `compilerPath` configuration. See [Cross-compilation and embedded projects](cross-compilation.en.md) for complete examples and Remote-path constraints.
 
 The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
 
@@ -34,6 +36,8 @@ All commands are available from the Command Palette under **C Insight**. Context
 ## Diagnostics and privacy
 
 Project Diagnostics explains engine availability, compilation database detection, the active file command, indexing progress, request performance, and result reliability. Raw clangd/cpptools logs, command IDs, setting IDs, symbol names, file paths, and exported JSON field names remain untranslated so diagnostic evidence and automation stay stable.
+
+In clangd mode, a relative `cInsight.compileCommandsDir` is resolved against the first workspace folder. The current setting does not interpolate `${workspaceFolder}`; use `"build"` or an absolute directory. C Insight passes the selected directory to clangd but never executes build commands or compilation-database entries. An explicit `--query-driver` does authorize clangd to execute a matching trusted driver. In Microsoft mode, the same C Insight setting supports diagnostics but does not configure cpptools.
 
 C Insight has no telemetry and does not upload source code. See [Privacy](../../PRIVACY.md), [Security](../../SECURITY.md), and [Contributing](../../CONTRIBUTING.md) for the complete boundaries and maintenance workflow. For detailed feature behavior, use the [Simplified Chinese manual](user-guide.zh-CN.md).
 

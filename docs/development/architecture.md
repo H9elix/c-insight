@@ -1,5 +1,7 @@
 # Architecture
 
+This document describes the `0.22.4` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
+
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
 Activation delegates initial Context Key publication and concrete analysis-engine startup to `activation/runtimeInitialization`; `activate()` retains composition, recovery, and event wiring while startup details remain independently reviewable.
@@ -60,9 +62,17 @@ The language client also registers clangd's standard language capabilities with 
 
 Project Diagnostics builds one structured, schema-versioned report before mapping it into the native tree. Compile-command analysis is pure and accepts both `command` and `arguments` database entries; it separates language, standard, include-path classes, defines, forced includes, and response files. Header entries are explicitly labelled as local inference candidates because clangd's actual HeaderIncluderCache selection is not exposed through LSP. Text and JSON exports serialize the same report used by the view.
 
+## Project and cross-toolchain boundary
+
+C Insight never configures or invokes the project build. In clangd mode, compilation-database discovery selects a directory and `ClangdManager` passes it as `--compile-commands-dir`; `fallbackFlags` apply only when clangd has no usable command. Relative `cInsight.compileCommandsDir` and `cInsight.clangd.path` values are resolved against the first workspace folder, but VS Code variables such as `${workspaceFolder}` are not interpolated by these settings.
+
+Cross-compilation correctness therefore depends on generated commands that preserve the real compiler path, working directory, target flags, sysroot, include paths, and defines. `--query-driver` belongs to the clangd process arguments and only allowlists drivers; `--sysroot`, `--target`, `-mcpu`, and related options belong to compile commands or `.clangd` `CompileFlags`. C Insight launches clangd without a shell and does not execute compilation-database entries. However, an explicitly configured `--query-driver` authorizes clangd itself to execute a matching driver, so documentation and reviews must treat the allowlist as a security-sensitive workspace choice.
+
+Include Hierarchy intentionally reads only source directives and include paths explicitly present in the active compilation database. Header paths that clangd learns internally from a query driver are not exposed over LSP and therefore do not automatically enter C Insight's local Include resolver. Microsoft mode has a separate configuration boundary: `cInsight.compileCommandsDir` supports C Insight diagnostics but does not configure cpptools; `compileCommands`, `compilerPath`, sysroot arguments, or a Microsoft configuration provider must be supplied through cpptools configuration.
+
 ## Trust boundary
 
-C Insight does not start clangd in an untrusted workspace. It launches the process without a shell and never executes CMake or build commands automatically.
+C Insight does not start clangd in an untrusted workspace. It launches the process without a shell and never executes CMake, build commands, or compilation-database entries automatically. A user-supplied clangd path is executed directly, and clangd may execute drivers matched by a user-supplied `--query-driver` allowlist.
 
 ## Architecture safeguards
 

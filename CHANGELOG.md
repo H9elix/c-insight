@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.4
+
+- Synchronized every maintained document with the current dual-engine architecture, `0.22.x` occurrence-based Call Hierarchy behavior, completed Relationship Graph state, and active versus deferred roadmap items.
+- Added complete Simplified Chinese and English cross-compilation guides covering generated compilation databases, bare-metal and embedded Linux targets, sysroots, clangd query drivers, Microsoft cpptools configuration, Remote paths, security, and verification.
+- Corrected source-file ownership, stale version labels, Chinese guide numbering, current-engine wording, configuration effects, and validation-report scope; refreshed the six-scenario large-workspace benchmark with all budgets passing.
+
 ## 0.22.3
 
 - Replaced non-expandable per-caller definition leaves with independent declarations for the semantic function whose Callers node is being expanded.

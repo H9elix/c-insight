@@ -1,5 +1,7 @@
 # Microsoft C/C++ Provider 可行性探测
 
+> 文档性质：`0.18.0` 的隔离探测设计及原始结论。当前 `0.22.4` 已根据这份证据提供可选 Microsoft 生产适配器；下文“只探测、不加入开关”描述的是 `0.18.0` 当时的范围。原始 JSON 不随文档版本改写，只有重新运行探针时才生成新的证据。
+
 ## 目的和结论边界
 
 0.18.0 只验证将微软官方 C/C++ 扩展作为未来可选语义引擎的技术边界，不在 C Insight 运行时加入引擎开关，也不改变现有 clangd 行为。探测在独立 VS Code Extension Host 中只加载 `ms-vscode.cpptools`，避免 clangd 或 C Insight 的同类 Provider 混入结果。
