@@ -1,5 +1,7 @@
 # C Insight Microsoft C/C++ 引擎阶段验收报告
 
+> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.4` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置和调用者声明行属于 C Insight 展示层增强，不改变 cpptools API 能力。
+
 ## 1. 验收范围
 
 本报告验收 0.18.0–0.18.18 的可选 Microsoft C/C++ language service (cpptools) 接入。clangd 仍是默认引擎；Microsoft 模式只使用 VS Code 公开的 Provider 命令，不依赖 cpptools 私有命令。

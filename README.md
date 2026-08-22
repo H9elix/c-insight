@@ -1,9 +1,10 @@
 # C Insight
 
 C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It
-starts and manages its own `clangd` process and keeps symbol context, source
-previews, references, callers, callees, and document symbols visible in a
-dedicated activity-bar container.
+uses a managed `clangd` process by default or the Microsoft C/C++ language
+service (cpptools) as an explicit opt-in engine, and keeps symbol context,
+source previews, references, callers, callees, and document symbols visible in
+a dedicated activity-bar container.
 
 Demand-driven tree views use a shared status contract for idle, loading,
 empty, cancelled, stale, limited, and failed operations. Idle rows explain how
@@ -16,6 +17,8 @@ and tooltips without overwhelming the result label.
 `docs/README.md`。
 该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从
 `package.json` 自动生成的全部命令与菜单入口参考。
+交叉编译、裸机与嵌入式 Linux 工程配置见
+`docs/user/cross-compilation.zh-CN.md`。
 
 C Insight follows the VS Code display language. English is the fallback
 language, and Simplified Chinese is selected when VS Code uses `zh-cn`.

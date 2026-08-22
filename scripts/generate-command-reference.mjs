@@ -11,7 +11,7 @@ const guides = [
   {
     path: new URL("../docs/user/user-guide.zh-CN.md", import.meta.url),
     messagesPath: new URL("../package.nls.zh-cn.json", import.meta.url),
-    heading: "## 15. 完整命令参考",
+    heading: "## 17. 完整命令参考",
     introduction:
       "本节由 `package.json` 自动生成。所有命令都可以通过命令面板调用；表中额外列出标题栏、编辑器右键菜单、树节点右键菜单和默认快捷键入口。窗口当前状态不满足 " +
       "`when` 条件时，相应菜单按钮可能隐藏。",

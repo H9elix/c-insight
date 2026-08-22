@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文说明 C Insight 的安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。
+本文对应 C Insight `0.22.4`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -113,6 +113,8 @@ cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```text
 build/compile_commands.json
 ```
+
+交叉编译工程必须使用真实目标工具链生成数据库；目标架构、sysroot、query driver、Remote 路径和 Microsoft 模式的独立配置见[交叉编译与嵌入式工程配置](cross-compilation.zh-CN.md)。
 
 ## 3. 总体更新逻辑
 
@@ -274,11 +276,11 @@ Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成
 
 `const T&`、`const T*` 和 `T&&` 不会被上述保守规则标成可变副作用。参数类型只说明“允许修改”，不能证明函数体一定发生写入，因此跨调用点结果使用 `Inferred`。
 
-C++ 重载运算符的调用位置通常只显示 `+`、`[]`、`()` 等符号，并不存在普通函数名。查询符号由 clangd 标识为 `operator...`，且引用范围与对应运算符 token 匹配时，引用会显示 `Function Call (inferred)`，证据规则为 `role.overloaded-operator-call`。这不会把同一行中无关的标点当成该运算符调用。
+C++ 重载运算符的调用位置通常只显示 `+`、`[]`、`()` 等符号，并不存在普通函数名。查询符号由当前分析引擎标识为 `operator...`，且引用范围与对应运算符 token 匹配时，引用会显示 `Function Call (inferred)`，证据规则为 `role.overloaded-operator-call`。这不会把同一行中无关的标点当成该运算符调用。
 
 ### 模板与宏来源
 
-C Insight 会检查 clangd 返回的定义（Definition）和声明（Declaration）：
+C Insight 会检查当前分析引擎返回的定义（Definition）和声明（Declaration）：
 
 - 定义行为 `#define` 时，引用证据 `macro.symbol` 的 `origin` 指向宏定义的 URI、行和列。
 - 定义或声明附近存在 `template <...>` 时，结果增加 `Template` 标签，并以 `template.declaration` 记录模板声明来源。
@@ -372,7 +374,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 ### 4.5 被调用者（Callees）
 
-被调用者回答“当前函数调用了哪些函数”。Microsoft 模式继续使用 cpptools 原生传出调用（Outgoing Calls）；0.18.12 尚未增加推测性回退，而是先记录真实提供程序（Provider）行为。已经展开查询过的节点会累计显示在 **工程诊断（Project Diagnostics） → Microsoft C/C++ 提供程序 → 被调用者 evidence (loaded nodes)** 中：
+被调用者回答“当前函数调用了哪些函数”。Microsoft 模式使用 cpptools 原生传出调用（Outgoing Calls），当前没有推测性回退。已经展开查询过的节点会累计显示在 **工程诊断（Project Diagnostics） → Microsoft C/C++ language service (cpptools) → 被调用者 evidence (loaded nodes)** 中：
 
 - `Queried nodes`：实际派发过原生传出调用的不同节点数；缓存命中不重复计数。
 - `Successful`、`Failed`、`Cancelled`：最后一次节点查询的结果分类。
@@ -392,7 +394,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 ### 4.7 Microsoft 请求与资源控制
 
-显式显示传入调用（Show Incoming Calls）或显示传出调用（Show Outgoing Calls）属于方向限定请求，只准备当前函数的调用层次（Call Hierarchy）根，不再附带执行无关的引用（References）查询；如果引用窗口已有结果，也不会因这次未请求引用而被清空。真正展开调用者（Callers）时，引用- based 模式仍会为被展开节点按需查询引用。
+显式显示传入调用（Show Incoming Calls）或显示传出调用（Show Outgoing Calls）属于方向限定请求，只准备当前函数的调用层次（Call Hierarchy）根，不再附带执行无关的引用（References）查询；如果引用窗口已有结果，也不会因这次未请求引用而被清空。真正展开调用者（Callers）时，基于引用（References-based）模式仍会为被展开节点按需查询引用。
 
 每个实际展开的调用者语义节点还会并行请求一次定义（Definition）和声明（Declaration），并按 `cInsight.callHierarchy.cacheSize` 使用同一容量上限的独立 LRU 缓存。根节点复用光标上下文已经取得的位置，避免重复请求；隐藏、未展开、重复且不可展开或达到最大深度的节点不会查询声明。声明请求失败不会隐藏已经取得的调用者；调用者查询失败时，已经成功取得的声明仍可导航。达到调用点节点预算后，声明不计入预算，手动展开已有规范节点仍可看到声明和限制提示。
 
@@ -460,7 +462,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 导出不会触发隐藏的自动展开。
 
-### 4.6 导航历史（Navigation History）
+### 4.8 导航历史（Navigation History）
 
 导航历史记录当前 VS Code 会话中的显式导航：
 
@@ -485,7 +487,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 默认启用 `cInsight.session.persistNavigationHistory` 时，历史记录、当前游标和过滤条件会写入工作区浏览快照，并在重新打开同一工作区后恢复。关闭该配置后，导航历史只保留在当前扩展运行期。需要作为长期工程资料独立保存的位置仍建议加入书签（Bookmarks）。
 
-### 4.7 书签（Bookmarks）
+### 4.9 书签（Bookmarks）
 
 书签用于长期保存重要符号或源码位置，并按工作区持久化。关闭并重新打开 VS Code 后，当前工作区的书签仍会恢复。
 
@@ -532,7 +534,7 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 这种重定位是保守的文本级恢复，并不等同于永久符号 ID。文件中存在多个同名符号时，会选择距离旧位置最近的一个。
 
-### 4.8 符号搜索（Symbol Search）
+### 4.10 符号搜索（Symbol Search）
 
 符号搜索用于在整个工作区查找当前分析引擎已索引的函数、变量、类型、方法、枚举、宏等符号。搜索输入框永久保留在窗口顶部，结果在下方独立滚动，因此浏览长结果列表时无需滚回底部或顶部重新输入。直接输入文字，或单击标题栏搜索（Search）按钮聚焦已有输入框；内容会以防抖方式发送工作区符号（Workspace Symbols）请求，较旧的请求不会覆盖较新的结果。
 
@@ -549,21 +551,21 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 结果完整性取决于当前分析引擎的工作区索引。索引或工程配置异常只通过统一状态栏提示，不会在符号搜索内重复显示可靠性警告。
 
-### 4.9 文档符号（Document Symbols）
+### 4.11 文档符号（Document Symbols）
 
-文档符号显示活动文件的 clangd 文档符号：
+文档符号显示当前分析引擎返回的活动文件符号：
 
 - 函数
 - 方法
 - 类型
 - 变量
-- 其他 clangd 返回的符号
+- 其他提供程序（Provider）返回的符号
 
-支持 clangd 的层级结构。单击符号名称会以定义（Definition）模式更新代码预览；双击在主编辑器中打开并定位。具有子项的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
+支持提供程序（Provider）返回的层级结构。单击符号名称会以定义（Definition）模式更新代码预览；双击在主编辑器中打开并定位。具有子项的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
 
 命令 **Search 工作区符号（Workspace Symbols）** 会打开符号搜索（Symbol Search）的实时搜索选择器。
 
-### 4.10 工程诊断（Project Diagnostics）
+### 4.12 工程诊断（Project Diagnostics）
 
 工程诊断用于排查“为什么导航结果不准确或不可用”，显示：
 
@@ -615,7 +617,7 @@ Microsoft 模式要求 `C_Cpp.intelliSenseEngine` 的当前资源有效值为 `d
 
 选中的目录会通过 `--compile-commands-dir` 传给 clangd。数据库变化后，C Insight 会延迟约 750 ms，询问是否重启 clangd 以重新加载全部编译命令。
 
-### 4.11 工作区会话恢复（Workspace Session Restore）
+### 4.13 工作区会话恢复（Workspace Session Restore）
 
 直接通过 **Open Folder** 打开的 FFmpeg 等目录就是 VS Code 单文件夹工作区，不需要 `.code-workspace` 文件。C Insight 使用 VS Code `workspaceState` 为每个文件夹或多根工作区隔离保存浏览快照。
 
@@ -659,7 +661,7 @@ Microsoft 模式要求 `C_Cpp.intelliSenseEngine` 的当前资源有效值为 `d
 
 书签数据本身使用独立的 `workspaceState` 持久化，不依赖工作区会话；表中的“书签当前过滤文本”仅指过滤输入，不是书签内容。
 
-### 4.12 父类型（Supertypes）与子类型（Subtypes）
+### 4.14 父类型（Supertypes）与子类型（Subtypes）
 
 这两个窗口使用 clangd 的标准类型层次（Type Hierarchy）协议，主要面向 C++：
 
@@ -705,7 +707,7 @@ JSON 将统计放在顶层 `summary`；Text 使用 `# Summary` 首行；Mermaid 
 
 树会检测递归和重复节点，并受最大深度及最大节点数限制。源码变化、clangd 重启或类型层次配置变化后，已有结果显示已过期（stale），需要重新执行“显示父类型/子类型”。当前树不写入工作区会话（Workspace Session），重开工作区后需要重新查询。普通 C 代码没有类继承关系，通常不会返回结果。
 
-### 4.13 包含文件（Includes）与被包含关系（Included By）
+### 4.15 包含文件（Includes）与被包含关系（Included By）
 
 这两个窗口显示文件级包含关系：
 
@@ -739,9 +741,9 @@ JSON 将统计放在顶层 `summary`；Text 使用 `# Summary` 首行；Mermaid 
 
 包含文件/被包含关系当前不写入工作区会话（Workspace Session），重开工作区后需要重新查询；因此不会仅因会话恢复就在后台建立被包含关系反向索引。
 
-### 4.14 关系图（Relationship Graph）
+### 4.16 关系图（Relationship Graph）
 
-在本地 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **显示关系图（Show Relationship Graph）**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，0.12.8 会先尝试使用标准调用层次（Call Hierarchy）建立函数根；光标位于 C++ class、struct 或 interface 时，使用标准类型层次（Type Hierarchy）建立类型根。两者都不可用时退回活动文件根，可继续展开包含文件（Includes）或被包含关系（Included By）。
+在 C/C++ 文件中通过编辑器右键菜单或命令面板执行 **显示关系图（Show Relationship Graph）**，会在编辑器区域旁边打开综合关系图标签页。光标位于函数或方法时，会先尝试使用标准调用层次（Call Hierarchy）建立函数根；光标位于 C++ class、struct 或 interface 时，使用标准类型层次（Type Hierarchy）建立类型根。两者都不可用时退回活动文件根，可继续展开包含文件（Includes）或被包含关系（Included By）。
 
 需要明确查看文件包含关系时，建议执行 **显示文件关系图（Show File Relationship Graph）**。该命令忽略光标下的函数或类型，直接以活动 C/C++ 源码或头文件作为文件根。
 
@@ -935,11 +937,11 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.clangd.path` | string | `""` | 可执行文件路径 | 空值从 `PATH` 自动寻找 `clangd-22`、`clangd-21`、`clangd-20`、`clangd`；明确路径用于固定版本 |
 | `cInsight.clangd.arguments` | string[] | `[]` | 任意 clangd CLI 参数数组 | 附加在 C Insight 管理参数之后；错误或重复参数可能导致 clangd 启动失败 |
 | `cInsight.clangd.logLevel` | string | `"info"` | `"error"`、`"info"`、`"verbose"` | 控制传给 clangd 的日志等级 |
-| `cInsight.compileCommandsDir` | string | `""` | 目录路径 | 指定包含 `compile_commands.json` 的目录；空值启用自动发现 |
+| `cInsight.compileCommandsDir` | string | `""` | 目录路径 | 指定包含 `compile_commands.json` 的目录；相对路径按第一个工作区根解析，空值启用自动发现；不展开 `${workspaceFolder}` |
 | `cInsight.fallbackFlags` | string[] | `["-std=c++17"]` | 编译参数数组 | 当前文件没有编译命令时，通过 clangd initialization options 使用的后备参数 |
 | `cInsight.backgroundIndex` | boolean | `true` | `true` / `false` | 启用或关闭 clangd `--background-index` |
 
-`cInsight.engine` 变化会提示 Reload Window。其余 clangd 配置只在 clangd 模式生效并触发 clangd 重启；`clangd.arguments` 中不需要添加 `--stdio`。C Insight 默认管理：
+`cInsight.engine` 变化会提示 Reload Window。其余 clangd 配置只在 clangd 模式生效并触发 clangd 重启；`clangd.arguments` 中不需要添加 `--stdio`。`--query-driver` 属于这里，但 `--sysroot`、`--target`、`-mcpu`、`-I` 和 `-D` 属于每个文件的编译参数，不能作为 clangd 服务参数直接加入。C Insight 默认管理：
 
 ```text
 --background-index
@@ -1016,7 +1018,7 @@ C/C++ 编辑器右键菜单还提供：
 | --- | --- | --- | --- | --- |
 | `cInsight.symbolSearch.groupBy` | string | `"type"` | `"type"`、`"file"`、`"directory"`、`"flat"` | 符号搜索的工作区持久化分组方式 |
 | `cInsight.symbolSearch.maximumResults` | number | `500` | 25–5000 | 每次查询最多显示的结果数 |
-| `cInsight.symbolSearch.debounce` | number | `250` | 100–2000 ms | 停止输入后发送 clangd 查询的延迟 |
+| `cInsight.symbolSearch.debounce` | number | `250` | 100–2000 ms | 停止输入后向当前分析引擎发送工作区符号查询的延迟 |
 
 符号类型过滤不写入 VS Code 配置，但会在启用工作区会话恢复（Workspace Session Restore）时随工作区浏览快照恢复；分组配置始终保存在当前工作区。大型工程中可增加 `debounce` 或降低 `maximumResults`，减少刷新开销。
 
@@ -1086,10 +1088,10 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.relationshipGraph.maximumDepth` | number | `10` | 1–50 | 图中单条关系路径允许的最大深度 |
 | `cInsight.relationshipGraph.maximumNodes` | number | `500` | 50–10000 | 当前图保留的最大语义节点数 |
 | `cInsight.relationshipGraph.maximumEdges` | number | `1000` | 100–50000 | 当前图保留的最大语义边数 |
-| `cInsight.relationshipGraph.layout` | string | `"layered"` | `"layered"` | 图布局策略；基础版本仅提供分层布局 |
+| `cInsight.relationshipGraph.layout` | string | `"layered"` | `"layered"` | 图布局策略；当前仅提供分层布局 |
 | `cInsight.relationshipGraph.includeSystemHeaders` | boolean | `false` | `true` / `false` | 是否允许已解析的系统头进入 Include Graph |
 
-`defaultDepth`、`maximumDepth`、`maximumNodes` 和 `maximumEdges` 已用于 Call 关系图（Graph）。布局和系统头开关要到后续类型/包含适配器（Type/Include Adapter）接入后才完整参与查询。
+上述限制和布局已经同时用于 Call、Type、Include 以及混合关系图；系统头开关控制 Include Graph 是否接纳已解析的系统头。修改关系图配置会把当前图标记为已过期（stale），后续显式扩展使用新值。
 
 ### 9.13 语义请求调度
 
@@ -1162,7 +1164,28 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
 
 Fallback flags 适合简单工程或临时文件，不能完整替代每个源文件不同参数的 `compile_commands.json`。
 
-## 11. 常见问题
+## 11. 交叉编译与嵌入式工程
+
+推荐 clangd 模式继续使用真实交叉编译命令，而不是为代码浏览重新手写一套 Include Path。最小工作区配置示例：
+
+```json
+{
+  "cInsight.engine": "clangd",
+  "cInsight.clangd.path": "/usr/bin/clangd-20",
+  "cInsight.compileCommandsDir": "build",
+  "cInsight.clangd.arguments": [
+    "--query-driver=/opt/arm-gnu/bin/arm-none-eabi-gcc,/opt/arm-gnu/bin/arm-none-eabi-g++"
+  ]
+}
+```
+
+`compile_commands.json` 应记录交叉编译器、工作目录、目标 CPU/ABI、sysroot、显式 include、宏和生成头文件。`--query-driver` 只允许 clangd 执行可信驱动以提取目标和系统头路径；它不会替数据库选择编译器。该允许列表应使用明确的工具链绝对路径，避免匹配工作区或不可信目录。
+
+嵌入式 Linux 的 `--sysroot` 是源文件编译参数，应出现在数据库或 `.clangd` 的 `CompileFlags` 中，不能直接写进 `cInsight.clangd.arguments`。工具链已经内置目标搜索规则时不必重复指定；应以 `-dumpmachine` 和 `-E -v` 的实际目标及 C/C++ 头文件搜索路径为判断依据。
+
+Microsoft 模式还必须在 `c_cpp_properties.json` 中配置 `compileCommands`、`compilerPath` 和必要的 `compilerArgs`；`cInsight.compileCommandsDir` 不会替 cpptools 选择数据库。完整的裸机、嵌入式 Linux、sysroot、CMake、Remote 和验证示例见[交叉编译与嵌入式工程配置](cross-compilation.zh-CN.md)。
+
+## 12. 常见问题
 
 ### 状态栏显示结果受限（Limited）
 
@@ -1189,7 +1212,7 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 
 同时运行官方 clangd 扩展或微软 C/C++ 扩展，可能产生重复语言提供者和重复索引。C Insight 会过滤会产生全局命令冲突的 clangd execute-command 功能，但仍建议只保留实际需要的语义引擎。
 
-## 12. 第二阶段语义增强与兼容性
+## 13. 第二阶段语义增强与兼容性
 
 0.14.0–0.16.3 完成了第二阶段：
 
@@ -1204,16 +1227,16 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 - 引用 JSON 使用独立的 `c-insight.references` 版本 `1` 格式。
 - 类型/包含层次（Type/Include Hierarchy）仍不写入工作区会话，符合此前备忘录决定。
 
-## 13. 当前限制
+## 14. 当前限制
 
-第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括代码预览（Code Preview）完整语义右键菜单、包含文件（Include）条件预处理增强、类型/包含会话恢复（Type/Include Session Restore）、跨过程数据流。微软 C/C++ 引擎已在 0.18.1 提供显式可选适配器，0.18.2 增加配置/冲突验证、引擎诊断和跨引擎语义会话隔离，0.18.3 增加按查询类型划分的性能与结果统计；0.18.4 将 Microsoft 调用层次（Microsoft Call Hierarchy）查询改为串行、按窗口需求触发，并在提供程序（Provider）失败后丢弃旧层级条目。由于 cpptools 是独立的原生进程，C Insight 可以降低并发压力和避免复用失效对象，但无法捕获或修复其内部 SIGSEGV；若仍发生，应将 cpptools 输出的调用栈提交到 Microsoft vscode-cpptools 问题跟踪器。尚未支持的类型层次（Type Hierarchy）、索引进度和 clangd 专用证据属于公开提供程序 API 的能力边界。探测方法、实测结果和接入边界见 `docs/validation/microsoft-provider-probe.zh-CN.md`。
+第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括代码预览（Code Preview）完整语义右键菜单、包含文件（Include）条件预处理与 query-driver 内建路径增强、类型/包含会话恢复（Type/Include Session Restore）以及跨过程数据流。Microsoft C/C++ 引擎已经是显式可选的生产适配器，具备配置/冲突验证、引擎诊断、按查询类型划分的性能证据、串行且按窗口需求触发的调用层次（Call Hierarchy）、基于引用（References-based）的安全调用者（Callers）和原生被调用者（Callees）。由于 cpptools 是独立的原生进程，C Insight 可以降低并发压力和避免复用失效对象，但无法捕获或修复其内部 SIGSEGV；若仍发生，应将 cpptools 输出的调用栈提交到 Microsoft vscode-cpptools 问题跟踪器。类型层次（Type Hierarchy）、索引进度和 clangd 专用协议证据仍受公开提供程序 API 边界限制，详见 Microsoft 验收文档。
 
-- 主要面向单个本地工作区根目录。
+- 支持 Local、WSL、Remote SSH 和直接打开文件夹，但部分相对配置和自动数据库选择以第一个工作区根目录为基准；多根工程应显式选择数据库并核对作用域。
 - 代码预览复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与编辑器最终合成颜色存在细微差异。
 - 静态调用树无法完整解析运行时多态、所有函数指针、宏生成调用和动态分派。
 - 引用（References）对跨过程指针目标、完整模板实例化链和编译器宏展开栈保持保守；推断结果会显示证据和置信度。
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。
-- 包含层次（Include Hierarchy）不执行编译器或预处理器；编译器隐式平台头路径、宏生成的 include 和条件编译的真实启用状态可能无法完整还原。
+- 包含层次（Include Hierarchy）不执行编译器或预处理器；clangd 从 query driver 内部取得但未写入数据库的系统路径、宏生成的 include 和条件编译的真实启用状态可能无法完整还原。
 
 ### 大型工程性能基线
 
@@ -1231,7 +1254,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 所有 Extension Host 测试都使用进程级隔离的临时用户数据与扩展目录，因此可以在日常 VS Code 已打开时运行，不会读取或改写用户配置，也不会与现有窗口竞争实例锁。第三阶段最终复验结果见 `docs/validation/third-phase-acceptance.zh-CN.md`。
 
-## 14. 功能与窗口矩阵
+## 15. 功能与窗口矩阵
 
 | 功能/窗口 | 数据来源 | 自动更新 | 固定（Pin）/锁定（Lock） | 搜索 | 展开 | 导出 | 代码预览（Code Preview） |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -1251,9 +1274,9 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 `—` 表示该能力不适用于对应窗口，而不是功能异常。
 
-## 15. 状态持久化与配置生效矩阵
+## 16. 状态持久化与配置生效矩阵
 
-### 15.1 状态保存位置
+### 16.1 状态保存位置
 
 | 状态 | 保存位置 | 作用域 | 重启后 |
 | --- | --- | --- | --- |
@@ -1266,7 +1289,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 类型/包含层次（Type/Include Hierarchy）根和展开状态 | 扩展进程内状态 | 当前窗口运行期 | 不恢复 |
 | 关系图（Relationship Graph）画布状态 | 关系图（Graph）会话快照 | 当前工作区 | 仅退出时面板仍打开才恢复 |
 
-### 15.2 配置变更的生效方式
+### 16.2 配置变更的生效方式
 
 | 配置类别 | 生效方式 |
 | --- | --- |
@@ -1278,14 +1301,14 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | `cInsight.callHierarchy.*` | 清除调用请求缓存、标记结果已过期，并在后续查询或展开时生效 |
 | `cInsight.typeHierarchy.*` | 清除类型请求缓存并标记结果已过期 |
 | `cInsight.includeHierarchy.*` | 使 Include 仓库失效；后续显式查询重新解析或建立索引 |
-| `cInsight.relationshipGraph.*` | 当前图标记已过期；布局和限制在后续发布/扩展时使用 |
+| `cInsight.relationshipGraph.*` | 当前图标记已过期；后续显式扩展和重新打开的 Call/Type/Include/混合图使用新布局、系统头与资源限制 |
 | `cInsight.session.*` | 后续自动保存和下次恢复生效；关闭 Restore 会停止新的自动保存 |
 | `cInsight.diagnostics.reportRedaction` | 下一次复制或导出报告时生效，不修改当前诊断树 |
 | 导航历史（History）、书签（Bookmarks）、符号搜索（Symbol Search）配置 | 对当前模型立即重新排序、过滤、分组或裁剪 |
 
 <!-- GENERATED COMMAND REFERENCE START -->
 
-## 15. 完整命令参考
+## 17. 完整命令参考
 
 本节由 `package.json` 自动生成。所有命令都可以通过命令面板调用；表中额外列出标题栏、编辑器右键菜单、树节点右键菜单和默认快捷键入口。窗口当前状态不满足 `when` 条件时，相应菜单按钮可能隐藏。
 

@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.20.9` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.4` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -10,6 +10,8 @@ C Insight 是 TypeScript 编写的 VS Code 扩展，生产入口为 `src/extensi
 - **Microsoft C/C++ language service (cpptools)**：不启动或控制 cpptools 进程，而是调用 VS Code 公开的定义（Definition）、引用（References）、调用层次（Call Hierarchy）等提供程序（Provider） API。
 
 扩展不会运行 CMake、编译器或工程构建命令。工作区不受信任时不得启动 clangd。包含层次（Include Hierarchy）只读取源码、编译数据库和工作区文件。
+
+交叉编译工程仍由宿主机上的 clangd 解析：`compile_commands.json` 提供每个翻译单元的真实交叉编译参数，`cInsight.compileCommandsDir` 只选择数据库目录，`cInsight.clangd.arguments` 中的 `--query-driver` 只允许 clangd 查询受信任的编译器驱动。C Insight 不执行编译数据库中的命令，也不自行探测 sysroot；但 clangd 获准后可能执行匹配的 query driver。Microsoft 模式下，`cInsight.compileCommandsDir` 不会替 cpptools 配置数据库，工程还需通过 `c_cpp_properties.json` 或其配置提供程序配置 Microsoft IntelliSense。
 
 核心依赖方向如下：
 
@@ -120,14 +122,12 @@ AnalysisService（调度、计时、统一结果）
 | `viewLifecycle.ts` | TreeView/Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
-| `viewStatusModel.ts` | 空闲（Idle）、加载中（Loading）、空结果（Empty）、已取消（Cancelled）、已过期（Stale）、结果受限（Limited）、失败（Failed）的纯展示模型。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动和锁定（Lock）。 |
 | `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及目标范围叠加。 |
 | `sourceLineCache.ts` | 引用和预览所需源码行的有界缓存。 |
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |
 | `previewClearGuard.ts` | 从预览打开编辑器期间阻止活动编辑器事件立即清空预览。 |
-| `treeLocationInteraction.ts` | 将同一窗口、同一稳定节点在配置时间内的两次激活分类为单击预览或双击打开；不持有 VS Code 资源。 |
 | `referenceExplorer.ts` | 引用结果、固定、已过期（stale）、可靠性、分页、搜索、分组、证据过滤、选择和会话状态的唯一所有者。 |
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
@@ -234,6 +234,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `callHierarchy.ts` | 调用节点稳定键、递归判断和显式函数/成员函数指针调用语法证据。 |
 | `callPath.ts` | 有深度、路径数和访问节点上限的调用路径搜索。 |
 | `typeHierarchy.ts` | 类型稳定键、递归、关系证据、过滤和 Mermaid 方向。 |
+| `definitionLocation.ts` | 比较定义（Definition）、声明（Declaration）与提供程序位置，选择实现优先的展示位置并保留声明回退证据。 |
 | `hierarchyTreeState.ts` | 每个方向独立的节点数、重复集合和剩余预算。 |
 | `hierarchyExpansion.ts` | 展开停止原因及统一提示。 |
 | `hierarchyExport.ts` | 调用/类型/包含（Call/Type/Include）通用的版本化 Text/JSON/Mermaid 导出模型。 |
@@ -243,6 +244,8 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `mermaid.ts` | Mermaid 标签转义和调用边渲染。 |
 | `viewPin.ts` | 固定（Pin）状态下自动/手动更新的统一纯策略。 |
 | `cursorFollowSuppression.ts` | 记录树双击的编辑器目标，过滤程序化编辑器/选区事件，并在鼠标或键盘移动到其他位置时恢复随光标刷新。 |
+| `treeLocationInteraction.ts` | 将同一窗口、同一稳定节点在配置时间内的两次激活分类为单击预览或双击打开；不持有 VS Code 资源。 |
+| `viewStatusModel.ts` | 空闲（Idle）、加载中（Loading）、空结果（Empty）、已取消（Cancelled）、已过期（Stale）、结果受限（Limited）、失败（Failed）的纯展示模型。 |
 
 ## 5. 本地化
 
@@ -374,6 +377,7 @@ npm run package
 ## 12. 文档维护规则
 
 - 用户行为或配置变化：更新中英文用户手册、README 摘要和 CHANGELOG。
+- 交叉工具链、编译数据库或引擎边界变化：同步更新中英文交叉编译指南以及两份用户手册中的入口说明。
 - 架构或文件职责变化：更新本文及 `docs/development/architecture.md`。
 - 延期或完成计划项：更新 `docs/planning/roadmap.md`，删除已经过时的备忘描述。
 - 性能门槛变化：更新 `docs/validation/performance-baseline.zh-CN.md`。
