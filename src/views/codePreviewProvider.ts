@@ -21,6 +21,7 @@ import {
   highlightCppLine,
   highlightSemanticLine,
   highlightTarget,
+  previewTargetSpan,
   SemanticTokenSpan,
 } from "./sourceHighlight";
 import { PreviewClearGuard } from "./previewClearGuard";
@@ -768,23 +769,14 @@ function highlightPreviewLine(
   range: vscode.Range,
   semanticTokens?: readonly SemanticTokenSpan[],
 ): string {
+  const target = previewTargetSpan(range, line, source.length);
   if (semanticTokens) {
-    const target =
-      line >= range.start.line && line <= range.end.line
-        ? {
-            start: line === range.start.line ? range.start.character : 0,
-            end:
-              line === range.end.line ? range.end.character : source.length,
-          }
-        : undefined;
     return highlightSemanticLine(source, semanticTokens, target);
   }
-  if (line < range.start.line || line > range.end.line) {
+  if (!target) {
     return highlightCppLine(source);
   }
-  const start = line === range.start.line ? range.start.character : 0;
-  const end = line === range.end.line ? range.end.character : source.length;
-  return highlightTarget(source, start, end);
+  return highlightTarget(source, target.start, target.end);
 }
 
 async function requestSemanticTokens(
