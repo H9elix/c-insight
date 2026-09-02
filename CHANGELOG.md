@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.6
+
+- Removed the gray rounded background applied by the VS Code Webview host to every per-line `<code>` element by explicitly resetting its preformatted-text background, spacing, border, radius, shadow, and outline.
+- Restored exact multi-line target-range highlighting after DOM inspection proved that the unwanted per-line boxes came from host `<code>` styling rather than target markup.
+- Added a Webview style-contract regression test and updated maintained documentation with the corrected diagnosis and rendering behavior.
+
 ## 0.22.5
 
 - Stopped Code Preview from treating a provider's multi-line navigation range as an inline target and outlining every covered source line.
