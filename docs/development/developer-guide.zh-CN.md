@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.4` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.5` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -123,7 +123,7 @@ AnalysisService（调度、计时、统一结果）
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动和锁定（Lock）。 |
-| `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及目标范围叠加。 |
+| `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及目标范围叠加；多行提供程序范围只参与导航，不生成逐行文本框。 |
 | `sourceLineCache.ts` | 引用和预览所需源码行的有界缓存。 |
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |

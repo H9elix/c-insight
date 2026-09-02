@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.4`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.5`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Cross-compiled bare-metal and embedded Linux projects should generate that datab
 
 The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
 
-Single-clicking any source-location result in a C Insight tree previews it in Code Preview; double-clicking the same result opens that exact location in the editor. This includes Context definitions/declarations, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and document symbols, and source diagnostics. Disclosure arrows still expand hierarchical nodes, while explicit **Open Location** actions open immediately.
+Single-clicking any source-location result in a C Insight tree previews it in Code Preview; double-clicking the same result opens that exact location in the editor. This includes Context definitions/declarations, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and document symbols, and source diagnostics. Disclosure arrows still expand hierarchical nodes, while explicit **Open Location** actions open immediately. Precise single-line provider ranges receive inline target markup; multi-line declaration or container ranges remain valid navigation targets but use only the start-line marker instead of outlining every covered source line.
 
 For callable symbols, Code Preview and both Callers/Callees roots prefer a provider definition distinct from the declaration. The Call Hierarchy query retains its original opaque provider item even when the displayed root points to the implementation. A declaration fallback is shown while no distinct definition is available; clangd index completion or bounded definition-only retries upgrade the current unlocked and unpinned location without clearing loaded branches.
 

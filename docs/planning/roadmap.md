@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.4`. No new feature phase is active: the current release synchronizes every maintained document with the implemented dual-engine architecture, the `0.22.x` call-occurrence UI, and cross-compilation boundaries. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
+The maintained code and documentation baseline is `0.22.5`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI while correcting Code Preview's treatment of multi-line navigation ranges. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 

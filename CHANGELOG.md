@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.5
+
+- Stopped Code Preview from treating a provider's multi-line navigation range as an inline target and outlining every covered source line.
+- Preserved the full range for editor navigation and the start-line location highlight while limiting inline target markup to confirmed single-line ranges in both semantic-token and lexical rendering.
+- Added pure regression coverage for single-line target spans and multi-line navigation-only ranges, and synchronized maintained documentation with the corrected behavior.
+
 ## 0.22.4
 
 - Synchronized every maintained document with the current dual-engine architecture, `0.22.x` occurrence-based Call Hierarchy behavior, completed Relationship Graph state, and active versus deferred roadmap items.

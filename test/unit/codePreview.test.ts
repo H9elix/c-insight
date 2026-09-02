@@ -5,6 +5,7 @@ import {
   highlightCppLine,
   highlightSemanticLine,
   highlightTarget,
+  previewTargetSpan,
 } from "../../src/views/sourceHighlight";
 
 describe("code preview highlighting", () => {
@@ -37,6 +38,30 @@ describe("code preview highlighting", () => {
     assert.equal(html.startsWith('<mark class="target-symbol">value'), true);
     assert.equal(html.includes("< limit"), false);
     assert.equal(html.includes("&lt;"), true);
+  });
+
+  it("keeps single-line provider ranges eligible for inline highlighting", () => {
+    assert.deepEqual(
+      previewTargetSpan(
+        {
+          start: { line: 4, character: 7 },
+          end: { line: 4, character: 10 },
+        },
+        4,
+        20,
+      ),
+      { start: 7, end: 10 },
+    );
+  });
+
+  it("treats multi-line provider ranges as navigation-only", () => {
+    const range = {
+      start: { line: 4, character: 0 },
+      end: { line: 12, character: 1 },
+    };
+    assert.equal(previewTargetSpan(range, 4, 30), undefined);
+    assert.equal(previewTargetSpan(range, 8, 30), undefined);
+    assert.equal(previewTargetSpan(range, 12, 30), undefined);
   });
 
   it("decodes delta semantic tokens and modifier bits for the preview range", () => {
