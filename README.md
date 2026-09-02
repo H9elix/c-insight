@@ -90,8 +90,8 @@ References-based Callers path without invoking native Incoming Calls.
   Reload Window
 - Shared Code Preview with function-implementation preference, explicit
   declaration fallback, and highlighted reference, caller, callee definition,
-  and call-site snippets; multi-line provider ranges remain navigation targets
-  without outlining every covered source line
+  and call-site snippets, with host preformatted-element backgrounds removed
+  from the per-line source surface
 - Incoming and outgoing call trees with lazy loading and recursion detection
 - C++ supertype and subtype trees with lazy expansion, search, and export
 - Forward Includes and reverse Included By trees with compile-command-aware

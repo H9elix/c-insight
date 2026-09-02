@@ -21,7 +21,6 @@ import {
   highlightCppLine,
   highlightSemanticLine,
   highlightTarget,
-  previewTargetSpan,
   SemanticTokenSpan,
 } from "./sourceHighlight";
 import { PreviewClearGuard } from "./previewClearGuard";
@@ -769,14 +768,23 @@ function highlightPreviewLine(
   range: vscode.Range,
   semanticTokens?: readonly SemanticTokenSpan[],
 ): string {
-  const target = previewTargetSpan(range, line, source.length);
   if (semanticTokens) {
+    const target =
+      line >= range.start.line && line <= range.end.line
+        ? {
+            start: line === range.start.line ? range.start.character : 0,
+            end:
+              line === range.end.line ? range.end.character : source.length,
+          }
+        : undefined;
     return highlightSemanticLine(source, semanticTokens, target);
   }
-  if (!target) {
+  if (line < range.start.line || line > range.end.line) {
     return highlightCppLine(source);
   }
-  return highlightTarget(source, target.start, target.end);
+  const start = line === range.start.line ? range.start.character : 0;
+  const end = line === range.end.line ? range.end.character : source.length;
+  return highlightTarget(source, start, end);
 }
 
 async function requestSemanticTokens(
@@ -995,8 +1003,11 @@ function htmlDocument(
       flex: 0 0 3.5em; padding-right: 1em; text-align: right;
       color: var(--vscode-editorLineNumber-foreground); user-select: none;
     }
-    code { color: var(--vscode-editor-foreground); }
-    .line code { flex: none; width: max-content; }
+    .code .line > code {
+      flex: none; width: max-content; margin: 0; padding: 0;
+      color: var(--vscode-editor-foreground); background: transparent;
+      border: 0; border-radius: 0; box-shadow: none; outline: none;
+    }
     .target-symbol {
       color: inherit;
       background: var(--vscode-editor-findMatchHighlightBackground);

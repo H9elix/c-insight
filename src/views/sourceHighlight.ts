@@ -57,32 +57,6 @@ export interface SemanticTokenSpan {
   modifiers: readonly string[];
 }
 
-export interface PreviewTargetRangeLike {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-}
-
-/**
- * Returns an inline highlight only when the provider identified a target on a
- * single source line. Multi-line ranges often describe a declaration body or
- * another navigation container and must not visually mark every line in it.
- */
-export function previewTargetSpan(
-  range: PreviewTargetRangeLike,
-  line: number,
-  sourceLength: number,
-): { start: number; end: number } | undefined {
-  if (
-    range.start.line !== range.end.line ||
-    line !== range.start.line
-  ) {
-    return undefined;
-  }
-  const start = Math.max(0, Math.min(range.start.character, sourceLength));
-  const end = Math.max(start, Math.min(range.end.character, sourceLength));
-  return { start, end };
-}
-
 export function decodeSemanticTokens(
   data: Uint32Array,
   legend: SemanticTokenLegendLike,

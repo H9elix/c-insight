@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   decodeSemanticTokens,
   highlightCppLine,
   highlightSemanticLine,
   highlightTarget,
-  previewTargetSpan,
 } from "../../src/views/sourceHighlight";
 
 describe("code preview highlighting", () => {
@@ -38,30 +38,6 @@ describe("code preview highlighting", () => {
     assert.equal(html.startsWith('<mark class="target-symbol">value'), true);
     assert.equal(html.includes("< limit"), false);
     assert.equal(html.includes("&lt;"), true);
-  });
-
-  it("keeps single-line provider ranges eligible for inline highlighting", () => {
-    assert.deepEqual(
-      previewTargetSpan(
-        {
-          start: { line: 4, character: 7 },
-          end: { line: 4, character: 10 },
-        },
-        4,
-        20,
-      ),
-      { start: 7, end: 10 },
-    );
-  });
-
-  it("treats multi-line provider ranges as navigation-only", () => {
-    const range = {
-      start: { line: 4, character: 0 },
-      end: { line: 12, character: 1 },
-    };
-    assert.equal(previewTargetSpan(range, 4, 30), undefined);
-    assert.equal(previewTargetSpan(range, 8, 30), undefined);
-    assert.equal(previewTargetSpan(range, 12, 30), undefined);
   });
 
   it("decodes delta semantic tokens and modifier bits for the preview range", () => {
@@ -169,5 +145,19 @@ describe("code preview highlighting", () => {
     ]);
     assert.equal(html.includes("<value>"), false);
     assert.equal(html.includes("&lt;value&gt;"), true);
+  });
+
+  it("resets host preformatted styling on source code rows", () => {
+    const provider = readFileSync(
+      "src/views/codePreviewProvider.ts",
+      "utf8",
+    );
+    const rule = provider.match(/\.code \.line > code \{([\s\S]*?)\}/)?.[1];
+    assert.ok(rule, "Code Preview source-code reset rule is missing");
+    assert.match(rule, /background: transparent;/);
+    assert.match(rule, /padding: 0;/);
+    assert.match(rule, /border: 0;/);
+    assert.match(rule, /border-radius: 0;/);
+    assert.match(rule, /box-shadow: none;/);
   });
 });
