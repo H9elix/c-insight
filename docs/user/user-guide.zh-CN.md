@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.6`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.7`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -908,6 +908,10 @@ C/C++ 编辑器右键菜单还提供：
 
 因此类似 `textDocument/hover`、`prepareCallHierarchy`、`Built preamble`、`ASTWorker building file` 的普通信息不需要当作故障。真正的 `error:`、连接关闭或进程启动失败才需要重点检查。
 
+托管的 clangd 意外退出时，C Insight 会在三分钟滑动窗口内自动重启最多四次。每次重启前，后台索引进度会复位，依赖 clangd 的现有结果会按原有机制标记为已过期（stale）；新进程进入就绪（Ready）后重新同步已打开文档。三分钟内第 5 次退出会停止自动重启，避免持续崩溃和拉起进程；此时先检查 **C Insight: clangd**，再明确执行 **C Insight: Restart clangd**，人工重启会建立新的恢复预算。
+
+`Server process exited with signal SIGSEGV` 表示首要故障是 clangd 进程自身崩溃。其后的 `write EPIPE`、`Cannot call write after a stream was destroyed` 和 `textDocument/didOpen failed` 是待发送文档同步写入已关闭管道的次生现象，不是多次独立崩溃。C Insight 会把同一轮重复堆栈压缩为一条传输关闭诊断并自动恢复连接，但无法在插件内部修复导致 `SIGSEGV` 的 clangd 缺陷；定位根因仍需保留崩溃前的请求、文件、编译命令、clangd 版本和可用的 core/backtrace。
+
 ### 运行时性能（Runtime Performance）诊断
 
 工程诊断（Project Diagnostics）的 `Runtime performance` 分组提供当前扩展会话的只读快照：
@@ -1207,6 +1211,10 @@ Microsoft 模式还必须在 `c_cpp_properties.json` 中配置 `compileCommands`
 ### 被调用者（Callees）查询不支持
 
 C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或更高版本。检查工程诊断（Project Diagnostics）中显示的 clangd 版本和实际可执行文件。
+
+### clangd 出现 `SIGSEGV`、`EPIPE` 或连接关闭
+
+先在 **C Insight: clangd** 中向前查找第一条 `Server process exited` 或 clangd 自身错误。`SIGSEGV` 是进程崩溃，紧随其后的 `EPIPE`、流已销毁和 `didOpen failed` 通常只是同一次退出的连锁反应。C Insight 会自动重启四次；短时间第 5 次崩溃后停止并显示失败（Failed），防止崩溃循环。此时保存崩溃前日志，确认实际 clangd 路径/版本和触发文件的编译命令，必要时收集 core/backtrace；处理根因后执行 **C Insight: Restart clangd**。不要仅根据重复的 `didOpen failed` 判断发生了多次独立错误。
 
 ### 与其他 C/C++ 扩展同时启用
 

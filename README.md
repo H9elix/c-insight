@@ -277,6 +277,13 @@ request queueing and latency, request outcomes, cache occupancy and eviction,
 resource-limit hits, and configured safety limits. Copied and exported reports
 include the same snapshot without request parameters or source content.
 
+If the managed clangd process exits unexpectedly, C Insight automatically
+restarts it up to four times in a three-minute sliding window. A fifth close
+stops the crash loop and requires **C Insight: Restart clangd**. `SIGSEGV` is
+the primary process failure; following `EPIPE`, destroyed-stream, and
+`didOpen failed` messages are secondary pipe-closure effects and are collapsed
+to one concise transport diagnostic per failed connection.
+
 When `cInsight.compileCommandsDir` is empty, C Insight searches the workspace
 root and common build directories before searching other workspace locations.
 The selected directory is passed to clangd automatically. Use **C Insight:

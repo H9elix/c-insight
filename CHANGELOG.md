@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.7
+
+- Added bounded automatic recovery when the managed clangd process exits unexpectedly: C Insight restarts it up to four times in a three-minute sliding window, then stops the crash loop and requires an explicit **Restart clangd**.
+- Reset index progress and mark dependent semantic results stale before an automatic restart so the recovered process cannot be presented with pre-crash readiness state.
+- Classified `EPIPE` and destroyed-stream failures as secondary transport effects, allowing the close handler to restart clangd while collapsing duplicate document-synchronization stack traces into one concise diagnostic.
+- Added regression coverage for restart limits, sliding-window recovery, and broken-pipe classification, and documented how to distinguish a clangd `SIGSEGV` from its follow-on client errors.
+
 ## 0.22.6
 
 - Removed the gray rounded background applied by the VS Code Webview host to every per-line `<code>` element by explicitly resetting its preformatted-text background, spacing, border, radius, shadow, and outline.

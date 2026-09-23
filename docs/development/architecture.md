@@ -1,8 +1,10 @@
 # Architecture
 
-This document describes the `0.22.6` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
+This document describes the `0.22.7` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
 
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
+
+Unexpected clangd exits use a bounded recovery policy owned by the client instance. A close resets index progress, moves the engine through `restarting`, and lets `vscode-languageclient` recreate the process and document synchronization. Four automatic restarts are allowed in a three-minute sliding window; the fifth close moves the engine to `failed` and leaves recovery to the explicit Restart clangd command, which creates a fresh client and recovery budget. Broken-pipe and destroyed-stream messages are treated as secondary transport evidence rather than independent process failures, and duplicate document-sync stacks are collapsed until the client reaches `Running` again. Intentional stop, manual restart, and extension disposal do not enter this crash policy.
 
 Activation delegates initial Context Key publication and concrete analysis-engine startup to `activation/runtimeInitialization`; `activate()` retains composition, recovery, and event wiring while startup details remain independently reviewable.
 

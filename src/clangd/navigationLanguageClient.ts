@@ -7,6 +7,7 @@ import {
   type LanguageClientOptions,
   type ServerOptions,
 } from "vscode-languageclient/node";
+import { isBrokenClangdTransportError } from "./clangdRecovery";
 import { shouldRegisterLanguageClientFeature } from "./languageClientFeatureFilter";
 
 /**
@@ -19,6 +20,8 @@ import { shouldRegisterLanguageClientFeature } from "./languageClientFeatureFilt
  * document sync and all language navigation providers.
  */
 export class NavigationLanguageClient extends LanguageClient {
+  private brokenTransportReported = false;
+
   constructor(
     id: string,
     name: string,
@@ -35,5 +38,32 @@ export class NavigationLanguageClient extends LanguageClient {
       return;
     }
     super.registerFeature(feature);
+  }
+
+  resetTransportFailureLogging(): void {
+    this.brokenTransportReported = false;
+  }
+
+  override error(
+    message: string,
+    data?: unknown,
+    showNotification: boolean | "force" = true,
+  ): void {
+    if (
+      isBrokenClangdTransportError(message) ||
+      isBrokenClangdTransportError(data)
+    ) {
+      if (this.brokenTransportReported) {
+        return;
+      }
+      this.brokenTransportReported = true;
+      super.error(
+        "clangd transport closed unexpectedly; duplicate document synchronization errors are suppressed while automatic recovery starts.",
+        undefined,
+        false,
+      );
+      return;
+    }
+    super.error(message, data, showNotification);
   }
 }

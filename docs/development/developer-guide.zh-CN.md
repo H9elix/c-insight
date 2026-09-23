@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.6` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.7` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -96,8 +96,9 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `clangdManager.ts` | 定位、启动、重启和停止一个 clangd；持有客户端状态、配置变化、索引进度和编译数据库目录。 |
-| `navigationLanguageClient.ts` | `LanguageClient` 子类及 clangd 导航连接行为。 |
+| `clangdManager.ts` | 定位、启动、重启和停止一个 clangd；持有客户端状态、配置变化、索引进度、编译数据库目录和意外退出后的有界恢复接线。 |
+| `clangdRecovery.ts` | 维护三分钟滑动窗口内最多四次的自动重启预算，并识别 `EPIPE`/流已销毁等进程退出后的次生传输错误。 |
+| `navigationLanguageClient.ts` | `LanguageClient` 子类及 clangd 导航连接行为；同一轮断连只保留一条简洁传输诊断，连接重新运行后恢复正常记录。 |
 | `languageClientFeatureFilter.ts` | 过滤会造成全局命令冲突的执行命令功能（Execute Command feature），同时保留文档同步和导航提供程序（Provider）。 |
 | `clangdLocator.ts` | 配置路径、PATH 和常见安装位置中的 clangd 探测及版本检查。 |
 | `clangdArguments.ts` | 组合受管理参数、编译数据库目录和用户自定义参数。启动进程不经过 shell。 |
