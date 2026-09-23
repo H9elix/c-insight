@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.6`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.7`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -36,6 +36,8 @@ All commands are available from the Command Palette under **C Insight**. Context
 ## Diagnostics and privacy
 
 Project Diagnostics explains engine availability, compilation database detection, the active file command, indexing progress, request performance, and result reliability. Raw clangd/cpptools logs, command IDs, setting IDs, symbol names, file paths, and exported JSON field names remain untranslated so diagnostic evidence and automation stay stable.
+
+If the managed clangd process exits unexpectedly, C Insight automatically restarts it up to four times in a three-minute sliding window. A fifth close stops the crash loop; inspect **C Insight: clangd**, then run **C Insight: Restart clangd** explicitly. A `Server process exited with signal SIGSEGV` line is the primary process failure. Subsequent `EPIPE`, destroyed-stream, and `textDocument/didOpen failed` messages are secondary effects of pending synchronization reaching the closed pipe; C Insight collapses duplicates but cannot repair the clangd defect that caused the signal. Automatic recovery resets index progress and marks dependent semantic results stale until the new process is ready.
 
 In clangd mode, a relative `cInsight.compileCommandsDir` is resolved against the first workspace folder. The current setting does not interpolate `${workspaceFolder}`; use `"build"` or an absolute directory. C Insight passes the selected directory to clangd but never executes build commands or compilation-database entries. An explicit `--query-driver` does authorize clangd to execute a matching trusted driver. In Microsoft mode, the same C Insight setting supports diagnostics but does not configure cpptools.
 

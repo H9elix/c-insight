@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.6`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI while removing unintended Webview host styling from Code Preview source rows. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
+The maintained code and documentation baseline is `0.22.7`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, corrected Code Preview source-row styling, and bounded automatic recovery from unexpected managed-clangd exits. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 

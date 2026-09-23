@@ -14,6 +14,10 @@ import { readConfiguration } from "../configuration/configuration";
 import { ClangdState } from "../models/types";
 import { buildClangdArguments } from "./clangdArguments";
 import { ClangdInstallation, locateClangd } from "./clangdLocator";
+import {
+  ClangdRecoveryPolicy,
+  isBrokenClangdTransportError,
+} from "./clangdRecovery";
 import { resolveCompilationDatabase } from "./compilationDatabase";
 import {
   IndexProgressState,
@@ -129,6 +133,7 @@ export class ClangdManager implements vscode.Disposable {
         cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
       },
     };
+    const recoveryPolicy = new ClangdRecoveryPolicy();
     const clientOptions: LanguageClientOptions = {
       documentSelector: [
         { scheme: "file", language: "c" },
@@ -155,15 +160,41 @@ export class ClangdManager implements vscode.Disposable {
         },
       },
       errorHandler: {
-        error: (_error, _message, count) => ({
-          action: count && count > 3 ? ErrorAction.Shutdown : ErrorAction.Continue,
+        error: (error, _message, count) => ({
+          action:
+            isBrokenClangdTransportError(error) || !count || count <= 3
+              ? ErrorAction.Continue
+              : ErrorAction.Shutdown,
           handled: true,
         }),
-        closed: () => ({
-          action: CloseAction.DoNotRestart,
-          handled: true,
-          message: "clangd connection closed. Use C Insight: Restart clangd.",
-        }),
+        closed: () => {
+          const decision = recoveryPolicy.recordUnexpectedClose();
+          if (decision.action === "restart") {
+            this.setIndexProgress(
+              initialIndexProgress(config.backgroundIndex),
+            );
+            this.setState("restarting");
+            this.output.appendLine(
+              `clangd exited unexpectedly; automatic restart ${decision.crashCount}/${decision.maxAutomaticRestarts}.`,
+            );
+            return {
+              action: CloseAction.Restart,
+              handled: true,
+              message: `clangd connection closed unexpectedly. Restarting automatically (${decision.crashCount}/${decision.maxAutomaticRestarts}).`,
+            };
+          }
+
+          this.setState("failed");
+          this.output.appendLine(
+            `clangd crashed ${decision.crashCount} times within ${Math.round(decision.windowMs / 60_000)} minutes; automatic restart stopped.`,
+          );
+          return {
+            action: CloseAction.DoNotRestart,
+            handled: true,
+            message:
+              "clangd repeatedly exited unexpectedly. Automatic restart stopped; inspect C Insight: clangd, then use C Insight: Restart clangd.",
+          };
+        },
       },
       synchronize: {
         fileEvents: vscode.workspace.createFileSystemWatcher(
@@ -182,6 +213,7 @@ export class ClangdManager implements vscode.Disposable {
     this.disposables.push(
       client.onDidChangeState((event) => {
         if (event.newState === State.Running) {
+          client.resetTransportFailureLogging();
           this.setState("ready");
         } else if (
           event.newState === State.Stopped &&
