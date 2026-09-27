@@ -730,6 +730,7 @@ export class ReferenceExplorer implements vscode.Disposable {
       .map(([label, values]) => ({
         label,
         description: `${values.length}`,
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
         icon: new vscode.ThemeIcon(
           this.groupMode === "directory"
             ? "folder"

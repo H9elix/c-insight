@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.8
+
+- Made every grouped References presentation initially expand all of its groups, including File, Directory, Function, Reference Type, Confidence, and Evidence Source modes.
+- Kept Flat mode unchanged and retained explicit Expand All/Collapse All commands; automatic expansion changes only tree presentation and issues no additional semantic requests.
+- Added a References tree wiring regression and synchronized maintained documentation.
+
 ## 0.22.7
 
 - Added bounded automatic recovery when the managed clangd process exits unexpectedly: C Insight restarts it up to four times in a three-minute sliding window, then stops the crash loop and requires an explicit **Restart clangd**.

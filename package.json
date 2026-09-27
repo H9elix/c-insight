@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.22.7",
+  "version": "0.22.8",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
