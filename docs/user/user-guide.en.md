@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.10`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.11`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -36,6 +36,8 @@ Open **Settings** and search for `C Insight` to see every setting, accepted valu
 - `cInsight.includeDeclarationInReferences` and `cInsight.includeSystemReferences`
 
 All commands are available from the Command Palette under **C Insight**. Context menus and view title bars expose commands relevant to the current editor, view, or selected node.
+
+Primary view-title actions use compact VS Code Theme Icons. Hover an icon to see its localized command title; the Command Palette also retains the full title. Context, Code Preview, References, Callers, Callees, and Document Symbols share the Refresh icon, while Clear Bookmark Filter uses the clear-all icon. Text, JSON, and Mermaid exports remain textual in the `...` overflow menu.
 
 ## Diagnostics and privacy
 
