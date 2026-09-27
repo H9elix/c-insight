@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.10` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.11` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -287,6 +287,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 `test/unit/*.test.ts` 与纯 Model/Utils 一一对应。新增规则至少覆盖：正常结果、空结果、取消/限制、重复/递归、异常输入和兼容旧格式。重要架构守卫包括：
 
 - `commandWiringCompleteness.test.ts`：命令 contribution 与唯一注册点一致。
+- `viewTitleIcons.test.ts`：所有 `view/title` 主要导航操作都声明 VS Code 主题图标，避免退化为占据一整行的文字按钮。
 - `documentationCompleteness.test.ts`：配置、命令和视图全部出现在用户手册。
 - `localizationManifest.test.ts`：中英文 manifest 文本完整。
 - `secondPhaseCompatibility.test.ts`：旧会话和导出格式保持兼容。

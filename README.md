@@ -11,6 +11,8 @@ empty, cancelled, stale, limited, and failed operations. Idle rows explain how
 to trigger the first query; failure details remain available in descriptions
 and tooltips without overwhelming the result label.
 
+Primary view-title actions use compact VS Code Theme Icons. Hovering an icon shows its localized command title, and the Command Palette keeps the full text. Named overflow actions such as Text, JSON, and Mermaid export remain textual under `...`.
+
 完整中文说明见随扩展发布的 `docs/user/user-guide.zh-CN.md`。
 源码结构、状态所有权、测试和发布流程见
 `docs/development/developer-guide.zh-CN.md`（中文版开发者手册）。完整文档分类见

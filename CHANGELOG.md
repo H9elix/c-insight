@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.11
+
+- Replaced the shared text-only Refresh action in Context, Code Preview, References, Callers, Callees, and Document Symbols view title bars with the standard VS Code refresh icon.
+- Replaced the text-only Clear Bookmark Filter title action with the standard clear-all icon, while retaining localized command titles as hover text and Command Palette labels.
+- Added a manifest regression contract requiring every primary `view/title` action to declare a VS Code Theme Icon; named overflow export actions intentionally remain textual.
+
 ## 0.22.10
 
 - Preserved existing Context, Code Preview, References, Callers, and Callees results when an automatic cursor query finds no definition, declaration, Call Hierarchy root, hover, or symbol information.

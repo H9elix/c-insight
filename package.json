@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.22.10",
+  "version": "0.22.11",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -181,7 +181,8 @@
       },
       {
         "command": "cInsight.refresh",
-        "title": "%command.cInsight.refresh.title%"
+        "title": "%command.cInsight.refresh.title%",
+        "icon": "$(refresh)"
       },
       {
         "command": "cInsight.restartClangd",
@@ -305,7 +306,8 @@
       },
       {
         "command": "cInsight.bookmarks.clearSearch",
-        "title": "%command.cInsight.bookmarks.clearSearch.title%"
+        "title": "%command.cInsight.bookmarks.clearSearch.title%",
+        "icon": "$(clear-all)"
       },
       {
         "command": "cInsight.bookmarks.sort",

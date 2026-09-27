@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the `0.22.10` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
+This document describes the `0.22.11` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
 
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
@@ -9,6 +9,8 @@ Unexpected clangd exits use a bounded recovery policy owned by the client instan
 Activation delegates initial Context Key publication and concrete analysis-engine startup to `activation/runtimeInitialization`; `activate()` retains composition, recovery, and event wiring while startup details remain independently reviewable.
 
 Command wiring uses a small typed registrar. References, Call Hierarchy, Type/Include Hierarchy, Project Diagnostics, and workspace-tool command groups live in separate modules under `src/commands`; `registerCommands` remains the composition root and passes only each group's required services. Contributed command IDs, view IDs, internal commands, and context keys are generated into `src/ids.ts` from the extension manifest and checked for drift before packaging.
+
+Every command in the primary `navigation` group of `view/title` declares a VS Code Theme Icon in the extension manifest. This keeps title-bar actions compact while preserving the localized command title for hover text and the Command Palette. Named overflow groups, including Text, JSON, and Mermaid export, intentionally remain textual. A manifest regression test rejects future primary actions that would fall back to full-width text buttons.
 
 `ContextController` debounces cursor movement and assigns each refresh a monotonic generation. Results from an older generation are discarded. Before publishing an automatic cursor result, a pure evidence policy requires at least one definition, declaration, Call Hierarchy root, non-empty hover, symbol name, qualified name, or symbol ID. An all-empty base result preserves the currently displayed Context, Code Preview, References, Callers, and Callees and does not schedule delayed details; explicit Refresh, References, and Call Hierarchy intents bypass that preservation rule. Definition presentation compares provider Definition and Declaration locations and treats a shared location as a declaration fallback until a distinct implementation is available. Index completion and bounded retries issue only those two requests, are cancelled by cursor changes, and respect Context/Code Preview/Call Hierarchy pin and lock ownership. The views use native tree providers; callers and callees request children lazily. A normalized implementation location may replace only a call root's display and navigation fields; the raw LSP Call Hierarchy item, stable key, URI, ranges, and opaque `data` remain unchanged for subsequent semantic requests.
 

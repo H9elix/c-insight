@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.10`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.11`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -163,7 +163,9 @@ C Insight 有两类查询。
 
 ## 4. 各窗口说明
 
-调用者（Callers）、被调用者（Callees）、父类型（Supertypes）、子类型（Subtypes）、包含文件（Includes）和被包含关系（Included By）的标题栏采用统一顺序：显示（Show）、展开到指定深度（Expand to Depth）、搜索已加载内容（Search Loaded）、停止展开（Stop Expansion），再显示该关系特有的操作。Text、JSON、Mermaid 导出统一位于 `...` 溢出菜单。某个窗口不支持的关系特有功能不会显示，例如只有调用者/被调用者提供路径查找（Find Path）。
+标题栏主要操作使用紧凑的 VS Code 主题图标（Theme Icon）；悬停图标可查看本地化的完整命令名称，命令面板也保留完整文字。上下文、代码预览、引用、调用者、被调用者和文档符号共用刷新图标，清除书签筛选使用清除图标，不再显示占据一行的文字按钮。
+
+调用者（Callers）、被调用者（Callees）、父类型（Supertypes）、子类型（Subtypes）、包含文件（Includes）和被包含关系（Included By）的标题栏采用统一顺序：显示（Show）、展开到指定深度（Expand to Depth）、搜索已加载内容（Search Loaded）、停止展开（Stop Expansion），再显示该关系特有的操作。Text、JSON、Mermaid 导出统一位于 `...` 溢出菜单并保留文字名称。某个窗口不支持的关系特有功能不会显示，例如只有调用者/被调用者提供路径查找（Find Path）。
 
 批量展开被取消、达到 `maximumDepth` 或达到 `maximumNodes` 后，对应窗口顶部会显示状态行，并指出需要调整的配置。取消不会清除已经加载的节点。位于绝对深度上限的终端节点会附加 `max depth`，用于区别“没有下级关系”和“因安全上限不再查询”。
 
