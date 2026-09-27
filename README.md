@@ -232,9 +232,11 @@ file/directory/function/reference-type/flat grouping, and restrict results to
 the workspace, current directory, or current file. Reference Type creates
 Definitions, Declarations, Function Calls, Reads, Writes, Read/Writes,
 Addresses, and Other References groups. The grouping choice is saved per
-workspace; scope filters are temporary. Every grouped mode initially expands
-all result groups; Flat mode has no group nodes. The explicit Expand All and
-Collapse All commands remain available and do not issue semantic queries.
+workspace; scope filters are temporary. Set
+`cInsight.references.autoExpandGroups` to `true` to initially expand every
+grouped mode; its default is `false`, and Flat mode has no group nodes. The
+explicit Expand All and Collapse All commands remain available and do not
+issue semantic queries.
 
 Only the first `cInsight.references.pageSize` results are added initially.
 Choose **Load More References** or **Show All References** for additional
@@ -421,6 +423,7 @@ cmake -S test/fixtures/basic-cpp -B test/fixtures/basic-cpp/build \
 - `cInsight.references.maximumDisplayedResults`
 - `cInsight.references.detailRequestCacheSize`
 - `cInsight.references.groupBy`
+- `cInsight.references.autoExpandGroups`
 - `cInsight.export.maximumResults`
 - `cInsight.export.maximumMegabytes`
 - `cInsight.callHierarchy.defaultDepth`

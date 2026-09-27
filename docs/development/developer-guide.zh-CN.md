@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.8` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.9` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -129,7 +129,7 @@ AnalysisService（调度、计时、统一结果）
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |
 | `previewClearGuard.ts` | 从预览打开编辑器期间阻止活动编辑器事件立即清空预览。 |
-| `referenceExplorer.ts` | 引用结果、固定、已过期（stale）、可靠性、分页、搜索、分组、分组初始展开状态、证据过滤、选择和会话状态的唯一所有者。非平铺分组的子项已在内存中，展开不产生额外语义请求。 |
+| `referenceExplorer.ts` | 引用结果、固定、已过期（stale）、可靠性、分页、搜索、分组、可配置的分组初始展开状态、证据过滤、选择和会话状态的唯一所有者。非平铺分组的子项已在内存中，切换展开设置不产生额外语义请求。 |
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
 

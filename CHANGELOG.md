@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.9
+
+- Added `cInsight.references.autoExpandGroups` to control whether grouped References results are initially expanded; it defaults to `false`.
+- Applied setting changes immediately to the current References tree without repeating semantic queries, while keeping Flat mode and manual Expand All/Collapse All behavior unchanged.
+- Extended the References grouping wiring regression and synchronized configuration and user documentation.
+
 ## 0.22.8
 
 - Made every grouped References presentation initially expand all of its groups, including File, Directory, Function, Reference Type, Confidence, and Evidence Source modes.

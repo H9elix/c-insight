@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.8`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.9`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Cross-compiled bare-metal and embedded Linux projects should generate that datab
 
 The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
 
-References initially expands every result group in File, Directory, Function, Reference Type, Confidence, and Evidence Source grouping modes. Flat mode has no groups. Manual Expand All and Collapse All remain available; expanding these already materialized rows issues no additional analysis-engine request.
+Set `cInsight.references.autoExpandGroups` to `true` to initially expand every result group in File, Directory, Function, Reference Type, Confidence, and Evidence Source grouping modes. It defaults to `false`, so groups initially remain collapsed; Flat mode has no groups. Setting changes immediately republish the current tree, and manual Expand All and Collapse All remain available. These already materialized rows issue no additional analysis-engine request.
 
 Single-clicking any source-location result in a C Insight tree previews it in Code Preview; double-clicking the same result opens that exact location in the editor. This includes Context definitions/declarations, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and document symbols, and source diagnostics. Disclosure arrows still expand hierarchical nodes, while explicit **Open Location** actions open immediately. Exact provider target ranges remain highlighted, while a local style reset removes the Webview host's gray preformatted-element background and rounded box from ordinary per-line `<code>` content.
 

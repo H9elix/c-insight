@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.22.8",
+  "version": "0.22.9",
   "publisher": "c-insight",
   "author": {
     "name": "youjinchun"
@@ -1421,6 +1421,11 @@
           ],
           "default": "file",
           "description": "%configuration.cInsight.references.groupBy.description%"
+        },
+        "cInsight.references.autoExpandGroups": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.cInsight.references.autoExpandGroups.description%"
         },
         "cInsight.history.maximumEntries": {
           "type": "number",

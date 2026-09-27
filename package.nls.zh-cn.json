@@ -157,6 +157,7 @@
   "configuration.cInsight.export.maximumResults.description": "单次引用导出包含的最大记录数；超出部分会省略并记录在导出元数据中。",
   "configuration.cInsight.export.maximumMegabytes.description": "引用、调用、类型或包含层次导出的最大编码大小（MiB）；不会写入超限输出。",
   "configuration.cInsight.references.groupBy.description": "引用视图持久保存的分组模式。",
+  "configuration.cInsight.references.autoExpandGroups.description": "发布分组引用结果时自动展开全部引用分组。默认关闭。",
   "configuration.cInsight.history.maximumEntries.description": "当前 VS Code 会话保留的导航历史最大条目数。",
   "configuration.cInsight.history.mergeConsecutiveDuplicates.description": "合并位置、模式和来源均相同的连续导航记录。",
   "configuration.cInsight.symbolSearch.groupBy.description": "符号搜索视图持久保存的分组模式。",
