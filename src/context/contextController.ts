@@ -15,6 +15,7 @@ import {
   CursorFollowInputKind,
   CursorFollowSuppression,
 } from "../utils/cursorFollowSuppression";
+import { shouldPreserveResultsForEmptyCursor } from "./cursorSymbolEvidence";
 
 export class ContextController implements vscode.Disposable {
   private static readonly definitionRetryDelays = [2_000, 10_000];
@@ -387,6 +388,13 @@ export class ContextController implements vscode.Disposable {
         definitionRequest,
       );
       if (!base) {
+        return;
+      }
+      if (shouldPreserveResultsForEmptyCursor(base, intent)) {
+        if (this.cancellation === cancellation) {
+          this.cancellation = undefined;
+        }
+        cancellation.dispose();
         return;
       }
       this.current = { uri, position, generation };

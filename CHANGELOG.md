@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.22.10
+
+- Preserved existing Context, Code Preview, References, Callers, and Callees results when an automatic cursor query finds no definition, declaration, Call Hierarchy root, hover, or symbol information.
+- Stopped empty cursor positions before delayed References and call-count detail requests, while retaining explicit Refresh, Find References, and Show Incoming/Outgoing behavior at the selected position.
+- Added pure symbol-evidence and intent-policy regression coverage and synchronized current user and architecture documentation.
+
 ## 0.22.9
 
 - Added `cInsight.references.autoExpandGroups` to control whether grouped References results are initially expanded; it defaults to `false`.

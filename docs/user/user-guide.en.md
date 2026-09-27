@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.9`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.10`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -9,6 +9,8 @@ Open a C/C++ folder or multi-root workspace, provide a `compile_commands.json` w
 Cross-compiled bare-metal and embedded Linux projects should generate that database from the real target toolchain. Configure a narrow clangd `--query-driver` allowlist when the driver must supply target and system-header defaults; keep `--sysroot`, `--target`, CPU/ABI options, includes, and defines in compile commands or `.clangd`, not in clangd server arguments. Microsoft mode requires its own cpptools `compileCommands` and `compilerPath` configuration. See [Cross-compilation and embedded projects](cross-compilation.en.md) for complete examples and Remote-path constraints.
 
 The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
+
+When an automatic cursor query returns no definition, declaration, Call Hierarchy root, hover, or symbol information, C Insight treats the position as symbol-free and preserves the existing Context, Code Preview, References, Callers, and Callees. It also skips delayed References and call-count details for that position. Explicit Refresh, Find All References, and Show Incoming/Outgoing Calls still query and publish the selected position, including an empty result; switching to a non-C/C++ editor retains the existing clear behavior.
 
 Set `cInsight.references.autoExpandGroups` to `true` to initially expand every result group in File, Directory, Function, Reference Type, Confidence, and Evidence Source grouping modes. It defaults to `false`, so groups initially remain collapsed; Flat mode has no groups. Setting changes immediately republish the current tree, and manual Expand All and Collapse All remain available. These already materialized rows issue no additional analysis-engine request.
 
