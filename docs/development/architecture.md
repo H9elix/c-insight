@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the `0.22.8` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
+This document describes the `0.22.9` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
 
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
@@ -24,7 +24,7 @@ Navigation History is session-scoped and uses one shared cursor for the History 
 
 Symbol Search owns a nonce-restricted Webview View whose search input remains fixed above an independently scrollable result area. The extension host retains all query, filtering, grouping, session, and navigation authority and sends workspace queries through `AnalysisService`; the Webview only emits bounded discriminated input, activation, and context-action messages. Dynamic result text is created with DOM `textContent`, and a monotonic generation discards late responses from older search text. Result nodes reuse the shared location path for single-click preview, double-click editor navigation, history, and bookmarks.
 
-`ReferenceExplorer` is the single owner of References result, filter, paging, grouping, stale, reliability, and pin state. `ViewRegistry` delegates updates and context keys to it rather than mirroring mutable pin state. Every non-flat group node is published with an initially expanded tree state; its children are already materialized, so this presentation choice sends no additional semantic request. Flat mode continues to publish only location leaves, and explicit tree collapse remains a UI operation.
+`ReferenceExplorer` is the single owner of References result, filter, paging, grouping, stale, reliability, and pin state. `ViewRegistry` delegates updates and context keys to it rather than mirroring mutable pin state. Every non-flat group node derives its initial expanded/collapsed state from `cInsight.references.autoExpandGroups`, which defaults to `false`; its children are already materialized, so changing or applying this presentation setting sends no additional semantic request. Flat mode continues to publish only location leaves, and explicit tree expansion/collapse remains a UI operation.
 
 Workspace session persistence uses one versioned snapshot in VS Code `workspaceState`, so a directly opened folder and a multi-root workspace each receive isolated state. Lightweight UI state is restored directly. Call hierarchy snapshots retain only a root source position and loaded depths; clangd re-resolves the root and rebuilds those depths after startup. Autosave runs every five seconds and shutdown performs a final save.
 

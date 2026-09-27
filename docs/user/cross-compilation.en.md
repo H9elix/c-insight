@@ -1,6 +1,6 @@
 # C Insight Cross-compilation and Embedded Projects
 
-This guide applies to C Insight `0.22.8`. C Insight provides source navigation; it never configures or runs CMake, Make, compilation, linking, deployment, or flashing.
+This guide applies to C Insight `0.22.9`. C Insight provides source navigation; it never configures or runs CMake, Make, compilation, linking, deployment, or flashing.
 
 ## Required project evidence
 

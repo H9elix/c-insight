@@ -560,6 +560,10 @@ export class ReferenceExplorer implements vscode.Disposable {
     );
   }
 
+  async groupExpansionConfigurationChanged(): Promise<void> {
+    await this.publish();
+  }
+
   dispose(): void {
     this.generation += 1;
   }
@@ -702,6 +706,9 @@ export class ReferenceExplorer implements vscode.Disposable {
     if (this.groupMode === "flat") {
       return records.map((record) => this.referenceNode(record, true));
     }
+    const autoExpandGroups = vscode.workspace
+      .getConfiguration("cInsight.references")
+      .get<boolean>("autoExpandGroups", false);
     const groups = new Map<string, ReferenceRecord[]>();
     for (const record of records) {
       const relative = vscode.workspace.asRelativePath(record.location.uri);
@@ -730,7 +737,9 @@ export class ReferenceExplorer implements vscode.Disposable {
       .map(([label, values]) => ({
         label,
         description: `${values.length}`,
-        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+        collapsibleState: autoExpandGroups
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed,
         icon: new vscode.ThemeIcon(
           this.groupMode === "directory"
             ? "folder"

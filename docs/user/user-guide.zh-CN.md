@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.8`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.9`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -302,7 +302,7 @@ C Insight 会检查当前分析引擎返回的定义（Definition）和声明（
 | `evidence` | 按最终分类规则的证据来源分组 |
 | `flat` | 不分组，显示平铺列表 |
 
-分组选择保存到工作区配置。文件、目录、函数、引用类型、置信度和证据来源模式在生成结果时会自动展开全部分组；`flat` 模式没有分组节点。展开只显示已经生成的引用子项，不会产生额外的 clangd 或 Microsoft C/C++ language service (cpptools) 查询。用户仍可执行折叠所有引用分组（Collapse All Reference Groups）临时折叠当前树。
+分组选择保存到工作区配置。`cInsight.references.autoExpandGroups` 控制文件、目录、函数、引用类型、置信度和证据来源模式是否在生成结果时自动展开全部分组，默认值为 `false`，即默认折叠；`flat` 模式没有分组节点。切换该设置会立即重新发布当前引用树，只显示已经生成的引用子项，不会产生额外的 clangd 或 Microsoft C/C++ language service (cpptools) 查询。用户仍可执行展开/折叠所有引用分组（Expand/Collapse All Reference Groups）临时改变当前树。
 
 ### 范围过滤
 
@@ -999,6 +999,7 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.references.maximumDisplayedResults` | number | `10000` | 100–100000 | 引用树中同时物化的最大结果数；显示全部（Show All）也受此限制 |
 | `cInsight.references.detailRequestCacheSize` | number | `2000` | 100–50000 | Document Highlight 与签名帮助（Signature Help）两类详情请求各自保留的 LRU 缓存条目上限 |
 | `cInsight.references.groupBy` | string | `"file"` | `"file"`、`"directory"`、`"function"`、`"type"`、`"confidence"`、`"evidence"`、`"flat"` | 引用的持久化分组方式 |
+| `cInsight.references.autoExpandGroups` | boolean | `false` | `true` / `false` | 分组引用结果发布时是否自动展开全部分组；修改后立即应用到当前引用树，不重新执行语义查询 |
 | `cInsight.includeDeclarationInReferences` | boolean | `true` | `true` / `false` | 请求引用时是否包含声明（Declaration） |
 | `cInsight.includeSystemReferences` | boolean | `false` | `true` / `false` | 是否保留 `/usr/include` 和 `/usr/local/include` 下的引用 |
 | `cInsight.exclude` | string[] | `["/build/", "/generated/", "/third_party/"]` | 路径片段数组 | 只要标准化后的结果路径包含任一片段，就从引用结果中过滤 |

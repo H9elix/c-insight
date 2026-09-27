@@ -157,6 +157,7 @@
   "configuration.cInsight.export.maximumResults.description": "Maximum number of records included in one References export. Results beyond the limit are omitted and reported in export metadata.",
   "configuration.cInsight.export.maximumMegabytes.description": "Maximum encoded size in MiB for References, Call, Type, or Include hierarchy exports. Oversized output is not written.",
   "configuration.cInsight.references.groupBy.description": "Persisted grouping mode for the References view.",
+  "configuration.cInsight.references.autoExpandGroups.description": "Automatically expand all References groups when grouped results are published. Disabled by default.",
   "configuration.cInsight.history.maximumEntries.description": "Maximum number of navigation history entries retained for the current VS Code session.",
   "configuration.cInsight.history.mergeConsecutiveDuplicates.description": "Merge consecutive navigation entries with the same location, mode, and origin.",
   "configuration.cInsight.symbolSearch.groupBy.description": "Persisted grouping mode for the Symbol Search view.",

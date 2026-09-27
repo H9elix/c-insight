@@ -728,6 +728,13 @@ export async function activate(
       if (event.affectsConfiguration("cInsight.codePreview")) {
         views.preview.refresh();
       }
+      if (
+        event.affectsConfiguration(
+          "cInsight.references.autoExpandGroups",
+        )
+      ) {
+        await views.referenceExplorer.groupExpansionConfigurationChanged();
+      }
       if (event.affectsConfiguration("cInsight.callHierarchy")) {
         views.invalidateCallHierarchy();
         relationshipGraph.markStale("call hierarchy configuration changed");
