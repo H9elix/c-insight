@@ -143,7 +143,11 @@ and safety-limit markers.
 1. Open a C or C++ workspace, then select the C Insight icon in the Activity
    Bar.
 2. Put the cursor on a function or variable. Context and Code Preview follow
-   the cursor automatically.
+   the cursor automatically. Moving to whitespace, a comment, or another
+   position for which the analysis engine returns no symbol evidence preserves
+   the existing Context, Code Preview, References, Callers, and Callees instead
+   of replacing them with empty prompts. Explicit navigation queries still
+   operate on the selected position.
 3. Expand References, Callers, or Callees. Single-clicking any source-location
    tree result updates Code Preview without moving the editor; double-clicking
    opens that exact location. Cursor-driven views retain the selected result

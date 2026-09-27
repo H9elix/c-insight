@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.9` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.10` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -111,10 +111,11 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `contextController.ts` | 编辑器/光标防抖、generation、取消源、树双击后的随光标抑制、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `contextController.ts` | 编辑器/光标防抖、generation、取消源、树双击后的随光标抑制、无符号位置保留、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `cursorSymbolEvidence.ts` | 纯函数判断基础查询是否提供符号证据，以及自动空位置应保留旧结果还是由显式意图发布空结果。 |
 | `navigationDemand.ts` | 根据各导航窗口可见性和引擎能力，纯函数计算定义（Definition）、悬停信息（Hover）、引用（References）、调用者（Callers）、被调用者（Callees）等需求。 |
 
-修改自动刷新行为时必须补充 `navigationDemand.test.ts`，证明隐藏窗口不会意外请求。
+修改自动刷新行为时必须按改动范围补充 `navigationDemand.test.ts` 或 `cursorSymbolEvidence.test.ts`，证明隐藏窗口不会意外请求、无符号位置不会覆盖现有结果、显式意图不会被自动保护误拦截。
 
 ### 4.5 视图与代码预览（Code Preview） `src/views`
 
@@ -336,7 +337,7 @@ npm run package
 | 需求 | 首要入口 | 通常还需修改 |
 | --- | --- | --- |
 | 新增语义查询 | `analysisService.ts` | 引擎适配器、调度、浏览器（Explorer）、诊断和测试 |
-| 修改光标自动刷新 | `contextController.ts` | `navigationDemand.ts`、可见性测试 |
+| 修改光标自动刷新 | `contextController.ts` | `navigationDemand.ts`、`cursorSymbolEvidence.ts`、可见性与空位置策略测试 |
 | 修改引用（References）分类 | `referenceModel.ts` | `referenceExplorer.ts`、导出、用户手册和单测 |
 | 修改调用者（Callers）/被调用者（Callees） | `callOccurrenceModel.ts`、`callHierarchyRepository.ts`、`viewRegistry.ts` | 调用点排序与规范节点、固定（Pin）状态、层级工具、关系图（Graph）和会话兼容 |
 | 修改类型/包含（Type/Include） | 对应仓库（Repository）和浏览器（Explorer） | 通用层级状态/导出、关系图、缓存失效 |
