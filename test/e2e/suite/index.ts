@@ -509,13 +509,12 @@ async function verifyFlatCallOccurrences(): Promise<void> {
     );
     return state.incomingRoots.includes("report") ? state : undefined;
   }, "Callers did not prepare report as the root");
-  const incoming = await waitFor(async () => {
-    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
-      "cInsight.test.callHierarchyState",
-    );
-    const direct = state.incomingOccurrences.filter((item) => item.depth === 1);
-    return direct.length === 5 ? direct : undefined;
-  }, "Callers did not automatically expand and flatten all five report call sites");
+  const incoming = await waitForCallOccurrences(
+    "incoming",
+    5,
+    "cInsight.showIncomingCalls",
+    "Callers did not automatically expand and flatten all five report call sites",
+  );
   assert.deepEqual(incoming.map((item) => item.label), [
     "add",
     "add",
@@ -561,17 +560,53 @@ async function verifyFlatCallOccurrences(): Promise<void> {
     );
     return state.outgoingRoots.includes("add") ? state : undefined;
   }, "Callees did not prepare add as the root");
-  const outgoing = await waitFor(async () => {
-    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
-      "cInsight.test.callHierarchyState",
-    );
-    const direct = state.outgoingOccurrences.filter((item) => item.depth === 1);
-    return direct.length === 2 ? direct : undefined;
-  }, "Callees did not automatically expand and flatten both calls to report");
+  const outgoing = await waitForCallOccurrences(
+    "outgoing",
+    2,
+    "cInsight.showOutgoingCalls",
+    "Callees did not automatically expand and flatten both calls to report",
+  );
   assert.deepEqual(outgoing.map((item) => item.label), ["report", "report"]);
   assert.deepEqual(outgoing.map((item) => item.line), addCalls);
   assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);
   assert.ok(outgoing.every((item) => item.previewMode === "callee-call-site"));
+}
+
+async function waitForCallOccurrences(
+  direction: "incoming" | "outgoing",
+  expected: number,
+  refreshCommand: "cInsight.showIncomingCalls" | "cInsight.showOutgoingCalls",
+  message: string,
+  timeoutMs = 60_000,
+): Promise<CallOccurrenceProbe[]> {
+  const deadline = Date.now() + timeoutMs;
+  let nextRefreshAt = 0;
+  let bestObserved: CallOccurrenceProbe[] = [];
+  while (Date.now() < deadline) {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const occurrences = direction === "incoming"
+      ? state.incomingOccurrences
+      : state.outgoingOccurrences;
+    const direct = occurrences.filter((item) => item.depth === 1);
+    if (direct.length === expected) {
+      return direct;
+    }
+    if (direct.length > bestObserved.length) {
+      bestObserved = direct;
+    }
+    if (Date.now() >= nextRefreshAt) {
+      await vscode.commands.executeCommand(refreshCommand);
+      nextRefreshAt = Date.now() + 2_000;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error(
+    `${message}; observed at most ${bestObserved.length}/${expected}: ${bestObserved
+      .map((item) => `${item.label}@${item.line + 1}`)
+      .join(", ")}`,
+  );
 }
 
 function findPosition(

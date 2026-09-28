@@ -8,6 +8,7 @@
 - Removed machine-specific FFmpeg checkout defaults, ignored local `.vscode` state, synchronized the maintainer identity as `you_jinchun`, and made the real-workspace acceptance commands require explicit environment paths.
 - Fixed all currently reported production and development dependency vulnerabilities, upgraded `@vscode/l10n-dev`, and added generated third-party license notices to the standard quality gate and VSIX contents.
 - Extended Markdown prose normalization to the root README and policy files, removed unintended hard wraps, and synchronized every maintained document with the `0.22.12` implementation and public repository state.
+- Stabilized the cold-start clangd Extension Host regression by periodically refreshing partial Call Hierarchy results while the fresh background index becomes complete, with a bounded timeout and observed-result diagnostics.
 
 ## 0.22.11
 
