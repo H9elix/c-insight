@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible C Insight defect
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Before submitting, remove proprietary source, credentials, private paths, and macro values. Use private vulnerability reporting for security issues.
+  - type: input
+    id: version
+    attributes:
+      label: C Insight version
+      placeholder: 0.22.12
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Analysis engine
+      options:
+        - clangd
+        - Microsoft C/C++ language service (cpptools)
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include VS Code, operating system, Local/WSL/SSH/Container, and clangd or cpptools versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reproducible workspace or source example when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Set cInsight.diagnostics.reportRedaction to paths-and-defines, inspect the result, then paste only relevant output.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I verified that this report contains no credentials or proprietary source code.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true

@@ -2,22 +2,35 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const docsRoot = fileURLToPath(new URL("../docs", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const docsRoot = path.join(repositoryRoot, "docs");
+const githubRoot = path.join(repositoryRoot, ".github");
+const rootMarkdown = [
+  "CHANGELOG.md",
+  "CONTRIBUTING.md",
+  "PRIVACY.md",
+  "README.md",
+  "SECURITY.md",
+];
 const write = process.argv.includes("--write");
 const stale = [];
 
-for (const file of markdownFiles(docsRoot)) {
+for (const file of [
+  ...rootMarkdown.map((file) => path.join(repositoryRoot, file)),
+  ...markdownFiles(docsRoot),
+  ...markdownFiles(githubRoot),
+]) {
   const source = readFileSync(file, "utf8");
   const formatted = unwrapMarkdownProse(source);
   if (formatted === source) continue;
   if (write) writeFileSync(file, formatted);
-  else stale.push(path.relative(docsRoot, file));
+  else stale.push(path.relative(repositoryRoot, file));
 }
 
 if (stale.length > 0) {
   console.error(
     `Markdown prose contains hard-wrapped continuation lines:\n${stale
-      .map((file) => `- docs/${file}`)
+      .map((file) => `- ${file}`)
       .join("\n")}\nRun npm run docs:prose to normalize it.`,
   );
   process.exitCode = 1;
@@ -66,6 +79,15 @@ function unwrapMarkdownProse(source) {
     if (line.trim() === "") {
       flush();
       output.push("");
+      continue;
+    }
+    if (
+      paragraph.length > 0 &&
+      /^(\s*)([-+*]|\d+[.)])\s+/.test(paragraph[0]) &&
+      /^ {2,}\S/.test(line) &&
+      !/^\s*(?:[-+*]|\d+[.)])\s+/.test(line)
+    ) {
+      paragraph.push(line);
       continue;
     }
     if (isStandalone(line)) {

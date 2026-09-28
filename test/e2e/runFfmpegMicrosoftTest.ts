@@ -6,8 +6,12 @@ import { isolatedTestLaunchArgs } from "./testLaunchArgs";
 
 async function main(): Promise<void> {
   const project = path.resolve(__dirname, "../../..");
-  const workspace = process.env.C_INSIGHT_FFMPEG_WORKSPACE ??
-    "/home/user/projects/FFmpeg";
+  const workspace = process.env.C_INSIGHT_FFMPEG_WORKSPACE;
+  if (!workspace) {
+    throw new Error(
+      "Set C_INSIGHT_FFMPEG_WORKSPACE to an FFmpeg checkout before running this test.",
+    );
+  }
   const cpptools = resolveCpptoolsExtensionPath();
   accessSync(path.join(workspace, "tools", "decode_simple.c"));
   accessSync(path.join(cpptools, "package.json"));
