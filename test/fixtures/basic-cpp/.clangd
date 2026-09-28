@@ -1,0 +1,7 @@
+If:
+  PathMatch: .*\.c
+CompileFlags:
+  Remove:
+    - -std=c++17
+  Add:
+    - -std=c17
