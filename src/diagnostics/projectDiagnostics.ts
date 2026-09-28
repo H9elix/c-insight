@@ -1038,7 +1038,7 @@ function extensionInformation(
   const developer =
     typeof manifest.author === "string"
       ? manifest.author
-      : manifest.author?.name ?? "youjinchun";
+      : manifest.author?.name ?? "you_jinchun";
   const extensionModes: Record<number, string> = {
     [vscode.ExtensionMode.Production]: "production",
     [vscode.ExtensionMode.Development]: "development",

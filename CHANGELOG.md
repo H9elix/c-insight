@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.12
+
+- Prepared the project for public development at `https://github.com/H9elix/c-insight` with repository metadata, GitHub Actions quality and release workflows, Dependabot, structured issue forms, a pull-request checklist, private vulnerability reporting guidance, and deterministic line-ending rules.
+- Removed machine-specific FFmpeg checkout defaults, ignored local `.vscode` state, synchronized the maintainer identity as `you_jinchun`, and made the real-workspace acceptance commands require explicit environment paths.
+- Fixed all currently reported production and development dependency vulnerabilities, upgraded `@vscode/l10n-dev`, and added generated third-party license notices to the standard quality gate and VSIX contents.
+- Extended Markdown prose normalization to the root README and policy files, removed unintended hard wraps, and synchronized every maintained document with the `0.22.12` implementation and public repository state.
+
 ## 0.22.11
 
 - Replaced the shared text-only Refresh action in Context, Code Preview, References, Callers, Callees, and Document Symbols view title bars with the standard VS Code refresh icon.
@@ -86,973 +93,619 @@
 
 ## 0.21.1
 
-- Prevented a tree-result double-click from immediately replacing cursor-driven
-  Context, Code Preview, References, Callers, and Callees results.
-- Cursor following now resumes after the user moves to a different editor
-  position with the mouse or keyboard; document-scoped views still follow the
-  active file immediately.
-- Added pure suppression-state coverage and an Extension Host regression that
-  distinguishes a selected call site from its definition.
+- Prevented a tree-result double-click from immediately replacing cursor-driven Context, Code Preview, References, Callers, and Callees results.
+- Cursor following now resumes after the user moves to a different editor position with the mouse or keyboard; document-scoped views still follow the active file immediately.
+- Added pure suppression-state coverage and an Extension Host regression that distinguishes a selected call site from its definition.
 
 ## 0.21.0
 
-- Unified every ordinary source-location tree result on immediate single-click
-  Code Preview and configurable double-activation editor navigation.
-- Migrated Document Symbols, Navigation History, and source diagnostics from
-  direct-open exceptions while preserving disclosure arrows, explicit Open
-  Location actions, pin/lock policy, and Include target-file navigation.
-- Added pure click classification, tree-wiring, and real Extension Host
-  regressions plus complete bilingual interaction and configuration guidance.
+- Unified every ordinary source-location tree result on immediate single-click Code Preview and configurable double-activation editor navigation.
+- Migrated Document Symbols, Navigation History, and source diagnostics from direct-open exceptions while preserving disclosure arrows, explicit Open Location actions, pin/lock policy, and Include target-file navigation.
+- Added pure click classification, tree-wiring, and real Extension Host regressions plus complete bilingual interaction and configuration guidance.
 
 ## 0.20.14
 
-- Extended generated command references and drift checks to both English and
-  Simplified Chinese user guides.
-- Added bilingual view, command, and configuration-family documentation gates,
-  completed the English configuration-family index, and documented the full
-  localization and link-maintenance workflow.
+- Extended generated command references and drift checks to both English and Simplified Chinese user guides.
+- Added bilingual view, command, and configuration-family documentation gates, completed the English configuration-family index, and documented the full localization and link-maintenance workflow.
 
 ## 0.20.13
 
-- Standardized Simplified Chinese action verbs and empty, no-match,
-  unavailable, and query-failure result terminology.
-- Documented the Chinese UI-writing conventions and added regression coverage
-  for their representative runtime and manifest messages.
+- Standardized Simplified Chinese action verbs and empty, no-match, unavailable, and query-failure result terminology.
+- Documented the Chinese UI-writing conventions and added regression coverage for their representative runtime and manifest messages.
 
 ## 0.20.12
 
-- Standardized Chinese/Latin spacing in manifest command titles for JSON,
-  Mermaid, and clangd terminology.
-- Added a localization regression test that prevents adjacent Chinese and
-  Latin-script terms in user-facing catalogs.
+- Standardized Chinese/Latin spacing in manifest command titles for JSON, Mermaid, and clangd terminology.
+- Added a localization regression test that prevents adjacent Chinese and Latin-script terms in user-facing catalogs.
 
 ## 0.20.11
 
-- Added an automated local Markdown-link validator to the standard quality
-  gate and converted the primary documentation index into clickable links.
+- Added an automated local Markdown-link validator to the standard quality gate and converted the primary documentation index into clickable links.
 - Documented the link-validation workflow in the Chinese developer guide.
 
 ## 0.20.10
 
-- Completed the Simplified Chinese runtime and manifest terminology audit by
-  translating remaining user-facing Provider and C/C++ language-service text.
-- Corrected the duplicated wording in the reference evidence-filter command
-  and added a localization regression test for these terms.
+- Completed the Simplified Chinese runtime and manifest terminology audit by translating remaining user-facing Provider and C/C++ language-service text.
+- Corrected the duplicated wording in the reference evidence-filter command and added a localization regression test for these terms.
 
 ## 0.20.9
 
-- Applied the section-scoped Chinese-first terminology policy to the Chinese
-  developer guide while preserving source identifiers, paths, commands,
-  settings, and protocol methods.
-- Extended the idempotent terminology quality gate to cover both Chinese
-  manuals.
+- Applied the section-scoped Chinese-first terminology policy to the Chinese developer guide while preserving source identifiers, paths, commands, settings, and protocol methods.
+- Extended the idempotent terminology quality gate to cover both Chinese manuals.
 
 ## 0.20.8
 
-- Localized feature, view, hierarchy, navigation, pin/lock, and result-state
-  terminology throughout the Chinese user guide.
-- Standardized each section to show the original English term in parentheses
-  only on that concept's first occurrence, while preserving command IDs,
-  configuration keys, protocol methods, and filenames verbatim.
-- Added an idempotent documentation terminology tool for keeping this policy
-  consistent as the guide evolves.
+- Localized feature, view, hierarchy, navigation, pin/lock, and result-state terminology throughout the Chinese user guide.
+- Standardized each section to show the original English term in parentheses only on that concept's first occurrence, while preserving command IDs, configuration keys, protocol methods, and filenames verbatim.
+- Added an idempotent documentation terminology tool for keeping this policy consistent as the guide evolves.
 
 ## 0.20.7
 
-- Organized documentation into user, development, planning, and validation
-  subdirectories, with a new central documentation index.
-- Updated runtime help, documentation tools, tests, package contents, and all
-  maintained cross-references to use the categorized paths.
+- Organized documentation into user, development, planning, and validation subdirectories, with a new central documentation index.
+- Updated runtime help, documentation tools, tests, package contents, and all maintained cross-references to use the categorized paths.
 
 ## 0.20.6
 
-- Added a packaged Chinese developer guide covering architecture, source-file
-  ownership, query flow, localization, scripts, tests, development workflows,
-  extension points, and maintenance safeguards.
+- Added a packaged Chinese developer guide covering architecture, source-file ownership, query flow, localization, scripts, tests, development workflows, extension points, and maintenance safeguards.
 - Linked the developer guide from the repository README.
 
 ## 0.20.5
 
-- Completed the third-stage performance and reliability revalidation with all
-  quality gates, the synthetic benchmark, real FFmpeg/clangd acceptance, and
-  Extension Host endurance tests passing.
-- Isolated every Extension Host test in a process-specific user-data and
-  extensions directory so automated tests can run beside an open VS Code
-  instance without competing for its instance lock.
+- Completed the third-stage performance and reliability revalidation with all quality gates, the synthetic benchmark, real FFmpeg/clangd acceptance, and Extension Host endurance tests passing.
+- Isolated every Extension Host test in a process-specific user-data and extensions directory so automated tests can run beside an open VS Code instance without competing for its instance lock.
 
 ## 0.20.4
 
-- Revalidated clangd and Microsoft engines through Extension Host, isolated
-  provider, and real FFmpeg acceptance runs; all completed without a crash.
+- Revalidated clangd and Microsoft engines through Extension Host, isolated provider, and real FFmpeg acceptance runs; all completed without a crash.
 
 ## 0.20.3
 
-- Expanded Extension Host endurance coverage to 1,000 rapid cursor moves and
-  100 References/Call Hierarchy pin cycles.
+- Expanded Extension Host endurance coverage to 1,000 rapid cursor moves and 100 References/Call Hierarchy pin cycles.
 - Added 100,000-entry LRU churn with repeated invalidation and strict bounds.
 
 ## 0.20.2
 
-- Extended the large-workspace benchmark with 100,000-line Include scanning and
-  50,000-entry workspace-session bounding scenarios.
+- Extended the large-workspace benchmark with 100,000-line Include scanning and 50,000-entry workspace-session bounding scenarios.
 
 ## 0.20.1
 
-- Fixed cancelled-before-start semantic requests remaining retained in the
-  scheduler queue during prolonged rapid cursor movement.
-- Added a 5,000-request cancellation stress test and exhaustive hidden-view
-  relationship-demand invariants.
+- Fixed cancelled-before-start semantic requests remaining retained in the scheduler queue during prolonged rapid cursor movement.
+- Added a 5,000-request cancellation stress test and exhaustive hidden-view relationship-demand invariants.
 
 ## 0.20.0
 
-- Established the third-stage large-workspace baseline with repeatable core-model
-  benchmarks and a real FFmpeg/clangd 20 acceptance sample.
+- Established the third-stage large-workspace baseline with repeatable core-model benchmarks and a real FFmpeg/clangd 20 acceptance sample.
 
 ## 0.19.13
 
-- Changed Document Symbols selection to open and reveal the symbol directly in
-  the main editor while preserving disclosure-arrow expansion for nested nodes.
+- Changed Document Symbols selection to open and reveal the symbol directly in the main editor while preserving disclosure-arrow expansion for nested nodes.
 
 ## 0.19.12
 
-- Added Outline-style, theme-aware icons for Document Symbols and reused the
-  same tested SymbolKind mapping in Workspace Symbols.
+- Added Outline-style, theme-aware icons for Document Symbols and reused the same tested SymbolKind mapping in Workspace Symbols.
 
 ## 0.19.11
 
-- Added an architecture regression test requiring every manifest-contributed
-  command to have exactly one runtime registration site.
-- Completed the second-stage command, view-lifecycle, References/Call Hierarchy
-  state-ownership, and runtime-initialization architecture pass.
+- Added an architecture regression test requiring every manifest-contributed command to have exactly one runtime registration site.
+- Completed the second-stage command, view-lifecycle, References/Call Hierarchy state-ownership, and runtime-initialization architecture pass.
 
 ## 0.19.10
 
-- Extracted initial Context Key setup and clangd/Microsoft engine startup from
-  `activate()` into a focused runtime-initialization module.
+- Extracted initial Context Key setup and clangd/Microsoft engine startup from `activate()` into a focused runtime-initialization module.
 
 ## 0.19.9
 
-- Centralized shared Callers/Callees pin, pinned-symbol, and stale transitions
-  in a tested Call Hierarchy view-state component.
+- Centralized shared Callers/Callees pin, pinned-symbol, and stale transitions in a tested Call Hierarchy view-state component.
 
 ## 0.19.8
 
-- Made `ReferenceExplorer` the single owner of References pin state, removing
-  duplicated coordination state from `ViewRegistry` and its drift risk.
+- Made `ReferenceExplorer` the single owner of References pin state, removing duplicated coordination state from `ViewRegistry` and its drift risk.
 
 ## 0.19.7
 
-- Extracted native TreeView and Code Preview Webview registration, visibility
-  events, lookup, ownership, and disposal into a dedicated lifecycle component.
+- Extracted native TreeView and Code Preview Webview registration, visibility events, lookup, ownership, and disposal into a dedicated lifecycle component.
 
 ## 0.19.6
 
-- Completed command composition decomposition by isolating navigation/About,
-  pin state, refresh, and engine-control commands into typed registrars.
+- Completed command composition decomposition by isolating navigation/About, pin state, refresh, and engine-control commands into typed registrars.
 
 ## 0.19.5
 
-- Preserved Code Preview during the editor activation caused by its own
-  double-click or Open Current action instead of immediately clearing it.
+- Preserved Code Preview during the editor activation caused by its own double-click or Open Current action instead of immediately clearing it.
 
 ## 0.19.4
 
-- Made double-clicking blank space in the Code Preview source area open the
-  previewed file in the editor at the nearest rendered line.
+- Made double-clicking blank space in the Code Preview source area open the previewed file in the editor at the nearest rendered line.
 
 ## 0.19.3
 
-- Isolated Project Diagnostics command wiring and compilation-database selection
-  from the main command composition root.
-- Grouped Navigation History, Bookmarks, Workspace Session, and Workspace Symbol
-  Search commands into a workspace-tools registrar with named dependencies.
+- Isolated Project Diagnostics command wiring and compilation-database selection from the main command composition root.
+- Grouped Navigation History, Bookmarks, Workspace Session, and Workspace Symbol Search commands into a workspace-tools registrar with named dependencies.
 
 ## 0.19.2
 
-- Isolated Type and Include Hierarchy command wiring behind one typed feature
-  registrar, replacing generated command-name strings with manifest-backed IDs.
+- Isolated Type and Include Hierarchy command wiring behind one typed feature registrar, replacing generated command-name strings with manifest-backed IDs.
 
 ## 0.19.1
 
-- Added a unified `npm run check` quality gate covering lint, tests,
-  localization drift, and production build before VSIX packaging.
-- Added a non-mutating localization drift check that compares extracted
-  runtime messages with both committed English and Simplified Chinese catalogs.
+- Added a unified `npm run check` quality gate covering lint, tests, localization drift, and production build before VSIX packaging.
+- Added a non-mutating localization drift check that compares extracted runtime messages with both committed English and Simplified Chinese catalogs.
 - Removed obsolete hierarchy label helpers left behind by localization.
-- Added a generated, typed registry for contributed command IDs, view IDs, and
-  runtime context keys, with drift detection in the quality gate.
-- Replaced the command-registration positional parameter list with a named
-  dependency object to make activation wiring safer to extend and review.
-- Began the command-wiring decomposition with isolated References and Call
-  Hierarchy registrars sharing one typed registration boundary.
-- Prevented pinned, non-empty References results from repainting when project
-  reliability is recomputed, while preserving real empty-result warning changes.
+- Added a generated, typed registry for contributed command IDs, view IDs, and runtime context keys, with drift detection in the quality gate.
+- Replaced the command-registration positional parameter list with a named dependency object to make activation wiring safer to extend and review.
+- Began the command-wiring decomposition with isolated References and Call Hierarchy registrars sharing one typed registration boundary.
+- Prevented pinned, non-empty References results from repainting when project reliability is recomputed, while preserving real empty-result warning changes.
 
 ## 0.19.0
 
-- Added the official VS Code localization structure with English fallback and
-  Simplified Chinese resources selected from the VS Code display language.
-- Localized extension metadata, commands, views, welcome actions, setting
-  descriptions, and setting enum descriptions.
-- Localized References, Type Hierarchy, and Include Hierarchy filters,
-  expansion prompts, empty/stale states, and export feedback.
-- Localized Navigation History and Workspace Symbol Search filters, pickers,
-  empty states, grouping controls, and navigation labels.
-- Localized Bookmark editing, grouping, sorting, filtering, import/export,
-  confirmation, stale-location, and result feedback surfaces.
-- Localized Context relationship summaries and Callers/Callees prompts,
-  searching, path finding, expansion, pin/status banners, limits, and errors.
-- Localized project-diagnostics/export feedback, Code Preview action errors,
-  engine lifecycle notices, workspace-setting targets, and Microsoft engine
-  guidance while keeping setting IDs and raw provider errors stable.
-- Localized Code Preview mode labels, toolbar tooltips, empty state, incremental
-  loading status, and Relationship Graph toolbar, legend, accessibility label,
-  empty state, and relationship-specific expansion controls.
-- Localized Provider-conflict quick fixes and Relationship Graph preparation,
-  expansion, node actions, search, export, stale, depth-limit, and error dialogs.
-- Localized remaining References lifecycle, pagination, display-limit and pin
-  states plus workspace-session, compilation-database, graph, type, and include
-  progress/limit labels found by the runtime UI audit.
-- Added manifest-localization completeness tests to prevent missing or
-  mismatched manifest or runtime language entries.
+- Added the official VS Code localization structure with English fallback and Simplified Chinese resources selected from the VS Code display language.
+- Localized extension metadata, commands, views, welcome actions, setting descriptions, and setting enum descriptions.
+- Localized References, Type Hierarchy, and Include Hierarchy filters, expansion prompts, empty/stale states, and export feedback.
+- Localized Navigation History and Workspace Symbol Search filters, pickers, empty states, grouping controls, and navigation labels.
+- Localized Bookmark editing, grouping, sorting, filtering, import/export, confirmation, stale-location, and result feedback surfaces.
+- Localized Context relationship summaries and Callers/Callees prompts, searching, path finding, expansion, pin/status banners, limits, and errors.
+- Localized project-diagnostics/export feedback, Code Preview action errors, engine lifecycle notices, workspace-setting targets, and Microsoft engine guidance while keeping setting IDs and raw provider errors stable.
+- Localized Code Preview mode labels, toolbar tooltips, empty state, incremental loading status, and Relationship Graph toolbar, legend, accessibility label, empty state, and relationship-specific expansion controls.
+- Localized Provider-conflict quick fixes and Relationship Graph preparation, expansion, node actions, search, export, stale, depth-limit, and error dialogs.
+- Localized remaining References lifecycle, pagination, display-limit and pin states plus workspace-session, compilation-database, graph, type, and include progress/limit labels found by the runtime UI audit.
+- Added manifest-localization completeness tests to prevent missing or mismatched manifest or runtime language entries.
 
 ## 0.18.22
 
-- Fixed clangd-mode Microsoft IntelliSense conflicts being missed when C
-  Insight checked `isActive` before cpptools completed its simultaneous
-  `onLanguage` activation.
-- Detects an available cpptools extension with effective IntelliSense other
-  than `disabled` for an active C/C++ document, without activating the extension
-  itself, and offers the existing reversible Workspace quick fix.
-- Rechecks after active-editor, relevant configuration, and extension-list
-  changes while deduplicating identical prompts within the current session.
+- Fixed clangd-mode Microsoft IntelliSense conflicts being missed when C Insight checked `isActive` before cpptools completed its simultaneous `onLanguage` activation.
+- Detects an available cpptools extension with effective IntelliSense other than `disabled` for an active C/C++ document, without activating the extension itself, and offers the existing reversible Workspace quick fix.
+- Rechecks after active-editor, relevant configuration, and extension-list changes while deduplicating identical prompts within the current session.
 
 ## 0.18.21
 
-- Replaced concurrent generic Provider-conflict and Microsoft startup-failure
-  notifications with one Microsoft-specific LLVM clangd conflict prompt.
-- Added **Disable LLVM clangd for This Workspace** directly to that startup
-  failure. It writes `clangd.enable=false` through the supported Workspace
-  target, records the prior value for safe restore, and then offers Reload
-  Window.
-- Kept other Microsoft startup failures on the existing engine-specific
-  settings path instead of suggesting an unrelated clangd change.
+- Replaced concurrent generic Provider-conflict and Microsoft startup-failure notifications with one Microsoft-specific LLVM clangd conflict prompt.
+- Added **Disable LLVM clangd for This Workspace** directly to that startup failure. It writes `clangd.enable=false` through the supported Workspace target, records the prior value for safe restore, and then offers Reload Window.
+- Kept other Microsoft startup failures on the existing engine-specific settings path instead of suggesting an unrelated clangd change.
 
 ## 0.18.20
 
-- Fixed **Disable for This Workspace** failing because LLVM clangd declares
-  `clangd.enable` at Workspace scope and VS Code rejects Workspace Folder
-  writes for that setting.
-- Made the quick fix use supported Workspace settings. A single-folder local,
-  WSL, or SSH window writes `.vscode/settings.json`; a multi-root window writes
-  the shared `.code-workspace` settings because a narrower scope is unavailable.
-- Added the exact target to the confirmation text, surfaced configuration write
-  failures with an Open Workspace Settings action, and retained failed restore
-  records for a later retry.
+- Fixed **Disable for This Workspace** failing because LLVM clangd declares `clangd.enable` at Workspace scope and VS Code rejects Workspace Folder writes for that setting.
+- Made the quick fix use supported Workspace settings. A single-folder local, WSL, or SSH window writes `.vscode/settings.json`; a multi-root window writes the shared `.code-workspace` settings because a narrower scope is unavailable.
+- Added the exact target to the confirmation text, surfaced configuration write failures with an Open Workspace Settings action, and retained failed restore records for a later retry.
 
 ## 0.18.19
 
-- Made competing-provider detection configuration-aware: an active Microsoft
-  C/C++ extension with `C_Cpp.intelliSenseEngine=disabled`, or an active LLVM
-  clangd extension with `clangd.enable=false`, is no longer reported as an
-  effective semantic conflict.
-- Added an explicitly confirmed **Disable for This Workspace** action that
-  writes only the current workspace-folder/workspace settings and never changes
-  global user or remote-user configuration.
-- Added **C Insight: Restore Provider Settings**. It restores recorded prior
-  values only when the setting still equals the value written by C Insight, so
-  later user changes are not overwritten.
+- Made competing-provider detection configuration-aware: an active Microsoft C/C++ extension with `C_Cpp.intelliSenseEngine=disabled`, or an active LLVM clangd extension with `clangd.enable=false`, is no longer reported as an effective semantic conflict.
+- Added an explicitly confirmed **Disable for This Workspace** action that writes only the current workspace-folder/workspace settings and never changes global user or remote-user configuration.
+- Added **C Insight: Restore Provider Settings**. It restores recorded prior values only when the setting still equals the value written by C Insight, so later user changes are not overwritten.
 
 ## 0.18.18
 
-- Completed the staged Microsoft C/C++ engine acceptance across the isolated
-  provider fixture and the real FFmpeg workspace, covering Preview,
-  References-based Callers, native Callees, hierarchy interaction, cache and
-  resource evidence.
-- Added a packaged Chinese acceptance report with reproducible commands,
-  measured outcomes, supported boundaries, and interpretation guidance.
-- Made the standard Extension Host regression explicitly select clangd and
-  restore the previous test-profile setting, preventing a prior Microsoft run
-  from changing which engine the clangd suite exercises.
+- Completed the staged Microsoft C/C++ engine acceptance across the isolated provider fixture and the real FFmpeg workspace, covering Preview, References-based Callers, native Callees, hierarchy interaction, cache and resource evidence.
+- Added a packaged Chinese acceptance report with reproducible commands, measured outcomes, supported boundaries, and interpretation guidance.
+- Made the standard Extension Host regression explicitly select clangd and restore the previous test-profile setting, preventing a prior Microsoft run from changing which engine the clangd suite exercises.
 
 ## 0.18.17
 
-- Standardized user-visible Microsoft engine naming as **Microsoft C/C++
-  language service (cpptools)** in output, Project Diagnostics, reports, and
-  lifecycle guidance.
-- Made the Context welcome action engine-specific instead of offering Restart
-  clangd while Microsoft mode is selected.
-- Changed compilation-database notifications in Microsoft mode to offer Reload
-  Window when results remain stale; they no longer restart C Insight's dormant
-  clangd manager.
-- Generalized References evidence summaries for semantic results, Document
-  Highlight, and Signature Help so Microsoft results are not mislabeled as
-  clangd evidence. Stable evidence-source identifiers remain compatible.
+- Standardized user-visible Microsoft engine naming as **Microsoft C/C++ language service (cpptools)** in output, Project Diagnostics, reports, and lifecycle guidance.
+- Made the Context welcome action engine-specific instead of offering Restart clangd while Microsoft mode is selected.
+- Changed compilation-database notifications in Microsoft mode to offer Reload Window when results remain stale; they no longer restart C Insight's dormant clangd manager.
+- Generalized References evidence summaries for semantic results, Document Highlight, and Signature Help so Microsoft results are not mislabeled as clangd evidence. Stable evidence-source identifiers remain compatible.
 
 ## 0.18.16
 
-- Removed an unrelated Microsoft References query from explicit Show Incoming
-  Calls and Show Outgoing Calls requests; direction-specific manual refresh now
-  obeys its declared semantic demand.
-- Prevented direction-only Call Hierarchy refreshes from clearing or replacing
-  an already displayed References result that was not requested.
-- Added real FFmpeg resource regressions requiring 20 rapid cursor moves to
-  debounce to one bounded semantic cycle, no leftover active/queued work, and
-  no extra References query during Show Outgoing Calls.
-- Retained multi-view and depth-expansion measurements for scheduler peak,
-  request outcomes, per-method timing, and independent hierarchy cache hits.
+- Removed an unrelated Microsoft References query from explicit Show Incoming Calls and Show Outgoing Calls requests; direction-specific manual refresh now obeys its declared semantic demand.
+- Prevented direction-only Call Hierarchy refreshes from clearing or replacing an already displayed References result that was not requested.
+- Added real FFmpeg resource regressions requiring 20 rapid cursor moves to debounce to one bounded semantic cycle, no leftover active/queued work, and no extra References query during Show Outgoing Calls.
+- Retained multi-view and depth-expansion measurements for scheduler peak, request outcomes, per-method timing, and independent hierarchy cache hits.
 
 
 ## 0.18.15
 
-- Fixed repeated Callers/Callees Pin and Unpin actions accumulating duplicate
-  `Microsoft Callers: References-based` status rows.
-- Assigned the Microsoft Callers mode banner a dedicated tree context identity
-  and excluded old instances whenever transient Call Hierarchy banners are
-  rebuilt.
-- Added a real Microsoft Extension Host regression that toggles Pin/Unpin three
-  times, requires exactly one Microsoft mode row and no stale Pin row, and
-  verifies the call root remains intact.
+- Fixed repeated Callers/Callees Pin and Unpin actions accumulating duplicate `Microsoft Callers: References-based` status rows.
+- Assigned the Microsoft Callers mode banner a dedicated tree context identity and excluded old instances whenever transient Call Hierarchy banners are rebuilt.
+- Added a real Microsoft Extension Host regression that toggles Pin/Unpin three times, requires exactly one Microsoft mode row and no stale Pin row, and verifies the call root remains intact.
 
 
 ## 0.18.14
 
-- Added strict Microsoft Call Hierarchy interaction regression coverage for
-  shared Callers/Callees Pin state, automatic-update blocking, explicit manual
-  refresh while pinned, and Unpin.
-- Added real FFmpeg depth-one Callers and Callees expansion checks, including
-  loaded-node depth/session evidence and independent incoming/outgoing caches.
-- Made programmatic expansion retain successfully loaded data and exact paths
-  when a concurrent tree-root refresh makes VS Code `reveal()` temporarily
-  unable to resolve the node.
-- Verified Call Hierarchy invalidation clears both request caches and evidence;
-  retained existing model coverage for loaded-node search, text/JSON/Mermaid
-  export, bounded path search, and workspace-session compatibility.
+- Added strict Microsoft Call Hierarchy interaction regression coverage for shared Callers/Callees Pin state, automatic-update blocking, explicit manual refresh while pinned, and Unpin.
+- Added real FFmpeg depth-one Callers and Callees expansion checks, including loaded-node depth/session evidence and independent incoming/outgoing caches.
+- Made programmatic expansion retain successfully loaded data and exact paths when a concurrent tree-root refresh makes VS Code `reveal()` temporarily unable to resolve the node.
+- Verified Call Hierarchy invalidation clears both request caches and evidence; retained existing model coverage for loaded-node search, text/JSON/Mermaid export, bounded path search, and workspace-session compatibility.
 
 
 ## 0.18.13
 
-- Added Microsoft Definition, Declaration, and References evidence counters for
-  queries, returned locations, empty results, failures, and cancellations, plus
-  References post-processing output/failure evidence.
-- Added Code Preview semantic-token evidence for completion, empty results,
-  timeout, Provider failure, post-processing failure, and lexical fallback.
-- Exposed the new evidence in a dedicated Project Diagnostics subgroup and the
-  existing text/JSON runtime evidence.
-- Extended the real FFmpeg regression across a cross-file function, a header
-  type, a macro definition, a no-symbol empty result, and Preview colouring or
-  lexical fallback.
+- Added Microsoft Definition, Declaration, and References evidence counters for queries, returned locations, empty results, failures, and cancellations, plus References post-processing output/failure evidence.
+- Added Code Preview semantic-token evidence for completion, empty results, timeout, Provider failure, post-processing failure, and lexical fallback.
+- Exposed the new evidence in a dedicated Project Diagnostics subgroup and the existing text/JSON runtime evidence.
+- Extended the real FFmpeg regression across a cross-file function, a header type, a macro definition, a no-symbol empty result, and Preview colouring or lexical fallback.
 
 
 ## 0.18.12
 
-- Added per-node Microsoft native Callees evidence for completed, failed,
-  cancelled, and empty Outgoing Calls queries, including returned callee counts
-  and average/maximum duration.
-- Added aggregated loaded-node Callees evidence to Project Diagnostics and its
-  text/JSON exports, resetting it with the Call Hierarchy cache.
-- Extended the real FFmpeg Extension Host regression to require a successful,
-  non-empty native Callees query for `decode_read` and validate its evidence.
+- Added per-node Microsoft native Callees evidence for completed, failed, cancelled, and empty Outgoing Calls queries, including returned callee counts and average/maximum duration.
+- Added aggregated loaded-node Callees evidence to Project Diagnostics and its text/JSON exports, resetting it with the Call Hierarchy cache.
+- Extended the real FFmpeg Extension Host regression to require a successful, non-empty native Callees query for `decode_read` and validate its evidence.
 
 
 ## 0.18.11
 
-- Added loaded-node Microsoft Callers evidence to Project Diagnostics and its
-  text/JSON exports: queried nodes, References, mapped and unmapped references,
-  and resolved caller functions.
-- Shortened the one-time Microsoft engine notice by removing the explanation
-  about which queries it handles and that it is not a compiler.
+- Added loaded-node Microsoft Callers evidence to Project Diagnostics and its text/JSON exports: queried nodes, References, mapped and unmapped references, and resolved caller functions.
+- Shortened the one-time Microsoft engine notice by removing the explanation about which queries it handles and that it is not a compiler.
 
 
 ## 0.18.10
 
-- Distinguished a Microsoft References query that returned no caller evidence
-  from references that were returned but could not be mapped to enclosing
-  functions, making empty Callers diagnostics actionable.
+- Distinguished a Microsoft References query that returned no caller evidence from references that were returned but could not be mapped to enclosing functions, making empty Callers diagnostics actionable.
 
 
 ## 0.18.9
 
-- Added a one-time notice when Microsoft C/C++ is selected, identifying the
-  Microsoft C/C++ language service (cpptools) as C Insight's semantic analysis
-  provider and noting that performance and results may differ from clangd.
-- Changed an empty References-based Microsoft Callers result to explicitly say
-  that no callers were found by the approximate analysis and that results may
-  be incomplete, instead of presenting it as a conclusive empty result.
+- Added a one-time notice when Microsoft C/C++ is selected, identifying the Microsoft C/C++ language service (cpptools) as C Insight's semantic analysis provider and noting that performance and results may differ from clangd.
+- Changed an empty References-based Microsoft Callers result to explicitly say that no callers were found by the approximate analysis and that results may be incomplete, instead of presenting it as a conclusive empty result.
 
 
 ## 0.18.8
 
-- Fixed Microsoft References-based Callers returning `No callers found` even
-  when cpptools had returned a valid reference and enclosing C function.
-- Added a narrowly scoped compatibility rule for cpptools flat document symbols,
-  which can label C functions as `Interface` while retaining a function
-  signature and full source range.
-- Strengthened the real FFmpeg Extension Host regression to require
-  `avcodec_receive_frame` to resolve back to its enclosing `decode_read` caller.
+- Fixed Microsoft References-based Callers returning `No callers found` even when cpptools had returned a valid reference and enclosing C function.
+- Added a narrowly scoped compatibility rule for cpptools flat document symbols, which can label C functions as `Interface` while retaining a function signature and full source range.
+- Strengthened the real FFmpeg Extension Host regression to require `avcodec_receive_frame` to resolve back to its enclosing `decode_read` caller.
 
 
 ## 0.18.7
 
-- Removed two defensive changes that strict FFmpeg reproduction proved were
-  unrelated to the Code Preview hang.
-- Restored clearing an unlocked Code Preview for a confirmed empty
-  Definition/Declaration result, preventing stale code from appearing to
-  describe the current cursor.
-- Restored Microsoft automatic roots from native `prepareCallHierarchy` so
-  Callees retain Provider-owned root identity; References-based Callers still
-  avoid native Incoming Calls during expansion.
-- Re-ran the exact FFmpeg in-preview click regression with all navigation views
-  visible and native root preparation enabled; semantic-token timeout fallback
-  remained the sufficient Code Preview fix.
+- Removed two defensive changes that strict FFmpeg reproduction proved were unrelated to the Code Preview hang.
+- Restored clearing an unlocked Code Preview for a confirmed empty Definition/Declaration result, preventing stale code from appearing to describe the current cursor.
+- Restored Microsoft automatic roots from native `prepareCallHierarchy` so Callees retain Provider-owned root identity; References-based Callers still avoid native Incoming Calls during expansion.
+- Re-ran the exact FFmpeg in-preview click regression with all navigation views visible and native root preparation enabled; semantic-token timeout fallback remained the sufficient Code Preview fix.
 
 
 ## 0.18.6
 
-- Fixed Code Preview navigation hanging after Definition had already resolved
-  by bounding the wait for whole-document semantic tokens and falling back to
-  lexical highlighting after 1500 ms by default.
-- Added `cInsight.codePreview.semanticTokenTimeout` with a 100–10000 ms range;
-  semantic colouring can no longer block source rendering indefinitely.
-- In Microsoft References-based Callers mode, built automatic hierarchy roots
-  from the resolved Definition instead of calling native
-  `prepareCallHierarchy`, avoiding another cpptools queue blocker.
-- Strengthened the FFmpeg Extension Host regression to clear restored Preview
-  state, verify exact URI/line equality, exercise all visible navigation views,
-  and simulate clicking `avcodec_receive_frame` inside Code Preview.
+- Fixed Code Preview navigation hanging after Definition had already resolved by bounding the wait for whole-document semantic tokens and falling back to lexical highlighting after 1500 ms by default.
+- Added `cInsight.codePreview.semanticTokenTimeout` with a 100–10000 ms range; semantic colouring can no longer block source rendering indefinitely.
+- In Microsoft References-based Callers mode, built automatic hierarchy roots from the resolved Definition instead of calling native `prepareCallHierarchy`, avoiding another cpptools queue blocker.
+- Strengthened the FFmpeg Extension Host regression to clear restored Preview state, verify exact URI/line equality, exercise all visible navigation views, and simulate clicking `avcodec_receive_frame` inside Code Preview.
 
 
 ## 0.18.5
 
-- Decoupled cursor-follow Definition requests from slower Context and Call
-  Hierarchy work so Code Preview updates as soon as its definition resolves.
-- Prevented repeated Context enrichment from duplicating the same Code Preview
-  target in Navigation History.
-- Added a References-and-Document-Symbols Callers fallback as the safe default
-  for Microsoft mode, while retaining explicit `native` and `disabled` modes.
-- Removed eager native Incoming/Outgoing count queries from explicit Microsoft
-  hierarchy refreshes and labelled the active Callers evidence mode in the UI.
-- Added an isolated FFmpeg Microsoft Extension Host regression that verifies
-  cross-file Code Preview and the safe Callers path without native Incoming
-  Calls.
+- Decoupled cursor-follow Definition requests from slower Context and Call Hierarchy work so Code Preview updates as soon as its definition resolves.
+- Prevented repeated Context enrichment from duplicating the same Code Preview target in Navigation History.
+- Added a References-and-Document-Symbols Callers fallback as the safe default for Microsoft mode, while retaining explicit `native` and `disabled` modes.
+- Removed eager native Incoming/Outgoing count queries from explicit Microsoft hierarchy refreshes and labelled the active Callers evidence mode in the UI.
+- Added an isolated FFmpeg Microsoft Extension Host regression that verifies cross-file Code Preview and the safe Callers path without native Incoming Calls.
 
 
 ## 0.18.4
 
-- Serialized Microsoft C/C++ Call Hierarchy commands to avoid concurrent
-  `prepare`, incoming, and outgoing work in the cpptools native process.
-- Stopped eager Microsoft Callers/Callees count queries and prepared Call
-  Hierarchy only while its views are visible or a hierarchy command is run.
-- Scoped Microsoft Call Hierarchy item caching to the current prepared root and
-  cleared it after Provider failures, preventing reuse after a cpptools crash.
-- Kept the last valid Code Preview visible when a transient Provider failure or
-  empty definition result occurs.
+- Serialized Microsoft C/C++ Call Hierarchy commands to avoid concurrent `prepare`, incoming, and outgoing work in the cpptools native process.
+- Stopped eager Microsoft Callers/Callees count queries and prepared Call Hierarchy only while its views are visible or a hierarchy command is run.
+- Scoped Microsoft Call Hierarchy item caching to the current prepared root and cleared it after Provider failures, preventing reuse after a cpptools crash.
+- Kept the last valid Code Preview visible when a transient Provider failure or empty definition result occurs.
 
 
 ## 0.18.3
 
-- Added per-method semantic request timing, outcome, failure, and cancellation
-  statistics for both clangd and Microsoft C/C++ Provider modes.
-- Added the most recent semantic request and per-method breakdown to Project
-  Diagnostics and exported text/JSON reports.
-- Measured Microsoft Provider activation separately so slow Provider startup
-  can be distinguished from the semantic command itself.
-- Added `cInsight.analysis.slowRequestThreshold` to configure slow-request
-  logging and counting, with a default of 1000 ms.
+- Added per-method semantic request timing, outcome, failure, and cancellation statistics for both clangd and Microsoft C/C++ Provider modes.
+- Added the most recent semantic request and per-method breakdown to Project Diagnostics and exported text/JSON reports.
+- Measured Microsoft Provider activation separately so slow Provider startup can be distinguished from the semantic command itself.
+- Added `cInsight.analysis.slowRequestThreshold` to configure slow-request logging and counting, with a default of 1000 ms.
 - Generalized the semantic concurrency setting description for both engines.
 
 ## 0.18.2
 
-- Renamed lifecycle output to `Analysis engine state` and renamed the Project
-  Diagnostics child group from `clangd diagnostics` to `Language diagnostics`.
-- Required Microsoft mode to use an installed `ms-vscode.cpptools` extension
-  with effective `C_Cpp.intelliSenseEngine=default`.
-- Added best-effort known-Provider conflict detection and rejected ambiguous
-  Microsoft queries when the LLVM clangd extension is active.
-- Added Microsoft Provider state, version, effective IntelliSense setting,
-  conflict evidence, and exact-command/base-configuration guidance to Project
-  Diagnostics and its text/JSON reports.
-- Stored the analysis engine in workspace-session snapshots and discarded
-  engine-dependent Preview, References, Call Hierarchy, and Relationship Graph
-  state when restoring under another engine.
+- Renamed lifecycle output to `Analysis engine state` and renamed the Project Diagnostics child group from `clangd diagnostics` to `Language diagnostics`.
+- Required Microsoft mode to use an installed `ms-vscode.cpptools` extension with effective `C_Cpp.intelliSenseEngine=default`.
+- Added best-effort known-Provider conflict detection and rejected ambiguous Microsoft queries when the LLVM clangd extension is active.
+- Added Microsoft Provider state, version, effective IntelliSense setting, conflict evidence, and exact-command/base-configuration guidance to Project Diagnostics and its text/JSON reports.
+- Stored the analysis engine in workspace-session snapshots and discarded engine-dependent Preview, References, Call Hierarchy, and Relationship Graph state when restoring under another engine.
 
 ## 0.18.1
 
-- Added the explicit `cInsight.engine` setting with `clangd` as the compatible
-  default and `microsoft` as an opt-in provider-backed engine.
-- Added a Microsoft semantic adapter for definitions, declarations,
-  references, hover, signature help, highlights, document/workspace symbols,
-  and incoming/outgoing Call Hierarchy.
-- Prevented C Insight from starting its own clangd process in Microsoft mode
-  and validated that `ms-vscode.cpptools` is installed in the current extension
-  host.
-- Added explicit Type Hierarchy degradation because VS Code exposes no stable
-  public Type Hierarchy execution command.
-- Preserved stale-result cancellation at C Insight's request boundary while
-  documenting that already-dispatched Microsoft Provider work cannot be
-  cancelled through the public commands.
+- Added the explicit `cInsight.engine` setting with `clangd` as the compatible default and `microsoft` as an opt-in provider-backed engine.
+- Added a Microsoft semantic adapter for definitions, declarations, references, hover, signature help, highlights, document/workspace symbols, and incoming/outgoing Call Hierarchy.
+- Prevented C Insight from starting its own clangd process in Microsoft mode and validated that `ms-vscode.cpptools` is installed in the current extension host.
+- Added explicit Type Hierarchy degradation because VS Code exposes no stable public Type Hierarchy execution command.
+- Preserved stale-result cancellation at C Insight's request boundary while documenting that already-dispatched Microsoft Provider work cannot be cancelled through the public commands.
 
 ## 0.18.0
 
-- Added an isolated Microsoft C/C++ provider feasibility probe that exercises
-  VS Code's public definition, declaration, references, hover, highlight,
-  symbol, signature-help, Call Hierarchy, and semantic-token commands.
-- Added a machine-readable probe report with provider isolation, environment,
-  timing, result counts, and explicit public-API limitations.
-- Documented the boundary between the Microsoft C/C++ configuration API and
-  semantic provider commands, including provider-selection, cancellation, and
-  Type Hierarchy constraints.
-- Kept clangd as the only production engine; this release establishes evidence
-  and an implementation boundary for a later opt-in Microsoft adapter.
+- Added an isolated Microsoft C/C++ provider feasibility probe that exercises VS Code's public definition, declaration, references, hover, highlight, symbol, signature-help, Call Hierarchy, and semantic-token commands.
+- Added a machine-readable probe report with provider isolation, environment, timing, result counts, and explicit public-API limitations.
+- Documented the boundary between the Microsoft C/C++ configuration API and semantic provider commands, including provider-selection, cancellation, and Type Hierarchy constraints.
+- Kept clangd as the only production engine; this release establishes evidence and an implementation boundary for a later opt-in Microsoft adapter.
 
 ## 0.17.6
 
-- Added `youjinchun` as the extension developer and maintainer metadata.
-- Added a C Insight: About command with copyable version, engine, license,
-  environment, remote-host, and privacy information plus a user-guide action.
-- Added an Extension Information group to Project Diagnostics and its text/JSON
-  reports.
-- Added packaged contribution, security, and privacy policies without inventing
-  repository or issue links that have not been selected yet.
-- Updated the license notice, README, generated command reference, and Chinese
-  user guide.
+- Added `you_jinchun` as the extension developer and maintainer metadata.
+- Added a C Insight: About command with copyable version, engine, license, environment, remote-host, and privacy information plus a user-guide action.
+- Added an Extension Information group to Project Diagnostics and its text/JSON reports.
+- Added packaged contribution, security, and privacy policies without inventing repository or issue links that have not been selected yet.
+- Updated the license notice, README, generated command reference, and Chinese user guide.
 
 ## 0.17.5
 
-- Added a repeatable, read-only clangd 20 acceptance harness for a configured
-  FFmpeg checkout and compilation database.
-- Validated clangd initialization, document symbols, definition, references,
-  call-hierarchy preparation/outgoing protocol support, and hover against
-  `libavcodec/bsf/noise.c`.
-- Added a packaged Chinese third-phase acceptance report with environment,
-  timings, interpretation, commands, and explicit boundaries.
-- Completed the feature/configuration/view documentation audit and retained
-  all fourth-phase candidates as deferred memo items.
-- Completed the third-phase automatic regression, benchmark, packaging, and
-  Extension Host acceptance gates.
+- Added a repeatable, read-only clangd 20 acceptance harness for a configured FFmpeg checkout and compilation database.
+- Validated clangd initialization, document symbols, definition, references, call-hierarchy preparation/outgoing protocol support, and hover against `libavcodec/bsf/noise.c`.
+- Added a packaged Chinese third-phase acceptance report with environment, timings, interpretation, commands, and explicit boundaries.
+- Completed the feature/configuration/view documentation audit and retained all fourth-phase candidates as deferred memo items.
+- Completed the third-phase automatic regression, benchmark, packaging, and Extension Host acceptance gates.
 
 ## 0.17.4
 
 - Added a Runtime Performance group to Project Diagnostics.
-- Reported semantic request queue depth, active and peak concurrency,
-  outcomes, coalescing, pre-dispatch cancellation, and latency statistics.
-- Added session counters for References display/bulk-output limits, omitted
-  records, oversized export rejection, and detail-cache eviction.
-- Reported current References detail-cache gauges and the configured request,
-  result, cache, and export resource limits.
+- Reported semantic request queue depth, active and peak concurrency, outcomes, coalescing, pre-dispatch cancellation, and latency statistics.
+- Added session counters for References display/bulk-output limits, omitted records, oversized export rejection, and detail-cache eviction.
+- Reported current References detail-cache gauges and the configured request, result, cache, and export resource limits.
 - Included the same runtime snapshot in text and JSON diagnostics reports.
 - Added deterministic runtime-counter and diagnostics-report coverage.
 
 ## 0.17.3
 
-- Added a shared semantic status model for idle, loading, empty, cancelled,
-  stale, limited, failed, and successful view states.
-- Unified status icons and stable context values across References, Callers,
-  Callees, Type Hierarchy, and Include Hierarchy.
-- Added explicit idle guidance when Context and demand-driven navigation views
-  have not queried a symbol yet.
-- Kept error details in descriptions and tooltips instead of producing
-  unbounded primary row labels.
+- Added a shared semantic status model for idle, loading, empty, cancelled, stale, limited, failed, and successful view states.
+- Unified status icons and stable context values across References, Callers, Callees, Type Hierarchy, and Include Hierarchy.
+- Added explicit idle guidance when Context and demand-driven navigation views have not queried a symbol yet.
+- Kept error details in descriptions and tooltips instead of producing unbounded primary row labels.
 - Aligned incoming and outgoing Call Hierarchy expansion failure handling.
 - Added unit coverage and user-guide documentation for the status contract.
 
 ## 0.17.2
 
 - Bounded the number of References rows materialized by paging and Show All.
-- Added cancellable, progress-reporting References exports with explicit
-  record-count and encoded-size limits; omitted records are reported in text
-  and JSON metadata.
-- Applied the record limit to Copy All and Open Result List so those commands
-  cannot bypass large-result protection.
-- Added encoded-size protection to Call, Type, Include, and Relationship Graph
-  file exports.
+- Added cancellable, progress-reporting References exports with explicit record-count and encoded-size limits; omitted records are reported in text and JSON metadata.
+- Applied the record limit to Copy All and Open Result List so those commands cannot bypass large-result protection.
+- Added encoded-size protection to Call, Type, Include, and Relationship Graph file exports.
 - Bounded References detail-request caches with least-recently-used eviction.
-- Added unit coverage and complete configuration documentation for the new
-  resource limits.
+- Added unit coverage and complete configuration documentation for the new resource limits.
 
 ## 0.17.1
 
-- Added a unified priority scheduler for clangd semantic requests with
-  interactive, normal, and background queues.
-- Added configurable total and background concurrency limits while reserving
-  capacity for foreground work.
-- Coalesced identical requests within the same cancellation scope and rejected
-  cancelled queued work before it reaches clangd.
-- Added scheduler counters for submitted, coalesced, started, completed,
-  failed, queued-cancelled, active, queued, and peak-active requests.
-- Added deterministic priority, concurrency, coalescing, and cancellation
-  tests plus complete configuration documentation.
+- Added a unified priority scheduler for clangd semantic requests with interactive, normal, and background queues.
+- Added configurable total and background concurrency limits while reserving capacity for foreground work.
+- Coalesced identical requests within the same cancellation scope and rejected cancelled queued work before it reaches clangd.
+- Added scheduler counters for submitted, coalesced, started, completed, failed, queued-cancelled, active, queued, and peak-active requests.
+- Added deterministic priority, concurrency, coalescing, and cancellation tests plus complete configuration documentation.
 
 ## 0.17.0
 
 - Added a versioned, machine-readable large-workspace performance baseline.
-- Added deterministic high-volume scenarios for reference classification,
-  relationship graph construction/snapshotting, hierarchy JSON export, and
-  Code Preview range scrolling.
-- Added deliberately broad regression budgets, optional observation mode, a
-  scalable workload, runtime metadata, result counters, and JSON file output.
-- Added a packaged Chinese performance-baseline guide defining execution,
-  interpretation, and the boundary between model and real-workspace tests.
+- Added deterministic high-volume scenarios for reference classification, relationship graph construction/snapshotting, hierarchy JSON export, and Code Preview range scrolling.
+- Added deliberately broad regression budgets, optional observation mode, a scalable workload, runtime metadata, result counters, and JSON file output.
+- Added a packaged Chinese performance-baseline guide defining execution, interpretation, and the boundary between model and real-workspace tests.
 
 ## 0.16.3
 
-- Completed the second-phase regression and documentation audit across
-  References, Call Hierarchy, and Type Hierarchy.
-- Added compatibility tests for pre-0.15 call snapshots and summary-free
-  version-1 hierarchy exports.
-- Added a second-phase capability and compatibility section to the user guide
-  and refreshed the feature, persistence, and limitation descriptions.
-- Retained workspace-session version 1 and hierarchy-export schema version 1;
-  all second-phase hierarchy fields remain additive.
+- Completed the second-phase regression and documentation audit across References, Call Hierarchy, and Type Hierarchy.
+- Added compatibility tests for pre-0.15 call snapshots and summary-free version-1 hierarchy exports.
+- Added a second-phase capability and compatibility section to the user guide and refreshed the feature, persistence, and limitation descriptions.
+- Retained workspace-session version 1 and hierarchy-export schema version 1; all second-phase hierarchy fields remain additive.
 
 ## 0.16.2
 
-- Added loaded node, maximum depth, unexpanded node, kind, relationship, and
-  hierarchy-state statistics to Type Hierarchy exports.
+- Added loaded node, maximum depth, unexpanded node, kind, relationship, and hierarchy-state statistics to Type Hierarchy exports.
 - Reported maximum-depth and maximum-node truncation independently.
-- Added summaries to the versioned JSON envelope, text header, and Mermaid
-  comment without triggering additional hierarchy queries.
-- Added an explicit node-limit marker when a returned type relation set must be
-  truncated.
+- Added summaries to the versioned JSON envelope, text header, and Mermaid comment without triggering additional hierarchy queries.
+- Added an explicit node-limit marker when a returned type relation set must be truncated.
 
 ## 0.16.1
 
-- Added type-kind and relationship filters before searching loaded Supertypes
-  or Subtypes.
+- Added type-kind and relationship filters before searching loaded Supertypes or Subtypes.
 - Added inheritance depth and the full loaded path to every search result.
-- Preserved distinct occurrences of the same type on different loaded paths
-  and revealed the selected occurrence in its original tree.
-- Kept all search work local to already loaded nodes without issuing semantic
-  requests or expanding hidden branches.
+- Preserved distinct occurrences of the same type on different loaded paths and revealed the selected occurrence in its original tree.
+- Kept all search work local to already loaded nodes without issuing semantic requests or expanding hidden branches.
 
 ## 0.16.0
 
-- Added explicit queried-type, direct-supertype, and direct-subtype
-  relationship metadata to Type Hierarchy nodes.
-- Displayed the clangd protocol method, semantic confidence, type kind,
-  declaration position, and duplicate/cycle reason in node tooltips.
-- Added structured type kind, relationship, and evidence fields to JSON
-  hierarchy exports and equivalent annotations to text exports.
+- Added explicit queried-type, direct-supertype, and direct-subtype relationship metadata to Type Hierarchy nodes.
+- Displayed the clangd protocol method, semantic confidence, type kind, declaration position, and duplicate/cycle reason in node tooltips.
+- Added structured type kind, relationship, and evidence fields to JSON hierarchy exports and equivalent annotations to text exports.
 - Added distinct icons and explanations for duplicate and cyclic type nodes.
 
 ## 0.15.1
 
-- Scanned an expanded function body for explicit function-pointer and member-
-  function-pointer call syntax not represented in clangd outgoing calls.
-- Added navigable Unresolved Indirect Call nodes with syntax evidence while
-  deliberately avoiding guesses about runtime targets.
-- Excluded comments and quoted literals from indirect-call syntax scanning and
-  bounded each scan to the first 2,000 lines of the function body.
+- Scanned an expanded function body for explicit function-pointer and member- function-pointer call syntax not represented in clangd outgoing calls.
+- Added navigable Unresolved Indirect Call nodes with syntax evidence while deliberately avoiding guesses about runtime targets.
+- Excluded comments and quoted literals from indirect-call syntax scanning and bounded each scan to the first 2,000 lines of the function body.
 
 ## 0.15.0
 
 - Persisted exact expanded Callers and Callees node paths independently.
-- Restored only branches that were expanded at save time instead of rebuilding
-  every node up to the previously observed maximum depth.
-- Removed collapsed branches and their descendants from the saved expansion
-  state.
-- Bounded each direction to 500 stable paths and retained maximum-depth
-  restoration as compatibility behavior for older session snapshots.
+- Restored only branches that were expanded at save time instead of rebuilding every node up to the previously observed maximum depth.
+- Removed collapsed branches and their descendants from the saved expansion state.
+- Bounded each direction to 500 stable paths and retained maximum-depth restoration as compatibility behavior for older session snapshots.
 
 ## 0.14.4
 
-- Added a References filter for semantic/syntax/inferred/unknown confidence
-  and individual evidence sources.
+- Added a References filter for semantic/syntax/inferred/unknown confidence and individual evidence sources.
 - Added Confidence and Evidence Source grouping modes.
-- Added a versioned JSON export envelope containing active filters, result
-  count, and fully structured classification evidence.
+- Added a versioned JSON export envelope containing active filters, result count, and fully structured classification evidence.
 - Added active grouping, scope, and evidence-filter metadata to text exports.
 
 ## 0.14.3
 
-- Added definition provenance for macro references, including the defining URI
-  and source position in evidence tooltips and exports.
-- Detected C++ template declarations around clangd definition/declaration
-  targets and labelled their references as template-derived.
-- Added stable `macro.symbol` and `template.declaration` provenance records to
-  structured JSON and compact text exports.
+- Added definition provenance for macro references, including the defining URI and source position in evidence tooltips and exports.
+- Detected C++ template declarations around clangd definition/declaration targets and labelled their references as template-derived.
+- Added stable `macro.symbol` and `template.declaration` provenance records to structured JSON and compact text exports.
 
 ## 0.14.2
 
-- Recognized punctuation-based uses of overloaded C++ operators as inferred
-  function calls when clangd identifies the queried symbol as an operator.
-- Covered ordinary, subscript, and call operators without treating unrelated
-  punctuation as operator references.
+- Recognized punctuation-based uses of overloaded C++ operators as inferred function calls when clangd identifies the queried symbol as an operator.
+- Covered ordinary, subscript, and call operators without treating unrelated punctuation as operator references.
 
 ## 0.14.1
 
 - Distinguished writes through a pointer from writes to the pointer variable.
-- Used clangd Signature Help to identify arguments passed to mutable C++
-  reference and pointer parameters.
-- Marked potential caller-visible parameter effects as inferred and included
-  their signature evidence in tooltips and exports.
+- Used clangd Signature Help to identify arguments passed to mutable C++ reference and pointer parameters.
+- Marked potential caller-visible parameter effects as inferred and included their signature evidence in tooltips and exports.
 
 ## 0.14.0
 
-- Added a structured References classification evidence model with a stable
-  evidence source, rule identifier, explanation, and confidence.
+- Added a structured References classification evidence model with a stable evidence source, rule identifier, explanation, and confidence.
 - Displayed the full classification explanation in reference tooltips.
-- Included compact evidence identifiers in text exports and full structured
-  evidence in JSON exports.
+- Included compact evidence identifiers in text exports and full structured evidence in JSON exports.
 
 ## 0.13.4
 
-- Added a complete feature/view capability matrix covering data sources,
-  automatic work, pin/lock, search, expansion, export, and Code Preview links.
+- Added a complete feature/view capability matrix covering data sources, automatic work, pin/lock, search, expansion, export, and Code Preview links.
 - Added state persistence and configuration-application matrices.
-- Added an automatically generated reference for all contributed commands,
-  including exact IDs, view/menu locations, and default keybindings.
-- Added a reusable command-reference generator driven directly by
-  `package.json`.
-- Added documentation completeness tests covering every configuration and its
-  default, every command ID, and every contributed view.
+- Added an automatically generated reference for all contributed commands, including exact IDs, view/menu locations, and default keybindings.
+- Added a reusable command-reference generator driven directly by `package.json`.
+- Added documentation completeness tests covering every configuration and its default, every command ID, and every contributed view.
 
 ## 0.13.3
 
-- Serialized workspace-session writes so older autosaves cannot overwrite a
-  newer panel-close, clear, or shutdown state.
-- Restored session sections independently with visible cancellable progress and
-  retained successfully restored sections after cancellation or partial
-  failure.
-- Delayed startup cursor following until session restoration completes or is
-  cancelled, preventing immediate restored-state replacement.
-- Checked local and Remote SSH locations through `workspace.fs` and skipped
-  only unavailable Preview, Call Hierarchy, or Graph sections.
-- Added a total serialized snapshot byte budget with deterministic graph,
-  history, and secondary-state degradation.
+- Serialized workspace-session writes so older autosaves cannot overwrite a newer panel-close, clear, or shutdown state.
+- Restored session sections independently with visible cancellable progress and retained successfully restored sections after cancellation or partial failure.
+- Delayed startup cursor following until session restoration completes or is cancelled, preventing immediate restored-state replacement.
+- Checked local and Remote SSH locations through `workspace.fs` and skipped only unavailable Preview, Call Hierarchy, or Graph sections.
+- Added a total serialized snapshot byte budget with deterministic graph, history, and secondary-state degradation.
 - Throttled repeated size-limit reporting while preserving final-save behavior.
 
 ## 0.13.2
 
-- Added a Code Preview status line for loaded ranges, loading direction, total
-  file lines, errors, and start/end-of-file boundaries.
-- Coalesced rapid scroll demand to one active batch plus the latest queued
-  direction.
-- Restored loaded context, vertical line anchor, and horizontal position when
-  returning to a previous preview target.
+- Added a Code Preview status line for loaded ranges, loading direction, total file lines, errors, and start/end-of-file boundaries.
+- Coalesced rapid scroll demand to one active batch plus the latest queued direction.
+- Restored loaded context, vertical line anchor, and horizontal position when returning to a previous preview target.
 - Bounded retained scroll targets and invalidated them after source edits.
-- Converted semantic-token caching to LRU and added a total completed-token
-  byte budget in addition to the existing entry-count limit.
+- Converted semantic-token caching to LRU and added a total completed-token byte budget in addition to the existing entry-count limit.
 
 ## 0.13.1
 
 - Made current-file diagnostics clickable and opened their exact editor range.
-- Added direct open actions for the active compilation database and inferred
-  header candidate source.
-- Added contextual actions to select a missing database, edit fallback flags,
-  and restart background indexing.
-- Added configurable report redaction for filesystem paths and, optionally,
-  macro definitions and fallback flags.
-- Applied redaction consistently to copied text and exported text/JSON without
-  mutating the live diagnostic report.
+- Added direct open actions for the active compilation database and inferred header candidate source.
+- Added contextual actions to select a missing database, edit fallback flags, and restart background indexing.
+- Added configurable report redaction for filesystem paths and, optionally, macro definitions and fallback flags.
+- Applied redaction consistently to copied text and exported text/JSON without mutating the live diagnostic report.
 
 ## 0.13.0
 
-- Expanded Project Diagnostics with compiler, language, standard, user/system/
-  quote include paths, defines, forced includes, and response-file breakdowns.
-- Added conservative same-name/same-directory compile-command candidates for
-  headers while clearly distinguishing them from clangd's unobservable actual
-  inferred command.
-- Displayed configured fallback flags when no direct or candidate compilation
-  database entry is available.
-- Added one schema-versioned diagnostic report shared by the tree, clipboard
-  copy, plain-text export, and JSON export.
-- Included clangd state/version, index progress, database metadata, command
-  source, and current-file diagnostics in exported reports.
+- Expanded Project Diagnostics with compiler, language, standard, user/system/quote include paths, defines, forced includes, and response-file breakdowns.
+- Added conservative same-name/same-directory compile-command candidates for headers while clearly distinguishing them from clangd's unobservable actual inferred command.
+- Displayed configured fallback flags when no direct or candidate compilation database entry is available.
+- Added one schema-versioned diagnostic report shared by the tree, clipboard copy, plain-text export, and JSON export.
+- Included clangd state/version, index progress, database metadata, command source, and current-file diagnostics in exported reports.
 
 ## 0.12.12
 
-- Fixed a closed Relationship Graph being restored when the workspace or VS
-  Code was opened again.
-- Distinguished explicit panel close from extension shutdown: only a graph
-  that was still open at shutdown remains eligible for session restore.
-- Saved the workspace session immediately after an explicit graph close so a
-  quick Reload Window cannot revive the previous snapshot.
+- Fixed a closed Relationship Graph being restored when the workspace or VS Code was opened again.
+- Distinguished explicit panel close from extension shutdown: only a graph that was still open at shutdown remains eligible for session restore.
+- Saved the workspace session immediately after an explicit graph close so a quick Reload Window cannot revive the previous snapshot.
 
 ## 0.12.11
 
-- Added bidirectional incremental source loading when Code Preview is scrolled
-  near its top or bottom edge.
-- Inserted newly rendered lines in place while preserving vertical anchors,
-  horizontal scroll, semantic coloring, and navigation behavior.
-- Added a bounded loaded-line window that trims the distant edge and reloads it
-  on demand instead of allowing unbounded Webview DOM growth.
+- Added bidirectional incremental source loading when Code Preview is scrolled near its top or bottom edge.
+- Inserted newly rendered lines in place while preserving vertical anchors, horizontal scroll, semantic coloring, and navigation behavior.
+- Added a bounded loaded-line window that trims the distant edge and reloads it on demand instead of allowing unbounded Webview DOM growth.
 - Added configurable incremental loading, batch size, and maximum loaded lines.
 - Reused document-version semantic-token results across every loaded batch.
 
 ## 0.12.10
 
-- Code Preview now shows a pointer cursor over semantic symbols that can be
-  clicked to continue Definition browsing.
-- Kept the text cursor for keywords, operators, literals, and comments so
-  non-navigation syntax does not look actionable.
+- Code Preview now shows a pointer cursor over semantic symbols that can be clicked to continue Definition browsing.
+- Kept the text cursor for keywords, operators, literals, and comments so non-navigation syntax does not look actionable.
 
 ## 0.12.9
 
-- Added editor-grade semantic symbol classification to Code Preview through
-  the active VS Code Document Semantic Tokens provider.
-- Layered function, method, variable, parameter, type, namespace, macro, and
-  modifier styling over the existing keyword/string/comment lexical fallback.
-- Preserved exact target-range highlighting and all preview click/navigation
-  behavior when semantic spans split a source line.
-- Added bounded, versioned preview token caching with edit, configuration, and
-  visible-theme refresh handling.
+- Added editor-grade semantic symbol classification to Code Preview through the active VS Code Document Semantic Tokens provider.
+- Layered function, method, variable, parameter, type, namespace, macro, and modifier styling over the existing keyword/string/comment lexical fallback.
+- Preserved exact target-range highlighting and all preview click/navigation behavior when semantic spans split a source line.
+- Added bounded, versioned preview token caching with edit, configuration, and visible-theme refresh handling.
 - Added settings to disable semantic highlighting or tune its cache size.
 - Kept semantic-provider failures non-fatal with an automatic lexical fallback.
 
 ## 0.12.8
 
 - Added versioned, bounded Relationship Graph snapshots to Workspace Session.
-- Restored loaded nodes/edges, selection, relation filters, collapsed branches,
-  and viewport pan/zoom without issuing clangd or Include queries.
-- Revalidated restored function/type nodes only when the user explicitly
-  continues semantic expansion.
-- Added root-file availability checks and lazy `missing` state for other
-  deleted graph locations.
-- Added configurable graph-session restore and snapshot node limit; oversized
-  node/edge graphs safely degrade to a root-only snapshot.
-- Added strict graph-section parsing so malformed or incompatible graph state
-  is dropped without rejecting the rest of the workspace session.
+- Restored loaded nodes/edges, selection, relation filters, collapsed branches, and viewport pan/zoom without issuing clangd or Include queries.
+- Revalidated restored function/type nodes only when the user explicitly continues semantic expansion.
+- Added root-file availability checks and lazy `missing` state for other deleted graph locations.
+- Added configurable graph-session restore and snapshot node limit; oversized node/edge graphs safely degrade to a root-only snapshot.
+- Added strict graph-section parsing so malformed or incompatible graph state is dropped without rejecting the rest of the workspace session.
 
 ## 0.12.7
 
-- Added explicit Definition ownership edges so one graph can connect source
-  files, C++ types, and callable symbols.
-- Added Add Defining File for function/type nodes; the resulting file node can
-  immediately expand Includes and Included By.
-- Added cancellable Add Type Members; loaded callable members can immediately
-  expand Callers and Callees.
-- Added Add Containing Type for callable nodes, including a qualified
-  out-of-class definition fallback.
-- Added a Definition filter, orange dash-dot edge style, legend entry, and
-  export support.
-- Kept all cross-relation growth explicit and bounded by the existing graph
-  node, edge, and depth limits.
+- Added explicit Definition ownership edges so one graph can connect source files, C++ types, and callable symbols.
+- Added Add Defining File for function/type nodes; the resulting file node can immediately expand Includes and Included By.
+- Added cancellable Add Type Members; loaded callable members can immediately expand Callers and Callees.
+- Added Add Containing Type for callable nodes, including a qualified out-of-class definition fallback.
+- Added a Definition filter, orange dash-dot edge style, legend entry, and export support.
+- Kept all cross-relation growth explicit and bounded by the existing graph node, edge, and depth limits.
 
 ## 0.12.6
 
-- Coalesced graph mutations, pan/zoom, and resize work to one render per
-  animation frame.
-- Replaced full SVG layer rebuilds with stable-ID keyed node/edge
-  reconciliation.
-- Added viewport virtualization with a graph-space buffer so large loaded
-  graphs retain only nearby SVG elements.
-- Replaced repeated edge scans in layered ranking with linear adjacency-list
-  traversal.
-- Added throttled slow-render diagnostics and last-render timing in the graph
-  status tooltip.
-- Released expansion work, semantic graph state, layout caches, and SVG caches
-  when the graph panel closes.
+- Coalesced graph mutations, pan/zoom, and resize work to one render per animation frame.
+- Replaced full SVG layer rebuilds with stable-ID keyed node/edge reconciliation.
+- Added viewport virtualization with a graph-space buffer so large loaded graphs retain only nearby SVG elements.
+- Replaced repeated edge scans in layered ranking with linear adjacency-list traversal.
+- Added throttled slow-render diagnostics and last-render timing in the graph status tooltip.
+- Released expansion work, semantic graph state, layout caches, and SVG caches when the graph panel closes.
 - Added a 5,001-node/5,000-edge host-model performance regression test.
 
 ## 0.12.5
 
-- Added distinct Call, Inheritance, and Include edge colors/line styles plus an
-  always-visible graph legend; recursive and cyclic edges are emphasized.
-- Added node state labels for expandable, expanded, duplicate, cycle,
-  unresolved, and locally collapsed nodes.
-- Added Collapse Branch and Expand Branch without deleting host graph data or
-  semantic request caches.
-- Preserved pan, zoom, and existing node positions across graph expansion;
-  automatic Fit now occurs only for a new root.
-- Added visible/loaded node and edge statistics, filter-aware edge counts,
-  keyboard node navigation, keyboard preview/open, and accessible labels.
+- Added distinct Call, Inheritance, and Include edge colors/line styles plus an always-visible graph legend; recursive and cyclic edges are emphasized.
+- Added node state labels for expandable, expanded, duplicate, cycle, unresolved, and locally collapsed nodes.
+- Added Collapse Branch and Expand Branch without deleting host graph data or semantic request caches.
+- Preserved pan, zoom, and existing node positions across graph expansion; automatic Fit now occurs only for a new root.
+- Added visible/loaded node and edge statistics, filter-aware edge counts, keyboard node navigation, keyboard preview/open, and accessible labels.
 
 ## 0.12.4
 
-- Added File Relationship Graph roots through the explicit Show File
-  Relationship Graph command.
-- Added on-demand Includes and Included By expansion with semantic
-  Includer → Included edges, unresolved targets, cycle detection, and
-  multi-level expansion.
-- Added a shared Include Hierarchy repository for forward-resolution caching
-  and one common reverse workspace index.
-- Kept reverse-index construction demand-driven: opening/exporting/searching a
-  file graph or expanding only Includes does not build Included By.
+- Added File Relationship Graph roots through the explicit Show File Relationship Graph command.
+- Added on-demand Includes and Included By expansion with semantic Includer → Included edges, unresolved targets, cycle detection, and multi-level expansion.
+- Added a shared Include Hierarchy repository for forward-resolution caching and one common reverse workspace index.
+- Kept reverse-index construction demand-driven: opening/exporting/searching a file graph or expanding only Includes does not build Included By.
 
 ## 0.12.3
 
 - Added C++ Type Graph roots with on-demand Supertypes and Subtypes expansion.
-- Added a shared Type Hierarchy repository so tree views and the graph reuse
-  identical cached clangd requests.
-- Added multi-level Type Graph expansion, search, bookmarks, navigation, and
-  Text/JSON/Mermaid export through the existing graph interactions.
-- Standardized inheritance edges as Supertype → Subtype and verified both
-  function and type roots in the VS Code end-to-end suite.
+- Added a shared Type Hierarchy repository so tree views and the graph reuse identical cached clangd requests.
+- Added multi-level Type Graph expansion, search, bookmarks, navigation, and Text/JSON/Mermaid export through the existing graph interactions.
+- Standardized inheritance edges as Supertype → Subtype and verified both function and type roots in the VS Code end-to-end suite.
 
 ## 0.12.2
 
-- Added cancellable multi-level Call Graph expansion from any selected node,
-  with visible completion, cancellation, failure, and graph-limit status.
-- Added loaded-node search and node context actions for expansion, bookmarks,
-  navigation, and focus.
-- Added Text, JSON, and Mermaid export from the graph toolbar and command
-  palette.
-- Changed the layered Call Graph layout to place callers left of the root and
-  callees to its right.
+- Added cancellable multi-level Call Graph expansion from any selected node, with visible completion, cancellation, failure, and graph-limit status.
+- Added loaded-node search and node context actions for expansion, bookmarks, navigation, and focus.
+- Added Text, JSON, and Mermaid export from the graph toolbar and command palette.
+- Changed the layered Call Graph layout to place callers left of the root and callees to its right.
 
 ## 0.12.1
 
-- Added a shared Call Hierarchy repository so the native trees and
-  Relationship Graph reuse the same bounded Incoming/Outgoing request caches.
-- Show Relationship Graph now prepares the callable symbol under the cursor
-  and retains clangd's opaque call item for subsequent graph expansion.
-- Added Expand Callers, Expand Callees, and Stop actions for the selected graph
-  node, with cancellable progress and clangd 20 outgoing-call diagnostics.
-- Maps calls into semantic Caller → Callee edges, merges repeated targets, and
-  labels direct or indirect recursion without duplicating graph entities.
+- Added a shared Call Hierarchy repository so the native trees and Relationship Graph reuse the same bounded Incoming/Outgoing request caches.
+- Show Relationship Graph now prepares the callable symbol under the cursor and retains clangd's opaque call item for subsequent graph expansion.
+- Added Expand Callers, Expand Callees, and Stop actions for the selected graph node, with cancellable progress and clangd 20 outgoing-call diagnostics.
+- Maps calls into semantic Caller → Callee edges, merges repeated targets, and labels direct or indirect recursion without duplicating graph entities.
 - Enforces graph depth, node, and edge budgets while expanding Call Graph data.
-- A positive `relationshipGraph.defaultDepth` loads the root's first Caller
-  and Callee level; zero keeps the root collapsed.
+- A positive `relationshipGraph.defaultDepth` loads the root's first Caller and Callee level; zero keeps the root collapsed.
 
 ## 0.12.0
 
 - Added the Relationship Graph foundation as an editor-area WebviewPanel.
-- Added a pure, bounded graph model with stable semantic node/edge IDs,
-  duplicate merging, revisions, stale state, node/edge budgets, and
-  JSON/Mermaid export primitives.
-- Added a strict nonce-based CSP and validated Webview-to-host message
-  protocol; the Webview renders data but never reads files or calls clangd.
-- Added native SVG rendering with pan, zoom, Fit, Reset Layout, relationship
-  filters, selection, and double-click editor navigation.
-- Added **Show Relationship Graph** for the active local C/C++ file. This
-  foundation release creates a file root only and deliberately performs no
-  Call, Type, Include, or Included By queries yet.
-- Added `cInsight.relationshipGraph.defaultDepth`, `maximumDepth`,
-  `maximumNodes`, `maximumEdges`, `layout`, and `includeSystemHeaders`.
+- Added a pure, bounded graph model with stable semantic node/edge IDs, duplicate merging, revisions, stale state, node/edge budgets, and JSON/Mermaid export primitives.
+- Added a strict nonce-based CSP and validated Webview-to-host message protocol; the Webview renders data but never reads files or calls clangd.
+- Added native SVG rendering with pan, zoom, Fit, Reset Layout, relationship filters, selection, and double-click editor navigation.
+- Added **Show Relationship Graph** for the active local C/C++ file. This foundation release creates a file root only and deliberately performs no Call, Type, Include, or Included By queries yet.
+- Added `cInsight.relationshipGraph.defaultDepth`, `maximumDepth`, `maximumNodes`, `maximumEdges`, `layout`, and `includeSystemHeaders`.
 
 ## 0.11.10
 
-- Builds the Included By reverse index in isolated temporary maps and publishes
-  it atomically only after a complete, current scan.
-- Cancels in-progress reverse indexing when compilation database, include
-  configuration, or workspace analysis state invalidates the index.
-- Uses a generation check so an obsolete scan cannot overwrite a newer index
-  after invalidation.
-- Queues file create/change/delete events received during scanning and applies
-  them before the completed index becomes visible.
-- Keeps a cancelled partial scan unavailable so the next explicit expansion
-  starts from a clean rebuild.
-- Pins E2E tests to a known cached VS Code runtime by default while allowing
-  `C_INSIGHT_VSCODE_TEST_VERSION` to select another version explicitly.
+- Builds the Included By reverse index in isolated temporary maps and publishes it atomically only after a complete, current scan.
+- Cancels in-progress reverse indexing when compilation database, include configuration, or workspace analysis state invalidates the index.
+- Uses a generation check so an obsolete scan cannot overwrite a newer index after invalidation.
+- Queues file create/change/delete events received during scanning and applies them before the completed index becomes visible.
+- Keeps a cancelled partial scan unavailable so the next explicit expansion starts from a clean rebuild.
+- Pins E2E tests to a known cached VS Code runtime by default while allowing `C_INSIGHT_VSCODE_TEST_VERSION` to select another version explicitly.
 
 ## 0.11.9
 
-- Added one shared Text, JSON, and Mermaid renderer for Call, Type, and Include
-  Hierarchy.
-- Standardized JSON exports with `schemaVersion`, `relation`, `direction`,
-  `edgeDirection`, and `roots` metadata.
-- Standardized node fields as `name`, `description`, `uri`, optional
-  `sourceUri`/`line`, `states`, and `children`.
-- Normalizes duplicate, cycle, recursion, maximum-depth, maximum-node,
-  cancellation, and possible-indirect-call states in exports.
-- Preserves semantic arrow direction for all six relationship views and still
-  exports loaded nodes only.
+- Added one shared Text, JSON, and Mermaid renderer for Call, Type, and Include Hierarchy.
+- Standardized JSON exports with `schemaVersion`, `relation`, `direction`, `edgeDirection`, and `roots` metadata.
+- Standardized node fields as `name`, `description`, `uri`, optional `sourceUri`/`line`, `states`, and `children`.
+- Normalizes duplicate, cycle, recursion, maximum-depth, maximum-node, cancellation, and possible-indirect-call states in exports.
+- Preserves semantic arrow direction for all six relationship views and still exports loaded nodes only.
 
 ## 0.11.8
 
-- Added a shared hierarchy-tree state model for node counts, duplicate
-  detection, reset, limit checks, and remaining budgets.
+- Added a shared hierarchy-tree state model for node counts, duplicate detection, reset, limit checks, and remaining budgets.
 - Migrated Call, Type, and Include Hierarchy to the common state model.
 - Made `maximumNodes` apply independently to Callers and Callees.
 - Made `maximumNodes` apply independently to Supertypes and Subtypes.
@@ -1060,41 +713,30 @@
 
 ## 0.11.7
 
-- Added consistent in-tree status rows after a hierarchy batch expansion is
-  cancelled or reaches its configured depth or node limit.
-- Status rows name the relevant `maximumDepth` or `maximumNodes` setting and
-  preserve all nodes loaded before stopping.
+- Added consistent in-tree status rows after a hierarchy batch expansion is cancelled or reaches its configured depth or node limit.
+- Status rows name the relevant `maximumDepth` or `maximumNodes` setting and preserve all nodes loaded before stopping.
 - Labels terminal Call, Type, and Include Hierarchy nodes with `max depth`.
 - Added a shared, tested expansion-outcome model used by all hierarchy views.
 
 ## 0.11.6
 
-- Standardized hierarchy view-title actions as Show, Expand to Depth, Search
-  Loaded, Stop Expansion, followed by relationship-specific actions.
-- Added always-visible Show and Stop buttons to Callers/Callees and
-  Supertypes/Subtypes where they were previously missing.
-- Added Callers/Callees Text, JSON, and Mermaid exports to the same overflow
-  menu layout used by Type and Include Hierarchy.
-- Standardized hierarchy export menu grouping and added the missing Call
-  Hierarchy stop icon.
+- Standardized hierarchy view-title actions as Show, Expand to Depth, Search Loaded, Stop Expansion, followed by relationship-specific actions.
+- Added always-visible Show and Stop buttons to Callers/Callees and Supertypes/Subtypes where they were previously missing.
+- Added Callers/Callees Text, JSON, and Mermaid exports to the same overflow menu layout used by Type and Include Hierarchy.
+- Standardized hierarchy export menu grouping and added the missing Call Hierarchy stop icon.
 
 ## 0.11.5
 
-- Added a cancellable progress notification while Included By builds its
-  reverse workspace index for the first time.
+- Added a cancellable progress notification while Included By builds its reverse workspace index for the first time.
 - Reports indexed and total file counts during the scan.
-- Detects when `workspaceFileLimit` truncates discovery and warns that Included
-  By results may be incomplete.
+- Detects when `workspaceFileLimit` truncates discovery and warns that Included By results may be incomplete.
 - Reuses a completed index without displaying progress or rescanning.
 
 ## 0.11.4
 
-- Made Show Includes and Show Included By update only their corresponding
-  views.
-- Separated roots, node budgets, duplicate tracking, stale state, automatic
-  expansion, and cancellation between the two directions.
-- Kept the resolver and reverse workspace index shared so repeated reverse
-  queries can reuse prior scanning without coupling view state.
+- Made Show Includes and Show Included By update only their corresponding views.
+- Separated roots, node budgets, duplicate tracking, stale state, automatic expansion, and cancellation between the two directions.
+- Kept the resolver and reverse workspace index shared so repeated reverse queries can reuse prior scanning without coupling view state.
 
 ## 0.11.3
 
@@ -1105,384 +747,244 @@
 ## 0.11.2
 
 - Added Includes and Included By views for C/C++ files.
-- Resolves includes using source-relative, compilation-database
-  `-iquote`/`-I`/`-isystem`, workspace, and common system paths.
-- Builds the reverse Included By workspace index only when first needed, then
-  updates it as files change.
-- Added lazy bounded expansion, cycle/duplicate detection, loaded-node search,
-  cancellation, classification, and Text/JSON/Mermaid export.
-- Integrated include nodes with Code Preview, editor navigation, and
-  bookmarks.
+- Resolves includes using source-relative, compilation-database `-iquote`/`-I`/`-isystem`, workspace, and common system paths.
+- Builds the reverse Included By workspace index only when first needed, then updates it as files change.
+- Added lazy bounded expansion, cycle/duplicate detection, loaded-node search, cancellation, classification, and Text/JSON/Mermaid export.
+- Integrated include nodes with Code Preview, editor navigation, and bookmarks.
 
 ## 0.11.1
 
-- Added independent automatic-query scheduling for Context, Code Preview,
-  References, Callers, and Callees visibility.
-- Stops automatic semantic cursor queries when every navigation view is
-  hidden.
-- Queries References only while References is visible; queries incoming or
-  outgoing counts only when Context and the corresponding call view are both
-  visible.
-- Code Preview-only following requests Definition without unrelated semantic
-  details.
-- Callers/Callees-only following prepares lazy roots without preloading
-  first-level calls.
+- Added independent automatic-query scheduling for Context, Code Preview, References, Callers, and Callees visibility.
+- Stops automatic semantic cursor queries when every navigation view is hidden.
+- Queries References only while References is visible; queries incoming or outgoing counts only when Context and the corresponding call view are both visible.
+- Code Preview-only following requests Definition without unrelated semantic details.
+- Callers/Callees-only following prepares lazy roots without preloading first-level calls.
 - Document Symbols now queries only while its view is visible.
-- Manual navigation, tree expansion, indexing, diagnostics, bookmarks, and
-  session persistence retain their existing behavior.
+- Manual navigation, tree expansion, indexing, diagnostics, bookmarks, and session persistence retain their existing behavior.
 
 ## 0.11.0
 
-- Added Supertypes and Subtypes views using the standard LSP Type Hierarchy
-  protocol supported by clangd 20.
-- Added lazy multi-level expansion with recursion, duplicate, maximum-depth,
-  and maximum-node protection.
-- Added loaded-node search, explicit depth expansion, cancellation, and Text,
-  JSON, or Mermaid export.
-- Integrated type nodes with Code Preview, Open Location, Navigation History,
-  and Bookmarks.
-- Marks loaded type hierarchies stale after source changes, clangd restarts, or
-  type-hierarchy configuration changes.
-- Added `cInsight.typeHierarchy.defaultDepth`, `maximumDepth`, and
-  `maximumNodes`.
+- Added Supertypes and Subtypes views using the standard LSP Type Hierarchy protocol supported by clangd 20.
+- Added lazy multi-level expansion with recursion, duplicate, maximum-depth, and maximum-node protection.
+- Added loaded-node search, explicit depth expansion, cancellation, and Text, JSON, or Mermaid export.
+- Integrated type nodes with Code Preview, Open Location, Navigation History, and Bookmarks.
+- Marks loaded type hierarchies stale after source changes, clangd restarts, or type-hierarchy configuration changes.
+- Added `cInsight.typeHierarchy.defaultDepth`, `maximumDepth`, and `maximumNodes`.
 
 ## 0.10.0
 
-- Added a versioned, workspace-scoped browsing-session snapshot with five-second
-  autosave and graceful-shutdown save.
-- Restores Navigation History and its cursor/filter, Code Preview target and
-  lock, Reference filters/page limit, and Symbol Search query/type filter.
-- Restores Callers/Callees by re-resolving the saved root with clangd and
-  rebuilding the previously loaded maximum depth instead of trusting old
-  semantic results.
-- Added automatic snapshot expiry, optional History and Call Hierarchy
-  persistence, manual Restore Previous Session, and Clear Saved Session.
-- Added `cInsight.session.restore`, `persistNavigationHistory`,
-  `restoreCallHierarchy`, and `maximumAgeDays`.
+- Added a versioned, workspace-scoped browsing-session snapshot with five-second autosave and graceful-shutdown save.
+- Restores Navigation History and its cursor/filter, Code Preview target and lock, Reference filters/page limit, and Symbol Search query/type filter.
+- Restores Callers/Callees by re-resolving the saved root with clangd and rebuilding the previously loaded maximum depth instead of trusting old semantic results.
+- Added automatic snapshot expiry, optional History and Call Hierarchy persistence, manual Restore Previous Session, and Clear Saved Session.
+- Added `cInsight.session.restore`, `persistNavigationHistory`, `restoreCallHierarchy`, and `maximumAgeDays`.
 
 ## 0.9.3
 
-- Added bookmark filtering across labels, groups, file URIs, and captured
-  symbols.
-- Added workspace-persistent Name, File Path, Source Position, Creation Time,
-  and Last Updated sorting.
-- Added versioned JSON import and export, with append/update and confirmed
-  replace modes.
-- Added duplicate-position merging, import validation, and missing-file stale
-  markers.
+- Added bookmark filtering across labels, groups, file URIs, and captured symbols.
+- Added workspace-persistent Name, File Path, Source Position, Creation Time, and Last Updated sorting.
+- Added versioned JSON import and export, with append/update and confirmed replace modes.
+- Added duplicate-position merging, import validation, and missing-file stale markers.
 - Added bookmark-group rename/merge, group export, and confirmed group delete.
 - Added `cInsight.bookmarks.sortBy`.
 
 ## 0.9.2
 
 - Added a dedicated Symbol Search view backed by clangd `workspace/symbol`.
-- Added debounced live search with stale-response suppression and configurable
-  result limits.
+- Added debounced live search with stale-response suppression and configurable result limits.
 - Added Symbol Type, File, Directory, and flat result grouping.
 - Added temporary multi-select symbol-kind filtering.
-- Integrated symbol results with Code Preview, Open Location, Navigation
-  History, and Bookmarks.
+- Integrated symbol results with Code Preview, Open Location, Navigation History, and Bookmarks.
 - Added `cInsight.symbolSearch.groupBy`, `maximumResults`, and `debounce`.
 
 ## 0.9.1
 
 - Added a workspace-persistent Bookmarks view grouped by user-defined names.
-- Added Bookmark Current Symbol and Add Bookmark actions for editor and C
-  Insight location nodes.
-- Added bookmark rename, group move, delete confirmation, refresh, Code Preview
-  selection, and Open Location integration.
-- Deduplicates bookmarks at the same file position while retaining stable IDs
-  and user labels.
-- Marks bookmarks stale after document edits, then uses the captured identifier
-  to relocate to the closest whole-symbol occurrence after a debounce.
-- Persists bookmark labels, groups, semantic preview modes, locations, symbols,
-  and stale state in VS Code workspaceState.
+- Added Bookmark Current Symbol and Add Bookmark actions for editor and C Insight location nodes.
+- Added bookmark rename, group move, delete confirmation, refresh, Code Preview selection, and Open Location integration.
+- Deduplicates bookmarks at the same file position while retaining stable IDs and user labels.
+- Marks bookmarks stale after document edits, then uses the captured identifier to relocate to the closest whole-symbol occurrence after a debounce.
+- Persists bookmark labels, groups, semantic preview modes, locations, symbols, and stale state in VS Code workspaceState.
 
 ## 0.9.0
 
-- Added a session-scoped Navigation History view for Definition, Declaration,
-  Reference, Caller, Callee, and Code Preview navigation.
-- Integrated Code Preview Back/Forward with the shared history cursor,
-  including forward-branch truncation after new navigation.
+- Added a session-scoped Navigation History view for Definition, Declaration, Reference, Caller, Callee, and Code Preview navigation.
+- Integrated Code Preview Back/Forward with the shared history cursor, including forward-branch truncation after new navigation.
 - Added consecutive duplicate merging and bounded history retention.
 - Added history filtering by navigation origin and a Clear History action.
-- History selection previews without creating duplicate entries; Open Location
-  remains available from the item context menu.
-- Added `cInsight.history.maximumEntries` and
-  `cInsight.history.mergeConsecutiveDuplicates`.
+- History selection previews without creating duplicate entries; Open Location remains available from the item context menu.
+- Added `cInsight.history.maximumEntries` and `cInsight.history.mergeConsecutiveDuplicates`.
 
 ## 0.8.4
 
-- Consolidated global analysis reliability into one persistent VS Code status
-  bar item.
-- Added compact Ready, Indexing, Limited, and Unavailable presentations with
-  warning/error status-bar colors.
-- Added a detailed hover listing every reliability issue and click-through to
-  Project Diagnostics.
+- Consolidated global analysis reliability into one persistent VS Code status bar item.
+- Added compact Ready, Indexing, Limited, and Unavailable presentations with warning/error status-bar colors.
+- Added a detailed hover listing every reliability issue and click-through to Project Diagnostics.
 - Removed duplicate reliability nodes from References, Callers, and Callees.
-- Retained per-view Pin and stale markers, and retained reliability-aware empty
-  result wording.
+- Retained per-view Pin and stale markers, and retained reliability-aware empty result wording.
 
 ## 0.8.3
 
-- Added a shared reliability model that combines clangd lifecycle, background
-  indexing, compilation database availability, current-file compile commands,
-  and missing includes.
-- Added expandable reliability warnings to References, Callers, and Callees
-  without clearing or replacing loaded results.
-- Reliability warnings open Project Diagnostics and never interrupt navigation
-  with automatic notifications.
-- Distinguishes reliable empty results from potentially incomplete “not found
-  yet” results.
-- Added independent stale-result markers for source edits, clangd restarts,
-  analysis configuration changes, active compilation database changes, and
-  restarted background indexing.
-- Clears stale markers only when the corresponding References or Call
-  Hierarchy query produces new results.
+- Added a shared reliability model that combines clangd lifecycle, background indexing, compilation database availability, current-file compile commands, and missing includes.
+- Added expandable reliability warnings to References, Callers, and Callees without clearing or replacing loaded results.
+- Reliability warnings open Project Diagnostics and never interrupt navigation with automatic notifications.
+- Distinguishes reliable empty results from potentially incomplete “not found yet” results.
+- Added independent stale-result markers for source edits, clangd restarts, analysis configuration changes, active compilation database changes, and restarted background indexing.
+- Clears stale markers only when the corresponding References or Call Hierarchy query produces new results.
 
 ## 0.8.2
 
-- Added direct handling of clangd's standard
-  `backgroundIndexProgress` Work Done Progress stream.
-- Added Background Index status, completed/total file counts, percentage, and
-  last-update time to Project Diagnostics.
-- Reflects active background work in the clangd lifecycle state and returns to
-  Ready when indexing becomes idle.
+- Added direct handling of clangd's standard `backgroundIndexProgress` Work Done Progress stream.
+- Added Background Index status, completed/total file counts, percentage, and last-update time to Project Diagnostics.
+- Reflects active background work in the clangd lifecycle state and returns to Ready when indexing becomes idle.
 - Added Restart Background Indexing to the Project Diagnostics title bar.
-- Keeps indexing telemetry separate from log severity classification, avoiding
-  false error reporting for normal LSP traffic.
+- Keeps indexing telemetry separate from log severity classification, avoiding false error reporting for normal LSP traffic.
 
 ## 0.8.1
 
-- Added one shared compilation database resolver used by both clangd startup
-  and Project Diagnostics.
-- Automatically searches workspace roots, `build`, `Build`, `out`,
-  `out/build`, CMake build directories, `_build`, and then other workspace
-  candidates.
-- Passes automatically discovered databases to clangd with
-  `--compile-commands-dir`, so discovery now affects analysis rather than only
-  status reporting.
-- Added Select Compilation Database and Use Automatic Compilation Database
-  Detection commands.
-- Added database-source reporting and cached discovery/parsing for large
-  workspaces.
-- Detects active compilation database creation, modification, and deletion,
-  then offers to restart clangd after a short debounce.
+- Added one shared compilation database resolver used by both clangd startup and Project Diagnostics.
+- Automatically searches workspace roots, `build`, `Build`, `out`, `out/build`, CMake build directories, `_build`, and then other workspace candidates.
+- Passes automatically discovered databases to clangd with `--compile-commands-dir`, so discovery now affects analysis rather than only status reporting.
+- Added Select Compilation Database and Use Automatic Compilation Database Detection commands.
+- Added database-source reporting and cached discovery/parsing for large workspaces.
+- Detects active compilation database creation, modification, and deletion, then offers to restart clangd after a short debounce.
 
 ## 0.8.0
 
-- Replaced the basic Index Status view with an automatically refreshed Project
-  Diagnostics view.
+- Replaced the basic Index Status view with an automatically refreshed Project Diagnostics view.
 - Added clangd executable, version, and lifecycle state inspection.
-- Added compilation database discovery, path, entry count, and parse-status
-  reporting with modification-time caching for large projects.
-- Added current-file compilation command and working-directory inspection,
-  including clear fallback-flags and header-inference explanations.
-- Added workspace clangd diagnostic totals, missing-include counts, and
-  current-file diagnostic summaries.
-- Added dedicated Refresh Project Diagnostics and Show clangd Log title-bar
-  actions.
+- Added compilation database discovery, path, entry count, and parse-status reporting with modification-time caching for large projects.
+- Added current-file compilation command and working-directory inspection, including clear fallback-flags and header-inference explanations.
+- Added workspace clangd diagnostic totals, missing-include counts, and current-file diagnostic summaries.
+- Added dedicated Refresh Project Diagnostics and Show clangd Log title-bar actions.
 
 ## 0.7.4
 
-- Restored Code Preview Lock Preview to its always-visible webview toolbar and
-  removed its view-title Pin/Unpin commands.
-- Retained the standardized fixed-position title-bar Pin/Unpin buttons for
-  Context, References, Callers, and Callees.
+- Restored Code Preview Lock Preview to its always-visible webview toolbar and removed its view-title Pin/Unpin commands.
+- Retained the standardized fixed-position title-bar Pin/Unpin buttons for Context, References, Callers, and Callees.
 
 ## 0.7.3
 
-- Moved Code Preview Lock Preview from its webview toolbar to standard
-  Pin/Unpin buttons in the view title bar.
-- Standardized Context, Code Preview, References, Callers, and Callees on the
-  same Pin/Unpin icons and fixed menu position.
-- Kept each view's existing pin semantics and ensured Context's button does not
-  move when its state changes.
+- Moved Code Preview Lock Preview from its webview toolbar to standard Pin/Unpin buttons in the view title bar.
+- Standardized Context, Code Preview, References, Callers, and Callees on the same Pin/Unpin icons and fixed menu position.
+- Kept each view's existing pin semantics and ensured Context's button does not move when its state changes.
 
 ## 0.7.2
 
 - Added an independent References Pin/Unpin state and title-bar buttons.
-- Added one shared Call Hierarchy Pin/Unpin state; Callers and Callees each
-  expose buttons and update synchronously.
-- Pinned views reject editor cursor-follow updates while explicit Find
-  References, Show Incoming/Outgoing, and manual Refresh operations remain
-  allowed for their target views.
-- Pinned symbols are displayed in the result roots. Source edits retain pinned
-  content, invalidate semantic caches, and mark the views `stale`.
-- Unpinned views continue following Context independently, while expansion,
-  search, path search, export, and Code Preview navigation stay enabled for
-  pinned views.
-- Added update-policy unit tests and Extension Host command/state regression
-  coverage.
+- Added one shared Call Hierarchy Pin/Unpin state; Callers and Callees each expose buttons and update synchronously.
+- Pinned views reject editor cursor-follow updates while explicit Find References, Show Incoming/Outgoing, and manual Refresh operations remain allowed for their target views.
+- Pinned symbols are displayed in the result roots. Source edits retain pinned content, invalidate semantic caches, and mark the views `stale`.
+- Unpinned views continue following Context independently, while expansion, search, path search, export, and Code Preview navigation stay enabled for pinned views.
+- Added update-policy unit tests and Extension Host command/state regression coverage.
 
 ## 0.7.1
 
-- Added cancellable Caller and Callee path search from the current root to a
-  function-name or qualified-name fragment.
-- Path search reuses Incoming/Outgoing caches, avoids path-local cycles, and
-  enforces independent maximum depth, returned-path, and visited-node limits.
+- Added cancellable Caller and Callee path search from the current root to a function-name or qualified-name fragment.
+- Path search reuses Incoming/Outgoing caches, avoids path-local cycles, and enforces independent maximum depth, returned-path, and visited-node limits.
 - Added result selection that previews the destination definition.
-- Added Mermaid `.mmd` and fenced Markdown export for currently loaded trees,
-  with semantic caller-to-callee edge direction and escaped labels.
-- Labels explicit function-pointer and member-function-pointer call-site syntax
-  as `possible indirect call` without fabricating unresolved targets.
-- Added path-search, Mermaid direction/escaping, and indirect-call syntax unit
-  tests plus Extension Host command registration coverage.
+- Added Mermaid `.mmd` and fenced Markdown export for currently loaded trees, with semantic caller-to-callee edge direction and escaped labels.
+- Labels explicit function-pointer and member-function-pointer call-site syntax as `possible indirect call` without fabricating unresolved targets.
+- Added path-search, Mermaid direction/escaping, and indirect-call syntax unit tests plus Extension Host command registration coverage.
 
 ## 0.7.0
 
-- Enhanced Callers/Callees nodes with definition locations, call-site
-  children, merged call counts, and explicit direct-recursion,
-  indirect-recursion, and duplicate labels.
-- Added independent bounded LRU caches for Incoming and Outgoing requests,
-  including concurrent request coalescing, hit/miss statistics, failed-request
-  eviction, and runtime resizing.
-- Invalidates call caches after source edits, clangd restarts, or hierarchy
-  configuration changes while preserving loaded trees across ordinary Context
-  detail refreshes.
-- Added cancellable expansion to a chosen depth, optional automatic depth, and
-  maximum depth/node safety limits.
-- Added search over currently loaded Callers or Callees and reveal of the
-  selected match.
-- Added text and JSON export of the currently loaded tree without hidden
-  semantic requests.
-- Added settings for default depth, maximum depth, maximum nodes, and cache
-  size, plus Extension Host command registration coverage.
+- Enhanced Callers/Callees nodes with definition locations, call-site children, merged call counts, and explicit direct-recursion, indirect-recursion, and duplicate labels.
+- Added independent bounded LRU caches for Incoming and Outgoing requests, including concurrent request coalescing, hit/miss statistics, failed-request eviction, and runtime resizing.
+- Invalidates call caches after source edits, clangd restarts, or hierarchy configuration changes while preserving loaded trees across ordinary Context detail refreshes.
+- Added cancellable expansion to a chosen depth, optional automatic depth, and maximum depth/node safety limits.
+- Added search over currently loaded Callers or Callees and reveal of the selected match.
+- Added text and JSON export of the currently loaded tree without hidden semantic requests.
+- Added settings for default depth, maximum depth, maximum nodes, and cache size, plus Extension Host command registration coverage.
 
 ## 0.6.2
 
 - Added `Reference Type` to the References grouping selector.
-- Type groups use a stable semantic order: Definitions, Declarations, Function
-  Calls, Reads, Writes, Read/Writes, Addresses, and Other References.
-- Selecting this grouping completes 0.6.1 classification before building
-  groups; Macro remains an item label rather than creating extra groups.
+- Type groups use a stable semantic order: Definitions, Declarations, Function Calls, Reads, Writes, Read/Writes, Addresses, and Other References.
+- Selecting this grouping completes 0.6.1 classification before building groups; Macro remains an item label rather than creating extra groups.
 
 ## 0.6.1
 
-- Added clangd `textDocument/documentHighlight` requests, cached once per
-  referenced file, as the preferred semantic Read/Write evidence.
-- Added Read, Write, and Read/Write categories; compound assignments and
-  increment/decrement syntax override a write-only highlight.
-- Added direct unary address acquisition and explicitly labelled inferred
-  function-address classification for callable symbols used without a call.
-- Detects macro definitions and prefixes related results with Macro, including
-  combinations such as `Macro · Read`.
-- Added semantic, syntax, inferred, or unknown confidence to tooltips and
-  text/JSON exports; unresolved cases remain generic References.
-- Added unit coverage for classification edge cases and a real clangd 20
-  semantic Read-highlight integration assertion.
+- Added clangd `textDocument/documentHighlight` requests, cached once per referenced file, as the preferred semantic Read/Write evidence.
+- Added Read, Write, and Read/Write categories; compound assignments and increment/decrement syntax override a write-only highlight.
+- Added direct unary address acquisition and explicitly labelled inferred function-address classification for callable symbols used without a call.
+- Detects macro definitions and prefixes related results with Macro, including combinations such as `Macro · Read`.
+- Added semantic, syntax, inferred, or unknown confidence to tooltips and text/JSON exports; unresolved cases remain generic References.
+- Added unit coverage for classification edge cases and a real clangd 20 semantic Read-highlight integration assertion.
 
 ## 0.6.0
 
 - Replaced the basic References tree with a stateful References Explorer.
-- Added Definition, Declaration, direct Function Call, and fallback Reference
-  classification. Advanced Read/Write, address, and macro analysis remains
-  scheduled for 0.6.1.
-- Added source/path/type filtering and file, directory, enclosing-function, or
-  flat grouping; grouping persists per workspace.
-- Added temporary All, Workspace, Current Directory, and Current File scopes,
-  while retaining configured system and excluded-path filtering.
-- Added progressive result creation with configurable page size, Load More,
-  and Show All actions.
-- Kept source reads lazy for visible rows; explicit search/export uses bounded
-  concurrency, and function grouping requests document symbols once per file.
-- Added copy-one, copy-all, text/JSON export, plain-text result-list, and group
-  expand/collapse commands.
-- Added loading, empty, filtered-empty, failed, result-count, and query-duration
-  presentation.
-- Preserved manual Reference-to-Code Preview navigation while Code Preview is
-  locked.
+- Added Definition, Declaration, direct Function Call, and fallback Reference classification. Advanced Read/Write, address, and macro analysis remains scheduled for 0.6.1.
+- Added source/path/type filtering and file, directory, enclosing-function, or flat grouping; grouping persists per workspace.
+- Added temporary All, Workspace, Current Directory, and Current File scopes, while retaining configured system and excluded-path filtering.
+- Added progressive result creation with configurable page size, Load More, and Show All actions.
+- Kept source reads lazy for visible rows; explicit search/export uses bounded concurrency, and function grouping requests document symbols once per file.
+- Added copy-one, copy-all, text/JSON export, plain-text result-list, and group expand/collapse commands.
+- Added loading, empty, filtered-empty, failed, result-count, and query-duration presentation.
+- Preserved manual Reference-to-Code Preview navigation while Code Preview is locked.
 
 ## 0.5.0
 
 - Added exact character-range highlighting for the active Code Preview target.
-- Single-clicking a symbol in Code Preview now requests its definition and
-  continues navigation inside the preview.
-- Double-clicking source opens the exact clicked position in the main editor;
-  its delayed single-click action is cancelled.
+- Single-clicking a symbol in Code Preview now requests its definition and continues navigation inside the preview.
+- Double-clicking source opens the exact clicked position in the main editor; its delayed single-click action is cancelled.
 - Added bounded, branching Back and Forward preview history.
-- Added a Code Preview lock that blocks editor cursor-follow updates while
-  retaining in-preview definition navigation.
-- Added toolbar actions to copy selected/preview code, copy the current path
-  and line, and open the current target in the editor.
-- Added configurable `cInsight.codePreview.linesBefore` and `linesAfter`
-  context sizes.
-- Enabled Webview interaction under a nonce-restricted Content Security Policy,
-  with extension-side source position validation and cancellable definition
-  requests.
-- Recorded deferred full semantic context menus and per-target scroll
-  restoration in `docs/planning/roadmap.md`.
+- Added a Code Preview lock that blocks editor cursor-follow updates while retaining in-preview definition navigation.
+- Added toolbar actions to copy selected/preview code, copy the current path and line, and open the current target in the editor.
+- Added configurable `cInsight.codePreview.linesBefore` and `linesAfter` context sizes.
+- Enabled Webview interaction under a nonce-restricted Content Security Policy, with extension-side source position validation and cancellable definition requests.
+- Recorded deferred full semantic context menus and per-target scroll restoration in `docs/planning/roadmap.md`.
 
 ## 0.3.0
 
-- Split cursor-following analysis into an immediate lightweight symbol context
-  and delayed references/caller/callee details.
+- Split cursor-following analysis into an immediate lightweight symbol context and delayed references/caller/callee details.
 - Added LSP cancellation so stale cursor requests stop consuming clangd work.
-- Coalesced identical in-flight requests and report uncancelled clangd requests
-  taking at least one second.
-- Stopped loading source snippets for collapsed or off-screen tree results;
-  visible rows use a bounded 2000-line LRU cache.
-- Suspended expensive cursor details while C Insight navigation views are not
-  visible and refresh them when the views become visible.
+- Coalesced identical in-flight requests and report uncancelled clangd requests taking at least one second.
+- Stopped loading source snippets for collapsed or off-screen tree results; visible rows use a bounded 2000-line LRU cache.
+- Suspended expensive cursor details while C Insight navigation views are not visible and refresh them when the views become visible.
 - Debounced document-symbol updates while typing and rejected stale results.
-- Added `cInsight.followCursorDetailsDelay` and an Extension Host regression
-  scenario that rapidly moves the cursor before navigation queries.
+- Added `cInsight.followCursorDetailsDelay` and an Extension Host regression scenario that rapidly moves the cursor before navigation queries.
 
 ## 0.2.3
 
-- Fixed multiline clangd information logs being split so that continuation
-  lines, such as a compilation directory and command, appeared as errors.
-- Real `error:` and `warning:` diagnostics still override the inherited log
-  level.
+- Fixed multiline clangd information logs being split so that continuation lines, such as a compilation directory and command, appeared as errors.
+- Real `error:` and `warning:` diagnostics still override the inherited log level.
 
 ## 0.2.2
 
-- Changed Code Preview to a fixed-height layout with an independently scrolling
-  code region, keeping the horizontal scrollbar visible at the bottom of the
-  preview window at every vertical position.
+- Changed Code Preview to a fixed-height layout with an independently scrolling code region, keeping the horizontal scrollbar visible at the bottom of the preview window at every vertical position.
 
 ## 0.2.1
 
 - Fixed Code Preview long lines being compressed by its flex layout.
-- Added a horizontal scrolling region for source lines wider than the preview
-  window.
+- Added a horizontal scrolling region for source lines wider than the preview window.
 
 ## 0.2.0
 
-- Replaced the Definition tree with a shared Code Preview webview that displays
-  highlighted definition, declaration, reference, caller, callee-definition,
-  and call-site snippets.
-- Added inline source snippets to References, Callers, and Callees and preserved
-  explicit editor navigation through the result context menu.
-- Expanded Context with symbol identity, qualified name, type/signature,
-  declaration locations, and first-level caller/callee counts.
-- Classified clangd protocol output by its real severity so ordinary `I[...]`
-  request/reply traffic is no longer displayed as an error.
-- Added pure unit coverage and a real VS Code Extension Host E2E test covering
-  clangd-backed definition, references, Code Preview, and Callees commands.
+- Replaced the Definition tree with a shared Code Preview webview that displays highlighted definition, declaration, reference, caller, callee-definition, and call-site snippets.
+- Added inline source snippets to References, Callers, and Callees and preserved explicit editor navigation through the result context menu.
+- Expanded Context with symbol identity, qualified name, type/signature, declaration locations, and first-level caller/callee counts.
+- Classified clangd protocol output by its real severity so ordinary `I[...]` request/reply traffic is no longer displayed as an error.
+- Added pure unit coverage and a real VS Code Extension Host E2E test covering clangd-backed definition, references, Code Preview, and Callees commands.
 
 ## 0.1.3
 
-- Prefer the highest installed clangd from versions 22, 21, and 20 before the
-  unversioned executable.
+- Prefer the highest installed clangd from versions 22, 21, and 20 before the unversioned executable.
 - Added clangd version discovery and Callees capability diagnostics.
-- Callees now reports a clear clangd 20+ requirement instead of rejecting a
-  tree expansion on older servers.
+- Callees now reports a clear clangd 20+ requirement instead of rejecting a tree expansion on older servers.
 - Added a real clangd 20 outgoing-calls integration test.
 
 ## 0.1.2
 
-- Fixed coexistence with another clangd client by not registering clangd's
-  global execute commands such as `clangd.applyFix`.
+- Fixed coexistence with another clangd client by not registering clangd's global execute commands such as `clangd.applyFix`.
 - Kept document synchronization and all navigation providers enabled.
 - Added regression tests for language-client feature filtering.
 
 ## 0.1.1
 
-- Fixed clangd startup with vscode-languageclient 10 by avoiding the unsupported
-  `--stdio` argument.
-- Coalesced concurrent startup requests so cursor and symbol queries cannot
-  create multiple clangd clients.
+- Fixed clangd startup with vscode-languageclient 10 by avoiding the unsupported `--stdio` argument.
+- Coalesced concurrent startup requests so cursor and symbol queries cannot create multiple clangd clients.
 - Disabled automatic crash loops and improved failed-state shutdown handling.
 - Added a real clangd LSP handshake regression test.
 

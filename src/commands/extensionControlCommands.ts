@@ -19,7 +19,7 @@ export function registerExtensionControlCommands(
       displayName?: string; name?: string; version?: string;
       author?: string | { name?: string }; license?: string;
     };
-    const developer = typeof manifest.author === "string" ? manifest.author : manifest.author?.name ?? "youjinchun";
+    const developer = typeof manifest.author === "string" ? manifest.author : manifest.author?.name ?? "you_jinchun";
     const details = [
       vscode.l10n.t("Version: {version}", { version: manifest.version ?? "unknown" }),
       vscode.l10n.t("Developer: {developer}", { developer }),

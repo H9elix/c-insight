@@ -1,6 +1,6 @@
 # C Insight 大型工程性能基线
 
-> 当前文档适用于 `0.22.11` 的基准脚本。带日期的小节是对应机器上的实测快照，不是跨版本或跨机器性能承诺。
+> 当前文档适用于 `0.22.12` 的基准脚本。带日期的小节是对应机器上的实测快照，不是跨版本或跨机器性能承诺。历史工作副本路径已泛化，不改变实测结果。
 
 本基线用于比较代码修改前后的核心模型性能，不代替真实 clangd、Remote SSH、磁盘和 VS Code UI 验收。
 
@@ -68,7 +68,7 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 
 ## 2026-08-02 基线（0.20.0）
 
-环境：Linux x64、Node.js 24.16.0、20 个逻辑 CPU、约 8 GB 内存；真实工程为 `/home/user/projects/FFmpeg`，使用工程根目录的 `compile_commands.json` 和 clangd 20.1.2。数值为单次自动验收样本，主要用于同机回归，不作为跨机器承诺。
+环境：Linux x64、Node.js 24.16.0、20 个逻辑 CPU、约 8 GB 内存；真实工程工作副本路径记为 `/path/to/FFmpeg`，使用工程根目录的 `compile_commands.json` 和 clangd 20.1.2。数值为单次自动验收样本，主要用于同机回归，不作为跨机器承诺。
 
 ### 核心模型
 
@@ -95,7 +95,7 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 
 ```bash
 npm run benchmark
-C_INSIGHT_FFMPEG_ROOT=/home/user/projects/FFmpeg \
-C_INSIGHT_FFMPEG_CLANGD=/usr/bin/clangd-20 \
+C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg \
+C_INSIGHT_FFMPEG_CLANGD=/path/to/clangd-20 \
 npm run acceptance:ffmpeg -- /tmp/c-insight-ffmpeg-acceptance.json
 ```

@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.11`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.12`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -19,7 +19,7 @@ C Insight 使用 VS Code 官方本地化机制，界面语言自动跟随 VS Cod
 - 当前主要支持本地 C/C++ 工程和单个工作区根目录。
 - 实际工程强烈建议提供 `compile_commands.json`。
 
-开发者与维护者为 `youjinchun`，许可证为 MIT。当前尚未配置公开 Git 仓库、Issue 或 Discussions 地址。C Insight 不包含遥测，也不会把源码上传到 C Insight 服务；完整边界见随扩展提供的 `PRIVACY.md` 与 `SECURITY.md`。
+开发者与维护者为 `you_jinchun`，许可证为 MIT。公开源码和 Issue 位于 `https://github.com/H9elix/c-insight`；安全漏洞应通过仓库 Security 页面私密报告，不得创建公开 Issue。C Insight 不包含遥测，也不会把源码上传到 C Insight 服务；完整边界见随扩展提供的 `PRIVACY.md` 与 `SECURITY.md`。
 
 命令面板执行 **C Insight: About** 可查看或复制插件版本、开发者、分析引擎、许可证、VS Code/平台/Remote 类型和隐私摘要，也可直接打开本使用手册。
 
@@ -1261,7 +1261,7 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 
 ### FFmpeg 真实工程验收
 
-源码仓库提供 `npm run acceptance:ffmpeg`，默认以只读方式检查 `/home/user/projects/FFmpeg`、根目录编译数据库和 `/usr/bin/clangd-20`。可用 `C_INSIGHT_FFMPEG_ROOT` 与 `C_INSIGHT_FFMPEG_CLANGD` 覆盖路径，并把可选的第一个命令行参数作为 JSON 报告输出位置。它验证初始化、文档符号（Document Symbols）、定义（Definition）、引用（References）、调用层次（Call Hierarchy）方法兼容性和悬停信息（Hover）。详细的第三阶段环境、实测结果及边界见 `docs/validation/third-phase-acceptance.zh-CN.md`。
+源码仓库提供 `npm run acceptance:ffmpeg`，以只读方式检查显式环境变量 `C_INSIGHT_FFMPEG_ROOT` 指定的 FFmpeg 工作副本及其根目录编译数据库；`C_INSIGHT_FFMPEG_CLANGD` 未设置时使用 `clangd-20`。可把可选的第一个命令行参数作为 JSON 报告输出位置。该命令验证初始化、文档符号（Document Symbols）、定义（Definition）、引用（References）、调用层次（Call Hierarchy）方法兼容性和悬停信息（Hover）。详细的第三阶段环境、实测结果及边界见 `docs/validation/third-phase-acceptance.zh-CN.md`。
 
 clangd 对某个 C 函数返回空传出调用（Outgoing Calls）仍可能是合法的保守结果；验收重点是请求成功并返回数组，而不是强制猜测静态目标。
 

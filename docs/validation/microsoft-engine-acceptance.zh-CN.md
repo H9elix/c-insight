@@ -1,6 +1,6 @@
 # C Insight Microsoft C/C++ 引擎阶段验收报告
 
-> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.11` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置和调用者声明行属于 C Insight 展示层增强，不改变 cpptools API 能力。
+> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.12` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置和调用者声明行属于 C Insight 展示层增强，不改变 cpptools API 能力。历史工作副本路径已泛化。
 
 ## 1. 验收范围
 
@@ -13,7 +13,7 @@
 - 日期：2026-08-01
 - VS Code Extension Host：1.130.0
 - Microsoft C/C++：1.32.2，扩展标识 `ms-vscode.cpptools`
-- 代表工程：`/home/user/projects/FFmpeg`
+- 代表工程：`/path/to/FFmpeg`（历史机器路径已泛化）
 - 代表文件：`tools/decode_simple.c`
 - Callers 模式：`references`（避免已确认的 cpptools 原生 Incoming Calls 崩溃路径）
 

@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.11` 源码结构对应。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.12` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -60,7 +60,10 @@ AnalysisService（调度、计时、统一结果）
 | `CONTRIBUTING.md` | 贡献流程和基本质量要求。 |
 | `SECURITY.md` | 漏洞报告渠道和安全边界。 |
 | `PRIVACY.md` | 数据读取、网络和遥测说明。 |
+| `THIRD_PARTY_NOTICES.md` | 从生产依赖树生成并由质量门检查的第三方许可证声明。 |
 | `LICENSE` | MIT 许可证。 |
+| `.github/` | GitHub Actions、Dependabot、Issue 表单和 Pull Request 模板。 |
+| `.gitattributes` | 跨平台文本换行和二进制文件规则。 |
 | `media/c-insight.svg` | Activity Bar 容器图标。 |
 
 `dist/`、`.vscode-test/` 和 `*.vsix` 是构建或测试产物，不是源代码。不要手工修改 `dist/extension.js`。
@@ -275,8 +278,9 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/generate-id-registry.mjs` / `npm run ids:generate` | 从 manifest 生成 `src/ids.ts`；`ids:check` 只检查漂移。 |
 | `scripts/generate-command-reference.mjs` / `npm run docs:commands` | 从 manifest 同步生成中英文用户手册命令参考段落；`docs:commands:check` 检查漂移。 |
 | `scripts/localize-chinese-guide-terms.mjs` / `npm run docs:terms` | 按小节统一中文用户手册中的界面术语；首次出现保留英文括注，并跳过代码段；`docs:terms:check` 在质量门中检查漂移。 |
-| `scripts/format-markdown-prose.mjs` / `npm run docs:prose` | 合并 `docs/` 普通段落和列表项中不合时宜的硬换行，同时保留标题、表格、代码块和其他 Markdown 结构；`docs:prose:check` 防止格式回退。 |
+| `scripts/format-markdown-prose.mjs` / `npm run docs:prose` | 合并根目录维护文档和 `docs/` 中普通段落、列表项的不合时宜硬换行，同时保留标题、表格、代码块和其他 Markdown 结构；`docs:prose:check` 防止格式回退。 |
 | `scripts/check-document-links.mjs` / `npm run docs:links:check` | 检查仓库内 Markdown 本地链接的目标是否存在；标准质量门会自动执行。 |
+| `scripts/generate-third-party-notices.mjs` / `npm run third-party:generate` | 从锁定的生产依赖及其许可证文件生成 `THIRD_PARTY_NOTICES.md`；`third-party:check` 检查漂移。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
 
@@ -307,14 +311,15 @@ E2E 默认需要图形环境；无桌面环境使用 `xvfb-run`。Microsoft 测�
 ## 8. 常用开发流程
 
 ```bash
-npm install
+npm ci
 npm run compile
 npm run lint
 npm test
 npm run check
+npm audit --audit-level=low
 ```
 
-`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接检查和生产构建，是每次提交前的最低门槛。涉及性能或真实引擎时追加：
+`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接、第三方声明漂移检查和生产构建，是每次提交前的最低门槛。`npm audit --audit-level=low` 需要访问 npm 公告服务，因此由开发者和 GitHub CI 独立执行。涉及性能或真实引擎时追加：
 
 ```bash
 npm run benchmark
@@ -332,6 +337,10 @@ npm run package
 ```
 
 该命令会再次执行完整 `check`，然后生成 `c-insight-<version>.vsix`。
+
+公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门；`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 `v*` Tag，重新审计、打包、生成 `SHA256SUMS` 并创建 GitHub Release。首次或手动发布不得提交 VSIX 到 Git，而应把 VSIX 与校验和作为 Release 附件。
+
+真实 FFmpeg 验收没有个人机器默认路径：运行 clangd 验收前必须设置 `C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg`，运行 Microsoft E2E 前必须设置 `C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg`。这两个命令都只在显式请求真实工程验收时运行，不属于普通 PR 的默认门槛。
 
 ## 9. 修改不同功能时从哪里开始
 
@@ -386,3 +395,5 @@ npm run package
 - 性能门槛变化：更新 `docs/validation/performance-baseline.zh-CN.md`。
 - 引擎能力或验收变化：更新对应 Microsoft/第三阶段验收文档。
 - 每次发布同步提升 `package.json` 与 `package-lock.json` 版本，并重新打包 VSIX。
+- 根目录维护文档与 `docs/` 正文不得使用仅为排版产生的硬换行；运行 `npm run docs:prose` 修复，质量门会阻止回退。
+- 生产依赖变化后运行 `npm run third-party:generate`，不要手工编辑生成的 `THIRD_PARTY_NOTICES.md`。

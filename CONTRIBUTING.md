@@ -1,13 +1,11 @@
 # Contributing to C Insight
 
-C Insight is maintained by `youjinchun`. A public source repository and issue
-tracker have not been selected yet; this file defines the local development
-and review contract in the meantime.
+C Insight is maintained by `you_jinchun`. Use [GitHub Issues](https://github.com/H9elix/c-insight/issues) for confirmed bugs and feature proposals. Follow `SECURITY.md` instead of opening a public issue for vulnerabilities.
 
 ## Requirements
 
 - VS Code 1.95 or newer
-- Node.js and npm compatible with `package-lock.json`
+- Node.js 22 or newer and npm compatible with `package-lock.json`
 - clangd 20 or newer for complete Callers/Callees support
 - `xvfb-run` for headless Extension Host tests on Linux
 - A compilation database for realistic C/C++ workspace validation
@@ -15,8 +13,9 @@ and review contract in the meantime.
 ## Development workflow
 
 ```bash
-npm install
+npm ci
 npm run check
+npm audit --audit-level=low
 npm run benchmark
 npm run package
 xvfb-run -a npm run test:e2e
@@ -37,28 +36,18 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Keep semantic requests demand-driven and cancellable where practical.
 - Preserve configured depth, node, result, cache, and export safety limits.
 - Add deterministic tests for model or protocol behavior.
-- Update `CHANGELOG.md`, the Chinese user guide, and relevant architecture or
-  acceptance documentation in the same change.
-- Increment the extension version before packaging a modified test build so
-  every VSIX filename identifies one exact implementation. Release handoff
-  notes must list the behavior that needs focused manual testing.
-- Run `npm run docs:commands` after adding or changing commands; it updates
-  both the English and Simplified Chinese command references.
-- Run `npm run ids:generate` after adding, removing, or renaming contributed
-  commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
-- Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls;
-  `npm run check` verifies that both runtime catalogs remain synchronized.
+- Update `CHANGELOG.md`, the Chinese user guide, and relevant architecture or acceptance documentation in the same change.
+- Increment the extension version before packaging a modified test build so every VSIX filename identifies one exact implementation. Release handoff notes must list the behavior that needs focused manual testing.
+- Run `npm run docs:commands` after adding or changing commands; it updates both the English and Simplified Chinese command references.
+- Run `npm run ids:generate` after adding, removing, or renaming contributed commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
+- Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls; `npm run check` verifies that both runtime catalogs remain synchronized.
 - Keep local Markdown links valid; `npm run check` verifies their target files.
-- Do not add a public repository, issue, sponsor, or homepage link until the
-  maintainer has selected that destination.
+- Keep repository, issue, security, privacy, and release links pointed at `https://github.com/H9elix/c-insight`.
 
 ## Architecture
 
-Start with `docs/development/architecture.md`. Keep protocol and model logic testable
-without a VS Code host where possible.
+Start with `docs/development/architecture.md`. Keep protocol and model logic testable without a VS Code host where possible.
 
 ## Commit style
 
-Use a concise imperative subject with a functional prefix such as `feat:`,
-`fix:`, `perf:`, `docs:`, `test:`, `diagnostics:`, or `ux:`. Each completed
-small section should leave the worktree clean and independently reviewable.
+Use a concise imperative subject with a functional prefix such as `feat:`, `fix:`, `perf:`, `docs:`, `test:`, `diagnostics:`, or `ux:`. Each completed small section should leave the worktree clean and independently reviewable.

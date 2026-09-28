@@ -101,7 +101,7 @@ describe("project diagnostics model", () => {
       extension: {
         name: "C Insight",
         version: "0.17.6",
-        developer: "youjinchun",
+        developer: "you_jinchun",
         license: "MIT",
         vscodeVersion: "1.130.0",
         nodeVersion: "24.0.0",
@@ -184,7 +184,7 @@ describe("project diagnostics model", () => {
     });
     assert.match(text, /clangd: ready/);
     assert.match(text, /Extension: C Insight 0\.17\.6/);
-    assert.match(text, /Developer: youjinchun/);
+    assert.match(text, /Developer: you_jinchun/);
     assert.match(text, /Host: linux x64 · ssh-remote · test/);
     assert.match(text, /Command source: inferred-candidate/);
     assert.match(text, /Candidate inferred from: \/workspace\/src\/api.c/);

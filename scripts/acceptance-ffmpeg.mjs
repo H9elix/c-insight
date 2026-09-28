@@ -3,10 +3,14 @@ import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const root = path.resolve(
-  process.env.C_INSIGHT_FFMPEG_ROOT ?? "/home/user/projects/FFmpeg",
-);
-const clangd = process.env.C_INSIGHT_FFMPEG_CLANGD ?? "/usr/bin/clangd-20";
+const configuredRoot = process.env.C_INSIGHT_FFMPEG_ROOT;
+if (!configuredRoot) {
+  throw new Error(
+    "Set C_INSIGHT_FFMPEG_ROOT to an FFmpeg checkout with compile_commands.json.",
+  );
+}
+const root = path.resolve(configuredRoot);
+const clangd = process.env.C_INSIGHT_FFMPEG_CLANGD ?? "clangd-20";
 const source = path.join(root, "libavcodec/bsf/noise.c");
 const database = path.join(root, "compile_commands.json");
 await Promise.all([access(source), access(database)]);
