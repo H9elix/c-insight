@@ -338,7 +338,7 @@ npm run package
 
 该命令会再次执行完整 `check`，然后生成 `c-insight-<version>.vsix`。
 
-公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门；`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 `v*` Tag，重新审计、打包、生成 `SHA256SUMS` 并创建 GitHub Release。首次或手动发布不得提交 VSIX 到 Git，而应把 VSIX 与校验和作为 Release 附件。
+公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门；`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 `v*` Tag，重新审计、打包、生成 `SHA256SUMS` 并创建 GitHub Release。首次或手动发布不得提交 VSIX 到 Git，而应把 VSIX 与校验和作为 Release 附件。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）端到端断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把后台索引尚未完成误判为产品回归。
 
 真实 FFmpeg 验收没有个人机器默认路径：运行 clangd 验收前必须设置 `C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg`，运行 Microsoft E2E 前必须设置 `C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg`。这两个命令都只在显式请求真实工程验收时运行，不属于普通 PR 的默认门槛。
 
