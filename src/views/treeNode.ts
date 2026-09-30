@@ -3,6 +3,7 @@ import { CallNode, LocationResult } from "../models/types";
 import type { NavigationMode } from "../history/navigationHistoryModel";
 import type { NavigationSource } from "../history/navigationHistoryModel";
 import type { TypeHierarchyEvidence } from "../utils/typeHierarchy";
+import type { MemberCallerOccurrenceScope } from "../callHierarchy/memberCallerScopeModel";
 import {
   ViewStatusKind,
   viewStatusPresentation,
@@ -29,7 +30,8 @@ export interface TreeNode {
   callDepth?: number;
   callNode?: CallNode;
   callPath?: string;
-  callSupplement?: "call-declaration";
+  callSupplement?: "call-declaration" | "member-scope-heading";
+  callOccurrenceScope?: MemberCallerOccurrenceScope;
   callSymbolLocations?: {
     definitions: LocationResult[];
     declarations: LocationResult[];

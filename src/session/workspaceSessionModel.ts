@@ -7,6 +7,7 @@ import type {
   GraphRelation,
   RelationshipGraphSnapshot,
 } from "../relationshipGraph/graphModel";
+import type { MemberCallerScope } from "../callHierarchy/memberCallerScopeModel";
 
 export const WORKSPACE_SESSION_VERSION = 1;
 
@@ -50,6 +51,7 @@ export interface RelationshipGraphSessionState {
   selectedId?: string;
   enabledRelations: GraphRelation[];
   collapsedIds: string[];
+  memberCallerScopes?: Record<string, MemberCallerScope>;
   viewport: {
     scale: number;
     tx: number;
@@ -287,6 +289,14 @@ function parseRelationshipGraph(
       ? value.graph.rootId
       : nodes[0]?.id;
   const relations = value.enabledRelations.filter(isGraphRelation);
+  const memberCallerScopes: Record<string, MemberCallerScope> = {};
+  if (isRecord(value.memberCallerScopes)) {
+    for (const [nodeId, scope] of Object.entries(value.memberCallerScopes)) {
+      if (nodeIds.has(nodeId) && isMemberCallerScope(scope)) {
+        memberCallerScopes[nodeId] = scope;
+      }
+    }
+  }
   return {
     schemaVersion: 1,
     graph: {
@@ -317,6 +327,10 @@ function parseRelationshipGraph(
     collapsedIds: value.collapsedIds.filter(
       (id): id is string => typeof id === "string" && nodeIds.has(id),
     ),
+    memberCallerScopes:
+      Object.keys(memberCallerScopes).length > 0
+        ? memberCallerScopes
+        : undefined,
     viewport: {
       scale: value.viewport.scale,
       tx: value.viewport.tx,
@@ -363,6 +377,24 @@ function isGraphEdge(value: unknown): value is RelationshipGraphSnapshot["edges"
 function isGraphRelation(value: unknown): value is GraphRelation {
   return ["calls", "inherits", "includes", "defines"].includes(
     String(value),
+  );
+}
+
+function isMemberCallerScope(value: unknown): value is MemberCallerScope {
+  return (
+    isRecord(value) &&
+    typeof value.queryUri === "string" &&
+    value.queryUri.length <= 8_192 &&
+    isPosition(value.queryPosition) &&
+    typeof value.memberName === "string" &&
+    value.memberName.length <= 1_024 &&
+    isRange(value.memberRange) &&
+    (value.anchor === undefined ||
+      (isRecord(value.anchor) &&
+        typeof value.anchor.name === "string" &&
+        value.anchor.name.length <= 1_024 &&
+        isRange(value.anchor.range) &&
+        (value.anchor.operator === "." || value.anchor.operator === "->")))
   );
 }
 

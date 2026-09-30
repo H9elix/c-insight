@@ -33,6 +33,15 @@ describe("call hierarchy LRU request cache", () => {
     assert.equal(cache.size, 0);
   });
 
+  it("allows one request key to be invalidated without clearing statistics", async () => {
+    const cache = new LruPromiseCache<number>(2);
+    await cache.getOrCreate("a", async () => 1);
+    cache.delete("a");
+    assert.equal(await cache.getOrCreate("a", async () => 2), 2);
+    assert.equal(cache.hits, 0);
+    assert.equal(cache.misses, 2);
+  });
+
   it("trims immediately when resized", async () => {
     const cache = new LruPromiseCache<number>(3);
     await cache.getOrCreate("a", async () => 1);

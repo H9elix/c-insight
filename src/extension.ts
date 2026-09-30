@@ -84,7 +84,12 @@ export async function activate(
     includeHierarchy,
     callRepository,
   );
-  const controller = new ContextController(analysis, views, output);
+  const controller = new ContextController(
+    analysis,
+    callRepository,
+    views,
+    output,
+  );
   const projectDiagnostics = new ProjectDiagnostics(
     manager,
     analysis,

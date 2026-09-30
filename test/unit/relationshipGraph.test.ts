@@ -72,14 +72,17 @@ describe("relationship graph model", () => {
       from: caller.id,
       to: callee.id,
       relation: "calls",
-      states: [],
+      states: ["selected-variable-access"],
     });
-    assert.match(renderGraphMermaid(graph.snapshot()), /n0 -->\\|calls\\| n1/);
+    assert.match(
+      renderGraphMermaid(graph.snapshot()),
+      /calls \[selected-variable-access\]/,
+    );
     assert.equal(graph.hasPath(caller.id, callee.id), true);
     assert.equal(graph.hasPath(callee.id, caller.id), false);
     const text = renderGraphText(graph.snapshot());
     assert.match(text, /Root: caller/);
-    assert.match(text, /caller.*--calls--> callee/);
+    assert.match(text, /--calls \[selected-variable-access\]-->/);
   });
 
   it("keeps inheritance directed from supertype to subtype", () => {

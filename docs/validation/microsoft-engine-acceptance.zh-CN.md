@@ -1,6 +1,6 @@
 # C Insight Microsoft C/C++ 引擎阶段验收报告
 
-> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.12` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置和调用者声明行属于 C Insight 展示层增强，不改变 cpptools API 能力。历史工作副本路径已泛化。
+> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.13` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置、调用者声明行和成员变量实例筛选属于 C Insight 展示层增强，不改变 cpptools API 能力。历史工作副本路径已泛化。
 
 ## 1. 验收范围
 
@@ -69,3 +69,7 @@ Microsoft C/C++ 引擎已达到可选生产模式的阶段验收条件：核心�
 VS Code 1.130.0 与 Microsoft C/C++ 1.32.2 环境重新执行 Provider 探针、基础 Microsoft 引擎 E2E 和真实 FFmpeg E2E，三者均以退出码 0 结束，未发生 cpptools 崩溃。隔离探针中冷 Definition 1,381.05 ms、References 405.60 ms、Incoming Calls 404.51 ms；Declaration 3.58 ms、Outgoing Calls 4.25 ms、Document Symbols 0.53 ms、Semantic Tokens 0.97 ms。该结果继续证明首次跨文件查询可能显著慢于 clangd，但 Provider 稳定后轻量查询正常。
 
 同日 clangd 20.1.2 的 FFmpeg 自动验收也通过；Document Symbols 54.61 ms、Definition 0.62 ms、References 0.41 ms。两组数字的进程热度和目标不同，不用于严格横向排名，只用于确认双引擎均可用及 Microsoft 冷查询提示仍然必要。
+
+## 8. 2026-09-30 成员变量调用者回归（0.22.13）
+
+隔离 Microsoft Extension Host 固件增加一个结构体字段：所选变量直接访问两次、另一个同类型变量访问一次、复杂函数返回值访问一次。cpptools 没有为该字段返回公共调用层次（Call Hierarchy）根时，C Insight 通过定义（Definition）建立基于引用的成员根。最终树保留两个当前变量访问和一个无法归属的复杂访问，排除另一个变量的访问；分组顺序、原始查询位置和会话证据均通过断言。该回归仍不声称具备别名或指针指向分析能力。

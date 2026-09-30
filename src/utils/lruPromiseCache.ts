@@ -43,6 +43,10 @@ export class LruPromiseCache<T> {
     this.missCount = 0;
   }
 
+  delete(key: string): void {
+    this.entries.delete(key);
+  }
+
   resize(maximumEntries: number): void {
     this.maximumEntries = maximumEntries;
     this.trim();

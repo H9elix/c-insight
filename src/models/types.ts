@@ -4,6 +4,7 @@ import type {
   DocumentSymbol,
   SymbolInformation,
 } from "vscode-languageclient/node";
+import type { MemberCallerScope } from "../callHierarchy/memberCallerScopeModel";
 
 export type ClangdState =
   | "stopped"
@@ -28,6 +29,8 @@ export interface CallNode {
   key: string;
   raw: CallHierarchyItem;
   recursive?: boolean;
+  memberCallerScope?: MemberCallerScope;
+  syntheticMemberRoot?: boolean;
 }
 
 export type LspSymbol = DocumentSymbol | SymbolInformation;
