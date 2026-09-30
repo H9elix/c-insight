@@ -1,6 +1,6 @@
 # C Insight 交叉编译与嵌入式工程配置
 
-本文对应 C Insight `0.22.13`，说明裸机和嵌入式 Linux 工程如何向 clangd 或 Microsoft C/C++ language service (cpptools) 提供真实目标配置。C Insight 是源码导航工具，不会执行 CMake、Make、编译、链接、下载或烧写操作。
+本文对应 C Insight `0.22.14`，说明裸机和嵌入式 Linux 工程如何向 clangd 或 Microsoft C/C++ language service (cpptools) 提供真实目标配置。C Insight 是源码导航工具，不会执行 CMake、Make、编译、链接、下载或烧写操作。
 
 ## 1. 配置目标
 

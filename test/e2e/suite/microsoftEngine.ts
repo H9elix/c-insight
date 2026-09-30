@@ -99,7 +99,7 @@ async function verifyMemberCallerScope(workspace: vscode.Uri): Promise<void> {
     incomingOccurrences: Array<{
       line: number;
       depth: number;
-      memberScope?: "same-variable" | "unresolved-variable";
+      memberScope?: "same-variable" | "other-variable" | "unresolved-variable";
     }>;
     incomingScopeHeadings: string[];
   } | undefined;
@@ -109,13 +109,14 @@ async function verifyMemberCallerScope(workspace: vscode.Uri): Promise<void> {
       incomingOccurrences: Array<{
         line: number;
         depth: number;
-        memberScope?: "same-variable" | "unresolved-variable";
+        memberScope?: "same-variable" | "other-variable" | "unresolved-variable";
       }>;
       incomingScopeHeadings: string[];
     }>("cInsight.test.callHierarchyState");
     lastState = value;
     const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
     return direct.filter((item) => item.memberScope === "same-variable").length === 2 &&
+      direct.filter((item) => item.memberScope === "other-variable").length === 1 &&
       direct.filter((item) => item.memberScope === "unresolved-variable").length === 1
       ? value
       : undefined;
@@ -125,9 +126,12 @@ async function verifyMemberCallerScope(workspace: vscode.Uri): Promise<void> {
     },
   );
   const direct = state.incomingOccurrences.filter((item) => item.depth === 1);
-  assert.ok(!direct.some((item) => item.line === other.line));
+  assert.ok(direct.some(
+    (item) =>
+      item.line === other.line && item.memberScope === "other-variable",
+  ));
   assert.ok(direct.some((item) => item.line === unresolved.line));
-  assert.equal(state.incomingScopeHeadings.length, 2);
+  assert.equal(state.incomingScopeHeadings.length, 3);
 }
 
 async function waitFor<T>(

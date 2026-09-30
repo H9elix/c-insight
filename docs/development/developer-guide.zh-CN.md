@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.13` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.14` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -143,9 +143,9 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、方向独立 LRU、展开节点的定义/声明位置缓存、成员变量实例分类、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
+| `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、方向独立 LRU、展开节点的定义/声明位置缓存、轻量源码读取、完整成员链实例分类、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
 | `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，并把每组最早调用点标记为唯一规范展开点。它是无 VS Code 依赖的纯模型。 |
-| `memberCallerScopeModel.ts` | 从源码中保守识别 `base.member`、`base->member` 和带单层括号的直接基变量，生成稳定实例范围键；复杂表达式保持未解析。它是无 VS Code 依赖的纯模型。 |
+| `memberCallerScopeModel.ts` | 从源码中保守识别 `base.member`、`base->member->nested` 和带单层括号的简单根变量，保留完整成员路径并提供位置/偏移换算；调用、数组、强制转换等复杂根表达式保持未解析。它是无 VS Code 依赖的纯模型。 |
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
 | `microsoftCalleeEvidenceModel.ts` | 汇总 Microsoft 原生传出调用（Outgoing Calls）的成功、空、失败、取消和耗时证据。 |
 
@@ -153,7 +153,9 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 调用者（Callers）/被调用者（Callees）树不会为一个语义函数建立额外的“函数 → 调用位置”层。`ViewRegistry` 将投影结果直接物化为调用点节点；只有规范调用点持有 `callPath` 和下一层加载器，其他同名调用点只负责代码预览（Code Preview）和编辑器导航。展开调用者规范节点时，`ViewRegistry` 在调用点前插入当前语义函数的独立声明；声明行没有 `callKey`，搜索可包含它，但批量展开、深度、预算、路径、会话与语义导出必须忽略它。根节点的显示定义位置和补充声明位置都不能写回 `CallHierarchyItem`，否则会破坏 clangd 的不透明 `data` 查询身份。
 
-成员字段根还可携带 `memberCallerScope`。仓库先查询基变量的引用，再以定义位置交集校验同名候选；同一变量的调用范围、无法归属的复杂表达式和可确认属于其他变量的范围分别进入保留、警告保留和排除路径。此过程只能证明简单直接访问，不得扩展为别名或指针指向推断。`ViewRegistry` 用不可导航的分隔节点展示前两类；分隔节点不计入深度、节点预算、路径或导出。关系图边使用 `selected-variable-access` / `unresolved-variable-access` 状态，并在会话快照中保存各调用节点的范围上下文，以便恢复后继续展开时维持相同语义。
+成员字段根还可携带 `memberCallerScope`。纯模型把 `st->codecpar->sample_rate` 解析为根变量 `st` 和完整成员路径；仓库复用根变量的一次引用查询，以引用起点和路径共同校验候选。未打开的候选文件通过 `workspace.fs.readFile` 读取，已经打开的文件优先复用 `TextDocument.getText()` 以保留未保存内容；分类过程不得调用 `openTextDocument`，否则会向语言服务器发送 `didOpen` 并引发额外 AST、预编译头、诊断和语义着色工作。引用查询不可用时，定义回退最多处理 16 个候选，其余结果降级为无法确认。
+
+同一变量和路径、其他变量或路径、无法归属的复杂表达式分别进入 `same-variable`、`other-variable` 和 `unresolved-variable`，三类全部保留。`ViewRegistry` 用不可导航的分隔节点按上述顺序展示；分隔节点不计入深度、节点预算、路径或导出。关系图边使用 `selected-variable-access`、`other-variable-access` 和 `unresolved-variable-access` 状态，并在会话快照中保存查询根及完整路径，以便恢复后继续展开时维持相同语义。此过程只能证明简单直接访问，不得扩展为别名或指针指向推断。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 

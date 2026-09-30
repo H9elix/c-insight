@@ -12,11 +12,17 @@ static int add(int left, int right)
     return left + right;
 }
 
+typedef struct MemberLeaf {
+    int rate;
+} MemberLeaf;
+
 typedef struct MemberFixture {
     int value;
+    MemberLeaf *leaf;
 } MemberFixture;
 
-static MemberFixture member_fallback;
+static MemberLeaf member_fallback_leaf;
+static MemberFixture member_fallback = { 0, &member_fallback_leaf };
 
 static MemberFixture *member_factory(void)
 {
@@ -29,13 +35,19 @@ static int member_total(MemberFixture *selected, MemberFixture *other)
     result += selected->value;
     result += other->value;
     result += member_factory()->value;
+    result += selected->leaf->rate;
+    result += selected->leaf->rate;
+    result += other->leaf->rate;
+    result += member_factory()->leaf->rate;
     return result;
 }
 
 int main(void)
 {
-    MemberFixture selected = { 1 };
-    MemberFixture other = { 2 };
+    MemberLeaf selected_leaf = { 3 };
+    MemberLeaf other_leaf = { 4 };
+    MemberFixture selected = { 1, &selected_leaf };
+    MemberFixture other = { 2, &other_leaf };
     int value = add(1, 2);
     report("first", value);
     report("second", value + 1);

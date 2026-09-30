@@ -2,11 +2,18 @@ import type { Position, Range } from "vscode-languageclient/node";
 
 export type MemberAccessOperator = "." | "->";
 
-export interface DirectMemberAccess {
-  baseName: string;
-  baseStart: number;
-  baseEnd: number;
+export interface MemberAccessPathSegment {
+  name: string;
+  start: number;
+  end: number;
   operator: MemberAccessOperator;
+}
+
+export interface MemberAccessChain {
+  rootName: string;
+  rootStart: number;
+  rootEnd: number;
+  segments: MemberAccessPathSegment[];
 }
 
 export interface MemberCallerScope {
@@ -18,11 +25,13 @@ export interface MemberCallerScope {
     name: string;
     range: Range;
     operator: MemberAccessOperator;
+    path?: Array<Pick<MemberAccessPathSegment, "name" | "operator">>;
   };
 }
 
 export type MemberCallerOccurrenceScope =
   | "same-variable"
+  | "other-variable"
   | "unresolved-variable";
 
 export function memberCallerScopeKey(scope: MemberCallerScope): string {
@@ -35,6 +44,8 @@ export function memberCallerScopeKey(scope: MemberCallerScope): string {
     anchor?.name ?? "unanchored",
     anchor?.range.start.line ?? -1,
     anchor?.range.start.character ?? -1,
+    anchor?.path?.map((segment) => `${segment.operator}${segment.name}`).join("") ??
+      `${anchor?.operator ?? ""}${scope.memberName}`,
   ].join(":");
 }
 
@@ -46,73 +57,58 @@ export function locationKey(
 }
 
 /**
- * Finds only a simple, directly named base expression. More complex
- * expressions intentionally remain unresolved instead of being guessed.
+ * Finds a member-access chain rooted at a simple named variable. Calls,
+ * subscripts, casts, dereferences, and other runtime-selected roots remain
+ * unresolved instead of being guessed.
  */
-export function parseDirectMemberAccess(
+export function parseMemberAccessChain(
   source: string,
   memberStart: number,
-): DirectMemberAccess | undefined {
+): MemberAccessChain | undefined {
   if (memberStart <= 0 || memberStart > source.length) {
     return undefined;
   }
   const masked = maskCommentsAndStrings(source);
-  let cursor = skipWhitespaceBackward(masked, memberStart - 1);
-  const operator = memberAccessOperator(masked, memberStart);
-  if (!operator) {
+  const memberEnd = identifierEnd(masked, memberStart);
+  if (!isIdentifier(masked.slice(memberStart, memberEnd))) {
     return undefined;
   }
-  cursor -= operator === "->" ? 2 : 1;
-  cursor = skipWhitespaceBackward(masked, cursor);
-
-  let baseStart: number;
-  let baseEnd: number;
-  if (masked[cursor] === ")") {
-    const close = cursor;
-    const open = matchingOpenParenthesis(masked, close);
-    if (open < 0) {
+  let current = {
+    name: source.slice(memberStart, memberEnd),
+    start: memberStart,
+    end: memberEnd,
+    expressionStart: memberStart,
+  };
+  const reversed: MemberAccessPathSegment[] = [];
+  while (true) {
+    const access = accessOperatorBefore(masked, current.expressionStart);
+    if (!access) {
+      break;
+    }
+    const left = simpleOperandBefore(masked, source, access.start - 1);
+    if (!left) {
       return undefined;
     }
-    const innerStart = skipWhitespaceForward(masked, open + 1);
-    const innerEnd = skipWhitespaceBackward(masked, close - 1) + 1;
-    if (
-      innerEnd <= innerStart ||
-      !isIdentifier(masked.slice(innerStart, innerEnd))
-    ) {
-      return undefined;
-    }
-    const beforeParenthesis = skipWhitespaceBackward(masked, open - 1);
-    if (beforeParenthesis >= 0 && isIdentifierPart(masked[beforeParenthesis])) {
-      return undefined;
-    }
-    baseStart = innerStart;
-    baseEnd = innerEnd;
-  } else {
-    baseEnd = cursor + 1;
-    while (cursor >= 0 && isIdentifierPart(masked[cursor])) {
-      cursor -= 1;
-    }
-    baseStart = cursor + 1;
-    if (!isIdentifier(masked.slice(baseStart, baseEnd))) {
-      return undefined;
-    }
-    const beforeBase = skipWhitespaceBackward(masked, baseStart - 1);
-    if (
-      beforeBase >= 0 &&
-      (masked[beforeBase] === "." ||
-        masked[beforeBase] === ">" ||
-        masked[beforeBase] === "]" ||
-        masked[beforeBase] === ")")
-    ) {
-      return undefined;
+    reversed.push({
+      name: current.name,
+      start: current.start,
+      end: current.end,
+      operator: access.operator,
+    });
+    current = left;
+    if (left.parenthesized) {
+      break;
     }
   }
-
-  const baseName = source.slice(baseStart, baseEnd);
-  if (baseName === "this") {
+  if (reversed.length === 0 || current.name === "this") {
     return undefined;
   }
-  return { baseName, baseStart, baseEnd, operator };
+  return {
+    rootName: current.name,
+    rootStart: current.start,
+    rootEnd: current.end,
+    segments: reversed.reverse(),
+  };
 }
 
 export function memberAccessOperator(
@@ -127,6 +123,103 @@ export function memberAccessOperator(
   return masked[cursor] === ">" && masked[cursor - 1] === "-"
     ? "->"
     : undefined;
+}
+
+export function offsetAtPosition(source: string, position: Position): number {
+  let offset = 0;
+  for (let line = 0; line < position.line && offset < source.length; line += 1) {
+    const newline = source.indexOf("\n", offset);
+    offset = newline < 0 ? source.length : newline + 1;
+  }
+  return Math.min(source.length, offset + position.character);
+}
+
+export function positionAtOffset(source: string, requestedOffset: number): Position {
+  const offset = Math.max(0, Math.min(source.length, requestedOffset));
+  let line = 0;
+  let lineStart = 0;
+  for (let cursor = 0; cursor < offset; cursor += 1) {
+    if (source.charCodeAt(cursor) === 10) {
+      line += 1;
+      lineStart = cursor + 1;
+    }
+  }
+  return { line, character: offset - lineStart };
+}
+
+function accessOperatorBefore(
+  source: string,
+  expressionStart: number,
+): { operator: MemberAccessOperator; start: number } | undefined {
+  const cursor = skipWhitespaceBackward(source, expressionStart - 1);
+  if (source[cursor] === ".") {
+    return { operator: ".", start: cursor };
+  }
+  return source[cursor] === ">" && source[cursor - 1] === "-"
+    ? { operator: "->", start: cursor - 1 }
+    : undefined;
+}
+
+function simpleOperandBefore(
+  masked: string,
+  source: string,
+  from: number,
+): {
+  name: string;
+  start: number;
+  end: number;
+  expressionStart: number;
+  parenthesized?: boolean;
+} | undefined {
+  let cursor = skipWhitespaceBackward(masked, from);
+  if (masked[cursor] === ")") {
+    const close = cursor;
+    const open = matchingOpenParenthesis(masked, close);
+    if (open < 0) {
+      return undefined;
+    }
+    const start = skipWhitespaceForward(masked, open + 1);
+    const end = skipWhitespaceBackward(masked, close - 1) + 1;
+    const before = skipWhitespaceBackward(masked, open - 1);
+    if (
+      !isIdentifier(masked.slice(start, end)) ||
+      (before >= 0 &&
+        (isIdentifierPart(masked[before]) ||
+          masked[before] === ")" ||
+          masked[before] === "]"))
+    ) {
+      return undefined;
+    }
+    return {
+      name: source.slice(start, end),
+      start,
+      end,
+      expressionStart: open,
+      parenthesized: true,
+    };
+  }
+  const end = cursor + 1;
+  while (cursor >= 0 && isIdentifierPart(masked[cursor])) {
+    cursor -= 1;
+  }
+  const start = cursor + 1;
+  if (!isIdentifier(masked.slice(start, end))) {
+    return undefined;
+  }
+  return {
+    name: source.slice(start, end),
+    start,
+    end,
+    expressionStart: start,
+  };
+}
+
+function identifierEnd(source: string, start: number): number {
+  let end = start;
+  while (end < source.length && isIdentifierPart(source[end])) {
+    end += 1;
+  }
+  return end;
 }
 
 function matchingOpenParenthesis(source: string, close: number): number {

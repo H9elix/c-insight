@@ -1596,6 +1596,9 @@ export class ViewRegistry implements vscode.Disposable {
         const sameOccurrences = this.projectIncomingOccurrences(
           incoming.memberScope.sameVariable,
         );
+        const otherOccurrences = this.projectIncomingOccurrences(
+          incoming.memberScope.otherVariable,
+        );
         const unresolvedOccurrences = this.projectIncomingOccurrences(
           incoming.memberScope.unresolvedVariable,
         );
@@ -1606,6 +1609,14 @@ export class ViewRegistry implements vscode.Disposable {
           depth,
           [],
           "same-variable",
+        );
+        const otherChildren = this.materializeCallOccurrences(
+          otherOccurrences,
+          direction,
+          ancestors,
+          depth,
+          [],
+          "other-variable",
         );
         const unresolvedChildren = this.materializeCallOccurrences(
           unresolvedOccurrences,
@@ -1624,12 +1635,21 @@ export class ViewRegistry implements vscode.Disposable {
             vscode.l10n.t("{count} direct accesses", {
               count: sameOccurrences.length,
             }),
-            vscode.l10n.t("{count} accesses through other identifiable variables were excluded.", {
-              count: incoming.memberScope.excludedOtherVariableOccurrences,
-            }),
+            vscode.l10n.t("These accesses use the selected variable and the same member path."),
             "symbol-variable",
           ));
           scopedChildren.push(...sameChildren);
+        }
+        if (otherChildren.length > 0) {
+          scopedChildren.push(this.memberCallerScopeHeading(
+            vscode.l10n.t("Other variables or member paths"),
+            vscode.l10n.t("{count} semantic accesses", {
+              count: otherOccurrences.length,
+            }),
+            vscode.l10n.t("These accesses resolve to the same member but not to the selected variable and member path."),
+            "symbol-field",
+          ));
+          scopedChildren.push(...otherChildren);
         }
         if (unresolvedChildren.length > 0) {
           scopedChildren.push(this.memberCallerScopeHeading(
@@ -1642,7 +1662,11 @@ export class ViewRegistry implements vscode.Disposable {
           ));
           scopedChildren.push(...unresolvedChildren);
         }
-        if (sameChildren.length === 0 && unresolvedChildren.length === 0) {
+        if (
+          sameChildren.length === 0 &&
+          otherChildren.length === 0 &&
+          unresolvedChildren.length === 0
+        ) {
           scopedChildren.push(this.noCallsNode("incoming", node));
         }
         return [...declarationNodes, ...scopedChildren];
@@ -2325,15 +2349,21 @@ function callExportNode(node: TreeNode): HierarchyExportNode {
     relationship: occurrenceScope
       ? occurrenceScope === "same-variable"
         ? "selected-variable-access"
-        : "unresolved-variable-access"
+        : occurrenceScope === "other-variable"
+          ? "other-variable-access"
+          : "unresolved-variable-access"
       : undefined,
     evidence: occurrenceScope
       ? {
           source: "member-caller-scope",
           method: occurrenceScope === "same-variable"
             ? "semantic-variable-references"
-            : "unresolved-base-expression",
-          confidence: occurrenceScope === "same-variable" ? "exact" : "possible",
+            : occurrenceScope === "other-variable"
+              ? "different-variable-or-member-path"
+              : "unresolved-base-expression",
+          confidence: occurrenceScope === "unresolved-variable"
+            ? "possible"
+            : "exact",
         }
       : undefined,
     children: node.children

@@ -74,6 +74,10 @@ describe("workspace session snapshot", () => {
                 end: { line: 8, character: 10 },
               },
               operator: "->",
+              path: [
+                { name: "leaf", operator: "->" },
+                { name: "field", operator: "->" },
+              ],
             },
           },
         },
@@ -95,6 +99,13 @@ describe("workspace session snapshot", () => {
     assert.equal(
       snapshot?.relationshipGraph?.memberCallerScopes?.root.anchor?.name,
       "selected",
+    );
+    assert.deepEqual(
+      snapshot?.relationshipGraph?.memberCallerScopes?.root.anchor?.path,
+      [
+        { name: "leaf", operator: "->" },
+        { name: "field", operator: "->" },
+      ],
     );
   });
 

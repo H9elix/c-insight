@@ -24,7 +24,9 @@ import {
   MemberCallerOccurrenceScope,
   MemberCallerScope,
   memberCallerScopeKey,
-  parseDirectMemberAccess,
+  offsetAtPosition,
+  parseMemberAccessChain,
+  positionAtOffset,
 } from "./memberCallerScopeModel";
 
 export type CallDirection = "incoming" | "outgoing";
@@ -45,8 +47,8 @@ export interface CallSymbolLocations {
 export interface ScopedIncomingCalls {
   anchorName?: string;
   sameVariable: CallHierarchyIncomingCall[];
+  otherVariable: CallHierarchyIncomingCall[];
   unresolvedVariable: CallHierarchyIncomingCall[];
-  excludedOtherVariableOccurrences: number;
 }
 
 export interface IncomingCallResult {
@@ -116,6 +118,7 @@ export class CallHierarchyRepository {
       const result = {
         calls: [
           ...memberScope.sameVariable,
+          ...memberScope.otherVariable,
           ...memberScope.unresolvedVariable,
         ],
         memberScope,
@@ -274,7 +277,7 @@ export class CallHierarchyRepository {
     if (matching.length === 0) {
       return roots;
     }
-    const direct = parseDirectMemberAccess(
+    const chain = parseMemberAccessChain(
       source,
       document.offsetAt(wordRange.start),
     );
@@ -283,14 +286,15 @@ export class CallHierarchyRepository {
       queryPosition: toProtocolPosition(position),
       memberName,
       memberRange: toProtocolRange(wordRange),
-      anchor: direct
+      anchor: chain
         ? {
-            name: direct.baseName,
+            name: chain.rootName,
             range: {
-              start: toProtocolPosition(document.positionAt(direct.baseStart)),
-              end: toProtocolPosition(document.positionAt(direct.baseEnd)),
+              start: toProtocolPosition(document.positionAt(chain.rootStart)),
+              end: toProtocolPosition(document.positionAt(chain.rootEnd)),
             },
-            operator: direct.operator,
+            operator: chain.segments[0].operator,
+            path: chain.segments.map(({ name, operator }) => ({ name, operator })),
           }
         : undefined,
     };
@@ -311,46 +315,52 @@ export class CallHierarchyRepository {
     scope: MemberCallerScope,
     token?: vscode.CancellationToken,
   ): Promise<ScopedIncomingCalls> {
-    const documents = new Map<string, Promise<vscode.TextDocument>>();
-    const documentFor = (uri: string): Promise<vscode.TextDocument> => {
+    const documents = new Map<string, Promise<string>>();
+    const sourceFor = (uri: string): Promise<string> => {
       let request = documents.get(uri);
       if (!request) {
-        request = Promise.resolve(
-          vscode.workspace.openTextDocument(vscode.Uri.parse(uri)),
-        );
+        request = this.readSourceText(uri);
         documents.set(uri, request);
       }
       return request;
     };
     const anchor = scope.anchor;
+    if (!anchor) {
+      return {
+        sameVariable: [],
+        otherVariable: [],
+        unresolvedVariable: calls,
+      };
+    }
     const anchorReferenceKeys = new Set<string>();
-    if (anchor) {
-      anchorReferenceKeys.add(locationKey(scope.queryUri, anchor.range.start));
-      try {
-        const references = await this.analysis.references(
-          vscode.Uri.parse(scope.queryUri),
-          new vscode.Position(
-            anchor.range.start.line,
-            anchor.range.start.character,
-          ),
-          true,
-          token,
+    anchorReferenceKeys.add(locationKey(scope.queryUri, anchor.range.start));
+    let referencesAvailable = false;
+    try {
+      const references = await this.analysis.references(
+        vscode.Uri.parse(scope.queryUri),
+        new vscode.Position(
+          anchor.range.start.line,
+          anchor.range.start.character,
+        ),
+        true,
+        token,
+      );
+      referencesAvailable = references.length > 0;
+      for (const reference of references) {
+        anchorReferenceKeys.add(
+          locationKey(reference.uri.toString(), {
+            line: reference.range.start.line,
+            character: reference.range.start.character,
+          }),
         );
-        for (const reference of references) {
-          anchorReferenceKeys.add(
-            locationKey(reference.uri.toString(), {
-              line: reference.range.start.line,
-              character: reference.range.start.character,
-            }),
-          );
-        }
-      } catch {
-        // The query origin remains exact. Other same-name occurrences are
-        // resolved by their definitions below or kept in the unresolved set.
       }
+    } catch {
+      // A bounded Definition fallback below can still classify simple
+      // same-name roots. All remaining calls stay visible as unresolved.
     }
 
     let anchorDefinitions: Promise<Set<string>> | undefined;
+    let remainingDefinitionFallbacks = 16;
     const definitionCache = new Map<string, Promise<Set<string>>>();
     const definitionsAt = (
       uri: string,
@@ -376,103 +386,117 @@ export class CallHierarchyRepository {
       }
       return request;
     };
-    if (anchor) {
-      anchorDefinitions = definitionsAt(scope.queryUri, anchor.range.start);
-    }
-
     const sameVariable: CallHierarchyIncomingCall[] = [];
+    const otherVariable: CallHierarchyIncomingCall[] = [];
     const unresolvedVariable: CallHierarchyIncomingCall[] = [];
-    let excludedOtherVariableOccurrences = 0;
     for (const call of calls) {
       const sameRanges: CallHierarchyIncomingCall["fromRanges"] = [];
+      const otherRanges: CallHierarchyIncomingCall["fromRanges"] = [];
       const unresolvedRanges: CallHierarchyIncomingCall["fromRanges"] = [];
-      let document: vscode.TextDocument | undefined;
+      let source: string | undefined;
       try {
-        document = await documentFor(call.from.uri);
+        source = await sourceFor(call.from.uri);
       } catch {
-        document = undefined;
+        source = undefined;
       }
       for (const range of call.fromRanges) {
         if (token?.isCancellationRequested) {
           throw new vscode.CancellationError();
         }
-        const occurrenceScope = document
+        const occurrenceScope = source
           ? await this.classifyMemberOccurrence(
-              document,
+              source,
+              call.from.uri,
               range.start,
               anchor,
               anchorReferenceKeys,
-              anchorDefinitions,
+              referencesAvailable,
+              () => {
+                anchorDefinitions ??= definitionsAt(
+                  scope.queryUri,
+                  anchor.range.start,
+                );
+                return anchorDefinitions;
+              },
               definitionsAt,
+              () => {
+                if (remainingDefinitionFallbacks <= 0) return false;
+                remainingDefinitionFallbacks -= 1;
+                return true;
+              },
             )
           : "unresolved-variable";
         if (occurrenceScope === "same-variable") {
           sameRanges.push(range);
+        } else if (occurrenceScope === "other-variable") {
+          otherRanges.push(range);
         } else if (occurrenceScope === "unresolved-variable") {
           unresolvedRanges.push(range);
-        } else {
-          excludedOtherVariableOccurrences += 1;
         }
       }
       if (sameRanges.length > 0) {
         sameVariable.push({ ...call, fromRanges: sameRanges });
+      }
+      if (otherRanges.length > 0) {
+        otherVariable.push({ ...call, fromRanges: otherRanges });
       }
       if (unresolvedRanges.length > 0) {
         unresolvedVariable.push({ ...call, fromRanges: unresolvedRanges });
       }
     }
     return {
-      anchorName: anchor?.name,
+      anchorName: anchor.name,
       sameVariable,
+      otherVariable,
       unresolvedVariable,
-      excludedOtherVariableOccurrences,
     };
   }
 
   private async classifyMemberOccurrence(
-    document: vscode.TextDocument,
+    source: string,
+    uri: string,
     memberPosition: { line: number; character: number },
-    anchor: MemberCallerScope["anchor"],
+    anchor: NonNullable<MemberCallerScope["anchor"]>,
     anchorReferenceKeys: Set<string>,
-    anchorDefinitions: Promise<Set<string>> | undefined,
+    referencesAvailable: boolean,
+    anchorDefinitions: () => Promise<Set<string>>,
     definitionsAt: (
       uri: string,
       position: { line: number; character: number },
     ) => Promise<Set<string>>,
-  ): Promise<MemberCallerOccurrenceScope | "other-variable"> {
-    if (!anchor) {
-      return "unresolved-variable";
-    }
-    const direct = parseDirectMemberAccess(
-      document.getText(),
-      document.offsetAt(
-        new vscode.Position(memberPosition.line, memberPosition.character),
-      ),
+    takeDefinitionFallback: () => boolean,
+  ): Promise<MemberCallerOccurrenceScope> {
+    const chain = parseMemberAccessChain(
+      source,
+      offsetAtPosition(source, memberPosition),
     );
-    if (!direct) {
+    if (!chain) {
       return "unresolved-variable";
     }
-    if (direct.baseName !== anchor.name) {
+    const selectedPath = anchor.path ?? [{
+      name: chain.segments.at(-1)?.name ?? "",
+      operator: anchor.operator,
+    }];
+    if (!sameMemberPath(chain.segments, selectedPath)) {
       return "other-variable";
     }
-    const basePosition = document.positionAt(direct.baseStart);
-    const uri = document.uri.toString();
-    if (
-      anchorReferenceKeys.has(
-        locationKey(uri, {
-          line: basePosition.line,
-          character: basePosition.character,
-        }),
-      )
-    ) {
+    if (chain.rootName !== anchor.name) {
+      return "other-variable";
+    }
+    const basePosition = positionAtOffset(source, chain.rootStart);
+    const candidateKey = locationKey(uri, basePosition);
+    if (anchorReferenceKeys.has(candidateKey)) {
       return "same-variable";
     }
+    if (referencesAvailable) {
+      return "other-variable";
+    }
+    if (!takeDefinitionFallback()) {
+      return "unresolved-variable";
+    }
     const [selected, candidate] = await Promise.all([
-      anchorDefinitions ?? Promise.resolve(new Set<string>()),
-      definitionsAt(uri, {
-        line: basePosition.line,
-        character: basePosition.character,
-      }),
+      anchorDefinitions(),
+      definitionsAt(uri, basePosition),
     ]);
     if ([...candidate].some((key) => selected.has(key))) {
       return "same-variable";
@@ -480,6 +504,18 @@ export class CallHierarchyRepository {
     return selected.size > 0 && candidate.size > 0
       ? "other-variable"
       : "unresolved-variable";
+  }
+
+  private async readSourceText(uri: string): Promise<string> {
+    const parsed = vscode.Uri.parse(uri);
+    const open = vscode.workspace.textDocuments.find(
+      (document) => document.uri.toString() === parsed.toString(),
+    );
+    if (open) {
+      return open.getText();
+    }
+    const content = await vscode.workspace.fs.readFile(parsed);
+    return Buffer.from(content).toString("utf8");
   }
 
   private async observedMicrosoftOutgoing(
@@ -585,6 +621,17 @@ export class CallHierarchyRepository {
       fromRanges: ranges,
     }));
   }
+}
+
+function sameMemberPath(
+  left: Array<{ name: string; operator: "." | "->" }>,
+  right: Array<{ name: string; operator: "." | "->" }>,
+): boolean {
+  return left.length === right.length && left.every(
+    (segment, index) =>
+      segment.name === right[index].name &&
+      segment.operator === right[index].operator,
+  );
 }
 
 function configuredCacheSize(): number {
