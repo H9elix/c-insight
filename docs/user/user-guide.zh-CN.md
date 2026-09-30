@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.12`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.13`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -359,6 +359,10 @@ Change 引用（Reference） Scope 提供：
 
 例如 `report` 在 `add` 中调用两次、在 `main` 中调用三次时，展开 `report` 会先显示 `report` 的独立声明（若存在），再直接得到两个 `add` 和三个 `main` 调用点。不会再为 `add` 和 `main` 追加不可展开的定义叶节点。继续展开规范 `add` 调用点时，才会在这一层最前面显示 `add` 自身的独立声明，然后查询调用 `add` 的函数。声明和调用点均遵循单击预览、双击打开。
 
+当光标位于 `st->codecpar`、`(st)->codecpar` 或 `object.member` 这类通过简单变量直接访问的字段（Field）或属性（Property）时，调用者会追踪所选基变量的声明。通过同一变量产生的直接访问显示在“当前变量（Selected variable）”分组中；通过其他可识别变量访问同名成员的位置会被排除；`get_stream()->codecpar`、数组基表达式、强制转换和链式成员等无法可靠归属到简单变量的表达式，则保留在后面的“无法确定变量实例（Variable instance could not be determined）”分组中。两个分组之间有明确的状态分隔行。
+
+该行为是保守的直接访问分类，不执行别名或指针指向分析。例如 `alias = st; alias->codecpar` 不会被推断为 `st` 的访问。调用关系图（Call Relationship Graph）的边状态、关系图会话恢复以及 Text/JSON/Mermaid 导出保留同一分类。Microsoft 模式下，如果 cpptools 没有为字段返回调用层次（Call Hierarchy）根，C Insight 会从定义（Definition）构造“基于引用的成员（References-based member）”根并使用安全的基于引用路径，随后仍应用相同的变量实例筛选。
+
 默认情况下，新调用者根会自动展开一层，因此调用者窗口可见时会直接显示第一层调用点。只有当前可见的调用方向会自动查询；被调用者窗口隐藏时不会因为调用者展开而附带查询被调用者。将 `cInsight.callHierarchy.defaultDepth` 设为 `0` 可恢复为只显示折叠根节点。
 
 同一语义调用者只有源码位置最早的调用点带展开箭头，用于懒加载该函数的上一层调用者，其余同名调用点是可预览、可打开但不继续查询的叶节点。这样既保留所有调用证据，也不会因为同一个函数内有多处调用而重复执行下一层语义查询。若提供程序没有返回调用位置范围，C Insight 会保留一个标记为“调用位置不可用”的定义位置回退节点。
@@ -402,7 +406,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 显式显示传入调用（Show Incoming Calls）或显示传出调用（Show Outgoing Calls）属于方向限定请求，只准备当前函数的调用层次（Call Hierarchy）根，不再附带执行无关的引用（References）查询；如果引用窗口已有结果，也不会因这次未请求引用而被清空。真正展开调用者（Callers）时，基于引用（References-based）模式仍会为被展开节点按需查询引用。
 
-每个实际展开的调用者语义节点还会并行请求一次定义（Definition）和声明（Declaration），并按 `cInsight.callHierarchy.cacheSize` 使用同一容量上限的独立 LRU 缓存。根节点复用光标上下文已经取得的位置，避免重复请求；隐藏、未展开、重复且不可展开或达到最大深度的节点不会查询声明。声明请求失败不会隐藏已经取得的调用者；调用者查询失败时，已经成功取得的声明仍可导航。达到调用点节点预算后，声明不计入预算，手动展开已有规范节点仍可看到声明和限制提示。
+每个实际展开的调用者语义节点还会并行请求一次定义（Definition）和声明（Declaration），并按 `cInsight.callHierarchy.cacheSize` 使用同一容量上限的独立 LRU 缓存。根节点复用光标上下文已经取得的位置，避免重复请求；隐藏、未展开、重复且不可展开或达到最大深度的节点不会查询声明。声明请求失败不会隐藏已经取得的调用者；调用者查询失败时，已经成功取得的声明仍可导航。达到调用点节点预算后，声明不计入预算，手动展开已有规范节点仍可看到声明和限制提示。cpptools 的浏览数据库尚未就绪时可能暂时返回空字段引用；C Insight 不缓存这种 Microsoft 成员字段空结果。显式执行显示传入调用（Show Incoming Calls）或刷新（Refresh）也会先使现有调用层次缓存失效，再发起新的提供程序（Provider）查询。
 
 光标跟随继续分为 `followCursorDelay` 基础防抖和 `followCursorDetailsDelay` 详情延迟。0.18.16 的真实 FFmpeg 回归会在所有导航窗口可见时连续移动光标 20 次，要求最终最多产生一个有界语义查询周期、引用最多一次、定义（Definition）最多两次（基础定义加引用排除定义的后处理），并且调度队列最终无 active/queued 任务。多窗口峰值并发、取消、按方法耗时和调用层次缓存命中仍可在工程诊断（Project Diagnostics）的 Runtime performance 中查看。
 

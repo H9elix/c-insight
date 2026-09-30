@@ -58,6 +58,25 @@ describe("workspace session snapshot", () => {
         selectedId: "root",
         enabledRelations: ["calls"],
         collapsedIds: [],
+        memberCallerScopes: {
+          root: {
+            queryUri: "file:///workspace/main.cpp",
+            queryPosition: { line: 8, character: 12 },
+            memberName: "field",
+            memberRange: {
+              start: { line: 8, character: 12 },
+              end: { line: 8, character: 17 },
+            },
+            anchor: {
+              name: "selected",
+              range: {
+                start: { line: 8, character: 2 },
+                end: { line: 8, character: 10 },
+              },
+              operator: "->",
+            },
+          },
+        },
         viewport: { scale: 1.2, tx: 30, ty: 40 },
       },
     });
@@ -73,6 +92,10 @@ describe("workspace session snapshot", () => {
       "main",
     );
     assert.equal(snapshot?.relationshipGraph?.viewport.scale, 1.2);
+    assert.equal(
+      snapshot?.relationshipGraph?.memberCallerScopes?.root.anchor?.name,
+      "selected",
+    );
   });
 
   it("rejects unbounded call hierarchy expansion identities", () => {

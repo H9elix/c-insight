@@ -13,7 +13,12 @@ import { BookmarkExplorer } from "../bookmarks/bookmarkExplorer";
 import {
   CallHierarchyRepository,
   CallSymbolLocations,
+  IncomingCallResult,
 } from "../callHierarchy/callHierarchyRepository";
+import {
+  memberCallerScopeKey,
+  type MemberCallerOccurrenceScope,
+} from "../callHierarchy/memberCallerScopeModel";
 import {
   CallOccurrence,
   projectCallOccurrences,
@@ -382,7 +387,11 @@ export class ViewRegistry implements vscode.Disposable {
       this.isViewVisible(VIEWS.CALLEES) ||
       Boolean(intent.manualCallHierarchy)
     );
-    const callRootSignature = context.callRoots.map((root) => root.key).join("|");
+    const callRootSignature = context.callRoots.map((root) =>
+      root.memberCallerScope
+        ? `${root.key}:${memberCallerScopeKey(root.memberCallerScope)}`
+        : root.key
+    ).join("|");
     const callRootDisplaySignature = functionLocationSignature(preferredLocation);
     if (
       allowCallUpdate &&
@@ -552,9 +561,10 @@ export class ViewRegistry implements vscode.Disposable {
     if (!root?.location) {
       return undefined;
     }
+    const memberScope = root.callNode?.memberCallerScope;
     return {
-      uri: root.location.uri.toString(),
-      position: {
+      uri: memberScope?.queryUri ?? root.location.uri.toString(),
+      position: memberScope?.queryPosition ?? {
         line: root.location.range.start.line,
         character: root.location.range.start.character,
       },
@@ -578,6 +588,7 @@ export class ViewRegistry implements vscode.Disposable {
     incomingOccurrences: CallOccurrenceSnapshot[];
     outgoingOccurrences: CallOccurrenceSnapshot[];
     incomingDeclarations: CallLocationSnapshot[];
+    incomingScopeHeadings: string[];
     incomingNavigationLabels: string[];
     loadedIncoming: number;
     loadedOutgoing: number;
@@ -604,6 +615,7 @@ export class ViewRegistry implements vscode.Disposable {
       incomingOccurrences: callOccurrenceSnapshots(this.callers.getRoots()),
       outgoingOccurrences: callOccurrenceSnapshots(this.callees.getRoots()),
       incomingDeclarations: callerDeclarationSnapshots(this.callers.getRoots()),
+      incomingScopeHeadings: memberCallerScopeHeadings(this.callers.getRoots()),
       incomingNavigationLabels: flattenLoadedCallNavigationNodes(
         this.callers.getRoots(),
       ).map((node) => node.label),
@@ -1555,11 +1567,11 @@ export class ViewRegistry implements vscode.Disposable {
       const [callsResult, symbolLocations] = await Promise.all([
         atNodeLimit
           ? Promise.resolve({ limited: true } as const)
-          : this.callRepository.incoming(
+          : this.callRepository.incomingResult(
               node,
               this.callExpansion?.token,
             ).then(
-              (calls) => ({ calls } as const),
+              (result) => ({ result } as const),
               (error: unknown) => ({ error } as const),
             ),
         this.loadCallerSymbolLocations(owner, node),
@@ -1579,19 +1591,63 @@ export class ViewRegistry implements vscode.Disposable {
           this.callQueryError("Callers", callsResult.error),
         ];
       }
-      const occurrences = projectCallOccurrences(
-        callsResult.calls.map((call) => {
-          const caller = this.analysis.callNode(call.from);
-          return {
-            semanticKey: caller.key,
-            callSiteUri: call.from.uri,
-            ranges: call.fromRanges,
-            fallbackUri: caller.raw.uri,
-            fallbackRange: caller.raw.selectionRange,
-            value: caller,
-          };
-        }),
-      );
+      const incoming = callsResult.result;
+      if (incoming.memberScope) {
+        const sameOccurrences = this.projectIncomingOccurrences(
+          incoming.memberScope.sameVariable,
+        );
+        const unresolvedOccurrences = this.projectIncomingOccurrences(
+          incoming.memberScope.unresolvedVariable,
+        );
+        const sameChildren = this.materializeCallOccurrences(
+          sameOccurrences,
+          direction,
+          ancestors,
+          depth,
+          [],
+          "same-variable",
+        );
+        const unresolvedChildren = this.materializeCallOccurrences(
+          unresolvedOccurrences,
+          direction,
+          ancestors,
+          depth,
+          [],
+          "unresolved-variable",
+        );
+        const scopedChildren: TreeNode[] = [];
+        if (incoming.memberScope.anchorName) {
+          scopedChildren.push(this.memberCallerScopeHeading(
+            vscode.l10n.t("Selected variable: {name}", {
+              name: incoming.memberScope.anchorName,
+            }),
+            vscode.l10n.t("{count} direct accesses", {
+              count: sameOccurrences.length,
+            }),
+            vscode.l10n.t("{count} accesses through other identifiable variables were excluded.", {
+              count: incoming.memberScope.excludedOtherVariableOccurrences,
+            }),
+            "symbol-variable",
+          ));
+          scopedChildren.push(...sameChildren);
+        }
+        if (unresolvedChildren.length > 0) {
+          scopedChildren.push(this.memberCallerScopeHeading(
+            vscode.l10n.t("Variable instance could not be determined"),
+            vscode.l10n.t("{count} possible accesses", {
+              count: unresolvedOccurrences.length,
+            }),
+            vscode.l10n.t("These field accesses use an expression that cannot be tied to the selected simple variable."),
+            "question",
+          ));
+          scopedChildren.push(...unresolvedChildren);
+        }
+        if (sameChildren.length === 0 && unresolvedChildren.length === 0) {
+          scopedChildren.push(this.noCallsNode("incoming", node));
+        }
+        return [...declarationNodes, ...scopedChildren];
+      }
+      const occurrences = this.projectIncomingOccurrences(incoming.calls);
       const children = this.materializeCallOccurrences(
         occurrences,
         direction,
@@ -1641,6 +1697,41 @@ export class ViewRegistry implements vscode.Disposable {
     } catch (error) {
       return [this.callQueryError("Callees", error)];
     }
+  }
+
+  private projectIncomingOccurrences(
+    calls: IncomingCallResult["calls"],
+  ): CallOccurrence<CallNode>[] {
+    return projectCallOccurrences(
+      calls.map((call) => {
+        const caller = this.analysis.callNode(call.from);
+        return {
+          semanticKey: caller.key,
+          callSiteUri: call.from.uri,
+          ranges: call.fromRanges,
+          fallbackUri: caller.raw.uri,
+          fallbackRange: caller.raw.selectionRange,
+          value: caller,
+        };
+      }),
+    );
+  }
+
+  private memberCallerScopeHeading(
+    label: string,
+    description: string,
+    tooltip: string,
+    icon: string,
+  ): TreeNode {
+    return {
+      label,
+      description,
+      tooltip,
+      icon: new vscode.ThemeIcon(icon),
+      contextValue: "memberCallerScopeHeading",
+      callSupplement: "member-scope-heading",
+      collapsibleState: vscode.TreeItemCollapsibleState.None,
+    };
   }
 
   private async loadCallerSymbolLocations(
@@ -1717,6 +1808,7 @@ export class ViewRegistry implements vscode.Disposable {
     ancestors: string[],
     depth: number,
     additionalNodes: TreeNode[],
+    occurrenceScope?: MemberCallerOccurrenceScope,
   ): TreeNode[] {
     const candidates: CallChildCandidate[] = [
       ...occurrences.map((occurrence): CallChildCandidate => ({
@@ -1760,6 +1852,7 @@ export class ViewRegistry implements vscode.Disposable {
             ancestors,
             depth,
             states.get(candidate.occurrence.semanticKey)!,
+            occurrenceScope,
           ),
     );
     if (visible.length < candidates.length) {
@@ -1774,6 +1867,7 @@ export class ViewRegistry implements vscode.Disposable {
     ancestors: string[],
     depth: number,
     state: CallOccurrenceGroupState,
+    occurrenceScope?: MemberCallerOccurrenceScope,
   ): TreeNode {
     const uri = vscode.Uri.parse(occurrence.uri);
     const location: LocationResult = {
@@ -1802,10 +1896,15 @@ export class ViewRegistry implements vscode.Disposable {
         ]
       : [
           `${vscode.workspace.asRelativePath(uri)}:${location.range.start.line + 1}`,
-          vscode.l10n.t("call {ordinal}/{total}", {
-            ordinal: occurrence.ordinal,
-            total: occurrence.total,
-          }),
+          occurrenceScope
+            ? vscode.l10n.t("access {ordinal}/{total}", {
+                ordinal: occurrence.ordinal,
+                total: occurrence.total,
+              })
+            : vscode.l10n.t("call {ordinal}/{total}", {
+                ordinal: occurrence.ordinal,
+                total: occurrence.total,
+              }),
           status,
           atDepthLimit ? "max depth" : undefined,
         ];
@@ -1827,6 +1926,7 @@ export class ViewRegistry implements vscode.Disposable {
       callKey: occurrence.semanticKey,
       callDepth: depth,
       callNode: occurrence.canonical ? occurrence.value : undefined,
+      callOccurrenceScope: occurrenceScope,
       callPath: expandable
         ? [...ancestors, occurrence.semanticKey].join("\u0000")
         : undefined,
@@ -2027,6 +2127,7 @@ interface CallOccurrenceSnapshot {
   canonical: boolean;
   expandable: boolean;
   previewMode?: PreviewMode;
+  memberScope?: MemberCallerOccurrenceScope;
 }
 
 interface CallLocationSnapshot {
@@ -2107,6 +2208,7 @@ function callOccurrenceSnapshots(roots: TreeNode[]): CallOccurrenceSnapshot[] {
       canonical: node.callPath !== undefined,
       expandable: node.loadChildren !== undefined || node.children !== undefined,
       previewMode: node.previewMode,
+      memberScope: node.callOccurrenceScope,
     }));
 }
 
@@ -2122,6 +2224,22 @@ function callerDeclarationSnapshots(roots: TreeNode[]): CallLocationSnapshot[] {
       line: node.location!.range.start.line,
       character: node.location!.range.start.character,
     }));
+}
+
+function memberCallerScopeHeadings(roots: TreeNode[]): string[] {
+  const labels: string[] = [];
+  const visit = (nodes: TreeNode[]): void => {
+    for (const node of nodes) {
+      if (node.callSupplement === "member-scope-heading") {
+        labels.push(node.label);
+      }
+      if (node.children) {
+        visit(node.children);
+      }
+    }
+  };
+  visit(roots);
+  return labels;
 }
 
 function callRootSnapshots(roots: TreeNode[]): CallLocationSnapshot[] {
@@ -2194,14 +2312,36 @@ function maximumLoadedDepth(roots: TreeNode[]): number {
 }
 
 function callExportNode(node: TreeNode): HierarchyExportNode {
+  const occurrenceScope = node.callOccurrenceScope;
   return {
     name: node.label,
     description: node.description,
     uri: node.location?.uri.toString(),
     line: node.location ? node.location.range.start.line + 1 : undefined,
-    states: hierarchyNodeStates(node.label, node.description),
+    states: [
+      ...hierarchyNodeStates(node.label, node.description),
+      ...(occurrenceScope ? [occurrenceScope] : []),
+    ],
+    relationship: occurrenceScope
+      ? occurrenceScope === "same-variable"
+        ? "selected-variable-access"
+        : "unresolved-variable-access"
+      : undefined,
+    evidence: occurrenceScope
+      ? {
+          source: "member-caller-scope",
+          method: occurrenceScope === "same-variable"
+            ? "semantic-variable-references"
+            : "unresolved-base-expression",
+          confidence: occurrenceScope === "same-variable" ? "exact" : "possible",
+        }
+      : undefined,
     children: node.children
-      ?.filter((child) => child.callSupplement !== "call-declaration")
+      ?.filter(
+        (child) =>
+          child.callSupplement !== "call-declaration" &&
+          child.callSupplement !== "member-scope-heading",
+      )
       .map(callExportNode) ?? [],
   };
 }

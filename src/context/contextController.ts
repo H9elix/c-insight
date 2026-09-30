@@ -16,6 +16,7 @@ import {
   CursorFollowSuppression,
 } from "../utils/cursorFollowSuppression";
 import { shouldPreserveResultsForEmptyCursor } from "./cursorSymbolEvidence";
+import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepository";
 
 export class ContextController implements vscode.Disposable {
   private static readonly definitionRetryDelays = [2_000, 10_000];
@@ -36,6 +37,7 @@ export class ContextController implements vscode.Disposable {
 
   constructor(
     private readonly analysis: AnalysisService,
+    private readonly callRepository: CallHierarchyRepository,
     private readonly views: ViewRegistry,
     private readonly output: vscode.OutputChannel,
   ) {
@@ -219,6 +221,9 @@ export class ContextController implements vscode.Disposable {
     position: vscode.Position,
     intent: ViewUpdateIntent = {},
   ): Promise<SymbolContext | undefined> {
+    if (intent.manualCallHierarchy) {
+      this.views.invalidateCallHierarchy();
+    }
     const generation = ++this.generation;
     this.cancelPending();
     const cancellation = new vscode.CancellationTokenSource();
@@ -246,8 +251,8 @@ export class ContextController implements vscode.Disposable {
             )
           : [],
         this.analysis.analysisEngine !== "microsoft" && base.callRoots[0]
-          ? this.analysis
-              .incomingCalls(base.callRoots[0], cancellation.token)
+          ? this.callRepository
+              .incoming(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
@@ -314,7 +319,7 @@ export class ContextController implements vscode.Disposable {
           ? this.analysis.declaration(uri, position, token)
           : [],
         demand.callRoots
-          ? this.analysis.prepareCallHierarchy(uri, position, token).catch(() => [])
+          ? this.callRepository.prepare(uri, position, token).catch(() => [])
           : [],
         demand.hover
           ? this.analysis.hover(uri, position, token).catch(() => undefined)
@@ -454,8 +459,8 @@ export class ContextController implements vscode.Disposable {
         demand.incomingCount &&
         this.analysis.analysisEngine !== "microsoft" &&
         base.callRoots[0]
-          ? this.analysis
-              .incomingCalls(base.callRoots[0], cancellation.token)
+          ? this.callRepository
+              .incoming(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
@@ -553,6 +558,9 @@ export class ContextController implements vscode.Disposable {
   ): void {
     const manual =
       intent.manualReferences || intent.manualCallHierarchy;
+    if (intent.manualCallHierarchy) {
+      this.views.invalidateCallHierarchy();
+    }
     if (
       !manual &&
       this.cursorFollowSuppression.suppressAutomaticUpdate(

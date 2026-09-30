@@ -78,6 +78,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private panel?: vscode.WebviewPanel;
   private model = this.createModel();
   private readonly callNodes = new Map<string, CallNode>();
+  private readonly restoredMemberCallerScopes = new Map<
+    string,
+    NonNullable<CallNode["memberCallerScope"]>
+  >();
   private readonly nodeDepth = new Map<string, number>();
   private readonly expandedCalls = new Set<string>();
   private readonly typeNodes = new Map<string, TypeHierarchyItem>();
@@ -91,7 +95,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   };
   private canvasState: Omit<
     RelationshipGraphSessionState,
-    "schemaVersion" | "graph"
+    "schemaVersion" | "graph" | "memberCallerScopes"
   > = defaultCanvasState();
   private pendingCanvasRestore?: typeof this.canvasState;
   private retainedSession?: RelationshipGraphSessionState;
@@ -172,6 +176,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     this.model = this.createModel();
     this.callNodes.clear();
+    this.restoredMemberCallerScopes.clear();
     this.typeNodes.clear();
     this.includeFiles.clear();
     this.nodeDepth.clear();
@@ -217,6 +222,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     const root = fileNode(uri);
     this.model = this.createModel();
     this.callNodes.clear();
+    this.restoredMemberCallerScopes.clear();
     this.typeNodes.clear();
     this.includeFiles.clear();
     this.nodeDepth.clear();
@@ -273,6 +279,15 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       collapsedIds: this.canvasState.collapsedIds.filter((id) =>
         graph.nodes.some((node) => node.id === id),
       ),
+      memberCallerScopes: Object.fromEntries(
+        [...this.callNodes]
+          .filter(
+            ([nodeId, call]) =>
+              graph.nodes.some((node) => node.id === nodeId) &&
+              call.memberCallerScope,
+          )
+          .map(([nodeId, call]) => [nodeId, call.memberCallerScope!]),
+      ),
       viewport: { ...this.canvasState.viewport },
     };
   }
@@ -307,6 +322,12 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     this.model = this.createModel();
     this.model.restore(state.graph);
     this.callNodes.clear();
+    this.restoredMemberCallerScopes.clear();
+    for (const [nodeId, scope] of Object.entries(
+      state.memberCallerScopes ?? {},
+    )) {
+      this.restoredMemberCallerScopes.set(nodeId, scope);
+    }
     this.typeNodes.clear();
     this.includeFiles.clear();
     this.expandedCalls.clear();
@@ -385,6 +406,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
         this.generation += 1;
         this.model = this.createModel();
         this.callNodes.clear();
+        this.restoredMemberCallerScopes.clear();
         this.typeNodes.clear();
         this.includeFiles.clear();
         this.nodeDepth.clear();
@@ -666,21 +688,36 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
     const neighbors: string[] = [];
     if (direction === "incoming") {
-      const calls = await this.callRepository.incoming(callNode, token);
-      for (const call of calls) {
-        if (token.isCancellationRequested) {
-          break;
-        }
-        const caller = this.analysis.callNode(call.from);
-        const neighbor = this.addCallRelation(
-          caller,
-          callNode,
-          call.from.uri,
-          call.fromRanges[0]?.start.line,
-          nodeId,
-        );
-        if (neighbor) {
-          neighbors.push(neighbor);
+      const result = await this.callRepository.incomingResult(callNode, token);
+      const groups = result.memberScope
+        ? [
+            {
+              calls: result.memberScope.sameVariable,
+              states: ["selected-variable-access"],
+            },
+            {
+              calls: result.memberScope.unresolvedVariable,
+              states: ["unresolved-variable-access"],
+            },
+          ]
+        : [{ calls: result.calls, states: [] }];
+      for (const group of groups) {
+        for (const call of group.calls) {
+          if (token.isCancellationRequested) {
+            break;
+          }
+          const caller = this.analysis.callNode(call.from);
+          const neighbor = this.addCallRelation(
+            caller,
+            callNode,
+            call.from.uri,
+            call.fromRanges[0]?.start.line,
+            nodeId,
+            group.states,
+          );
+          if (neighbor) {
+            neighbors.push(neighbor);
+          }
         }
       }
     } else {
@@ -1150,6 +1187,7 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     sourceUri: string,
     zeroBasedLine: number | undefined,
     expandedNodeId: string,
+    relationshipStates: string[] = [],
   ): string | undefined {
     const fromGraph = this.callGraphNode(from);
     const toGraph = this.callGraphNode(to);
@@ -1198,11 +1236,14 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       relation: "calls",
       sourceUri,
       line,
-      states: direct
-        ? ["direct-recursion"]
-        : cycle
-          ? ["indirect-recursion"]
-          : [],
+      states: [
+        ...(direct
+          ? ["direct-recursion"]
+          : cycle
+            ? ["indirect-recursion"]
+            : []),
+        ...relationshipStates,
+      ],
     });
     return neighborId;
   }
@@ -1844,10 +1885,15 @@ export class RelationshipGraphPanel implements vscode.Disposable {
           candidate.raw.name.endsWith(`::${node.name}`),
       ) ?? roots[0];
     if (matched) {
-      this.callNodes.set(nodeId, matched);
+      const memberCallerScope = this.restoredMemberCallerScopes.get(nodeId);
+      const restored = memberCallerScope
+        ? { ...matched, memberCallerScope }
+        : matched;
+      this.callNodes.set(nodeId, restored);
       this.model.addNodeState(nodeId, "revalidated");
+      return restored;
     }
-    return matched;
+    return undefined;
   }
 
   private async ensureTypeNode(
@@ -1916,11 +1962,21 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       id: graphNodeId(kind, raw.uri, line, raw.name),
       kind,
       name: raw.name,
-      detail: raw.detail,
+      detail: node.memberCallerScope?.anchor
+        ? vscode.l10n.t("Selected variable: {name}", {
+            name: node.memberCallerScope.anchor.name,
+          })
+        : raw.detail,
       uri: raw.uri,
       line,
       character: raw.selectionRange.start.character,
-      states: [],
+      states: node.memberCallerScope
+        ? [
+            node.memberCallerScope.anchor
+              ? "member-scope-selected"
+              : "member-scope-unresolved",
+          ]
+        : [],
       capabilities: ["calls"],
     };
   }
@@ -2301,6 +2357,8 @@ function graphHtml(): string {
     inheritance: vscode.l10n.t("Inheritance"),
     include: vscode.l10n.t("Include"),
     definition: vscode.l10n.t("Definition"),
+    selectedVariable: vscode.l10n.t("Selected variable access"),
+    unresolvedVariable: vscode.l10n.t("Unresolved variable access"),
     waiting: vscode.l10n.t("Waiting for graph…"),
     aria: vscode.l10n.t("C Insight Relationship Graph"),
     empty: vscode.l10n.t("Run C Insight: Show Relationship Graph from a local C/C++ file."),
@@ -2328,10 +2386,14 @@ function graphHtml(): string {
     .legend-inherits { color: var(--vscode-charts-purple); border-top-style: dashed; }
     .legend-includes { color: var(--vscode-charts-green); border-top-style: dotted; }
     .legend-defines { color: var(--vscode-charts-orange); border-top-style: double; }
+    .legend-selected-variable { color: var(--vscode-charts-blue); border-top-width: 3px; }
+    .legend-unresolved-variable { color: var(--vscode-editorWarning-foreground); border-top-style: dashed; }
     #canvas { width: 100%; height: calc(100% - 36px); touch-action: none; cursor: grab; }
     #canvas.dragging { cursor: grabbing; }
     .edge { stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
     .edge.calls { stroke: var(--vscode-charts-blue); }
+    .edge.selected-variable-access { stroke-width: 2.6; }
+    .edge.unresolved-variable-access { stroke: var(--vscode-editorWarning-foreground); stroke-dasharray: 5 4; }
     .edge.inherits { stroke: var(--vscode-charts-purple); stroke-dasharray: 8 4; }
     .edge.includes { stroke: var(--vscode-charts-green); stroke-dasharray: 2 4; }
     .edge.defines { stroke: var(--vscode-charts-orange); stroke-dasharray: 10 3 2 3; }
@@ -2363,7 +2425,7 @@ function graphHtml(): string {
     <button class="relation active" data-relation="inherits">${labels.inheritance}</button>
     <button class="relation active" data-relation="includes">${labels.include}</button>
     <button class="relation active" data-relation="defines">${labels.definition}</button>
-    <span id="legend"><span><i class="legend-line legend-call"></i>${labels.call}</span><span><i class="legend-line legend-inherits"></i>${labels.inheritance}</span><span><i class="legend-line legend-includes"></i>${labels.include}</span><span><i class="legend-line legend-defines"></i>${labels.definition}</span></span>
+    <span id="legend"><span><i class="legend-line legend-call"></i>${labels.call}</span><span><i class="legend-line legend-selected-variable"></i>${labels.selectedVariable}</span><span><i class="legend-line legend-unresolved-variable"></i>${labels.unresolvedVariable}</span><span><i class="legend-line legend-inherits"></i>${labels.inheritance}</span><span><i class="legend-line legend-includes"></i>${labels.include}</span><span><i class="legend-line legend-defines"></i>${labels.definition}</span></span>
     <span id="status" role="status" aria-live="polite">${labels.waiting}</span>
   </div>
   <svg id="canvas" role="application" aria-label="${labels.aria}">
@@ -2424,7 +2486,8 @@ function graphHtml(): string {
         const from = positions.get(edge.from), to = positions.get(edge.to);
         if (!from || !to) return;
         const recursive = edge.states?.some(state => state.includes('recursion') || state.includes('cycle'));
-        path.setAttribute('class', 'edge ' + edge.relation + (recursive ? ' recursive' : ''));
+        const memberScopeClass = edge.states?.includes('selected-variable-access') ? ' selected-variable-access' : edge.states?.includes('unresolved-variable-access') ? ' unresolved-variable-access' : '';
+        path.setAttribute('class', 'edge ' + edge.relation + memberScopeClass + (recursive ? ' recursive' : ''));
         path.setAttribute('d', 'M' + (from.x + 190) + ',' + (from.y + 40) + ' L' + to.x + ',' + (to.y + 40));
         let tooltip = path.querySelector('title');
         if (!tooltip) { tooltip = element('title'); path.append(tooltip); }

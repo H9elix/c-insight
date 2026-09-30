@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.13
+
+- Scoped Field/Property Callers opened from a simple base expression such as `st->codecpar` to the selected variable declaration, listing same-variable accesses first, excluding other identifiable variables, and retaining complex or unresolvable bases under a separate warning group.
+- Applied the member-instance classification consistently to clangd and Microsoft C/C++, including a safe References-based Microsoft field root when cpptools does not expose one through Call Hierarchy, non-sticky cold empty results, and fresh explicit hierarchy queries.
+- Preserved selected/unresolved member-access evidence in Call Relationship Graph edges, graph-session restoration, and Text/JSON/Mermaid exports without adding alias or points-to inference.
+- Added pure parser/session/export coverage and dual-engine Extension Host regressions for two selected-variable accesses, one excluded other-variable access, and one unresolved complex access.
+
 ## 0.22.12
 
 - Prepared the project for public development at `https://github.com/H9elix/c-insight` with repository metadata, GitHub Actions quality and release workflows, Dependabot, structured issue forms, a pull-request checklist, private vulnerability reporting guidance, and deterministic line-ending rules.

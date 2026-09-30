@@ -173,6 +173,7 @@ async function runClangdAcceptance(): Promise<void> {
   await verifyPersistentSymbolSearch();
   await verifyPreferredDefinitionRoots();
   await verifyFlatCallOccurrences();
+  await verifyMemberCallerScope();
   await vscode.window.showTextDocument(document);
   editor.selection = new vscode.Selection(position, position);
 
@@ -350,6 +351,7 @@ interface CallOccurrenceProbe {
   canonical: boolean;
   expandable: boolean;
   previewMode?: string;
+  memberScope?: "same-variable" | "unresolved-variable";
 }
 
 interface CallHierarchyProbe {
@@ -360,7 +362,12 @@ interface CallHierarchyProbe {
   incomingOccurrences: CallOccurrenceProbe[];
   outgoingOccurrences: CallOccurrenceProbe[];
   incomingDeclarations: LocationProbe[];
+  incomingScopeHeadings: string[];
   incomingNavigationLabels: string[];
+  session?: {
+    uri: string;
+    position: { line: number; character: number };
+  };
 }
 
 interface LocationProbe {
@@ -570,6 +577,68 @@ async function verifyFlatCallOccurrences(): Promise<void> {
   assert.deepEqual(outgoing.map((item) => item.line), addCalls);
   assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);
   assert.ok(outgoing.every((item) => item.previewMode === "callee-call-site"));
+}
+
+async function verifyMemberCallerScope(): Promise<void> {
+  const workspace = vscode.workspace.workspaceFolders?.[0]?.uri ??
+    assert.fail("The C++ fixture workspace was not opened");
+  const uri = vscode.Uri.joinPath(workspace, "src", "call_sites.c");
+  const document = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(document);
+  const selectedAccesses = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).filter(({ text }) => text.includes("selected->value"));
+  const otherAccess = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).find(({ text }) => text.includes("other->value"));
+  const unresolvedAccess = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).find(({ text }) => text.includes("member_factory()->value"));
+  assert.equal(selectedAccesses.length, 2);
+  assert.ok(otherAccess);
+  assert.ok(unresolvedAccess);
+  const character = selectedAccesses[0].text.indexOf("value") + 1;
+  const position = new vscode.Position(selectedAccesses[0].line, character);
+  editor.selection = new vscode.Selection(position, position);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+
+  const state = await waitFor(async () => {
+    const value = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
+    const same = direct.filter((item) => item.memberScope === "same-variable");
+    const unresolved = direct.filter(
+      (item) => item.memberScope === "unresolved-variable",
+    );
+    return value.incomingRoots.includes("value") &&
+      same.length === 2 &&
+      unresolved.length === 1
+      ? value
+      : undefined;
+  }, "Member callers did not prioritize the selected variable");
+  const direct = state.incomingOccurrences.filter((item) => item.depth === 1);
+  assert.deepEqual(
+    direct
+      .filter((item) => item.memberScope === "same-variable")
+      .map((item) => item.line),
+    selectedAccesses.map((item) => item.line),
+  );
+  assert.deepEqual(
+    direct
+      .filter((item) => item.memberScope === "unresolved-variable")
+      .map((item) => item.line),
+    [unresolvedAccess.line],
+  );
+  assert.ok(!direct.some((item) => item.line === otherAccess.line));
+  assert.equal(state.incomingScopeHeadings.length, 2);
+  assert.match(state.incomingScopeHeadings[0], /Selected variable/);
+  assert.match(state.incomingScopeHeadings[1], /could not be determined/);
+  assert.equal(state.session?.uri, uri.toString());
+  assert.equal(state.session?.position.line, selectedAccesses[0].line);
 }
 
 async function waitForCallOccurrences(

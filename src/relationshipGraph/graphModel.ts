@@ -233,7 +233,10 @@ export function renderGraphMermaid(
     const from = ids.get(edge.from);
     const to = ids.get(edge.to);
     if (from && to) {
-      lines.push(`  ${from} -->|${edge.relation}| ${to}`);
+      const states = edge.states.length > 0
+        ? ` [${edge.states.join(", ")}]`
+        : "";
+      lines.push(`  ${from} -->|${edge.relation}${states}| ${to}`);
     }
   }
   return lines.join("\n");
@@ -256,8 +259,11 @@ export function renderGraphText(
   }
   lines.push("", "Relations:");
   for (const edge of snapshot.edges) {
+    const states = edge.states.length > 0
+      ? ` [${edge.states.join(", ")}]`
+      : "";
     lines.push(
-      `- ${formatTextNode(nodes.get(edge.from))} --${edge.relation}--> ${formatTextNode(nodes.get(edge.to))}`,
+      `- ${formatTextNode(nodes.get(edge.from))} --${edge.relation}${states}--> ${formatTextNode(nodes.get(edge.to))}`,
     );
   }
   if (snapshot.staleReason) {

@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.12`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, and icon-only primary view-title actions. It also establishes the public GitHub repository contract, automated quality/release workflows, dependency auditing, generated third-party notices, explicit real-workspace test paths, and repository-wide prose-format enforcement. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
+The maintained code and documentation baseline is `0.22.13`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, selected-variable scoping for direct member-field callers, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, and icon-only primary view-title actions. It also establishes the public GitHub repository contract, automated quality/release workflows, dependency auditing, generated third-party notices, explicit real-workspace test paths, and repository-wide prose-format enforcement. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 
@@ -43,6 +43,10 @@ Every ordinary source-location tree result now uses immediate single-activation 
 Callers and Callees project every returned call site directly under the semantic parent in source order. Only the earliest occurrence of a semantic relation is expandable, so repeated calls remain navigable without duplicating deeper queries. New roots expand one visible direction to depth one by default, and Symbol Search uses a persistent top input.
 
 Code Preview and both call roots prefer an implementation distinct from the declaration without mutating the opaque Provider hierarchy item. Expanding a Caller semantic node lazily prepends its independent declarations, then lists incoming call sites. Supplemental declarations remain searchable and navigable but are excluded from semantic depth, node budgets, paths, sessions, and exports. The former non-expandable per-caller definition leaves and their background work have been removed.
+
+### Selected-variable member Callers (`0.22.13`)
+
+Field and property Callers opened through a simple named base now scope direct accesses to the selected variable declaration. Same-variable results lead the tree, other identifiable variables are omitted, and complex or unresolved bases remain visible after an explicit divider. clangd and Microsoft modes share the classification; the Microsoft adapter synthesizes a References-based field root when the public Call Hierarchy Provider returns none. Call Relationship Graph edges, graph-session restoration, and semantic exports retain selected-versus-unresolved evidence. Alias and points-to analysis remain deferred.
 
 ## Deferred fourth phase
 
