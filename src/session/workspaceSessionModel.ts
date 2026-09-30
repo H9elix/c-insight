@@ -394,7 +394,19 @@ function isMemberCallerScope(value: unknown): value is MemberCallerScope {
         typeof value.anchor.name === "string" &&
         value.anchor.name.length <= 1_024 &&
         isRange(value.anchor.range) &&
-        (value.anchor.operator === "." || value.anchor.operator === "->")))
+        (value.anchor.operator === "." || value.anchor.operator === "->") &&
+        (value.anchor.path === undefined ||
+          (Array.isArray(value.anchor.path) &&
+            value.anchor.path.length > 0 &&
+            value.anchor.path.length <= 64 &&
+            value.anchor.path.every(
+              (segment) =>
+                isRecord(segment) &&
+                typeof segment.name === "string" &&
+                segment.name.length > 0 &&
+                segment.name.length <= 1_024 &&
+                (segment.operator === "." || segment.operator === "->"),
+            )))))
   );
 }
 

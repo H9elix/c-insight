@@ -351,7 +351,7 @@ interface CallOccurrenceProbe {
   canonical: boolean;
   expandable: boolean;
   previewMode?: string;
-  memberScope?: "same-variable" | "unresolved-variable";
+  memberScope?: "same-variable" | "other-variable" | "unresolved-variable";
 }
 
 interface CallHierarchyProbe {
@@ -611,11 +611,13 @@ async function verifyMemberCallerScope(): Promise<void> {
     );
     const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
     const same = direct.filter((item) => item.memberScope === "same-variable");
+    const other = direct.filter((item) => item.memberScope === "other-variable");
     const unresolved = direct.filter(
       (item) => item.memberScope === "unresolved-variable",
     );
     return value.incomingRoots.includes("value") &&
       same.length === 2 &&
+      other.length === 1 &&
       unresolved.length === 1
       ? value
       : undefined;
@@ -633,12 +635,70 @@ async function verifyMemberCallerScope(): Promise<void> {
       .map((item) => item.line),
     [unresolvedAccess.line],
   );
-  assert.ok(!direct.some((item) => item.line === otherAccess.line));
-  assert.equal(state.incomingScopeHeadings.length, 2);
+  assert.deepEqual(
+    direct
+      .filter((item) => item.memberScope === "other-variable")
+      .map((item) => item.line),
+    [otherAccess.line],
+  );
+  assert.equal(state.incomingScopeHeadings.length, 3);
   assert.match(state.incomingScopeHeadings[0], /Selected variable/);
-  assert.match(state.incomingScopeHeadings[1], /could not be determined/);
+  assert.match(state.incomingScopeHeadings[1], /Other variables/);
+  assert.match(state.incomingScopeHeadings[2], /could not be determined/);
   assert.equal(state.session?.uri, uri.toString());
   assert.equal(state.session?.position.line, selectedAccesses[0].line);
+
+  const selectedNested = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).filter(({ text }) => text.includes("selected->leaf->rate"));
+  const otherNested = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).find(({ text }) => text.includes("other->leaf->rate"));
+  const unresolvedNested = Array.from(
+    { length: document.lineCount },
+    (_, line) => ({ line, text: document.lineAt(line).text }),
+  ).find(({ text }) => text.includes("member_factory()->leaf->rate"));
+  assert.equal(selectedNested.length, 2);
+  assert.ok(otherNested);
+  assert.ok(unresolvedNested);
+  const nestedPosition = new vscode.Position(
+    selectedNested[0].line,
+    selectedNested[0].text.indexOf("rate") + 1,
+  );
+  editor.selection = new vscode.Selection(nestedPosition, nestedPosition);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  const nestedState = await waitFor(async () => {
+    const value = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
+    return value.incomingRoots.includes("rate") &&
+      direct.filter((item) => item.memberScope === "same-variable").length === 2 &&
+      direct.filter((item) => item.memberScope === "other-variable").length === 1 &&
+      direct.filter((item) => item.memberScope === "unresolved-variable").length === 1
+      ? value
+      : undefined;
+  }, "Nested member callers did not preserve the complete access chain");
+  const nestedDirect = nestedState.incomingOccurrences.filter(
+    (item) => item.depth === 1,
+  );
+  assert.deepEqual(
+    nestedDirect
+      .filter((item) => item.memberScope === "same-variable")
+      .map((item) => item.line),
+    selectedNested.map((item) => item.line),
+  );
+  assert.ok(nestedDirect.some(
+    (item) =>
+      item.line === otherNested.line && item.memberScope === "other-variable",
+  ));
+  assert.ok(nestedDirect.some(
+    (item) =>
+      item.line === unresolvedNested.line &&
+      item.memberScope === "unresolved-variable",
+  ));
 }
 
 async function waitForCallOccurrences(

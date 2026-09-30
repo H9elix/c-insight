@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.22.14
+
+- Restored Source Insight-style complete Field/Property Callers results while keeping accesses through the selected variable and full member path first, followed by other variables or paths and then unresolved complex expressions.
+- Recognized complete simple member chains such as `st->codecpar->sample_rate`, so selected-instance evidence is anchored at `st` instead of abandoning the nested access as unresolved.
+- Replaced candidate `openTextDocument` scanning with unsaved-buffer-aware, direct workspace file reads, eliminating the associated clangd `didOpen`, AST, preamble, diagnostics, and semantic-token work.
+- Reused one base-variable References result for exact classification and limited Definition fallback to 16 candidates only when References is unavailable, preventing the previous per-candidate Definition storm.
+- Extended Callers, Call Relationship Graph, restored graph sessions, and Text/JSON/Mermaid evidence with an explicit other-variable-access state, plus nested-chain and dual-engine regression coverage.
+
 ## 0.22.13
 
 - Scoped Field/Property Callers opened from a simple base expression such as `st->codecpar` to the selected variable declaration, listing same-variable accesses first, excluding other identifiable variables, and retaining complex or unresolvable bases under a separate warning group.

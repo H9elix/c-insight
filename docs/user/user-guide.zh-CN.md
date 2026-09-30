@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.13`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.14`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -359,9 +359,9 @@ Change 引用（Reference） Scope 提供：
 
 例如 `report` 在 `add` 中调用两次、在 `main` 中调用三次时，展开 `report` 会先显示 `report` 的独立声明（若存在），再直接得到两个 `add` 和三个 `main` 调用点。不会再为 `add` 和 `main` 追加不可展开的定义叶节点。继续展开规范 `add` 调用点时，才会在这一层最前面显示 `add` 自身的独立声明，然后查询调用 `add` 的函数。声明和调用点均遵循单击预览、双击打开。
 
-当光标位于 `st->codecpar`、`(st)->codecpar` 或 `object.member` 这类通过简单变量直接访问的字段（Field）或属性（Property）时，调用者会追踪所选基变量的声明。通过同一变量产生的直接访问显示在“当前变量（Selected variable）”分组中；通过其他可识别变量访问同名成员的位置会被排除；`get_stream()->codecpar`、数组基表达式、强制转换和链式成员等无法可靠归属到简单变量的表达式，则保留在后面的“无法确定变量实例（Variable instance could not be determined）”分组中。两个分组之间有明确的状态分隔行。
+当光标位于 `st->codecpar`、`st->codecpar->sample_rate`、`(st)->codecpar` 或 `object.member` 这类以简单变量为根的字段（Field）或属性（Property）访问链时，调用者会追踪根变量的声明并保留完整成员路径。提供程序（Provider）返回的全部语义访问都继续显示：根变量和完整路径均匹配的结果位于“当前变量（Selected variable）”分组；能够确认来自其他变量或其他成员路径的结果位于“其他变量或成员路径（Other variables or member paths）”分组；函数返回值、数组基表达式、强制转换、别名和其他无法可靠判断的表达式位于最后的“无法确定变量实例（Variable instance could not be determined）”分组。三个分组之间有明确的状态分隔行。
 
-该行为是保守的直接访问分类，不执行别名或指针指向分析。例如 `alias = st; alias->codecpar` 不会被推断为 `st` 的访问。调用关系图（Call Relationship Graph）的边状态、关系图会话恢复以及 Text/JSON/Mermaid 导出保留同一分类。Microsoft 模式下，如果 cpptools 没有为字段返回调用层次（Call Hierarchy）根，C Insight 会从定义（Definition）构造“基于引用的成员（References-based member）”根并使用安全的基于引用路径，随后仍应用相同的变量实例筛选。
+候选文件未在编辑器中打开时，C Insight 直接读取源码，不再通过 VS Code 打开文档，因此不会为成员实例分类额外触发 clangd 的 `didOpen`、AST、预编译头（preamble）、诊断和语义着色。分类复用根变量的一次引用（References）查询；只有该查询不可用时，才对最多 16 个候选使用定义（Definition）回退。该行为仍是保守的直接访问分类，不执行别名或指针指向分析。例如 `alias = st; alias->codecpar` 会保留在无法确认分组，而不会被推断为 `st` 的访问。调用关系图（Call Relationship Graph）的边状态、关系图会话恢复以及 Text/JSON/Mermaid 导出保留同一分类。Microsoft 模式下，如果 cpptools 没有为字段返回调用层次（Call Hierarchy）根，C Insight 会从定义构造“基于引用的成员（References-based member）”根并使用安全的基于引用路径，随后应用相同的完整结果分组。
 
 默认情况下，新调用者根会自动展开一层，因此调用者窗口可见时会直接显示第一层调用点。只有当前可见的调用方向会自动查询；被调用者窗口隐藏时不会因为调用者展开而附带查询被调用者。将 `cInsight.callHierarchy.defaultDepth` 设为 `0` 可恢复为只显示折叠根节点。
 

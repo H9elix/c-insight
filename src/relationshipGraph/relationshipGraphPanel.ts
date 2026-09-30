@@ -696,6 +696,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
               states: ["selected-variable-access"],
             },
             {
+              calls: result.memberScope.otherVariable,
+              states: ["other-variable-access"],
+            },
+            {
               calls: result.memberScope.unresolvedVariable,
               states: ["unresolved-variable-access"],
             },
@@ -2358,6 +2362,7 @@ function graphHtml(): string {
     include: vscode.l10n.t("Include"),
     definition: vscode.l10n.t("Definition"),
     selectedVariable: vscode.l10n.t("Selected variable access"),
+    otherVariable: vscode.l10n.t("Other variable access"),
     unresolvedVariable: vscode.l10n.t("Unresolved variable access"),
     waiting: vscode.l10n.t("Waiting for graph…"),
     aria: vscode.l10n.t("C Insight Relationship Graph"),
@@ -2387,12 +2392,14 @@ function graphHtml(): string {
     .legend-includes { color: var(--vscode-charts-green); border-top-style: dotted; }
     .legend-defines { color: var(--vscode-charts-orange); border-top-style: double; }
     .legend-selected-variable { color: var(--vscode-charts-blue); border-top-width: 3px; }
+    .legend-other-variable { color: var(--vscode-descriptionForeground); }
     .legend-unresolved-variable { color: var(--vscode-editorWarning-foreground); border-top-style: dashed; }
     #canvas { width: 100%; height: calc(100% - 36px); touch-action: none; cursor: grab; }
     #canvas.dragging { cursor: grabbing; }
     .edge { stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
     .edge.calls { stroke: var(--vscode-charts-blue); }
     .edge.selected-variable-access { stroke-width: 2.6; }
+    .edge.other-variable-access { stroke: var(--vscode-descriptionForeground); }
     .edge.unresolved-variable-access { stroke: var(--vscode-editorWarning-foreground); stroke-dasharray: 5 4; }
     .edge.inherits { stroke: var(--vscode-charts-purple); stroke-dasharray: 8 4; }
     .edge.includes { stroke: var(--vscode-charts-green); stroke-dasharray: 2 4; }
@@ -2425,7 +2432,7 @@ function graphHtml(): string {
     <button class="relation active" data-relation="inherits">${labels.inheritance}</button>
     <button class="relation active" data-relation="includes">${labels.include}</button>
     <button class="relation active" data-relation="defines">${labels.definition}</button>
-    <span id="legend"><span><i class="legend-line legend-call"></i>${labels.call}</span><span><i class="legend-line legend-selected-variable"></i>${labels.selectedVariable}</span><span><i class="legend-line legend-unresolved-variable"></i>${labels.unresolvedVariable}</span><span><i class="legend-line legend-inherits"></i>${labels.inheritance}</span><span><i class="legend-line legend-includes"></i>${labels.include}</span><span><i class="legend-line legend-defines"></i>${labels.definition}</span></span>
+    <span id="legend"><span><i class="legend-line legend-call"></i>${labels.call}</span><span><i class="legend-line legend-selected-variable"></i>${labels.selectedVariable}</span><span><i class="legend-line legend-other-variable"></i>${labels.otherVariable}</span><span><i class="legend-line legend-unresolved-variable"></i>${labels.unresolvedVariable}</span><span><i class="legend-line legend-inherits"></i>${labels.inheritance}</span><span><i class="legend-line legend-includes"></i>${labels.include}</span><span><i class="legend-line legend-defines"></i>${labels.definition}</span></span>
     <span id="status" role="status" aria-live="polite">${labels.waiting}</span>
   </div>
   <svg id="canvas" role="application" aria-label="${labels.aria}">
@@ -2486,7 +2493,7 @@ function graphHtml(): string {
         const from = positions.get(edge.from), to = positions.get(edge.to);
         if (!from || !to) return;
         const recursive = edge.states?.some(state => state.includes('recursion') || state.includes('cycle'));
-        const memberScopeClass = edge.states?.includes('selected-variable-access') ? ' selected-variable-access' : edge.states?.includes('unresolved-variable-access') ? ' unresolved-variable-access' : '';
+        const memberScopeClass = edge.states?.includes('selected-variable-access') ? ' selected-variable-access' : edge.states?.includes('other-variable-access') ? ' other-variable-access' : edge.states?.includes('unresolved-variable-access') ? ' unresolved-variable-access' : '';
         path.setAttribute('class', 'edge ' + edge.relation + memberScopeClass + (recursive ? ' recursive' : ''));
         path.setAttribute('d', 'M' + (from.x + 190) + ',' + (from.y + 40) + ' L' + to.x + ',' + (to.y + 40));
         let tooltip = path.querySelector('title');
