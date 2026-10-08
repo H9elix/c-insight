@@ -63,6 +63,7 @@ AnalysisService（调度、计时、统一结果）
 | `THIRD_PARTY_NOTICES.md` | 从生产依赖树生成并由质量门检查的第三方许可证声明。 |
 | `LICENSE` | MIT 许可证。 |
 | `.github/` | GitHub Actions、Dependabot、Issue 表单和 Pull Request 模板。 |
+| `docs/releases/v<version>.md` | 与 GitHub Release 正文一致的版本化中英双语发布说明；版本提升时必须同步新增。 |
 | `.gitattributes` | 跨平台文本换行和二进制文件规则。 |
 | `media/c-insight.svg` | Activity Bar 容器图标。 |
 
@@ -329,7 +330,7 @@ npm run check
 npm audit --audit-level=low
 ```
 
-`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接、第三方声明漂移检查和生产构建，是每次提交前的最低门槛。`npm audit --audit-level=low` 需要访问 npm 公告服务，因此由开发者和 GitHub CI 独立执行。涉及性能或真实引擎时追加：
+`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接、当前版本发布说明契约、第三方声明漂移检查和生产构建，是每次提交前的最低门槛。`npm run release:notes:check` 可以单独验证 `docs/releases/v<version>.md` 是否与 `package.json` 一致、包含中英文及安装校验章节并且没有未完成占位符。`npm audit --audit-level=low` 需要访问 npm 公告服务，因此由开发者和 GitHub CI 独立执行。涉及性能或真实引擎时追加：
 
 ```bash
 npm run benchmark
@@ -348,7 +349,7 @@ npm run package
 
 该命令会再次执行完整 `check`，然后生成 `c-insight-<version>.vsix`。
 
-公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门；`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 `v*` Tag，重新审计、打包、生成 `SHA256SUMS` 并创建 GitHub Release。首次或手动发布不得提交 VSIX 到 Git，而应把 VSIX 与校验和作为 Release 附件。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
+公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
 
 真实 FFmpeg 验收没有个人机器默认路径：运行 clangd 验收前必须设置 `C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg`，运行 Microsoft E2E 前必须设置 `C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg`。这两个命令都只在显式请求真实工程验收时运行，不属于普通 PR 的默认门槛。
 
@@ -404,6 +405,6 @@ npm run package
 - 延期或完成计划项：更新 `docs/planning/roadmap.md`，删除已经过时的备忘描述。
 - 性能门槛变化：更新 `docs/validation/performance-baseline.zh-CN.md`。
 - 引擎能力或验收变化：更新对应 Microsoft/第三阶段验收文档。
-- 每次发布同步提升 `package.json` 与 `package-lock.json` 版本，并重新打包 VSIX。
+- 每次发布同步提升 `package.json` 与 `package-lock.json` 版本，新增 `docs/releases/v<version>.md` 中英双语说明，并重新打包 VSIX。
 - 根目录维护文档与 `docs/` 正文不得使用仅为排版产生的硬换行；运行 `npm run docs:prose` 修复，质量门会阻止回退。
 - 生产依赖变化后运行 `npm run third-party:generate`，不要手工编辑生成的 `THIRD_PARTY_NOTICES.md`。

@@ -88,4 +88,4 @@ C Insight does not start clangd in an untrusted workspace. It launches the proce
 
 ## Architecture safeguards
 
-Packaging runs lint, unit/integration tests, localization drift checks, generated identifier drift checks, and a command-wiring audit. The audit requires every manifest-contributed command to have exactly one runtime registration site, preventing silent menu failures or duplicate handlers during future module splits.
+Packaging runs lint, unit/integration tests, localization drift checks, generated identifier drift checks, the versioned bilingual Release Notes contract, and a command-wiring audit. The Release Notes gate requires `docs/releases/v<package version>.md`, its Chinese, English, and installation/verification sections, a matching comparison link, and no unfinished placeholders. The tag workflow rechecks that contract and publishes the file directly instead of generating generic notes. The command audit requires every manifest-contributed command to have exactly one runtime registration site, preventing silent menu failures or duplicate handlers during future module splits.

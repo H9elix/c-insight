@@ -40,6 +40,9 @@ jobs:
       - name: Verify tag matches the extension version
         run: node -e 'const version=require("./package.json").version; if (process.env.GITHUB_REF_NAME !== `v${version}`) throw new Error(`Tag ${process.env.GITHUB_REF_NAME} does not match package version ${version}`)'
 
+      - name: Verify curated release notes
+        run: npm run release:notes:check
+
       - name: Audit and package
         run: |
           npm audit --audit-level=low
@@ -49,4 +52,11 @@ jobs:
         run: sha256sum "c-insight-${GITHUB_REF_NAME#v}.vsix" > SHA256SUMS
 
       - name: Publish GitHub Release
-        run: gh release create "$GITHUB_REF_NAME" "c-insight-${GITHUB_REF_NAME#v}.vsix" SHA256SUMS --verify-tag --generate-notes --title "C Insight ${GITHUB_REF_NAME#v}"
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "c-insight-${GITHUB_REF_NAME#v}.vsix" \
+            SHA256SUMS \
+            --verify-tag \
+            --fail-on-no-commits \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md" \
+            --title "C Insight ${GITHUB_REF_NAME#v}"
