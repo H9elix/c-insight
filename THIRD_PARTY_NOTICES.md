@@ -6,7 +6,7 @@ This file is generated from the production dependency tree by `npm run third-par
 | --- | --- |
 | `balanced-match@4.0.4` | MIT |
 | `brace-expansion@5.0.12` | MIT |
-| `minimatch@10.2.5` | BlueOak-1.0.0 |
+| `minimatch@10.2.6` | BlueOak-1.0.0 |
 | `semver@7.8.5` | ISC |
 | `vscode-jsonrpc@9.0.1` | MIT |
 | `vscode-languageclient@10.1.0` | MIT |
@@ -72,7 +72,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### minimatch@10.2.5
+### minimatch@10.2.6
 
 ```text
 # Blue Oak Model License
