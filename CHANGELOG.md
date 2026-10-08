@@ -8,6 +8,7 @@
 - Restored the `0.22.12` clangd performance path when classification is disabled: no member-chain parsing, root-variable References request, candidate source reads, or per-candidate Definition fallback is performed.
 - Kept the Microsoft C/C++ safe References-based field-root fallback in both modes while applying the three evidence groups only when classification is enabled.
 - Added clangd and Microsoft Extension Host coverage for both unclassified and classified modes, plus a static regression contract for the default clangd bypass.
+- Upgraded the release-only `@vscode/vsce` toolchain to 4.0.0 and refreshed transitive locks so the GitHub low-severity audit gate reports zero known vulnerabilities.
 
 ## 0.22.14
 
