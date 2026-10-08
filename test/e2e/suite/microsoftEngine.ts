@@ -93,6 +93,34 @@ async function verifyMemberCallerScope(workspace: vscode.Uri): Promise<void> {
     );
     return (references?.length ?? 0) >= 4 ? references : undefined;
   }, "Microsoft references for the member field did not become ready");
+  const memberConfiguration = vscode.workspace.getConfiguration(
+    "cInsight.callHierarchy",
+    uri,
+  );
+  assert.equal(memberConfiguration.get("classifyMemberCallers", false), false);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const value = await vscode.commands.executeCommand<{
+      incomingRoots: string[];
+      incomingOccurrences: Array<{
+        depth: number;
+        memberScope?: "same-variable" | "other-variable" | "unresolved-variable";
+      }>;
+      incomingScopeHeadings: string[];
+    }>("cInsight.test.callHierarchyState");
+    const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
+    return value.incomingRoots.includes("value") &&
+      direct.length === 4 &&
+      direct.every((item) => item.memberScope === undefined) &&
+      value.incomingScopeHeadings.length === 0
+      ? value
+      : undefined;
+  }, "Default Microsoft member callers did not preserve all raw references");
+  await memberConfiguration.update(
+    "classifyMemberCallers",
+    true,
+    vscode.ConfigurationTarget.Global,
+  );
   await vscode.commands.executeCommand("cInsight.showIncomingCalls");
   let lastState: {
     incomingRoots?: string[];
@@ -132,6 +160,11 @@ async function verifyMemberCallerScope(workspace: vscode.Uri): Promise<void> {
   ));
   assert.ok(direct.some((item) => item.line === unresolved.line));
   assert.equal(state.incomingScopeHeadings.length, 3);
+  await memberConfiguration.update(
+    "classifyMemberCallers",
+    false,
+    vscode.ConfigurationTarget.Global,
+  );
 }
 
 async function waitFor<T>(

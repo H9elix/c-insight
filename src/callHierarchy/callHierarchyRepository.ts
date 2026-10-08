@@ -79,7 +79,19 @@ export class CallHierarchyRepository {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<CallNode[]> {
-    return this.prepareWithMemberScope(uri, position, token);
+    const classifyMemberCallers = this.classifyMemberCallers();
+    if (
+      !classifyMemberCallers &&
+      this.analysis.analysisEngine !== "microsoft"
+    ) {
+      return this.analysis.prepareCallHierarchy(uri, position, token);
+    }
+    return this.prepareWithMemberScope(
+      uri,
+      position,
+      classifyMemberCallers,
+      token,
+    );
   }
 
   async incoming(
@@ -107,7 +119,7 @@ export class CallHierarchyRepository {
           ? this.referenceBasedIncoming(node, token)
           : this.analysis.incomingCalls(node, token)
       );
-      if (!node.memberCallerScope) {
+      if (!this.classifyMemberCallers() || !node.memberCallerScope) {
         return { calls };
       }
       const memberScope = await this.classifyMemberIncomingCalls(
@@ -219,13 +231,23 @@ export class CallHierarchyRepository {
       .get<"references" | "native" | "disabled">("callersMode", "references");
   }
 
+  private classifyMemberCallers(): boolean {
+    return vscode.workspace
+      .getConfiguration("cInsight.callHierarchy")
+      .get<boolean>("classifyMemberCallers", false);
+  }
+
   private async prepareWithMemberScope(
     uri: vscode.Uri,
     position: vscode.Position,
+    classifyMemberCallers: boolean,
     token?: vscode.CancellationToken,
   ): Promise<CallNode[]> {
     let roots = await this.analysis.prepareCallHierarchy(uri, position, token);
     if (token?.isCancellationRequested) return roots;
+    if (!classifyMemberCallers && roots.length > 0) {
+      return roots;
+    }
     let document: vscode.TextDocument;
     try {
       document = await vscode.workspace.openTextDocument(uri);
@@ -262,6 +284,9 @@ export class CallHierarchyRepository {
           syntheticMemberRoot: true,
         }];
       }
+    }
+    if (!classifyMemberCallers) {
+      return roots;
     }
     const memberRoots = roots.filter(
       (root) =>

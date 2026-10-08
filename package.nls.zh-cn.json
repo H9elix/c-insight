@@ -186,6 +186,7 @@
   "configuration.cInsight.symbolSearch.maximumResults.description": "每次查询显示的最大工作区符号结果数。",
   "configuration.cInsight.symbolSearch.debounce.description": "输入时发送工作区符号查询前的延迟（毫秒）。",
   "configuration.cInsight.callHierarchy.defaultDepth.description": "新根节点自动展开的调用层次深度。零表示保持根节点折叠。",
+  "configuration.cInsight.callHierarchy.classifyMemberCallers.description": "按所选根变量和完整成员路径对字段/属性的调用者进行分类。关闭时保留提供程序原始结果，并避免额外的引用和源码分类工作。",
   "configuration.cInsight.callHierarchy.maximumDepth.description": "手动或自动展开调用层次时允许的最大深度。",
   "configuration.cInsight.callHierarchy.maximumNodes.description": "调用者树或被调用者树各自创建的最大节点数。",
   "configuration.cInsight.callHierarchy.cacheSize.description": "传入/传出函数请求的最大缓存数量。",
