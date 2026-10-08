@@ -67,6 +67,11 @@ import { ViewLifecycle } from "./viewLifecycle";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
 import {
+  DocumentSymbolFocusCandidate,
+  documentSymbolAtLine,
+  visibleCenterLine,
+} from "../symbols/documentSymbolFocusModel";
+import {
   functionLocationSignature,
   independentDeclarationLocations,
   preferredFunctionLocation,
@@ -104,6 +109,16 @@ export class ViewRegistry implements vscode.Disposable {
     incoming: new Set<string>(),
     outgoing: new Set<string>(),
   };
+  private documentSymbolUri?: string;
+  private documentSymbolCandidates: Array<
+    DocumentSymbolFocusCandidate<TreeNode>
+  > = [];
+  private documentSymbolPresentation = new Map<
+    TreeNode,
+    { description?: string; iconId: string }
+  >();
+  private focusedDocumentSymbol?: TreeNode;
+  private documentSymbolFocusGeneration = 0;
 
   get navigationVisible(): boolean {
     return Object.values(this.navigationVisibility).some(Boolean);
@@ -530,9 +545,81 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   updateSymbols(uri: vscode.Uri, symbols: LspSymbol[]): void {
+    this.clearDocumentSymbolFocus(false);
+    this.documentSymbolUri = uri.toString();
+    this.documentSymbolCandidates = [];
+    this.documentSymbolPresentation = new Map();
+    const order = { value: 0 };
     this.symbols.setRoots(
-      symbols.map((symbol) => this.symbolNode(uri, symbol)),
+      symbols.map((symbol) => this.symbolNode(uri, symbol, 0, order)),
     );
+  }
+
+  clearSymbols(): void {
+    this.clearDocumentSymbolFocus(false);
+    this.documentSymbolUri = undefined;
+    this.documentSymbolCandidates = [];
+    this.documentSymbolPresentation.clear();
+    this.symbols.clear();
+  }
+
+  updateDocumentSymbolViewport(
+    uri: vscode.Uri | undefined,
+    visibleRanges: readonly vscode.Range[],
+    enabled: boolean,
+  ): void {
+    const centerLine = visibleCenterLine(
+      visibleRanges.map((range) => ({
+        startLine: range.start.line,
+        endLine: range.end.line,
+      })),
+    );
+    const next = enabled && uri?.toString() === this.documentSymbolUri &&
+        centerLine !== undefined
+      ? documentSymbolAtLine(this.documentSymbolCandidates, centerLine)
+      : undefined;
+    if (next === this.focusedDocumentSymbol) {
+      return;
+    }
+
+    this.clearDocumentSymbolFocus(true);
+    if (!next) {
+      return;
+    }
+    const presentation = this.documentSymbolPresentation.get(next);
+    if (!presentation) {
+      return;
+    }
+    this.focusedDocumentSymbol = next;
+    next.labelHighlights = [[0, next.label.length]];
+    next.description = presentation.description
+      ? `${presentation.description} · ${vscode.l10n.t("Viewport center")}`
+      : vscode.l10n.t("Viewport center");
+    next.icon = new vscode.ThemeIcon(
+      presentation.iconId,
+      new vscode.ThemeColor("list.highlightForeground"),
+    );
+    this.symbols.refresh(next);
+
+    const generation = ++this.documentSymbolFocusGeneration;
+    void Promise.resolve().then(async () => {
+      if (
+        generation !== this.documentSymbolFocusGeneration ||
+        this.focusedDocumentSymbol !== next ||
+        !this.isViewVisible(VIEWS.SYMBOLS)
+      ) {
+        return;
+      }
+      try {
+        await this.lifecycle.get(VIEWS.SYMBOLS)?.reveal(next, {
+          select: false,
+          focus: false,
+          expand: false,
+        });
+      } catch {
+        // A simultaneous symbol refresh can invalidate the node before reveal.
+      }
+    });
   }
 
   updateReliability(reliability: AnalysisReliability): void {
@@ -2057,35 +2144,98 @@ export class ViewRegistry implements vscode.Disposable {
     return node;
   }
 
-  private symbolNode(uri: vscode.Uri, symbol: LspSymbol): TreeNode {
+  private symbolNode(
+    uri: vscode.Uri,
+    symbol: LspSymbol,
+    depth: number,
+    order: { value: number },
+    parent?: TreeNode,
+  ): TreeNode {
     if ("location" in symbol) {
       const info = symbol as SymbolInformation;
       const location = this.analysis.toVsLocation(info.location);
-      return {
+      const iconId = symbolKindIconId(info.kind);
+      const node: TreeNode = {
+        id: documentSymbolId(location, info.kind, info.name, order.value++),
         label: info.name,
         description: info.containerName,
-        icon: new vscode.ThemeIcon(symbolKindIconId(info.kind)),
+        icon: new vscode.ThemeIcon(iconId),
         location,
         previewMode: "definition",
         previewTitle: info.name,
         contextValue: "documentSymbolLocation",
+        parent,
       };
+      this.trackDocumentSymbol(node, location.range, depth, iconId, order.value);
+      return node;
     }
     const document = symbol as DocumentSymbol;
     const location = {
       uri,
       range: this.analysis.toVsRange(document.selectionRange),
     };
-    return {
+    const iconId = symbolKindIconId(document.kind);
+    const node: TreeNode = {
+      id: documentSymbolId(location, document.kind, document.name, order.value++),
       label: document.name,
       description: document.detail,
-      icon: new vscode.ThemeIcon(symbolKindIconId(document.kind)),
+      icon: new vscode.ThemeIcon(iconId),
       location,
       previewMode: "definition",
       previewTitle: document.name,
       contextValue: "documentSymbolLocation",
-      children: document.children?.map((child) => this.symbolNode(uri, child)),
+      parent,
     };
+    this.trackDocumentSymbol(
+      node,
+      this.analysis.toVsRange(document.range),
+      depth,
+      iconId,
+      order.value,
+    );
+    node.children = document.children?.map((child) =>
+      this.symbolNode(uri, child, depth + 1, order, node));
+    return node;
+  }
+
+  private trackDocumentSymbol(
+    node: TreeNode,
+    range: vscode.Range,
+    depth: number,
+    iconId: string,
+    order: number,
+  ): void {
+    this.documentSymbolCandidates.push({
+      value: node,
+      range: {
+        startLine: range.start.line,
+        endLine: range.end.line,
+      },
+      depth,
+      order,
+    });
+    this.documentSymbolPresentation.set(node, {
+      description: node.description,
+      iconId,
+    });
+  }
+
+  private clearDocumentSymbolFocus(refresh: boolean): void {
+    this.documentSymbolFocusGeneration += 1;
+    const previous = this.focusedDocumentSymbol;
+    this.focusedDocumentSymbol = undefined;
+    if (!previous) {
+      return;
+    }
+    const presentation = this.documentSymbolPresentation.get(previous);
+    previous.labelHighlights = undefined;
+    if (presentation) {
+      previous.description = presentation.description;
+      previous.icon = new vscode.ThemeIcon(presentation.iconId);
+    }
+    if (refresh) {
+      this.symbols.refresh(previous);
+    }
   }
 
   private async enrichCallOccurrenceNode(node: TreeNode): Promise<void> {
@@ -2287,6 +2437,24 @@ function hasPathOrDescendant(paths: Set<string>, candidate: string): boolean {
     }
   }
   return false;
+}
+
+function documentSymbolId(
+  location: LocationResult,
+  kind: number,
+  name: string,
+  order: number,
+): string {
+  const start = location.range.start;
+  return [
+    "document-symbol",
+    location.uri.toString(),
+    start.line,
+    start.character,
+    kind,
+    name,
+    order,
+  ].join(":");
 }
 
 function limitNode(label: string): TreeNode {

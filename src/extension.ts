@@ -16,7 +16,10 @@ import { ClangdLogOutputChannel } from "./clangd/clangdLog";
 import { BookmarkExplorer } from "./bookmarks/bookmarkExplorer";
 import { CallHierarchyRepository } from "./callHierarchy/callHierarchyRepository";
 import { registerCommands } from "./commands/registerCommands";
-import { isCppDocument } from "./configuration/configuration";
+import {
+  isCppDocument,
+  readConfiguration,
+} from "./configuration/configuration";
 import { ContextController } from "./context/contextController";
 import { ProjectDiagnostics } from "./diagnostics/projectDiagnostics";
 import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
@@ -249,10 +252,13 @@ export async function activate(
     "**/compile_commands.json",
   );
   let documentSymbolsTimer: NodeJS.Timeout | undefined;
+  let documentSymbolViewportTimer: NodeJS.Timeout | undefined;
   let compilationDatabaseTimer: NodeJS.Timeout | undefined;
   let providerConflictTimer: NodeJS.Timeout | undefined;
   let indexWasRunning = false;
   let documentSymbolsGeneration = 0;
+  let documentSymbolsFollowEditorCenter =
+    readConfiguration().documentSymbolsFollowEditorCenter;
   const providerConflictPromptState: ProviderConflictPromptState = {
     inFlight: false,
     warned: new Set<string>(),
@@ -299,6 +305,26 @@ export async function activate(
         views,
         output,
         () => generation === documentSymbolsGeneration,
+      );
+    }, delay);
+  };
+  const scheduleDocumentSymbolViewport = (
+    editor: vscode.TextEditor | undefined,
+    delay = 75,
+  ): void => {
+    if (documentSymbolViewportTimer) {
+      clearTimeout(documentSymbolViewportTimer);
+    }
+    if (!views.isViewVisible(VIEWS.SYMBOLS)) {
+      documentSymbolViewportTimer = undefined;
+      return;
+    }
+    documentSymbolViewportTimer = setTimeout(() => {
+      documentSymbolViewportTimer = undefined;
+      views.updateDocumentSymbolViewport(
+        editor?.document.uri,
+        editor?.visibleRanges ?? [],
+        documentSymbolsFollowEditorCenter,
       );
     }, delay);
   };
@@ -661,8 +687,14 @@ export async function activate(
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       scheduleDocumentSymbols(editor, 0);
+      scheduleDocumentSymbolViewport(editor, 0);
       scheduleProviderConflictCheck(editor);
       void projectDiagnostics.refresh(editor);
+    }),
+    vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+      if (event.textEditor === vscode.window.activeTextEditor) {
+        scheduleDocumentSymbolViewport(event.textEditor);
+      }
     }),
     views.onDidChangeNavigationVisibility((id) => {
       if (
@@ -670,6 +702,7 @@ export async function activate(
         views.isViewVisible(VIEWS.SYMBOLS)
       ) {
         scheduleDocumentSymbols(vscode.window.activeTextEditor, 0);
+        scheduleDocumentSymbolViewport(vscode.window.activeTextEditor, 0);
       }
     }),
     vscode.languages.onDidChangeDiagnostics(() => {
@@ -711,6 +744,9 @@ export async function activate(
       if (documentSymbolsTimer) {
         clearTimeout(documentSymbolsTimer);
       }
+      if (documentSymbolViewportTimer) {
+        clearTimeout(documentSymbolViewportTimer);
+      }
       if (compilationDatabaseTimer) {
         clearTimeout(compilationDatabaseTimer);
       }
@@ -732,6 +768,15 @@ export async function activate(
       }
       if (event.affectsConfiguration("cInsight.codePreview")) {
         views.preview.refresh();
+      }
+      if (
+        event.affectsConfiguration(
+          "cInsight.documentSymbols.followEditorCenter",
+        )
+      ) {
+        documentSymbolsFollowEditorCenter =
+          readConfiguration().documentSymbolsFollowEditorCenter;
+        scheduleDocumentSymbolViewport(vscode.window.activeTextEditor, 0);
       }
       if (
         event.affectsConfiguration(
@@ -948,7 +993,7 @@ async function updateDocumentSymbols(
   }
   if (!editor || !isCppDocument(editor.document)) {
     if (isCurrent()) {
-      views.symbols.clear();
+      views.clearSymbols();
     }
     return;
   }
@@ -956,6 +1001,11 @@ async function updateDocumentSymbols(
     const symbols = await analysis.documentSymbols(editor.document.uri);
     if (isCurrent()) {
       views.updateSymbols(editor.document.uri, symbols);
+      views.updateDocumentSymbolViewport(
+        editor.document.uri,
+        editor.visibleRanges,
+        readConfiguration().documentSymbolsFollowEditorCenter,
+      );
     }
   } catch (error) {
     if (isCurrent()) {

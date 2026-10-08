@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.15` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.16` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -137,6 +137,8 @@ AnalysisService（调度、计时、统一结果）
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
 
+文档符号的视口中心跟随由 `extension.ts` 监听活动编辑器可见范围并进行 75 ms 防抖，`documentSymbolFocusModel.ts` 以纯函数计算中心行和最深层包含符号，`ViewRegistry` 保存当前树的范围索引、恢复节点原始展示并调用 `TreeView.reveal`。该路径只能使用已加载的文档符号，不得从滚动事件调用 `AnalysisService`；窗口隐藏时必须停止调度。新增或修改跟随规则时，应同时补充 `documentSymbolFocusModel.test.ts` 的范围边界测试和 `documentSymbolFocusWiring.test.ts` 的配置、监听及非抢焦点契约。
+
 Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点身份。所有源码内容进入 HTML 前必须转义。
 
 ### 4.6 调用层次（Call Hierarchy） `src/callHierarchy`
@@ -200,6 +202,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `symbols/symbolSearchExplorer.ts` | 符号搜索（Symbol Search）的 Webview View 提供程序、防抖查询、generation、分组/过滤、统一导航和会话状态；文件读取与命令执行仍由扩展宿主持有。 |
 | `symbols/symbolSearchWebview.ts` | 顶部常驻搜索框、独立滚动结果区、严格 CSP、HTML 属性转义及入站消息白名单；动态符号文字仅通过 DOM `textContent` 写入。 |
 | `symbols/symbolPresentation.ts` | 文档/工作区符号（Document/Workspace Symbols）的“大纲”（Outline）风格 ThemeIcon 映射。 |
+| `symbols/documentSymbolFocusModel.ts` | 文档符号视口中心行计算，以及按层级、范围宽度和提供程序顺序选择包含符号的纯算法。 |
 
 ### 4.11 会话 `src/session`
 

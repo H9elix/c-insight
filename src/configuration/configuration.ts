@@ -12,6 +12,7 @@ export interface CInsightConfiguration {
   followCursor: boolean;
   followCursorDelay: number;
   followCursorDetailsDelay: number;
+  documentSymbolsFollowEditorCenter: boolean;
   navigationDoubleClickInterval: number;
   includeDeclarationInReferences: boolean;
   includeSystemReferences: boolean;
@@ -48,6 +49,10 @@ export function readConfiguration(): CInsightConfiguration {
     followCursorDetailsDelay: config.get<number>(
       "followCursorDetailsDelay",
       600,
+    ),
+    documentSymbolsFollowEditorCenter: config.get<boolean>(
+      "documentSymbols.followEditorCenter",
+      true,
     ),
     navigationDoubleClickInterval: config.get<number>(
       "navigation.doubleClickInterval",

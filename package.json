@@ -2,7 +2,7 @@
   "name": "c-insight",
   "displayName": "C Insight",
   "description": "%extension.description%",
-  "version": "0.22.15",
+  "version": "0.22.16",
   "publisher": "c-insight",
   "author": {
     "name": "you_jinchun"
@@ -1286,6 +1286,11 @@
           "minimum": 200,
           "maximum": 5000,
           "description": "%configuration.cInsight.followCursorDetailsDelay.description%"
+        },
+        "cInsight.documentSymbols.followEditorCenter": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.cInsight.documentSymbols.followEditorCenter.description%"
         },
         "cInsight.navigation.doubleClickInterval": {
           "type": "number",

@@ -136,6 +136,7 @@
   "configuration.cInsight.compileCommandsDir.description": "包含 compile_commands.json 的目录。留空时自动搜索工作区根目录及常见构建目录。",
   "configuration.cInsight.diagnostics.reportRedaction.description": "从复制或导出的工程诊断报告中移除文件系统路径，或同时移除路径、宏定义和回退编译参数。",
   "configuration.cInsight.followCursorDetailsDelay.description": "加载引用和首层调用者/被调用者数量前的额外空闲等待时间。",
+  "configuration.cInsight.documentSymbols.followEditorCenter.description": "高亮并显示包含活动编辑器可见区域中心行的最深层文档符号。",
   "configuration.cInsight.navigation.doubleClickInterval.description": "连续两次激活同一源码位置树结果并在编辑器中打开时允许的最大间隔（毫秒）。",
   "configuration.cInsight.codePreview.linesBefore.description": "代码预览目标之前显示的源码行数。",
   "configuration.cInsight.codePreview.linesAfter.description": "代码预览目标之后显示的源码行数。",
