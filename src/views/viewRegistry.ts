@@ -593,8 +593,8 @@ export class ViewRegistry implements vscode.Disposable {
     this.focusedDocumentSymbol = next;
     next.labelHighlights = [[0, next.label.length]];
     next.description = presentation.description
-      ? `${presentation.description} · ${vscode.l10n.t("Viewport center")}`
-      : vscode.l10n.t("Viewport center");
+      ? `${presentation.description} · ${vscode.l10n.t("Editor center")}`
+      : vscode.l10n.t("Editor center");
     next.icon = new vscode.ThemeIcon(
       presentation.iconId,
       new vscode.ThemeColor("list.highlightForeground"),

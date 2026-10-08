@@ -41,7 +41,7 @@
   "{count} callees": "{count} callees",
   "open Callees to query": "open Callees to query",
   "Line {line}": "Line {line}",
-  "Viewport center": "Viewport center",
+  "Editor center": "Editor center",
   "Expand Callers to Depth": "Expand Callers to Depth",
   "Expand Callees to Depth": "Expand Callees to Depth",
   "Enter a depth from 1 to {maximum}": "Enter a depth from 1 to {maximum}",
