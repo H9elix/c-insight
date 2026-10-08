@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.15`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.16`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 
@@ -575,6 +575,8 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 支持提供程序（Provider）返回的层级结构。单击符号名称会以定义（Definition）模式更新代码预览；双击在主编辑器中打开并定位。具有子项的节点仍可通过展开箭头展开。切换活动文件或修改当前文件后会重新查询。
 
+默认启用的 `cInsight.documentSymbols.followEditorCenter` 会观察活动编辑器的可见区域，并在文档符号中高亮包含视口中心行的最深层符号。命中节点追加“视口中心”说明，树会在不抢占编辑器焦点、不改变用户选择的情况下显示该节点；嵌套节点的祖先会按需展开。滚动事件经过短防抖后只匹配已经加载的符号范围，不会重复请求 clangd 或 Microsoft C/C++ language service (cpptools)，文档符号窗口隐藏时也不执行该匹配。关闭配置会立即移除标记并停止跟随。若提供程序只返回不带完整范围的平铺符号信息，只有其报告范围覆盖中心行时才能命中。
+
 命令 **Search 工作区符号（Workspace Symbols）** 会打开符号搜索（Symbol Search）的实时搜索选择器。
 
 ### 4.12 工程诊断（Project Diagnostics）
@@ -981,6 +983,7 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.followCursor` | boolean | `true` | `true` / `false` | 是否根据编辑器光标自动查询上下文（Context） |
 | `cInsight.followCursorDelay` | number | `200` | 50–2000 ms | 光标停稳后开始基础查询的延迟 |
 | `cInsight.followCursorDetailsDelay` | number | `600` | 200–5000 ms | 基础查询完成后，加载引用（References）和第一层调用数量前的额外空闲延迟 |
+| `cInsight.documentSymbols.followEditorCenter` | boolean | `true` | `true` / `false` | 是否高亮并显示包含活动编辑器可见区域中心行的最深层文档符号；只使用已加载符号，不增加语义查询 |
 | `cInsight.navigation.doubleClickInterval` | number | `500` | 150–2000 ms | 同一源码位置树结果连续两次激活时，被识别为双击并在编辑器中打开的最大间隔 |
 
 大型工程可适当提高两个延迟，减少快速移动光标时的无效 clangd 请求。

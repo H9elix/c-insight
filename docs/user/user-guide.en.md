@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.15`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.16`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -34,6 +34,8 @@ VS Code's public TreeView API does not expose a native double-click event, so C 
 
 Open **Settings** and search for `C Insight` to see every setting, accepted value, range, and default in the active display language. Stable configuration IDs begin with `cInsight.`. Important groups include:
 
+The `cInsight.documentSymbols.*` family controls Document Symbols presentation and viewport following.
+
 - `cInsight.engine`, `cInsight.clangd.*`, `cInsight.microsoft.*`, `cInsight.compileCommandsDir`, `cInsight.fallbackFlags`, and `cInsight.exclude`
 - `cInsight.codePreview.*`, `cInsight.analysis.*`, `cInsight.backgroundIndex.*`, `cInsight.diagnostics.*`, `cInsight.followCursor`, `cInsight.followCursorDelay`, `cInsight.followCursorDetailsDelay`, and `cInsight.navigation.*`
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
@@ -44,6 +46,8 @@ Open **Settings** and search for `C Insight` to see every setting, accepted valu
 All commands are available from the Command Palette under **C Insight**. Context menus and view title bars expose commands relevant to the current editor, view, or selected node.
 
 Primary view-title actions use compact VS Code Theme Icons. Hover an icon to see its localized command title; the Command Palette also retains the full title. Context, Code Preview, References, Callers, Callees, and Document Symbols share the Refresh icon, while Clear Bookmark Filter uses the clear-all icon. Text, JSON, and Mermaid exports remain textual in the `...` overflow menu.
+
+Document Symbols highlights and reveals the deepest loaded symbol containing the active editor viewport's center line. `cInsight.documentSymbols.followEditorCenter` defaults to `true`; disabling it immediately removes the marker. The debounced viewport update uses only loaded symbol ranges, does not issue another semantic-engine request, does no work while the view is hidden, and reveals without taking editor focus or changing the user's tree selection. A flat Provider result without full symbol ranges can be highlighted only where its reported range covers the center line.
 
 ## Diagnostics and privacy
 

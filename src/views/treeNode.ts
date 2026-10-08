@@ -12,6 +12,7 @@ import {
 export interface TreeNode {
   id?: string;
   label: string;
+  labelHighlights?: Array<[number, number]>;
   description?: string;
   tooltip?: string | vscode.MarkdownString;
   icon?: vscode.ThemeIcon;
@@ -98,7 +99,9 @@ export class MutableTreeProvider
 
   getTreeItem(node: TreeNode): vscode.TreeItem {
     const item = new vscode.TreeItem(
-      node.label,
+      node.labelHighlights
+        ? { label: node.label, highlights: node.labelHighlights }
+        : node.label,
       node.collapsibleState ??
         (node.children || node.loadChildren
           ? vscode.TreeItemCollapsibleState.Collapsed
