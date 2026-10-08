@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.14`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, complete member-field caller results with selected-variable prioritization and bounded lightweight classification, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, and icon-only primary view-title actions. It also establishes the public GitHub repository contract, automated quality/release workflows, dependency auditing, generated third-party notices, explicit real-workspace test paths, and repository-wide prose-format enforcement. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
+The maintained code and documentation baseline is `0.22.15`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, complete member-field caller results with optional selected-variable classification, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, and icon-only primary view-title actions. It also establishes the public GitHub repository contract, automated quality/release workflows, dependency auditing, generated third-party notices, explicit real-workspace test paths, and repository-wide prose-format enforcement. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 
@@ -51,6 +51,10 @@ Field and property Callers opened through a simple named base now scope direct a
 ### Complete and lightweight member Callers (`0.22.14`)
 
 Field and property Callers again retain the Provider's complete semantic result set, matching Source Insight's symbol-level scope while adding three ordered evidence groups: selected root plus complete member path, other roots or paths, and unresolved complex expressions. Simple nested chains such as `st->codecpar->sample_rate` anchor at `st`. Candidate classification reuses one root References query, reads unopened source through the workspace file system instead of opening documents, and permits only 16 Definition fallbacks when References is unavailable. This removes candidate-driven clangd `didOpen`, AST, preamble, diagnostics, and semantic-token work without claiming alias or points-to analysis.
+
+### Optional member Caller classification (`0.22.15`)
+
+`cInsight.callHierarchy.classifyMemberCallers` now selects between the two supported scopes. Its default `false` path restores the `0.22.12` symbol-level behavior and direct clangd query path with no classification work. Setting it to `true` enables the complete three-group `0.22.14` presentation. Microsoft mode retains its safe synthetic References-based field root in either mode because that is an engine-compatibility fallback rather than instance classification.
 
 ## Deferred fourth phase
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.22.15
+
+- Added `cInsight.callHierarchy.classifyMemberCallers`, defaulting to `false`, to choose between the Provider's complete original Field/Property Callers result and opt-in selected-variable/member-path classification.
+- Restored the `0.22.12` clangd performance path when classification is disabled: no member-chain parsing, root-variable References request, candidate source reads, or per-candidate Definition fallback is performed.
+- Kept the Microsoft C/C++ safe References-based field-root fallback in both modes while applying the three evidence groups only when classification is enabled.
+- Added clangd and Microsoft Extension Host coverage for both unclassified and classified modes, plus a static regression contract for the default clangd bypass.
+
 ## 0.22.14
 
 - Restored Source Insight-style complete Field/Property Callers results while keeping accesses through the selected variable and full member path first, followed by other variables or paths and then unresolved complex expressions.

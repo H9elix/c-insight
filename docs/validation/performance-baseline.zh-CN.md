@@ -1,6 +1,6 @@
 # C Insight 大型工程性能基线
 
-> 当前文档适用于 `0.22.14` 的基准脚本。带日期的小节是对应机器上的实测快照，不是跨版本或跨机器性能承诺。历史工作副本路径已泛化，不改变实测结果。
+> 当前文档适用于 `0.22.15` 的基准脚本。带日期的小节是对应机器上的实测快照，不是跨版本或跨机器性能承诺。历史工作副本路径已泛化，不改变实测结果。
 
 本基线用于比较代码修改前后的核心模型性能，不代替真实 clangd、Remote SSH、磁盘和 VS Code UI 验收。
 
@@ -56,6 +56,12 @@ C_INSIGHT_BENCHMARK_SCALE=2 npm run benchmark
 修改前在 FFmpeg 中查询 `st->codecpar->sample_rate` 时，clangd 的原始传入调用约 303 ms，但实例分类随后产生 416 次 `didOpen`、416 次 AST 构建和 393 次预编译头构建，最后一次预编译头在原始结果返回约 17.4 秒后完成。根因是链式成员没有锚定到 `st`，同时候选源码通过 `openTextDocument` 加载。
 
 `0.22.14` 的回归约束是：完整简单链必须保留根变量和全部成员段；根引用可用时只能执行一次引用查询且不得执行逐候选定义查询；候选源码只能复用已经打开的缓冲区或通过 `workspace.fs.readFile` 读取；根无法识别时直接保留为未解析结果，不读取全部候选。真实 FFmpeg 耗时仍需在目标机器上复验，不以这份修改前日志替代修改后实测。
+
+## 2026-10-08 可选分类性能路径（0.22.15）
+
+`cInsight.callHierarchy.classifyMemberCallers` 默认为 `false`。clangd 关闭分支从仓库的 `prepare()` 直接返回 `AnalysisService.prepareCallHierarchy()`，因此不会到达成员链解析、根变量 References、候选源码读取或最多 16 次 Definition 回退；后续 Incoming Calls 与 `0.22.12` 使用同一个 Provider 请求和树物化路径。这里的“相同性能”指 C Insight 自身不增加成员分类工作，不承诺 clangd 索引、磁盘或系统负载造成的每次墙钟时间完全相等。
+
+开启配置后使用 `0.22.14` 的有界分类路径。自动回归分别断言默认模式没有分类分组和分类标记、开启模式保留三个分组；源码契约测试断言默认 clangd 分支在进入成员解析前直接返回。Microsoft 默认模式仍可能在 cpptools 缺失字段根时执行一次定义定位并走 References-based Incoming，这是为避免字段功能不可用而保留的引擎兼容成本，不等同于 clangd 的零分类开销承诺。
 
 ## 2026-08-22 基线（0.22.4）
 

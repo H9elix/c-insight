@@ -603,6 +603,34 @@ async function verifyMemberCallerScope(): Promise<void> {
   const character = selectedAccesses[0].text.indexOf("value") + 1;
   const position = new vscode.Position(selectedAccesses[0].line, character);
   editor.selection = new vscode.Selection(position, position);
+  const memberConfiguration = vscode.workspace.getConfiguration(
+    "cInsight.callHierarchy",
+    uri,
+  );
+  assert.equal(
+    memberConfiguration.get("classifyMemberCallers", false),
+    false,
+  );
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  const unclassified = await waitFor(async () => {
+    const value = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const direct = value.incomingOccurrences.filter((item) => item.depth === 1);
+    return value.incomingRoots.includes("value") &&
+      direct.length === 4 &&
+      direct.every((item) => item.memberScope === undefined) &&
+      value.incomingScopeHeadings.length === 0
+      ? value
+      : undefined;
+  }, "Default member callers did not preserve the raw Provider result");
+  assert.equal(unclassified.incomingScopeHeadings.length, 0);
+
+  await memberConfiguration.update(
+    "classifyMemberCallers",
+    true,
+    vscode.ConfigurationTarget.Global,
+  );
   await vscode.commands.executeCommand("cInsight.showIncomingCalls");
 
   const state = await waitFor(async () => {
@@ -699,6 +727,11 @@ async function verifyMemberCallerScope(): Promise<void> {
       item.line === unresolvedNested.line &&
       item.memberScope === "unresolved-variable",
   ));
+  await memberConfiguration.update(
+    "classifyMemberCallers",
+    false,
+    vscode.ConfigurationTarget.Global,
+  );
 }
 
 async function waitForCallOccurrences(

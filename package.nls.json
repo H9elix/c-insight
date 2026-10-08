@@ -186,6 +186,7 @@
   "configuration.cInsight.symbolSearch.maximumResults.description": "Maximum workspace symbol results displayed per query.",
   "configuration.cInsight.symbolSearch.debounce.description": "Delay in milliseconds before sending a workspace symbol query while typing.",
   "configuration.cInsight.callHierarchy.defaultDepth.description": "Call hierarchy depth expanded automatically for a new root. Zero keeps roots collapsed.",
+  "configuration.cInsight.callHierarchy.classifyMemberCallers.description": "Classify Field/Property Callers by the selected root variable and complete member path. Disabled preserves the Provider's original results and avoids the extra References/source classification work.",
   "configuration.cInsight.callHierarchy.maximumDepth.description": "Maximum depth allowed for manual or automatic call hierarchy expansion.",
   "configuration.cInsight.callHierarchy.maximumNodes.description": "Maximum number of nodes created independently in each Callers or Callees tree.",
   "configuration.cInsight.callHierarchy.cacheSize.description": "Maximum cached Incoming/Outgoing function requests.",

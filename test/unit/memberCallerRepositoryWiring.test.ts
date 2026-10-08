@@ -26,4 +26,23 @@ describe("member caller repository wiring", () => {
       /\.\.\.memberScope\.sameVariable,[\s\S]*\.\.\.memberScope\.otherVariable,[\s\S]*\.\.\.memberScope\.unresolvedVariable/,
     );
   });
+
+  it("bypasses all member classification work for clangd by default", () => {
+    assert.match(
+      repositorySource,
+      /get<boolean>\("classifyMemberCallers", false\)/,
+    );
+    assert.match(
+      repositorySource,
+      /!classifyMemberCallers &&[\s\S]*analysisEngine !== "microsoft"[\s\S]*return this\.analysis\.prepareCallHierarchy/,
+    );
+    assert.match(
+      repositorySource,
+      /if \(!classifyMemberCallers\) \{\s*return roots;\s*\}[\s\S]*const memberRoots/,
+    );
+    assert.match(
+      repositorySource,
+      /if \(!this\.classifyMemberCallers\(\) \|\| !node\.memberCallerScope\) \{\s*return \{ calls \};/,
+    );
+  });
 });
