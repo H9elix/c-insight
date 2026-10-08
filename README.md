@@ -29,7 +29,7 @@ Microsoft-provider probe design, reproducible commands, results, and API boundar
 
 ## Installation
 
-Download the VSIX from the [latest GitHub Release](https://github.com/H9elix/c-insight/releases/latest), then run **Extensions: Install from VSIX...** in VS Code. Use clangd 20 or newer for complete Call Hierarchy support, or explicitly select the installed Microsoft C/C++ language service through `cInsight.engine`.
+Download the VSIX and `SHA256SUMS` from the [latest GitHub Release](https://github.com/H9elix/c-insight/releases/latest), verify the checksum, then run **Extensions: Install from VSIX...** in VS Code. Each release includes curated Chinese and English notes maintained under `docs/releases`. Use clangd 20 or newer for complete Call Hierarchy support, or explicitly select the installed Microsoft C/C++ language service through `cInsight.engine`.
 
 ## Features
 

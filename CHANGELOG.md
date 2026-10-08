@@ -7,6 +7,7 @@
 - Added optional Document Symbols viewport-center following, enabled by default, which highlights and reveals the deepest symbol containing the active editor's center line.
 - Kept viewport tracking local to the already loaded symbol tree: scrolling is debounced, hidden views do no work, and no additional clangd or Microsoft C/C++ query is issued.
 - Preserved editor focus and tree selection while revealing the centered symbol, and added theme-aware highlighting, localization, configuration, documentation, and regression coverage.
+- Added versioned bilingual Release Notes, a repository quality gate that validates them against the package version, and a tag workflow that publishes the curated file with the VSIX and checksum.
 
 ## 0.22.15
 
