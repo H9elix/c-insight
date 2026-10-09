@@ -255,6 +255,7 @@ export async function activate(
   let documentSymbolViewportTimer: NodeJS.Timeout | undefined;
   let compilationDatabaseTimer: NodeJS.Timeout | undefined;
   let providerConflictTimer: NodeJS.Timeout | undefined;
+  let projectDiagnosticsTimer: NodeJS.Timeout | undefined;
   let indexWasRunning = false;
   let documentSymbolsGeneration = 0;
   let documentSymbolsFollowEditorCenter =
@@ -326,6 +327,15 @@ export async function activate(
         editor?.visibleRanges ?? [],
         documentSymbolsFollowEditorCenter,
       );
+    }, delay);
+  };
+  const scheduleProjectDiagnosticsRefresh = (delay = 500): void => {
+    if (projectDiagnosticsTimer) {
+      clearTimeout(projectDiagnosticsTimer);
+    }
+    projectDiagnosticsTimer = setTimeout(() => {
+      projectDiagnosticsTimer = undefined;
+      void projectDiagnostics.refresh();
     }, delay);
   };
   const scheduleCompilationDatabaseRefresh = (
@@ -705,9 +715,9 @@ export async function activate(
         scheduleDocumentSymbolViewport(vscode.window.activeTextEditor, 0);
       }
     }),
-    vscode.languages.onDidChangeDiagnostics(() => {
-      void projectDiagnostics.refresh();
-    }),
+    vscode.languages.onDidChangeDiagnostics(() =>
+      scheduleProjectDiagnosticsRefresh()
+    ),
     projectDiagnostics.onDidRefresh((roots) => views.status.setRoots(roots)),
     projectDiagnostics.onDidChangeReliability((reliability) => {
       views.updateReliability(reliability);
@@ -728,16 +738,16 @@ export async function activate(
     vscode.workspace.onDidChangeTextDocument((event) => {
       bookmarks.handleDocumentChange(event.document);
       includeHierarchy.handleDocumentChange(event.document);
-      views.preview.handleDocumentChange(event.document);
+      views.preview.handleDocumentChange(event);
       relationshipGraph.markStale("source changed");
       if (isCppDocument(event.document)) {
-        typeHierarchy.invalidate();
+        typeHierarchy.sourceChanged();
       }
       const editor = vscode.window.activeTextEditor;
       if (editor?.document === event.document) {
         views.markPinnedViewsStale();
-        views.invalidateCallHierarchy();
-        scheduleDocumentSymbols(editor, 300);
+        views.markCallHierarchyDirty();
+        scheduleDocumentSymbols(editor, 800);
       }
     }),
     new vscode.Disposable(() => {
@@ -752,6 +762,9 @@ export async function activate(
       }
       if (providerConflictTimer) {
         clearTimeout(providerConflictTimer);
+      }
+      if (projectDiagnosticsTimer) {
+        clearTimeout(projectDiagnosticsTimer);
       }
     }),
     vscode.extensions.onDidChange(() => {

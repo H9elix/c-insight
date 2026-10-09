@@ -76,6 +76,7 @@ export class CodePreviewProvider
   private locked = false;
   private definitionGeneration = 0;
   private definitionCancellation?: vscode.CancellationTokenSource;
+  private documentChangeTimer?: NodeJS.Timeout;
   private renderGeneration = 0;
   private loadingMore = false;
   private readonly semanticTokens = new Map<
@@ -178,7 +179,8 @@ export class CodePreviewProvider
     this.clearGuard.arm();
   }
 
-  handleDocumentChange(document: vscode.TextDocument): void {
+  handleDocumentChange(event: vscode.TextDocumentChangeEvent): void {
+    const document = event.document;
     const prefix = `${document.uri.toString()}\0`;
     for (const key of this.semanticTokens.keys()) {
       if (key.startsWith(prefix)) {
@@ -190,9 +192,28 @@ export class CodePreviewProvider
         this.scrollStates.delete(key);
       }
     }
-    if (this.visible && this.state?.location.uri.toString() === document.uri.toString()) {
-      void this.render();
+    if (
+      !this.visible ||
+      this.state?.location.uri.toString() !== document.uri.toString()
+    ) {
+      return;
     }
+    if (
+      this.rendered?.document.uri.toString() === document.uri.toString() &&
+      event.contentChanges.length > 0 &&
+      event.contentChanges.every(
+        (change) => change.range.start.line > this.rendered!.endLine,
+      )
+    ) {
+      return;
+    }
+    if (this.documentChangeTimer) {
+      clearTimeout(this.documentChangeTimer);
+    }
+    this.documentChangeTimer = setTimeout(() => {
+      this.documentChangeTimer = undefined;
+      void this.render();
+    }, 200);
   }
 
   sessionState(): PreviewSessionState | undefined {
@@ -237,6 +258,9 @@ export class CodePreviewProvider
   dispose(): void {
     this.renderGeneration += 1;
     this.cancelDefinition();
+    if (this.documentChangeTimer) {
+      clearTimeout(this.documentChangeTimer);
+    }
     this.disposables.forEach((item) => item.dispose());
     this.visibilityEmitter.dispose();
     this.view = undefined;

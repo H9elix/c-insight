@@ -255,6 +255,14 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
     }
   }
 
+  sourceChanged(): void {
+    this.stopExpansion();
+    this.repository.markDirty();
+    if (this.rootName) {
+      this.markStale();
+    }
+  }
+
   dispose(): void {
     this.stopExpansion();
     this.supertypes.dispose();

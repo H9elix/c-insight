@@ -10,6 +10,7 @@ export class TypeHierarchyRepository {
     supertypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
     subtypes: new Map<string, Promise<TypeHierarchyItem[]>>(),
   };
+  private dirty = false;
 
   constructor(private readonly analysis: AnalysisService) {}
 
@@ -18,6 +19,7 @@ export class TypeHierarchyRepository {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<TypeHierarchyItem[]> {
+    this.ensureFresh();
     return this.analysis.prepareTypeHierarchy(uri, position, token);
   }
 
@@ -26,6 +28,7 @@ export class TypeHierarchyRepository {
     direction: TypeHierarchyDirection,
     token?: vscode.CancellationToken,
   ): Promise<TypeHierarchyItem[]> {
+    this.ensureFresh();
     const key = typeHierarchyKey(item);
     let request = this.caches[direction].get(key);
     if (!request) {
@@ -44,6 +47,23 @@ export class TypeHierarchyRepository {
   }
 
   invalidate(): void {
+    this.dirty = false;
+    this.clearCaches();
+  }
+
+  markDirty(): void {
+    this.dirty = true;
+  }
+
+  private ensureFresh(): void {
+    if (!this.dirty) {
+      return;
+    }
+    this.dirty = false;
+    this.clearCaches();
+  }
+
+  private clearCaches(): void {
     this.caches.supertypes.clear();
     this.caches.subtypes.clear();
   }

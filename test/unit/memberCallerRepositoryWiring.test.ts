@@ -45,4 +45,16 @@ describe("member caller repository wiring", () => {
       /if \(!this\.classifyMemberCallers\(\) \|\| !node\.memberCallerScope\) \{\s*return \{ calls \};/,
     );
   });
+
+  it("defers call hierarchy cache clearing until the next repository request", () => {
+    const repository = readFileSync(
+      "src/callHierarchy/callHierarchyRepository.ts",
+      "utf8",
+    );
+    const views = readFileSync("src/views/viewRegistry.ts", "utf8");
+    assert.match(repository, /markDirty\(\): void/);
+    assert.match(repository, /private ensureFresh\(\): void/);
+    assert.match(views, /markCallHierarchyDirty\(\): void/);
+    assert.match(views, /this\.callRepository\.markDirty\(\)/);
+  });
 });

@@ -48,6 +48,10 @@ export class ReverseIncludeIndex {
     return this.built;
   }
 
+  get isActive(): boolean {
+    return this.built || this.building !== undefined;
+  }
+
   get wasTruncated(): boolean {
     return this.truncated;
   }

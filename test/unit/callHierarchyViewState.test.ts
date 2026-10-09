@@ -6,7 +6,8 @@ describe("Call Hierarchy view state", () => {
   it("shares pin and stale state across both directions", () => {
     const state = new CallHierarchyViewState();
     state.pin("root");
-    state.markStale();
+    assert.equal(state.markStale(), true);
+    assert.equal(state.markStale(), false);
     assert.equal(state.pinned, true);
     assert.equal(state.pinnedSymbol, "root");
     assert.equal(state.pinnedStale, true);

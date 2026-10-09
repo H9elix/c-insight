@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Stopped text edits and their accompanying caret movement from automatically repeating Context, Code Preview, References, and Call Hierarchy semantic queries; deliberate navigation and explicit commands still refresh the selected symbol.
+- Added pre-query cursor deduplication for movement inside the same identifier, whitespace, and locations already confirmed symbol-free for the current document version.
+- Deferred Call and Type Hierarchy cache clearing until the next actual hierarchy request, while preserving loaded trees as stale during editing.
+- Debounced edit-driven Document Symbols, Code Preview, Include Hierarchy, and Project Diagnostics work, skipped unchanged include directives, and made repeated Relationship Graph and result-stale publication idempotent.
+
 ## 0.22.16
 
 - Added optional Document Symbols viewport-center following, enabled by default, which highlights and reveals the deepest symbol containing the active editor's center line.

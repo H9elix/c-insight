@@ -105,6 +105,7 @@ export class ViewRegistry implements vscode.Disposable {
     issues: [],
   };
   private callResultsStaleReason?: string;
+  private callHierarchyDirty = false;
   private readonly expandedCallPaths = {
     incoming: new Set<string>(),
     outgoing: new Set<string>(),
@@ -410,9 +411,11 @@ export class ViewRegistry implements vscode.Disposable {
     const callRootDisplaySignature = functionLocationSignature(preferredLocation);
     if (
       allowCallUpdate &&
-      (callRootSignature !== this.callRootSignature ||
+      (this.callHierarchyDirty ||
+        callRootSignature !== this.callRootSignature ||
         intent.manualCallHierarchy)
     ) {
+      this.callHierarchyDirty = false;
       this.callRootSignature = callRootSignature;
       this.callRootDisplaySignature = callRootDisplaySignature;
       if (this.callViewState.pinned && intent.manualCallHierarchy) {
@@ -887,23 +890,35 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   markPinnedViewsStale(): void {
-    this.referenceExplorer.markPinnedStale();
-    this.markResultsStale("the active source file changed");
-    if (this.callViewState.pinned) {
-      this.callViewState.markStale();
+    const reason = "the active source file changed";
+    this.referenceExplorer.markSourceChanged(reason);
+    const callReasonChanged = this.callResultsStaleReason !== reason;
+    this.callResultsStaleReason = reason;
+    const callPinChanged = this.callViewState.markStale();
+    if (callReasonChanged || callPinChanged) {
       this.refreshCallPinBanners();
     }
   }
 
   markResultsStale(reason: string): void {
     this.referenceExplorer.markResultsStale(reason);
+    if (this.callResultsStaleReason === reason) {
+      return;
+    }
     this.callResultsStaleReason = reason;
     this.refreshCallPinBanners();
+  }
+
+  markCallHierarchyDirty(): void {
+    this.stopCallExpansion();
+    this.callRepository.markDirty();
+    this.callHierarchyDirty = true;
   }
 
   invalidateCallHierarchy(): void {
     this.stopCallExpansion();
     this.callRepository.invalidate();
+    this.callHierarchyDirty = false;
     this.callRootSignature = "";
     this.callRootDisplaySignature = "";
   }

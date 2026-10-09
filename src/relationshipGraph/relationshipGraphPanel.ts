@@ -243,8 +243,9 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     if (!this.panel) {
       return;
     }
-    this.model.markStale(reason);
-    void this.publish();
+    if (this.model.markStale(reason)) {
+      void this.publish();
+    }
   }
 
   sessionState(): RelationshipGraphSessionState | undefined {

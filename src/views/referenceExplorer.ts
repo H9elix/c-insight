@@ -221,12 +221,17 @@ export class ReferenceExplorer implements vscode.Disposable {
     }
   }
 
-  markPinnedStale(): void {
-    if (!this.pinned) {
-      return;
+  markSourceChanged(reason: string): void {
+    let changed = false;
+    if (this.pinned && !this.pinnedStale) {
+      this.pinnedStale = true;
+      changed = true;
     }
-    this.pinnedStale = true;
-    if (this.state === "ready") {
+    if (this.resultsStaleReason !== reason) {
+      this.resultsStaleReason = reason;
+      changed = true;
+    }
+    if (changed && this.state === "ready") {
       void this.publish();
     }
   }
@@ -244,6 +249,9 @@ export class ReferenceExplorer implements vscode.Disposable {
   }
 
   markResultsStale(reason: string): void {
+    if (this.resultsStaleReason === reason) {
+      return;
+    }
     this.resultsStaleReason = reason;
     if (this.state === "ready") {
       void this.publish();

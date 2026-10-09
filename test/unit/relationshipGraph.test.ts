@@ -209,4 +209,14 @@ describe("relationship graph model", () => {
     assert.equal(graph.snapshot().revision, 7);
     assert.equal(graph.snapshot().staleReason, undefined);
   });
+
+  it("publishes a repeated stale reason only once", () => {
+    const graph = new RelationshipGraphModel(10, 10);
+    graph.replaceRoot(node("root"));
+    assert.equal(graph.markStale("source changed"), true);
+    const revision = graph.snapshot().revision;
+    assert.equal(graph.markStale("source changed"), false);
+    assert.equal(graph.snapshot().revision, revision);
+    assert.equal(graph.markStale("configuration changed"), true);
+  });
 });

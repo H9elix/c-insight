@@ -40,4 +40,10 @@ describe("References tree grouping wiring", () => {
       /referenceExplorer\.groupExpansionConfigurationChanged\(\)/,
     );
   });
+
+  it("coalesces pinned and result stale state for one source edit publication", () => {
+    assert.match(source, /markSourceChanged\(reason: string\): void/);
+    assert.match(source, /if \(changed && this\.state === "ready"\)/);
+    assert.match(extension, /views\.markPinnedViewsStale\(\)/);
+  });
 });

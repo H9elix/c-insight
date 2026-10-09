@@ -170,6 +170,7 @@ async function runClangdAcceptance(): Promise<void> {
     assert.ok(commands.includes(command), `${command} was not registered`);
   }
 
+  await verifyEditAwareCursorRefresh(document, editor, position);
   await verifyPersistentSymbolSearch();
   await verifyPreferredDefinitionRoots();
   await verifyFlatCallOccurrences();
@@ -310,6 +311,45 @@ interface SymbolSearchProbe {
   visibleResults: number;
   viewResolved: boolean;
   loading: boolean;
+}
+
+async function verifyEditAwareCursorRefresh(
+  document: vscode.TextDocument,
+  editor: vscode.TextEditor,
+  position: vscode.Position,
+): Promise<void> {
+  editor.selection = new vscode.Selection(position, position);
+  await waitForNavigationIdle();
+  const original = document.getText();
+  const before = await vscode.commands.executeCommand<{
+    scheduler: { submitted: number };
+  }>("cInsight.test.navigationState");
+  const runtimeBefore = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+
+  await vscode.commands.executeCommand("default:type", { text: "x" });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const typed = await vscode.commands.executeCommand<{
+    scheduler: { submitted: number };
+  }>("cInsight.test.navigationState");
+  const runtimeTyped = await vscode.commands.executeCommand<{
+    counters: Record<string, number>;
+  }>("cInsight.test.runtimeDiagnostics");
+  assert.equal(
+    typed.scheduler.submitted,
+    before.scheduler.submitted,
+    "Typing unexpectedly submitted a cursor-driven semantic query",
+  );
+  assert.ok(
+    counter(runtimeTyped, "navigation.editRefreshSuppressed") >
+      counter(runtimeBefore, "navigation.editRefreshSuppressed"),
+    "The text edit was not recognized by the cursor refresh gate",
+  );
+
+  await vscode.commands.executeCommand("undo");
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.equal(document.getText(), original, "The edit-aware probe did not undo cleanly");
 }
 
 async function verifyPersistentSymbolSearch(): Promise<void> {
@@ -786,6 +826,28 @@ function findPosition(
     return new vscode.Position(line, character + 1);
   }
   return assert.fail(`Could not find line containing ${lineFragment}`);
+}
+
+function counter(
+  snapshot: { counters: Record<string, number> },
+  name: string,
+): number {
+  return snapshot.counters[name] ?? 0;
+}
+
+async function waitForNavigationIdle(): Promise<void> {
+  let idleSince: number | undefined;
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<{
+      scheduler: { active: number; queued: number };
+    }>("cInsight.test.navigationState");
+    if (state.scheduler.active !== 0 || state.scheduler.queued !== 0) {
+      idleSince = undefined;
+      return undefined;
+    }
+    idleSince ??= Date.now();
+    return Date.now() - idleSince >= 500 ? state : undefined;
+  }, "Navigation requests did not become idle");
 }
 
 async function waitFor<T>(
