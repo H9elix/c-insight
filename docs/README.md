@@ -1,6 +1,6 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.16`。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
+本文档集对应 C Insight `0.22.17`。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
 
 ## 用户文档 `user/`
 
@@ -29,7 +29,7 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.22.16 发布说明](releases/v0.22.16.md)：与 GitHub Release 正文一致的版本化中英双语功能、性能、安装和校验说明。
+- [C Insight 0.22.17 发布说明](releases/v0.22.17.md)：与 GitHub Release 正文一致的版本化中英双语功能、性能、安装和校验说明。
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门会验证版本、必需章节和占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.22.17
+
 - Stopped text edits and every associated caret/selection event from automatically repeating Context, Code Preview, References, and Call Hierarchy semantic queries, including slowly spaced input; the edit gate remains active until deliberate navigation or an explicit command resumes the selected symbol.
 - Added pre-query cursor deduplication for movement inside the same identifier, whitespace, and locations already confirmed symbol-free for the current document version.
 - Deferred Call and Type Hierarchy cache clearing until the next actual hierarchy request, while preserving loaded trees as stale during editing.
