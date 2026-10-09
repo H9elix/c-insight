@@ -23,6 +23,7 @@ import { CallHierarchyRepository } from "../callHierarchy/callHierarchyRepositor
 import {
   CursorRefreshAnchor,
   CursorRefreshModel,
+  EditSelectionGuard,
 } from "./cursorRefreshModel";
 import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 
@@ -32,7 +33,6 @@ export class ContextController implements vscode.Disposable {
   private detailsTimer?: NodeJS.Timeout;
   private cancellation?: vscode.CancellationTokenSource;
   private definitionRefreshCancellation?: vscode.CancellationTokenSource;
-  private editMarkerTimer?: NodeJS.Timeout;
   private readonly definitionRetryTimers = new Set<NodeJS.Timeout>();
   private generation = 0;
   private pinned = false;
@@ -43,11 +43,7 @@ export class ContextController implements vscode.Disposable {
   };
   private readonly cursorFollowSuppression = new CursorFollowSuppression();
   private readonly cursorRefresh = new CursorRefreshModel();
-  private editMarker?: {
-    uri: string;
-    version: number;
-    positions: Set<string>;
-  };
+  private readonly editSelectionGuard = new EditSelectionGuard();
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -81,6 +77,7 @@ export class ContextController implements vscode.Disposable {
       }),
       vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (editor) {
+          this.editSelectionGuard.clear();
           if (
             this.cursorFollowSuppression.suppressActiveEditor(
               editor.document.uri.toString(),
@@ -162,6 +159,9 @@ export class ContextController implements vscode.Disposable {
   refresh(manual = false): void {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
+      if (manual) {
+        this.editSelectionGuard.clear();
+      }
       const anchor = cursorRefreshAnchor(
         editor.document,
         editor.selection.active,
@@ -244,6 +244,7 @@ export class ContextController implements vscode.Disposable {
   beginProgrammaticNavigation(
     location: LocationResult,
   ): number {
+    this.editSelectionGuard.clear();
     this.cancelPending();
     this.generation += 1;
     return this.cursorFollowSuppression.begin(
@@ -264,6 +265,7 @@ export class ContextController implements vscode.Disposable {
     position: vscode.Position,
     intent: ViewUpdateIntent = {},
   ): Promise<SymbolContext | undefined> {
+    this.editSelectionGuard.clear();
     if (intent.manualCallHierarchy) {
       this.views.invalidateCallHierarchy();
     }
@@ -342,9 +344,7 @@ export class ContextController implements vscode.Disposable {
 
   dispose(): void {
     this.cancelPending();
-    if (this.editMarkerTimer) {
-      clearTimeout(this.editMarkerTimer);
-    }
+    this.editSelectionGuard.clear();
     this.cursorRefresh.clear();
     this.disposables.forEach((item) => item.dispose());
   }
@@ -613,6 +613,18 @@ export class ContextController implements vscode.Disposable {
     }
     if (
       !manual &&
+      this.editSelectionGuard.blocksAutomatic(
+        document.uri.toString(),
+        document.version,
+      )
+    ) {
+      runtimeDiagnostics.increment(
+        "navigation.editAutomaticRefreshSuppressed",
+      );
+      return;
+    }
+    if (
+      !manual &&
       this.cursorFollowSuppression.suppressAutomaticUpdate(
         document.uri.toString(),
       )
@@ -676,37 +688,23 @@ export class ContextController implements vscode.Disposable {
     for (const change of event.contentChanges) {
       positions.add(positionAfterChange(change));
     }
-    const marker = {
-      uri: document.uri.toString(),
-      version: document.version,
+    this.editSelectionGuard.begin(
+      document.uri.toString(),
+      document.version,
       positions,
-    };
-    this.editMarker = marker;
-    this.cursorRefresh.documentChanged(marker.uri);
-    if (this.editMarkerTimer) {
-      clearTimeout(this.editMarkerTimer);
-    }
-    this.editMarkerTimer = setTimeout(() => {
-      if (this.editMarker === marker) {
-        this.editMarker = undefined;
-      }
-      this.editMarkerTimer = undefined;
-    }, 1_000);
+    );
+    this.cursorRefresh.documentChanged(document.uri.toString());
   }
 
   private isEditInducedSelection(
     document: vscode.TextDocument,
     position: vscode.Position,
   ): boolean {
-    const matches = this.editMarker !== undefined &&
-      this.editMarker.uri === document.uri.toString() &&
-      this.editMarker.version === document.version &&
-      this.editMarker.positions.has(positionKey(position.line, position.character));
-    this.editMarker = undefined;
-    if (this.editMarkerTimer) {
-      clearTimeout(this.editMarkerTimer);
-      this.editMarkerTimer = undefined;
-    }
+    const matches = this.editSelectionGuard.shouldSuppress(
+      document.uri.toString(),
+      document.version,
+      positionKey(position.line, position.character),
+    );
     if (matches) {
       runtimeDiagnostics.increment(
         "navigation.cursor.editSelectionSuppressed",

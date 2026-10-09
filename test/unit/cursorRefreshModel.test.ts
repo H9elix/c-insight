@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   CursorRefreshAnchor,
   CursorRefreshModel,
+  EditSelectionGuard,
 } from "../../src/context/cursorRefreshModel";
 
 function anchor(
@@ -56,5 +57,68 @@ describe("cursor refresh model", () => {
     }
     assert.equal(model.decide(anchor(1)), "query");
     assert.equal(model.decide(anchor(20)), "preserve");
+  });
+});
+
+describe("edit selection guard", () => {
+  it("suppresses every matching selection event until the edit settles", () => {
+    const guard = new EditSelectionGuard();
+    guard.begin(
+      "file:///workspace/main.c",
+      2,
+      new Set(["10:5", "10:6"]),
+    );
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "10:6"),
+      true,
+    );
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "10:6"),
+      true,
+    );
+    guard.clear();
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "10:6"),
+      false,
+    );
+  });
+
+  it("releases immediately for deliberate movement away from the edit", () => {
+    const guard = new EditSelectionGuard();
+    guard.begin("file:///workspace/main.c", 2, new Set(["10:6"]), 1_000);
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "11:0", 1_101),
+      false,
+    );
+    assert.equal(guard.active, false);
+  });
+
+  it("releases an exact edit position after the event association window", () => {
+    const guard = new EditSelectionGuard();
+    guard.begin("file:///workspace/main.c", 2, new Set(["10:6"]), 1_000);
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "10:6", 1_251),
+      false,
+    );
+    assert.equal(guard.active, false);
+  });
+
+  it("absorbs a short-lived position mismatch from the same edit event", () => {
+    const guard = new EditSelectionGuard();
+    guard.begin("file:///workspace/main.c", 2, new Set(["10:6"]), 1_000);
+    assert.equal(
+      guard.shouldSuppress("file:///workspace/main.c", 2, "10:8", 1_050),
+      true,
+    );
+    assert.equal(guard.active, true);
+  });
+
+  it("blocks non-selection automatic refreshes until navigation resumes", () => {
+    const guard = new EditSelectionGuard();
+    guard.begin("file:///workspace/main.c", 3, new Set(["10:7"]));
+    assert.equal(guard.blocksAutomatic("file:///workspace/main.c", 3), true);
+    assert.equal(guard.blocksAutomatic("file:///workspace/other.c", 3), false);
+    guard.clear();
+    assert.equal(guard.blocksAutomatic("file:///workspace/main.c", 3), false);
   });
 });

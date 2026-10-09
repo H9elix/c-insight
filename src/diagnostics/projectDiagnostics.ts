@@ -984,6 +984,7 @@ function runtimeLabel(name: string): string {
     "cache.references.highlights": "Highlight cache entries",
     "cache.references.parameters": "Parameter cache entries",
     "navigation.editRefreshSuppressed": "Edit-driven navigation refreshes suppressed",
+    "navigation.editAutomaticRefreshSuppressed": "Automatic refreshes blocked after editing",
     "navigation.cursor.editSelectionSuppressed": "Edit-induced selection events suppressed",
     "navigation.cursor.sameTargetSuppressed": "Same lexical-target refreshes suppressed",
     "navigation.cursor.noTargetSuppressed": "Whitespace or known-empty refreshes suppressed",
