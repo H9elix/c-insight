@@ -170,13 +170,16 @@ async function runClangdAcceptance(): Promise<void> {
     assert.ok(commands.includes(command), `${command} was not registered`);
   }
 
-  await verifyEditAwareCursorRefresh(document, editor, position);
+  await vscode.commands.executeCommand("workbench.view.extension.cInsight");
+  await vscode.commands.executeCommand("cInsight.context.focus");
+  const editProbeEditor = await vscode.window.showTextDocument(document);
+  await verifyEditAwareCursorRefresh(document, editProbeEditor, position);
   await verifyPersistentSymbolSearch();
   await verifyPreferredDefinitionRoots();
   await verifyFlatCallOccurrences();
   await verifyMemberCallerScope();
-  await vscode.window.showTextDocument(document);
-  editor.selection = new vscode.Selection(position, position);
+  const graphEditor = await vscode.window.showTextDocument(document);
+  graphEditor.selection = new vscode.Selection(position, position);
 
   await vscode.commands.executeCommand("cInsight.relationshipGraph.show");
   await waitFor(
@@ -321,35 +324,91 @@ async function verifyEditAwareCursorRefresh(
   editor.selection = new vscode.Selection(position, position);
   await waitForNavigationIdle();
   const original = document.getText();
-  const before = await vscode.commands.executeCommand<{
-    scheduler: { submitted: number };
-  }>("cInsight.test.navigationState");
+  const timingBefore = await vscode.commands.executeCommand<RequestTimingProbe>(
+    "cInsight.test.requestTiming",
+  );
   const runtimeBefore = await vscode.commands.executeCommand<{
     counters: Record<string, number>;
   }>("cInsight.test.runtimeDiagnostics");
 
-  await vscode.commands.executeCommand("default:type", { text: "x" });
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const typed = await vscode.commands.executeCommand<{
-    scheduler: { submitted: number };
-  }>("cInsight.test.navigationState");
+  for (const text of ["x", "y", "z"]) {
+    await vscode.commands.executeCommand("default:type", { text });
+    await new Promise((resolve) => setTimeout(resolve, 1_200));
+    const timing = await vscode.commands.executeCommand<RequestTimingProbe>(
+      "cInsight.test.requestTiming",
+    );
+    const runtime = await vscode.commands.executeCommand<{
+      counters: Record<string, number>;
+    }>("cInsight.test.runtimeDiagnostics");
+    assert.equal(
+      navigationRequestCount(timing),
+      navigationRequestCount(timingBefore),
+      `Slow typing '${text}' unexpectedly submitted a cursor-driven semantic query: methods=${JSON.stringify(navigationRequestDeltas(timingBefore, timing))}, counters=${JSON.stringify(runtime.counters)}`,
+    );
+  }
   const runtimeTyped = await vscode.commands.executeCommand<{
     counters: Record<string, number>;
   }>("cInsight.test.runtimeDiagnostics");
-  assert.equal(
-    typed.scheduler.submitted,
-    before.scheduler.submitted,
-    "Typing unexpectedly submitted a cursor-driven semantic query",
-  );
   assert.ok(
-    counter(runtimeTyped, "navigation.editRefreshSuppressed") >
-      counter(runtimeBefore, "navigation.editRefreshSuppressed"),
-    "The text edit was not recognized by the cursor refresh gate",
+    counter(runtimeTyped, "navigation.editRefreshSuppressed") -
+        counter(runtimeBefore, "navigation.editRefreshSuppressed") >= 3,
+    "The slow text edits were not recognized by the cursor refresh gate",
   );
 
   await vscode.commands.executeCommand("undo");
   await new Promise((resolve) => setTimeout(resolve, 300));
   assert.equal(document.getText(), original, "The edit-aware probe did not undo cleanly");
+  const timingAfterUndo = await vscode.commands.executeCommand<RequestTimingProbe>(
+    "cInsight.test.requestTiming",
+  );
+  const deliberateTarget = findPosition(
+    document,
+    "return add(value, sumTo",
+    "sumTo",
+  );
+  editor.selection = new vscode.Selection(deliberateTarget, deliberateTarget);
+  await waitFor(async () => {
+    const timing = await vscode.commands.executeCommand<RequestTimingProbe>(
+      "cInsight.test.requestTiming",
+    );
+    return navigationRequestCount(timing) >
+        navigationRequestCount(timingAfterUndo)
+      ? timing
+      : undefined;
+  }, "Deliberate cursor movement did not resume semantic navigation");
+}
+
+interface RequestTimingProbe {
+  byMethod: Record<string, { measured: number }>;
+}
+
+function navigationRequestCount(timing: RequestTimingProbe): number {
+  return navigationRequestMethods.reduce(
+    (total, method) => total + (timing.byMethod[method]?.measured ?? 0),
+    0,
+  );
+}
+
+const navigationRequestMethods = [
+    "textDocument/definition",
+    "textDocument/declaration",
+    "textDocument/hover",
+    "textDocument/references",
+    "textDocument/symbolInfo",
+    "textDocument/prepareCallHierarchy",
+] as const;
+
+function navigationRequestDeltas(
+  before: RequestTimingProbe,
+  after: RequestTimingProbe,
+): Record<string, number> {
+  return Object.fromEntries(
+    navigationRequestMethods.map((method) => [
+      method,
+      (after.byMethod[method]?.measured ?? 0) -
+        (before.byMethod[method]?.measured ?? 0),
+    ]),
+  );
 }
 
 async function verifyPersistentSymbolSearch(): Promise<void> {
@@ -846,7 +905,7 @@ async function waitForNavigationIdle(): Promise<void> {
       return undefined;
     }
     idleSince ??= Date.now();
-    return Date.now() - idleSince >= 500 ? state : undefined;
+    return Date.now() - idleSince >= 2_500 ? state : undefined;
   }, "Navigation requests did not become idle");
 }
 

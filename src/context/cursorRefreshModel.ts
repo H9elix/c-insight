@@ -9,6 +9,69 @@ export interface CursorRefreshAnchor {
 
 export type CursorRefreshDecision = "query" | "unchanged" | "preserve";
 
+export interface EditSelectionMarker {
+  uri: string;
+  version: number;
+  positions: ReadonlySet<string>;
+  createdAt: number;
+}
+
+export class EditSelectionGuard {
+  private static readonly relatedMismatchWindowMs = 100;
+  private static readonly exactPositionWindowMs = 250;
+  private marker?: EditSelectionMarker;
+
+  begin(
+    uri: string,
+    version: number,
+    positions: ReadonlySet<string>,
+    now = Date.now(),
+  ): void {
+    const marker = { uri, version, positions, createdAt: now };
+    this.marker = marker;
+  }
+
+  shouldSuppress(
+    uri: string,
+    version: number,
+    position: string,
+    now = Date.now(),
+  ): boolean {
+    if (!this.marker) {
+      return false;
+    }
+    if (
+      this.marker.uri === uri &&
+      this.marker.version === version &&
+      (
+        (
+          this.marker.positions.has(position) &&
+          now - this.marker.createdAt <=
+            EditSelectionGuard.exactPositionWindowMs
+        ) ||
+        now - this.marker.createdAt <=
+          EditSelectionGuard.relatedMismatchWindowMs
+      )
+    ) {
+      return true;
+    }
+    this.marker = undefined;
+    return false;
+  }
+
+  blocksAutomatic(uri: string, version: number): boolean {
+    return this.marker?.uri === uri && this.marker.version === version;
+  }
+
+  clear(): void {
+    this.marker = undefined;
+  }
+
+  get active(): boolean {
+    return this.marker !== undefined;
+  }
+}
+
 export class CursorRefreshModel {
   private lastAnchorKey?: string;
   private readonly emptyAnchorKeys = new Map<string, undefined>();

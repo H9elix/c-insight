@@ -115,12 +115,12 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `contextController.ts` | 编辑器/光标防抖、编辑引发的选择事件抑制、generation、取消源、树双击后的随光标抑制、轻量与延迟详情查询、可靠性计算及结果分发。 |
-| `cursorRefreshModel.ts` | 以文档版本和词法目标范围去重光标刷新，保存有界的已知无符号目标，并在文档修改后失效对应记录。 |
+| `contextController.ts` | 编辑器/光标防抖、跨慢速输入持续生效的编辑门控、generation、取消源、树双击后的随光标抑制、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `cursorRefreshModel.ts` | 以文档版本和词法目标范围去重光标刷新，保存有界的已知无符号目标，并通过 `EditSelectionGuard` 关联一次编辑产生的多个选择事件及短暂位置偏差。 |
 | `cursorSymbolEvidence.ts` | 纯函数判断基础查询是否提供符号证据，以及自动空位置应保留旧结果还是由显式意图发布空结果。 |
 | `navigationDemand.ts` | 根据各导航窗口可见性和引擎能力，纯函数计算定义（Definition）、悬停信息（Hover）、引用（References）、调用者（Callers）、被调用者（Callees）等需求。 |
 
-修改自动刷新行为时必须按改动范围补充 `navigationDemand.test.ts`、`cursorSymbolEvidence.test.ts` 或 `cursorRefreshModel.test.ts`，证明隐藏窗口不会意外请求、编辑产生的光标事件不会查询、同一词法目标会去重、无符号位置不会覆盖现有结果、显式意图不会被自动保护误拦截。
+修改自动刷新行为时必须按改动范围补充 `navigationDemand.test.ts`、`cursorSymbolEvidence.test.ts` 或 `cursorRefreshModel.test.ts`，证明隐藏窗口不会意外请求、快速/慢速编辑及一次编辑的多个选择事件不会查询、短事件窗口外的方向键会恢复、同一词法目标会去重、无符号位置不会覆盖现有结果、显式意图不会被自动保护误拦截。Extension Host 验收还应在导航窗口可见时逐字符输入，并分别断言六类导航方法没有增加、随后主动移动能够恢复查询。
 
 ### 4.5 视图与代码预览（Code Preview） `src/views`
 

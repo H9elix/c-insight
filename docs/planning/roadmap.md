@@ -6,7 +6,7 @@ The maintained code and documentation baseline is `0.22.16`. No new feature phas
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 
-The current unreleased local development baseline suppresses edit-induced cursor queries, deduplicates lexical cursor targets, lazily invalidates Call and Type Hierarchy caches, and coalesces edit-driven Document Symbols, Code Preview, Include Hierarchy, Relationship Graph, and Project Diagnostics work. It intentionally keeps the formal package version at `0.22.16` until the temporary VSIX is accepted; version assignment, push, and release follow only after that acceptance.
+The current unreleased local development baseline suppresses edit-induced cursor queries across both rapid and slowly spaced input, associates multiple or slightly displaced VS Code selection events with their originating edit, deduplicates lexical cursor targets, lazily invalidates Call and Type Hierarchy caches, and coalesces edit-driven Document Symbols, Code Preview, Include Hierarchy, Relationship Graph, and Project Diagnostics work. It intentionally keeps the formal package version at `0.22.16` until the temporary VSIX is accepted; version assignment, push, and release follow only after that acceptance.
 
 ## Completed phases
 
