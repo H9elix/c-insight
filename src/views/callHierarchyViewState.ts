@@ -21,7 +21,9 @@ export class CallHierarchyViewState {
     this.pinnedStale = false;
   }
 
-  markStale(): void {
-    if (this.pinned) this.pinnedStale = true;
+  markStale(): boolean {
+    if (!this.pinned || this.pinnedStale) return false;
+    this.pinnedStale = true;
+    return true;
   }
 }

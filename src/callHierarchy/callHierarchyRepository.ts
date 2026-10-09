@@ -66,6 +66,7 @@ export class CallHierarchyRepository {
     CallHierarchyOutgoingCall[]
   >;
   private readonly symbolLocationCache: LruPromiseCache<CallSymbolLocations>;
+  private dirty = false;
 
   constructor(private readonly analysis: AnalysisService) {
     const size = configuredCacheSize();
@@ -79,6 +80,7 @@ export class CallHierarchyRepository {
     position: vscode.Position,
     token?: vscode.CancellationToken,
   ): Promise<CallNode[]> {
+    this.ensureFresh();
     const classifyMemberCallers = this.classifyMemberCallers();
     if (
       !classifyMemberCallers &&
@@ -105,6 +107,7 @@ export class CallHierarchyRepository {
     node: CallNode,
     token?: vscode.CancellationToken,
   ): Promise<IncomingCallResult> {
+    this.ensureFresh();
     const requestKey = this.incomingRequestKey(node);
     return this.incomingCache.getOrCreate(requestKey, async () => {
       const incomingMode = this.microsoftIncomingMode();
@@ -152,6 +155,7 @@ export class CallHierarchyRepository {
     node: CallNode,
     token?: vscode.CancellationToken,
   ): Promise<CallHierarchyOutgoingCall[]> {
+    this.ensureFresh();
     return this.outgoingCache.getOrCreate(node.key, () =>
       this.analysis.analysisEngine === "microsoft"
         ? this.observedMicrosoftOutgoing(node, token)
@@ -163,6 +167,7 @@ export class CallHierarchyRepository {
     node: CallNode,
     token?: vscode.CancellationToken,
   ): Promise<CallSymbolLocations> {
+    this.ensureFresh();
     return this.symbolLocationCache.getOrCreate(node.key, async () => {
       const uri = vscode.Uri.parse(node.raw.uri);
       const position = new vscode.Position(
@@ -213,6 +218,23 @@ export class CallHierarchyRepository {
   }
 
   invalidate(): void {
+    this.dirty = false;
+    this.clearCaches();
+  }
+
+  markDirty(): void {
+    this.dirty = true;
+  }
+
+  private ensureFresh(): void {
+    if (!this.dirty) {
+      return;
+    }
+    this.dirty = false;
+    this.clearCaches();
+  }
+
+  private clearCaches(): void {
     const size = configuredCacheSize();
     this.incomingCache.resize(size);
     this.outgoingCache.resize(size);

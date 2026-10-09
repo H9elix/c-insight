@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  includeDirectiveFingerprint,
   includeSearchPaths,
   parseIncludes,
   shellSplit,
@@ -28,6 +29,22 @@ describe("include hierarchy model", () => {
         line: 3,
       },
     ]);
+  });
+
+  it("changes the include fingerprint only for directive changes", () => {
+    const original = '#include "local.h"\nint value = 1;';
+    assert.equal(
+      includeDirectiveFingerprint(original),
+      includeDirectiveFingerprint('#include "local.h"\nint value = 2;'),
+    );
+    assert.notEqual(
+      includeDirectiveFingerprint(original),
+      includeDirectiveFingerprint('#include "other.h"\nint value = 1;'),
+    );
+    assert.notEqual(
+      includeDirectiveFingerprint(original),
+      includeDirectiveFingerprint('\n#include "local.h"\nint value = 1;'),
+    );
   });
 
   it("splits quoted compile commands and extracts include flags", () => {

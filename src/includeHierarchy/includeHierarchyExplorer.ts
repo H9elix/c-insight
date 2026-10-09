@@ -1,6 +1,9 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { IncludeDirective } from "./includeModel";
+import {
+  IncludeDirective,
+  includeDirectiveFingerprint,
+} from "./includeModel";
 import {
   IncludeTargetKind,
   ResolvedInclude,
@@ -41,6 +44,12 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     includedBy: new HierarchyTreeState(),
   };
   private readonly disposables: vscode.Disposable[] = [];
+  private readonly includeFingerprints = new Map<string, string>();
+  private readonly documentChangeTimers = new Map<string, NodeJS.Timeout>();
+  private readonly pendingDocumentChanges = new Map<
+    string,
+    { uri: vscode.Uri; source: string; fingerprint: string; baseline?: string }
+  >();
   private readonly cancellation: Partial<
     Record<IncludeHierarchyDirection, vscode.CancellationTokenSource>
   > = {};
@@ -60,6 +69,8 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
       watcher.onDidCreate((uri) => void this.updateFile(uri)),
       watcher.onDidChange((uri) => void this.updateFile(uri)),
       watcher.onDidDelete((uri) => {
+        this.clearPendingDocumentChange(uri);
+        this.includeFingerprints.delete(uri.toString());
         this.repository.remove(uri);
         this.markStale();
       }),
@@ -152,8 +163,51 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     if (!isIncludeFile(document.uri)) {
       return;
     }
-    void this.repository.update(document.uri, document.getText());
-    this.markStale();
+    const key = document.uri.toString();
+    const source = document.getText();
+    const fingerprint = includeDirectiveFingerprint(source);
+    const pending = this.pendingDocumentChanges.get(key);
+    const baseline = pending?.baseline ?? this.includeFingerprints.get(key);
+    if (
+      !pending &&
+      baseline === undefined &&
+      !this.repository.hasCachedState(document.uri)
+    ) {
+      this.includeFingerprints.set(key, fingerprint);
+      return;
+    }
+    this.pendingDocumentChanges.set(key, {
+      uri: document.uri,
+      source,
+      fingerprint,
+      baseline,
+    });
+    const previous = this.documentChangeTimers.get(key);
+    if (previous) {
+      clearTimeout(previous);
+    }
+    this.documentChangeTimers.set(
+      key,
+      setTimeout(() => {
+        this.documentChangeTimers.delete(key);
+        const latest = this.pendingDocumentChanges.get(key);
+        this.pendingDocumentChanges.delete(key);
+        if (!latest) {
+          return;
+        }
+        this.includeFingerprints.set(key, latest.fingerprint);
+        if (
+          latest.baseline !== undefined &&
+          latest.baseline === latest.fingerprint
+        ) {
+          return;
+        }
+        void this.repository.update(latest.uri, latest.source).then(
+          () => this.markStale(),
+          () => this.markStale(),
+        );
+      }, 500),
+    );
   }
 
   invalidate(): void {
@@ -202,6 +256,11 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
 
   dispose(): void {
     this.stopExpansion();
+    for (const timer of this.documentChangeTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.documentChangeTimers.clear();
+    this.pendingDocumentChanges.clear();
     this.disposables.forEach((item) => item.dispose());
     this.includes.dispose();
     this.includedBy.dispose();
@@ -471,12 +530,28 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   }
 
   private async updateFile(uri: vscode.Uri): Promise<void> {
+    this.clearPendingDocumentChange(uri);
     try {
       const content = await vscode.workspace.fs.readFile(uri);
-      await this.repository.update(uri, Buffer.from(content).toString("utf8"));
+      const source = Buffer.from(content).toString("utf8");
+      this.includeFingerprints.set(
+        uri.toString(),
+        includeDirectiveFingerprint(source),
+      );
+      await this.repository.update(uri, source);
     } finally {
       this.markStale();
     }
+  }
+
+  private clearPendingDocumentChange(uri: vscode.Uri): void {
+    const key = uri.toString();
+    const timer = this.documentChangeTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      this.documentChangeTimers.delete(key);
+    }
+    this.pendingDocumentChanges.delete(key);
   }
 
   private publishEmpty(): void {

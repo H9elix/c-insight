@@ -51,6 +51,14 @@ export function parseIncludes(source: string): IncludeDirective[] {
   return directives;
 }
 
+export function includeDirectiveFingerprint(source: string): string {
+  return parseIncludes(source)
+    .map((directive) =>
+      `${directive.line}:${directive.angled ? "<" : "\""}${directive.target}`
+    )
+    .join("\n");
+}
+
 export function shellSplit(command: string): string[] {
   const output: string[] = [];
   let value = "";

@@ -44,6 +44,10 @@ export class IncludeHierarchyRepository {
     return this.reverse.isBuilt;
   }
 
+  hasCachedState(uri: vscode.Uri): boolean {
+    return this.forwardCache.has(uri.toString()) || this.reverse.isActive;
+  }
+
   get wasReverseTruncated(): boolean {
     return this.reverse.wasTruncated;
   }

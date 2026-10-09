@@ -73,4 +73,18 @@ describe("cursor symbol evidence", () => {
     assert.ok(guard >= 0);
     assert.ok(publication > guard);
   });
+
+  it("does not schedule semantic navigation directly from text edits", () => {
+    const controller = readFileSync(
+      "src/context/contextController.ts",
+      "utf8",
+    );
+    const listener = controller.slice(
+      controller.indexOf("vscode.workspace.onDidChangeTextDocument"),
+      controller.indexOf("this.views.onDidChangeNavigationVisibility"),
+    );
+    assert.match(listener, /this\.documentChanged\(event\)/);
+    assert.doesNotMatch(listener, /this\.schedule\(/);
+    assert.match(controller, /this\.cursorRefresh\.decide\(anchor\)/);
+  });
 });

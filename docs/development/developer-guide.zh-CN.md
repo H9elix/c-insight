@@ -115,11 +115,12 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `contextController.ts` | 编辑器/光标防抖、generation、取消源、树双击后的随光标抑制、无符号位置保留、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `contextController.ts` | 编辑器/光标防抖、编辑引发的选择事件抑制、generation、取消源、树双击后的随光标抑制、轻量与延迟详情查询、可靠性计算及结果分发。 |
+| `cursorRefreshModel.ts` | 以文档版本和词法目标范围去重光标刷新，保存有界的已知无符号目标，并在文档修改后失效对应记录。 |
 | `cursorSymbolEvidence.ts` | 纯函数判断基础查询是否提供符号证据，以及自动空位置应保留旧结果还是由显式意图发布空结果。 |
 | `navigationDemand.ts` | 根据各导航窗口可见性和引擎能力，纯函数计算定义（Definition）、悬停信息（Hover）、引用（References）、调用者（Callers）、被调用者（Callees）等需求。 |
 
-修改自动刷新行为时必须按改动范围补充 `navigationDemand.test.ts` 或 `cursorSymbolEvidence.test.ts`，证明隐藏窗口不会意外请求、无符号位置不会覆盖现有结果、显式意图不会被自动保护误拦截。
+修改自动刷新行为时必须按改动范围补充 `navigationDemand.test.ts`、`cursorSymbolEvidence.test.ts` 或 `cursorRefreshModel.test.ts`，证明隐藏窗口不会意外请求、编辑产生的光标事件不会查询、同一词法目标会去重、无符号位置不会覆盖现有结果、显式意图不会被自动保护误拦截。
 
 ### 4.5 视图与代码预览（Code Preview） `src/views`
 
@@ -128,7 +129,7 @@ AnalysisService（调度、计时、统一结果）
 | `viewLifecycle.ts` | TreeView/Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
-| `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动、锁定（Lock），以及源码 `<code>` 元素的宿主预格式样式重置。 |
+| `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动、锁定（Lock）、编辑范围感知与 200 ms 重绘合并，以及源码 `<code>` 元素的宿主预格式样式重置。 |
 | `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及精确目标范围叠加。 |
 | `sourceLineCache.ts` | 引用和预览所需源码行的有界缓存。 |
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
@@ -146,7 +147,7 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、方向独立 LRU、展开节点的定义/声明位置缓存、轻量源码读取、完整成员链实例分类、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
+| `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、源码修改后的按需缓存失效、方向独立 LRU、展开节点的定义/声明位置缓存、轻量源码读取、完整成员链实例分类、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
 | `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，并把每组最早调用点标记为唯一规范展开点。它是无 VS Code 依赖的纯模型。 |
 | `memberCallerScopeModel.ts` | 从源码中保守识别 `base.member`、`base->member->nested` 和带单层括号的简单根变量，保留完整成员路径并提供位置/偏移换算；调用、数组、强制转换等复杂根表达式保持未解析。它是无 VS Code 依赖的纯模型。 |
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
@@ -166,18 +167,18 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `typeHierarchyRepository.ts` | prepare/supertypes/subtypes 请求、方向独立缓存和不透明条目（opaque item）保存，供树与关系图共用。 |
+| `typeHierarchyRepository.ts` | prepare/supertypes/subtypes 请求、源码修改后的按需缓存失效、方向独立缓存和不透明条目（opaque item）保存，供树与关系图共用。 |
 | `typeHierarchyExplorer.ts` | 父类型（Supertypes）/子类型（Subtypes）树、懒加载、搜索、过滤、展开深度、限制状态和导出。 |
 
 ### 4.8 包含层次（Include Hierarchy） `src/includeHierarchy`
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `includeModel.ts` | 解析 `#include`、shell 风格编译命令和 `-iquote/-I/-isystem` 搜索路径。 |
+| `includeModel.ts` | 解析 `#include`、生成用于编辑去重的 Include 指令指纹、解析 shell 风格编译命令和 `-iquote/-I/-isystem` 搜索路径。 |
 | `includeResolver.ts` | 根据引用方式和搜索路径解析用户头、系统头及未解析原因。 |
 | `reverseIncludeIndex.ts` | 被包含关系（Included By）的按需工作区反向索引、进度、取消、generation 和文件增量更新。 |
 | `includeHierarchyRepository.ts` | 正向（forward）缓存、共享解析器（resolver）和唯一反向索引（reverse index）；树和关系图共用。 |
-| `includeHierarchyExplorer.ts` | 包含文件（Includes）/被包含关系两棵独立树、懒加载、搜索、深度展开、限制状态和导出。 |
+| `includeHierarchyExplorer.ts` | 包含文件（Includes）/被包含关系两棵独立树、懒加载、搜索、深度展开、限制状态、导出，以及打开文档修改的 500 ms 合并和 Include 指纹门控。 |
 
 普通包含文件或包含关系图（Include Graph）不应隐式建立反向索引；只有明确的被包含关系操作可以调用 `incoming`。扫描结果必须完整且 generation 仍有效后才能原子发布。
 
@@ -358,7 +359,7 @@ npm run package
 | 需求 | 首要入口 | 通常还需修改 |
 | --- | --- | --- |
 | 新增语义查询 | `analysisService.ts` | 引擎适配器、调度、浏览器（Explorer）、诊断和测试 |
-| 修改光标自动刷新 | `contextController.ts` | `navigationDemand.ts`、`cursorSymbolEvidence.ts`、可见性与空位置策略测试 |
+| 修改光标自动刷新 | `contextController.ts`、`cursorRefreshModel.ts` | `navigationDemand.ts`、`cursorSymbolEvidence.ts`、编辑门控、词法目标、可见性与空位置策略测试 |
 | 修改引用（References）分类 | `referenceModel.ts` | `referenceExplorer.ts`、导出、用户手册和单测 |
 | 修改调用者（Callers）/被调用者（Callees） | `callOccurrenceModel.ts`、`callHierarchyRepository.ts`、`viewRegistry.ts` | 调用点排序与规范节点、固定（Pin）状态、层级工具、关系图（Graph）和会话兼容 |
 | 修改类型/包含（Type/Include） | 对应仓库（Repository）和浏览器（Explorer） | 通用层级状态/导出、关系图、缓存失效 |

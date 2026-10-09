@@ -172,9 +172,13 @@ export class RelationshipGraphModel {
     return false;
   }
 
-  markStale(reason: string): void {
+  markStale(reason: string): boolean {
+    if (this.staleReason === reason) {
+      return false;
+    }
     this.staleReason = reason;
     this.revision += 1;
+    return true;
   }
 
   snapshot(): RelationshipGraphSnapshot {
