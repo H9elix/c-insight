@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.22.18
+
 - Prevented delayed cursor details and preferred-definition retries from replacing a call site or other source location explicitly selected in Code Preview; generation-bound preview ownership now changes only on deliberate cursor navigation, explicit refresh, or another explicit preview selection.
 
 ## 0.22.17
