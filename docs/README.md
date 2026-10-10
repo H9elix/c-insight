@@ -1,6 +1,6 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.18`。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
+本文档集对应 C Insight `0.22.18`。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
 
 ## 用户文档 `user/`
 

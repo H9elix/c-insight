@@ -10,6 +10,7 @@ const rootMarkdown = [
   "CONTRIBUTING.md",
   "PRIVACY.md",
   "README.md",
+  "README.zh-CN.md",
   "SECURITY.md",
 ];
 const write = process.argv.includes("--write");

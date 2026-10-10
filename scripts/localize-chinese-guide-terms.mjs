@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const guides = [
+  new URL("../README.zh-CN.md", import.meta.url),
   new URL("../docs/user/user-guide.zh-CN.md", import.meta.url),
   new URL("../docs/development/developer-guide.zh-CN.md", import.meta.url),
 ];

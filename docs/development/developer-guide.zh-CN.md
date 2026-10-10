@@ -55,7 +55,8 @@ AnalysisService（调度、计时、统一结果）
 | `package-lock.json` | npm 依赖锁定；版本发布时根包版本应与 `package.json` 一致。 |
 | `tsconfig.json` | TypeScript 编译选项和 `src`/`test` 输出规则。 |
 | `eslint.config.mjs` | TypeScript ESLint 规则。 |
-| `README.md` | 仓库首页、功能摘要、安装和文档入口。 |
+| `README.md` | GitHub 与 VS Code Marketplace 使用的英文产品首页、核心工作流、安装和文档入口。 |
+| `README.zh-CN.md` | 与英文产品首页结构和能力边界保持同步的简体中文 README。 |
 | `CHANGELOG.md` | 每个发布版本的用户可感知改动。 |
 | `CONTRIBUTING.md` | 贡献流程和基本质量要求。 |
 | `SECURITY.md` | 漏洞报告渠道和安全边界。 |

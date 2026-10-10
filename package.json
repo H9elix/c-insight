@@ -39,6 +39,7 @@
     "l10n/**/*",
     "media/**/*",
     "README.md",
+    "README.zh-CN.md",
     "CHANGELOG.md",
     "docs/**/*",
     "CONTRIBUTING.md",

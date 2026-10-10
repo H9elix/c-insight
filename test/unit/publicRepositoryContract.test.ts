@@ -8,6 +8,7 @@ const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
   repository?: { url?: string };
   homepage?: string;
   bugs?: { url?: string };
+  files?: string[];
   scripts?: Record<string, string>;
 };
 
@@ -21,6 +22,15 @@ describe("public repository contract", () => {
       manifest.scripts?.package ?? "",
       /allow-missing-repository/,
     );
+  });
+
+  it("publishes linked English and Simplified Chinese landing pages", () => {
+    const englishReadme = readFileSync("README.md", "utf8");
+    const chineseReadme = readFileSync("README.zh-CN.md", "utf8");
+    assert.match(englishReadme, /\[阅读简体中文 README\]\(README\.zh-CN\.md\)/);
+    assert.match(chineseReadme, /\[Read the English README\]\(README\.md\)/);
+    assert.equal(manifest.files?.includes("README.md"), true);
+    assert.equal(manifest.files?.includes("README.zh-CN.md"), true);
   });
 
   it("keeps local state and machine-specific test paths out of publication", () => {
