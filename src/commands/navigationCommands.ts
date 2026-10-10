@@ -6,7 +6,11 @@ import { NavigationSource } from "../history/navigationHistoryModel";
 import { COMMANDS, INTERNAL_COMMANDS } from "../ids";
 import { LocationResult } from "../models/types";
 import { TreeLocationClickClassifier } from "../utils/treeLocationInteraction";
-import { CodePreviewProvider, PreviewMode } from "../views/codePreviewProvider";
+import {
+  CodePreviewProvider,
+  ExplicitPreviewSource,
+  PreviewMode,
+} from "../views/codePreviewProvider";
 import type { TreeNode } from "../views/treeNode";
 import { ContextController } from "../context/contextController";
 import { RegisterCommand } from "./commandRegistrar";
@@ -57,7 +61,7 @@ export function registerNavigationCommands(
     let location = node.location;
     let mode = (node.previewMode ?? "reference") as PreviewMode;
     let title = node.previewTitle ?? node.label;
-    let source = node.navigationSource ?? "selection";
+    let source = explicitPreviewSource(node.navigationSource);
     if (node.historyEntryId !== undefined) {
       const selected = history.select(node.historyEntryId);
       if (!selected) return;
@@ -83,7 +87,8 @@ export function registerNavigationCommands(
   register(INTERNAL_COMMANDS.PREVIEW_LOCATION, async (
     value: unknown, mode: unknown, title: unknown, source: unknown,
   ) => preview.showLocation(value as LocationResult, (mode as PreviewMode) ?? "reference",
-    typeof title === "string" ? title : undefined, (source as NavigationSource) ?? "selection"));
+    typeof title === "string" ? title : undefined,
+    explicitPreviewSource(source as NavigationSource | undefined)));
   register(COMMANDS.GO_TO_DEFINITION, async () => {
     const target = activePosition();
     if (!target) return;
@@ -100,6 +105,12 @@ export function registerNavigationCommands(
       location: locations[0], contextValue: "historyLocation",
     });
   });
+}
+
+function explicitPreviewSource(
+  source: NavigationSource | undefined,
+): ExplicitPreviewSource {
+  return source && source !== "context" ? source : "selection";
 }
 
 function treeLocationKey(scope: string, node: TreeNode): string {

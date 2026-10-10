@@ -24,7 +24,9 @@ import {
   SemanticTokenSpan,
 } from "./sourceHighlight";
 import { PreviewClearGuard } from "./previewClearGuard";
+import { PreviewOwnership } from "./previewOwnership";
 export type PreviewMode = NavigationMode;
+export type ExplicitPreviewSource = Exclude<NavigationSource, "context">;
 
 interface PreviewState {
   mode: PreviewMode;
@@ -87,6 +89,7 @@ export class CodePreviewProvider
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
   private readonly clearGuard = new PreviewClearGuard();
+  private readonly ownership = new PreviewOwnership();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
 
   get visible(): boolean {
@@ -138,11 +141,38 @@ export class CodePreviewProvider
     location: LocationResult,
     mode: PreviewMode,
     title?: string,
-    source: NavigationSource = "selection",
+    source: ExplicitPreviewSource = "selection",
   ): Promise<void> {
-    if (source === "context" && this.locked) {
+    this.ownership.claimInteraction();
+    await this.applyLocation(location, mode, title, source);
+  }
+
+  async showContextLocation(
+    location: LocationResult,
+    mode: PreviewMode,
+    title: string | undefined,
+    contextGeneration: number,
+  ): Promise<void> {
+    if (
+      this.locked ||
+      !this.ownership.allowsContext(contextGeneration)
+    ) {
+      if (!this.locked) {
+        runtimeDiagnostics.increment(
+          "navigation.preview.staleContextSuppressed",
+        );
+      }
       return;
     }
+    await this.applyLocation(location, mode, title, "context");
+  }
+
+  private async applyLocation(
+    location: LocationResult,
+    mode: PreviewMode,
+    title: string | undefined,
+    source: NavigationSource,
+  ): Promise<void> {
     const next: PreviewState = {
       location,
       mode,
@@ -158,10 +188,40 @@ export class CodePreviewProvider
     await this.render();
   }
 
+  beginContextUpdate(generation: number, reclaim: boolean): void {
+    this.ownership.beginContext(generation, reclaim);
+  }
+
+  get acceptsContextUpdates(): boolean {
+    return !this.locked && this.ownership.contextOwned;
+  }
+
+  clearContext(generation: number): void {
+    const ownsContext = this.ownership.allowsContext(generation);
+    if (
+      this.locked ||
+      !ownsContext ||
+      this.clearGuard.shouldPreserve()
+    ) {
+      if (!this.locked && !ownsContext) {
+        runtimeDiagnostics.increment(
+          "navigation.preview.staleContextSuppressed",
+        );
+      }
+      return;
+    }
+    this.clearState();
+  }
+
   clear(): void {
+    this.ownership.claimInteraction();
     if (this.locked || this.clearGuard.shouldPreserve()) {
       return;
     }
+    this.clearState();
+  }
+
+  private clearState(): void {
     this.cancelDefinition();
     this.state = undefined;
     this.rendered = undefined;
@@ -234,6 +294,7 @@ export class CodePreviewProvider
       return;
     }
     this.locked = state.locked;
+    this.ownership.claimInteraction();
     await vscode.commands.executeCommand(
       "setContext",
       CONTEXT_KEYS.PREVIEW_LOCKED,
@@ -278,6 +339,7 @@ export class CodePreviewProvider
       case "openPosition": {
         const position = this.validPosition(message);
         if (position && this.rendered) {
+          this.ownership.claimInteraction();
           this.cancelDefinition();
           this.clearGuard.arm();
           await openEditor(this.rendered.document, position);
@@ -301,6 +363,7 @@ export class CodePreviewProvider
         break;
       case "openCurrent":
         if (this.state) {
+          this.ownership.claimInteraction();
           const document = await vscode.workspace.openTextDocument(
             this.state.location.uri,
           );
@@ -361,6 +424,7 @@ export class CodePreviewProvider
     if (!this.rendered) {
       return;
     }
+    this.ownership.claimInteraction();
     this.cancelDefinition();
     const generation = ++this.definitionGeneration;
     const cancellation = new vscode.CancellationTokenSource();
@@ -414,6 +478,7 @@ export class CodePreviewProvider
     if (!entry) {
       return;
     }
+    this.ownership.claimInteraction();
     this.cancelDefinition();
     this.state = {
       location: this.navigationHistory.entryLocation(entry),
