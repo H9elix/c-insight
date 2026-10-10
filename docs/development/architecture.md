@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the `0.22.17` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
+This document describes the `0.22.18` architecture. Versioned validation reports under `docs/validation` are historical evidence rather than a replacement for the current source and tests.
 
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 

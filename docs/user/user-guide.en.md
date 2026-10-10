@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.17`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.18`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
