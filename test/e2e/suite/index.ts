@@ -658,7 +658,29 @@ async function verifyFlatCallOccurrences(): Promise<void> {
   }, "Selecting a caller occurrence did not preview its exact call site");
   assert.equal(preview.range?.start.line, mainCalls[1]);
 
+  await new Promise((resolve) => setTimeout(resolve, 2_300));
+  const previewAfterPendingContext = await vscode.commands.executeCommand<{
+    uri?: string;
+    range?: { start: { line: number } };
+  }>("cInsight.test.previewState");
+  assert.equal(previewAfterPendingContext?.uri, uri.toString());
+  assert.equal(
+    previewAfterPendingContext?.range?.start.line,
+    mainCalls[1],
+    "A pending context detail or preferred-definition retry replaced the selected call site",
+  );
+
   editor.selection = new vscode.Selection(addDefinition, addDefinition);
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<{
+      uri?: string;
+      range?: { start: { line: number } };
+    }>("cInsight.test.previewState");
+    return state?.uri === uri.toString() &&
+      state.range?.start.line === addDefinition.line
+      ? state
+      : undefined;
+  }, "Deliberate cursor navigation did not reclaim Code Preview");
   await vscode.commands.executeCommand("cInsight.showOutgoingCalls");
   await waitFor(async () => {
     const state = await vscode.commands.executeCommand<CallHierarchyProbe>(

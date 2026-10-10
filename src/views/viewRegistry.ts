@@ -139,6 +139,10 @@ export class ViewRegistry implements vscode.Disposable {
     return this.lifecycle.isVisible(id);
   }
 
+  beginContextPreview(generation: number, reclaim = true): void {
+    this.preview.beginContextUpdate(generation, reclaim);
+  }
+
   constructor(
     private readonly analysis: AnalysisService,
     history: NavigationHistoryExplorer,
@@ -364,14 +368,14 @@ export class ViewRegistry implements vscode.Disposable {
     this.context.setRoots(roots);
 
     if (preferredLocation && this.preview.visible) {
-      void this.preview.showLocation(
+      void this.preview.showContextLocation(
         preferredLocation.location,
         preferredLocation.kind === "definition" ? "definition" : "declaration",
         context.qualifiedName ?? context.name ?? "Symbol",
-        "context",
+        context.generation,
       );
     } else if (this.preview.visible) {
-      this.preview.clear();
+      this.preview.clearContext(context.generation);
     }
     if (
       (this.isViewVisible(VIEWS.REFERENCES) ||
@@ -475,6 +479,7 @@ export class ViewRegistry implements vscode.Disposable {
   async updatePreferredDefinitionLocations(
     definitions: LocationResult[],
     declarations: LocationResult[],
+    contextGeneration: number,
   ): Promise<boolean> {
     const callerRoot = this.callDataRoots(this.callers)
       .find((node) => node.callNode && node.callDepth === 0);
@@ -493,11 +498,11 @@ export class ViewRegistry implements vscode.Disposable {
       this.callers.refresh(callerRoot);
     }
     if (this.preview.visible) {
-      await this.preview.showLocation(
+      await this.preview.showContextLocation(
         preferred.location,
         preferred.kind === "definition" ? "definition" : "declaration",
         this.currentSymbolName ?? "Symbol",
-        "context",
+        contextGeneration,
       );
     }
     const signature = functionLocationSignature(preferred);
@@ -514,7 +519,7 @@ export class ViewRegistry implements vscode.Disposable {
 
   get preferredDefinitionNeedsUpgrade(): boolean {
     return this.currentPreferredLocation?.kind === "declaration-fallback" &&
-      ((this.preview.visible && !this.preview.isLocked) ||
+      ((this.preview.visible && this.preview.acceptsContextUpdates) ||
         (!this.callViewState.pinned &&
           (this.isViewVisible(VIEWS.CALLERS) ||
             this.isViewVisible(VIEWS.CALLEES))));

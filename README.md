@@ -10,6 +10,8 @@ Primary view-title actions use compact VS Code Theme Icons. Hovering an icon sho
 
 Document Symbols can follow the active editor viewport: the deepest loaded symbol containing its center line is highlighted and revealed without taking focus or changing tree selection. `cInsight.documentSymbols.followEditorCenter` defaults to `true`; viewport matching is debounced, suspended while the view is hidden, and never adds a semantic-engine request.
 
+An explicit tree, history, graph, or in-preview selection owns Code Preview until deliberate editor-cursor navigation or an explicit refresh starts a newer context. Pending References/call-count details and preferred-definition retries may still finish for their own views, but cannot replace that selected source location.
+
 完整中文说明见随扩展发布的 `docs/user/user-guide.zh-CN.md`。源码结构、状态所有权、测试和发布流程见 `docs/development/developer-guide.zh-CN.md`（中文版开发者手册）。完整文档分类见 `docs/README.md`。该手册包含完整功能/窗口矩阵、全部配置默认值与范围、状态持久化说明，以及从 `package.json` 自动生成的全部命令与菜单入口参考。交叉编译、裸机与嵌入式 Linux 工程配置见 `docs/user/cross-compilation.zh-CN.md`。
 
 C Insight follows the VS Code display language. English is the fallback language, and Simplified Chinese is selected when VS Code uses `zh-cn`. Use **Configure Display Language** and reload the window to switch languages; the setting is intentionally shared with the rest of the VS Code interface.

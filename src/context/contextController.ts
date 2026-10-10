@@ -124,6 +124,7 @@ export class ContextController implements vscode.Disposable {
               true,
               {},
               anchor,
+              false,
             );
           }
         } else {
@@ -221,6 +222,7 @@ export class ContextController implements vscode.Disposable {
       const upgraded = await this.views.updatePreferredDefinitionLocations(
         definitions,
         declarations,
+        generation,
       );
       if (upgraded) {
         this.clearDefinitionRetryTimers();
@@ -271,6 +273,7 @@ export class ContextController implements vscode.Disposable {
     }
     const generation = ++this.generation;
     this.cancelPending();
+    this.views.beginContextPreview(generation);
     const cancellation = new vscode.CancellationTokenSource();
     this.cancellation = cancellation;
     const config = readConfiguration();
@@ -605,6 +608,7 @@ export class ContextController implements vscode.Disposable {
     immediate = false,
     intent: ViewUpdateIntent = {},
     anchor?: CursorRefreshAnchor,
+    reclaimPreview = true,
   ): void {
     const manual =
       intent.manualReferences || intent.manualCallHierarchy;
@@ -649,6 +653,7 @@ export class ContextController implements vscode.Disposable {
     }
     this.cancelPending();
     const generation = ++this.generation;
+    this.views.beginContextPreview(generation, reclaimPreview);
     const delay = immediate ? 0 : readConfiguration().followCursorDelay;
     this.timer = setTimeout(() => {
       this.timer = undefined;

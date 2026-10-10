@@ -8,6 +8,8 @@ The user guides define current behavior. Versioned validation reports preserve e
 
 Version `0.22.17` suppresses edit-induced cursor queries across both rapid and slowly spaced input, associates multiple or slightly displaced VS Code selection events with their originating edit, deduplicates lexical cursor targets, lazily invalidates Call and Type Hierarchy caches, and coalesces edit-driven Document Symbols, Code Preview, Include Hierarchy, Relationship Graph, and Project Diagnostics work. Deliberate navigation and explicit commands still resume queries immediately.
 
+The current unreleased local baseline gives explicit Code Preview selections generation-bound ownership. Delayed cursor details and preferred-definition retries can finish without replacing a selected call site; deliberate cursor navigation or explicit refresh reclaims the preview, while a visibility-only refresh does not.
+
 ## Completed phases
 
 ### Foundation and workspace navigation (`0.1.x`–`0.13.x`)

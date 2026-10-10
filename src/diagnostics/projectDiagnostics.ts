@@ -988,6 +988,7 @@ function runtimeLabel(name: string): string {
     "navigation.cursor.editSelectionSuppressed": "Edit-induced selection events suppressed",
     "navigation.cursor.sameTargetSuppressed": "Same lexical-target refreshes suppressed",
     "navigation.cursor.noTargetSuppressed": "Whitespace or known-empty refreshes suppressed",
+    "navigation.preview.staleContextSuppressed": "Stale context preview writes suppressed",
     "analysis.maximumConcurrentRequests": "Semantic request concurrency",
     "analysis.maximumBackgroundRequests": "Background request concurrency",
     "references.maximumDisplayedResults": "References displayed results",

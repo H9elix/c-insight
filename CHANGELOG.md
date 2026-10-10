@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prevented delayed cursor details and preferred-definition retries from replacing a call site or other source location explicitly selected in Code Preview; generation-bound preview ownership now changes only on deliberate cursor navigation, explicit refresh, or another explicit preview selection.
+
 ## 0.22.17
 
 - Stopped text edits and every associated caret/selection event from automatically repeating Context, Code Preview, References, and Call Hierarchy semantic queries, including slowly spaced input; the edit gate remains active until deliberate navigation or an explicit command resumes the selected symbol.
