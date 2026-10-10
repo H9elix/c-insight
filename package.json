@@ -102,7 +102,7 @@
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },
   "dependencies": {
-    "vscode-languageclient": "^10.1.0"
+    "vscode-languageclient": "^10.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
