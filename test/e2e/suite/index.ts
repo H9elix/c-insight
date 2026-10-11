@@ -79,6 +79,7 @@ async function runClangdAcceptance(): Promise<void> {
     "cInsight.goToDefinition",
     "cInsight.findReferences",
     "cInsight.showIncomingCalls",
+    "cInsight.callers.showExpandedTarget",
     "cInsight.showOutgoingCalls",
     "cInsight.previewLocation",
     "cInsight.activateTreeLocation",
@@ -177,6 +178,7 @@ async function runClangdAcceptance(): Promise<void> {
   await verifyPersistentSymbolSearch();
   await verifyPreferredDefinitionRoots();
   await verifyFlatCallOccurrences();
+  await verifyMacroCallers();
   await verifyMemberCallerScope();
   const graphEditor = await vscode.window.showTextDocument(document);
   graphEditor.selection = new vscode.Selection(position, position);
@@ -698,6 +700,76 @@ async function verifyFlatCallOccurrences(): Promise<void> {
   assert.deepEqual(outgoing.map((item) => item.line), addCalls);
   assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);
   assert.ok(outgoing.every((item) => item.previewMode === "callee-call-site"));
+}
+
+async function verifyMacroCallers(): Promise<void> {
+  const workspace = vscode.workspace.workspaceFolders?.[0]?.uri ??
+    assert.fail("The C++ fixture workspace was not opened");
+  const uri = vscode.Uri.joinPath(workspace, "src", "call_sites.c");
+  const document = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(document);
+  const macroUse = findPosition(
+    document,
+    "MACRO_TARGET_2(value)",
+    "MACRO_TARGET_2",
+  );
+  const macroDefinition = findPosition(
+    document,
+    "#define MACRO_TARGET_2",
+    "MACRO_TARGET_2",
+  );
+  editor.selection = new vscode.Selection(macroUse, macroUse);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+
+  const macroState = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.incomingRoots[0] === "MACRO_TARGET_2" &&
+      state.incomingOccurrences.length === 1
+      ? state
+      : undefined;
+  }, "Macro Callers did not retain the selected macro identity");
+  assert.equal(macroState.incomingRootLocations[0].line, macroDefinition.line);
+  assert.deepEqual(macroState.outgoingRoots, ["macro_target"]);
+  assert.deepEqual(
+    macroState.incomingOccurrences.map((item) => item.label),
+    ["macro_user"],
+  );
+  assert.equal(macroState.incomingOccurrences[0].line, macroUse.line);
+  assert.equal(macroState.incomingDeclarations.length, 0);
+
+  const switched = await vscode.commands.executeCommand<boolean>(
+    "cInsight.callers.showExpandedTarget",
+  );
+  assert.equal(switched, true);
+  const expandedState = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const labels = state.incomingOccurrences.map((item) => item.label);
+    return state.incomingRoots[0] === "macro_target" &&
+      labels.includes("macro_user") &&
+      labels.includes("direct_macro_target_user")
+      ? state
+      : undefined;
+  }, "Expanded function Callers did not replace the macro-usage result");
+  assert.ok(
+    expandedState.incomingOccurrences.length >= 2,
+    "Expanded target should include both macro and direct calls",
+  );
+  assert.deepEqual(expandedState.outgoingRoots, ["macro_target"]);
+
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.incomingRoots[0] === "MACRO_TARGET_2" &&
+      state.incomingOccurrences.length === 1
+      ? state
+      : undefined;
+  }, "Refreshing Callers did not restore macro-use semantics");
 }
 
 async function verifyMemberCallerScope(): Promise<void> {

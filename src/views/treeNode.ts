@@ -31,7 +31,11 @@ export interface TreeNode {
   callDepth?: number;
   callNode?: CallNode;
   callPath?: string;
-  callSupplement?: "call-declaration" | "member-scope-heading";
+  callSupplement?:
+    | "call-declaration"
+    | "member-scope-heading"
+    | "macro-use";
+  callRelationship?: "macro-use";
   callOccurrenceScope?: MemberCallerOccurrenceScope;
   callSymbolLocations?: {
     definitions: LocationResult[];

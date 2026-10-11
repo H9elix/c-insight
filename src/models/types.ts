@@ -5,6 +5,7 @@ import type {
   SymbolInformation,
 } from "vscode-languageclient/node";
 import type { MemberCallerScope } from "../callHierarchy/memberCallerScopeModel";
+import type { MacroCallerScope } from "../callHierarchy/macroCallerScopeModel";
 
 export type ClangdState =
   | "stopped"
@@ -30,6 +31,8 @@ export interface CallNode {
   raw: CallHierarchyItem;
   recursive?: boolean;
   memberCallerScope?: MemberCallerScope;
+  macroCallerScope?: MacroCallerScope;
+  expandedMacroTarget?: boolean;
   syntheticMemberRoot?: boolean;
 }
 

@@ -365,6 +365,10 @@ Change 引用（Reference） Scope 提供：
 
 例如 `report` 在 `add` 中调用两次、在 `main` 中调用三次时，展开 `report` 会先显示 `report` 的独立声明（若存在），再直接得到两个 `add` 和三个 `main` 调用点。不会再为 `add` 和 `main` 追加不可展开的定义叶节点。继续展开规范 `add` 调用点时，才会在这一层最前面显示 `add` 自身的独立声明，然后查询调用 `add` 的函数。声明和调用点均遵循单击预览、双击打开。
 
+当光标下的源码符号是展开为函数的宏时，调用者默认进入宏使用模式。例如 `MY_PRINTF_2` 展开为 `printf` 时，根节点仍显示 `MY_PRINTF_2`，首层通过该宏自身的引用（References）生成，只显示源码中拼写为 `MY_PRINTF_2` 的准确使用位置；宏定义行会被排除，不会混入 `MY_PRINTF` 或直接 `printf` 的调用。每个宏使用位置仍映射到其外层函数，同一外层函数中的多个使用点分别显示，规范节点可继续展开该外层函数的调用者。无法映射到可调用文档符号的使用位置会作为可导航的“可调用符号之外的宏使用”保留。
+
+宏使用根出现时，调用者标题栏和宏根节点右键菜单会显示**查询宏展开后函数的调用者（Show Expanded Function Callers）**。执行后只替换调用者树，以分析提供程序（Provider）原始调用层次根（Call Hierarchy Root，例如 `printf`）重新查询；被调用者、关系图和当前宏定义/引用结果不随之改变。刷新（Refresh）或重新执行显示传入调用（Show Incoming Calls）会恢复默认的宏使用结果。标题栏按钮只在当前调用者根具有已确认的宏展开函数目标时显示。
+
 默认情况下，字段（Field）或属性（Property）的调用者直接显示分析提供程序（Provider）返回的完整原始结果，不区分变量实例。该路径与 `0.22.12` 的查询范围和性能路径一致：clangd 完成调用层次准备后直接查询传入调用，C Insight 不解析成员访问链、不查询根变量引用、不读取候选源码，也不执行逐候选定义回退。
 
 将 `cInsight.callHierarchy.classifyMemberCallers` 设为 `true` 后，当光标位于 `st->codecpar`、`st->codecpar->sample_rate`、`(st)->codecpar` 或 `object.member` 这类以简单变量为根的访问链时，调用者会追踪根变量的声明并保留完整成员路径。提供程序返回的全部语义访问仍继续显示：根变量和完整路径均匹配的结果位于“当前变量（Selected variable）”分组；能够确认来自其他变量或其他成员路径的结果位于“其他变量或成员路径（Other variables or member paths）”分组；函数返回值、数组基表达式、强制转换、别名和其他无法可靠判断的表达式位于最后的“无法确定变量实例（Variable instance could not be determined）”分组。三个分组之间有明确的状态分隔行。
@@ -1362,6 +1366,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 转到定义 | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单；快捷键 `f12` |
 | 查找所有引用 | `cInsight.findReferences` | 命令面板；编辑器右键菜单；快捷键 `shift+f12` |
 | 显示传入调用 | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单；调用者标题栏 |
+| 查询宏展开后函数的调用者 | `cInsight.callers.showExpandedTarget` | 命令面板；调用者标题栏；树节点右键菜单 |
 | 显示传出调用 | `cInsight.showOutgoingCalls` | 命令面板；编辑器右键菜单；被调用者标题栏 |
 | 固定上下文 | `cInsight.pinContext` | 命令面板；上下文标题栏 |
 | 取消固定上下文 | `cInsight.unpinContext` | 命令面板；上下文标题栏 |

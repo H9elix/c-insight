@@ -9,6 +9,7 @@
   "command.cInsight.goToDefinition.title": "C Insight：转到定义",
   "command.cInsight.findReferences.title": "C Insight：查找所有引用",
   "command.cInsight.showIncomingCalls.title": "C Insight：显示传入调用",
+  "command.cInsight.callers.showExpandedTarget.title": "C Insight：查询宏展开后函数的调用者",
   "command.cInsight.showOutgoingCalls.title": "C Insight：显示传出调用",
   "command.cInsight.pinContext.title": "C Insight：固定上下文",
   "command.cInsight.unpinContext.title": "C Insight：取消固定上下文",

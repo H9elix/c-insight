@@ -47,6 +47,7 @@ export const CONTEXT_KEYS = {
   PREVIEW_LOCKED: "cInsight.previewLocked",
   REFERENCES_PINNED: "cInsight.referencesPinned",
   CALL_HIERARCHY_PINNED: "cInsight.callHierarchyPinned",
+  CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE: "cInsight.callersExpandedMacroTargetAvailable",
 } as const;
 
 export type CommandId =

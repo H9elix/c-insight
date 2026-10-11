@@ -158,6 +158,11 @@
         "icon": "$(references)"
       },
       {
+        "command": "cInsight.callers.showExpandedTarget",
+        "title": "%command.cInsight.callers.showExpandedTarget.title%",
+        "icon": "$(symbol-method)"
+      },
+      {
         "command": "cInsight.showOutgoingCalls",
         "title": "%command.cInsight.showOutgoingCalls.title%",
         "icon": "$(references)"
@@ -778,6 +783,11 @@
           "group": "navigation@0"
         },
         {
+          "command": "cInsight.callers.showExpandedTarget",
+          "when": "view == cInsight.callers && cInsight.callersExpandedMacroTargetAvailable",
+          "group": "navigation@0.5"
+        },
+        {
           "command": "cInsight.callers.expandToDepth",
           "when": "view == cInsight.callers",
           "group": "navigation@1"
@@ -1050,8 +1060,13 @@
       ],
       "view/item/context": [
         {
+          "command": "cInsight.callers.showExpandedTarget",
+          "when": "viewItem == macroCallerRoot",
+          "group": "navigation@1"
+        },
+        {
           "command": "cInsight.openLocation",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == documentSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation || viewItem == unresolvedIncludeLocation || viewItem == diagnosticLocation",
+          "when": "viewItem == location || viewItem == macroCallerRoot || viewItem == referenceLocation || viewItem == historyLocation || viewItem == bookmarkLocation || viewItem == workspaceSymbolLocation || viewItem == documentSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation || viewItem == unresolvedIncludeLocation || viewItem == diagnosticLocation",
           "group": "navigation@1"
         },
         {
@@ -1061,7 +1076,7 @@
         },
         {
           "command": "cInsight.bookmarks.add",
-          "when": "viewItem == location || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation",
+          "when": "viewItem == location || viewItem == macroCallerRoot || viewItem == referenceLocation || viewItem == historyLocation || viewItem == workspaceSymbolLocation || viewItem == typeHierarchyLocation || viewItem == includeHierarchyLocation",
           "group": "cInsight@1"
         },
         {

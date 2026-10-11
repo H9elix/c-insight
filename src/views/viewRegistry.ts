@@ -19,6 +19,7 @@ import {
   memberCallerScopeKey,
   type MemberCallerOccurrenceScope,
 } from "../callHierarchy/memberCallerScopeModel";
+import { macroCallerScopeKey } from "../callHierarchy/macroCallerScopeModel";
 import {
   CallOccurrence,
   projectCallOccurrences,
@@ -408,7 +409,9 @@ export class ViewRegistry implements vscode.Disposable {
       Boolean(intent.manualCallHierarchy)
     );
     const callRootSignature = context.callRoots.map((root) =>
-      root.memberCallerScope
+      root.macroCallerScope
+        ? `${root.key}:macro:${macroCallerScopeKey(root.macroCallerScope)}`
+        : root.memberCallerScope
         ? `${root.key}:${memberCallerScopeKey(root.memberCallerScope)}`
         : root.key
     ).join("|");
@@ -450,12 +453,17 @@ export class ViewRegistry implements vscode.Disposable {
           "outgoing",
           [],
           0,
-          index === 0 ? preferredLocation : undefined,
+          index === 0 && !root.macroCallerScope
+            ? preferredLocation
+            : undefined,
         ),
       );
       this.callResultsStaleReason = undefined;
       this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
       this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
+      this.setExpandedMacroTargetAvailable(
+        context.callRoots.some((root) => root.macroCallerScope),
+      );
       void this.expandDefaultDepth(intent.manualCallDirection);
     } else if (
       allowCallUpdate &&
@@ -492,7 +500,11 @@ export class ViewRegistry implements vscode.Disposable {
     if (!preferred) {
       return false;
     }
-    if (!this.callViewState.pinned && callerRoot) {
+    if (
+      !this.callViewState.pinned &&
+      callerRoot &&
+      !callerRoot.callNode?.expandedMacroTarget
+    ) {
       callerRoot.callSymbolLocations = { definitions, declarations };
       this.refreshCallerDeclarationChildren(callerRoot);
       this.callers.refresh(callerRoot);
@@ -657,9 +669,13 @@ export class ViewRegistry implements vscode.Disposable {
       return undefined;
     }
     const memberScope = root.callNode?.memberCallerScope;
+    const macroScope = root.callNode?.macroCallerScope;
     return {
-      uri: memberScope?.queryUri ?? root.location.uri.toString(),
-      position: memberScope?.queryPosition ?? {
+      uri:
+        macroScope?.queryUri ??
+        memberScope?.queryUri ??
+        root.location.uri.toString(),
+      position: macroScope?.queryPosition ?? memberScope?.queryPosition ?? {
         line: root.location.range.start.line,
         character: root.location.range.start.character,
       },
@@ -853,7 +869,41 @@ export class ViewRegistry implements vscode.Disposable {
       ]);
       this.callRootSignature = "";
       this.callRootDisplaySignature = "";
+      this.setExpandedMacroTargetAvailable(false);
     }
+  }
+
+  async showExpandedMacroTargetCallers(): Promise<boolean> {
+    const displayedRoot = this.callDataRoots(this.callers).find(
+      (node) =>
+        node.callNode?.macroCallerScope &&
+        !node.callNode.expandedMacroTarget &&
+        node.callDepth === 0,
+    );
+    if (!displayedRoot?.callNode?.macroCallerScope) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("C Insight: The displayed Callers root is not a macro with an expanded function target."),
+      );
+      return false;
+    }
+    this.stopCallExpansion();
+    this.callTreeState.incoming.reset();
+    this.expandedCallPaths.incoming.clear();
+    const expandedTarget: CallNode = {
+      ...displayedRoot.callNode,
+      expandedMacroTarget: true,
+    };
+    const root = this.callTreeNode(
+      expandedTarget,
+      "incoming",
+      [],
+      0,
+    );
+    this.callResultsStaleReason = undefined;
+    this.callers.setRoots(this.withCallPinBanner([root], "incoming"));
+    this.setExpandedMacroTargetAvailable(false);
+    void this.expandDefaultDepth("incoming");
+    return true;
   }
 
   pinReferences(): void {
@@ -1472,6 +1522,14 @@ export class ViewRegistry implements vscode.Disposable {
     this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
   }
 
+  private setExpandedMacroTargetAvailable(available: boolean): void {
+    void vscode.commands.executeCommand(
+      "setContext",
+      CONTEXT_KEYS.CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE,
+      available,
+    );
+  }
+
   private callDataRoots(provider: MutableTreeProvider): TreeNode[] {
     return provider
       .getRoots()
@@ -1507,7 +1565,11 @@ export class ViewRegistry implements vscode.Disposable {
     for (const provider of [this.callers, this.callees]) {
       const root = this.callDataRoots(provider)
         .find((node) => node.callNode && node.callDepth === 0);
-      if (root) {
+      if (
+        root &&
+        !root.callNode?.expandedMacroTarget &&
+        !(provider === this.callees && root.callNode?.macroCallerScope)
+      ) {
         this.applyCallRootPresentation(root, presentation);
         if (provider === this.callers) {
           this.refreshCallerDeclarationChildren(root);
@@ -1524,6 +1586,12 @@ export class ViewRegistry implements vscode.Disposable {
     const root = this.callDataRoots(this.callers)
       .find((node) => node.callNode && node.callDepth === 0);
     if (!root) {
+      return;
+    }
+    if (
+      root.callNode?.macroCallerScope &&
+      root.callNode.expandedMacroTarget
+    ) {
       return;
     }
     root.callSymbolLocations = { definitions, declarations };
@@ -1557,6 +1625,23 @@ export class ViewRegistry implements vscode.Disposable {
     node.location = location;
     node.previewMode = kind === "definition" ? "definition" : "declaration";
     node.previewTitle = node.label;
+    if (node.callNode?.macroCallerScope && !node.callNode.expandedMacroTarget) {
+      node.description = vscode.l10n.t(
+        "Macro uses · expands to {target} · {location}",
+        {
+          target: node.callNode.macroCallerScope.expandedTargetName,
+          location: target,
+        },
+      );
+      node.tooltip = vscode.l10n.t(
+        "Callers are derived from references to macro {name}. Use Show Expanded Function Callers to query {target} instead.",
+        {
+          name: node.callNode.macroCallerScope.name,
+          target: node.callNode.macroCallerScope.expandedTargetName,
+        },
+      );
+      return;
+    }
     node.description = kind === "definition"
       ? vscode.l10n.t("Definition · {location}", { location: target })
       : vscode.l10n.t("Declaration fallback · {location}", { location: target });
@@ -1570,6 +1655,18 @@ export class ViewRegistry implements vscode.Disposable {
     node?: CallNode,
   ): TreeNode {
     const noun = direction === "incoming" ? "callers" : "callees";
+    if (
+      direction === "incoming" &&
+      node?.macroCallerScope &&
+      !node.expandedMacroTarget
+    ) {
+      return viewStatusNode(
+        vscode.l10n.t("No uses of macro {name} found", {
+          name: node.macroCallerScope.name,
+        }),
+        "empty",
+      );
+    }
     const referencesBasedMicrosoftCallers =
       direction === "incoming" &&
       this.analysis.analysisEngine === "microsoft" &&
@@ -1604,7 +1701,21 @@ export class ViewRegistry implements vscode.Disposable {
       uri: vscode.Uri.parse(node.raw.uri),
       range: this.analysis.toVsRange(node.raw.selectionRange),
     };
-    const location = presentation?.location ?? providerLocation;
+    const macroReferences =
+      direction === "incoming" &&
+      Boolean(node.macroCallerScope) &&
+      !node.expandedMacroTarget;
+    const macroDefinition = macroReferences
+      ? node.macroCallerScope?.definitions[0]
+      : undefined;
+    const location =
+      presentation?.location ??
+      (macroDefinition
+        ? {
+            uri: vscode.Uri.parse(macroDefinition.uri),
+            range: this.analysis.toVsRange(macroDefinition.range),
+          }
+        : providerLocation);
     const recursion = recursionKind(node.key, ancestors);
     const recursive = recursion !== undefined;
     const { duplicate } = this.callTreeState[direction].record(
@@ -1617,7 +1728,9 @@ export class ViewRegistry implements vscode.Disposable {
     const atDepthLimit = depth >= maximumDepth;
     const root: TreeNode = {
       id: `${direction}:${ancestors.join(">")}:${node.key}`,
-      label: node.raw.name,
+      label: macroReferences
+        ? node.macroCallerScope!.name
+        : node.raw.name,
       description: `${
         recursive
           ? recursion === "direct"
@@ -1635,7 +1748,16 @@ export class ViewRegistry implements vscode.Disposable {
       callPath: [...ancestors, node.key].join("\u0000"),
       callSymbolLocations:
         direction === "incoming" ? symbolLocations : undefined,
-      icon: new vscode.ThemeIcon(recursive ? "debug-restart" : "symbol-method"),
+      icon: new vscode.ThemeIcon(
+        recursive
+          ? "debug-restart"
+          : macroReferences
+            ? "symbol-constant"
+            : "symbol-method",
+      ),
+      contextValue:
+        macroReferences && depth === 0 ? "macroCallerRoot" : undefined,
+      callRelationship: macroReferences ? "macro-use" : undefined,
       collapsibleState: recursive
         ? vscode.TreeItemCollapsibleState.None
         : atDepthLimit
@@ -1653,6 +1775,11 @@ export class ViewRegistry implements vscode.Disposable {
     }
     if (depth === 0 && presentation) {
       this.applyCallRootPresentation(root, presentation);
+    } else if (depth === 0 && macroReferences) {
+      this.applyCallRootPresentation(root, {
+        location,
+        kind: "definition",
+      });
     }
     return root;
   }
@@ -1671,6 +1798,8 @@ export class ViewRegistry implements vscode.Disposable {
       return [limitNode(vscode.l10n.t("Call hierarchy node limit reached"))];
     }
     if (direction === "incoming") {
+      const macroReferences =
+        Boolean(node.macroCallerScope) && !node.expandedMacroTarget;
       const [callsResult, symbolLocations] = await Promise.all([
         atNodeLimit
           ? Promise.resolve({ limited: true } as const)
@@ -1681,7 +1810,9 @@ export class ViewRegistry implements vscode.Disposable {
               (result) => ({ result } as const),
               (error: unknown) => ({ error } as const),
             ),
-        this.loadCallerSymbolLocations(owner, node),
+        macroReferences
+          ? Promise.resolve(undefined)
+          : this.loadCallerSymbolLocations(owner, node),
       ]);
       const declarationNodes = symbolLocations
         ? this.callerDeclarationNodes(owner, node, symbolLocations)
@@ -1699,6 +1830,48 @@ export class ViewRegistry implements vscode.Disposable {
         ];
       }
       const incoming = callsResult.result;
+      if (incoming.macroScope) {
+        const occurrences = this.projectIncomingOccurrences(incoming.calls);
+        const unmapped = incoming.macroScope.unmappedReferences.map(
+          (location, index): TreeNode => ({
+            id: [
+              "incoming",
+              "macro-use",
+              incoming.macroScope!.name,
+              location.uri.toString(),
+              location.range.start.line,
+              location.range.start.character,
+              index,
+            ].join(":"),
+            label: incoming.macroScope!.name,
+            description: vscode.l10n.t(
+              "macro use outside a callable · {location}",
+              {
+                location: `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`,
+              },
+            ),
+            tooltip: `${location.uri.fsPath}:${location.range.start.line + 1}`,
+            location,
+            previewMode: "reference",
+            previewTitle: incoming.macroScope!.name,
+            callSupplement: "macro-use",
+            callRelationship: "macro-use",
+            icon: new vscode.ThemeIcon("symbol-constant"),
+          }),
+        );
+        const children = this.materializeCallOccurrences(
+          occurrences,
+          direction,
+          ancestors,
+          depth,
+          unmapped,
+          undefined,
+          true,
+        );
+        return children.length > 0
+          ? children
+          : [this.noCallsNode("incoming", node)];
+      }
       if (incoming.memberScope) {
         const sameOccurrences = this.projectIncomingOccurrences(
           incoming.memberScope.sameVariable,
@@ -1940,6 +2113,7 @@ export class ViewRegistry implements vscode.Disposable {
     depth: number,
     additionalNodes: TreeNode[],
     occurrenceScope?: MemberCallerOccurrenceScope,
+    macroUse = false,
   ): TreeNode[] {
     const candidates: CallChildCandidate[] = [
       ...occurrences.map((occurrence): CallChildCandidate => ({
@@ -1984,6 +2158,7 @@ export class ViewRegistry implements vscode.Disposable {
             depth,
             states.get(candidate.occurrence.semanticKey)!,
             occurrenceScope,
+            macroUse,
           ),
     );
     if (visible.length < candidates.length) {
@@ -1999,6 +2174,7 @@ export class ViewRegistry implements vscode.Disposable {
     depth: number,
     state: CallOccurrenceGroupState,
     occurrenceScope?: MemberCallerOccurrenceScope,
+    macroUse = false,
   ): TreeNode {
     const uri = vscode.Uri.parse(occurrence.uri);
     const location: LocationResult = {
@@ -2032,7 +2208,12 @@ export class ViewRegistry implements vscode.Disposable {
                 ordinal: occurrence.ordinal,
                 total: occurrence.total,
               })
-            : vscode.l10n.t("call {ordinal}/{total}", {
+            : macroUse
+              ? vscode.l10n.t("macro use {ordinal}/{total}", {
+                  ordinal: occurrence.ordinal,
+                  total: occurrence.total,
+                })
+              : vscode.l10n.t("call {ordinal}/{total}", {
                 ordinal: occurrence.ordinal,
                 total: occurrence.total,
               }),
@@ -2058,6 +2239,7 @@ export class ViewRegistry implements vscode.Disposable {
       callDepth: depth,
       callNode: occurrence.canonical ? occurrence.value : undefined,
       callOccurrenceScope: occurrenceScope,
+      callRelationship: macroUse ? "macro-use" : undefined,
       callPath: expandable
         ? [...ancestors, occurrence.semanticKey].join("\u0000")
         : undefined,
@@ -2504,7 +2686,11 @@ function flattenLoadedCallNavigationNodes(roots: TreeNode[]): TreeNode[] {
   const output: TreeNode[] = [];
   const visit = (nodes: TreeNode[]): void => {
     for (const node of nodes) {
-      if (node.callKey || node.callSupplement === "call-declaration") {
+      if (
+        node.callKey ||
+        node.callSupplement === "call-declaration" ||
+        node.callSupplement === "macro-use"
+      ) {
         output.push(node);
       }
       if (node.children) {
@@ -2534,14 +2720,20 @@ function callExportNode(node: TreeNode): HierarchyExportNode {
       ...hierarchyNodeStates(node.label, node.description),
       ...(occurrenceScope ? [occurrenceScope] : []),
     ],
-    relationship: occurrenceScope
+    relationship: node.callRelationship ?? (occurrenceScope
       ? occurrenceScope === "same-variable"
         ? "selected-variable-access"
         : occurrenceScope === "other-variable"
           ? "other-variable-access"
           : "unresolved-variable-access"
-      : undefined,
-    evidence: occurrenceScope
+      : undefined),
+    evidence: node.callRelationship === "macro-use"
+      ? {
+          source: "macro-references",
+          method: "semantic-references",
+          confidence: "exact",
+        }
+      : occurrenceScope
       ? {
           source: "member-caller-scope",
           method: occurrenceScope === "same-variable"

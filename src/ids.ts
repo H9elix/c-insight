@@ -10,6 +10,7 @@ export const COMMANDS = {
   GO_TO_DEFINITION: "cInsight.goToDefinition",
   FIND_REFERENCES: "cInsight.findReferences",
   SHOW_INCOMING_CALLS: "cInsight.showIncomingCalls",
+  CALLERS_SHOW_EXPANDED_TARGET: "cInsight.callers.showExpandedTarget",
   SHOW_OUTGOING_CALLS: "cInsight.showOutgoingCalls",
   PIN_CONTEXT: "cInsight.pinContext",
   UNPIN_CONTEXT: "cInsight.unpinContext",
@@ -144,6 +145,7 @@ export const CONTEXT_KEYS = {
   PREVIEW_LOCKED: "cInsight.previewLocked",
   REFERENCES_PINNED: "cInsight.referencesPinned",
   CALL_HIERARCHY_PINNED: "cInsight.callHierarchyPinned",
+  CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE: "cInsight.callersExpandedMacroTargetAvailable",
 } as const;
 
 export type CommandId =

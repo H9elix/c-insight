@@ -60,6 +60,10 @@ Field and property Callers again retain the Provider's complete semantic result 
 
 `cInsight.callHierarchy.classifyMemberCallers` now selects between the two supported scopes. Its default `false` path restores the `0.22.12` symbol-level behavior and direct clangd query path with no classification work. Setting it to `true` enables the complete three-group `0.22.14` presentation. Microsoft mode retains its safe synthetic References-based field root in either mode because that is an engine-compatibility fallback rather than instance classification.
 
+### Macro-aware Callers (`Unreleased`)
+
+When a selected macro expands to a function, the Callers tree now preserves the selected macro identity and derives its exact source uses from References instead of accepting the Provider's silent redirection to the expanded function. Uses remain occurrence-based and expandable through their enclosing callable. A contextual title action deliberately switches only the Callers tree to the retained expanded function root; Refresh restores macro-use semantics. Callees and Relationship Graph keep their existing Provider behavior, and the two incoming modes use separate cache identities.
+
 ## Deferred fourth phase
 
 Do not implement these items until the user explicitly reactivates them:

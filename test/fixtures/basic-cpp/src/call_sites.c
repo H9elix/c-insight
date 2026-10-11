@@ -12,6 +12,24 @@ static int add(int left, int right)
     return left + right;
 }
 
+static void macro_target(int value)
+{
+    report_sink += value;
+}
+
+#define MACRO_TARGET macro_target
+#define MACRO_TARGET_2 MACRO_TARGET
+
+static void macro_user(int value)
+{
+    MACRO_TARGET_2(value);
+}
+
+static void direct_macro_target_user(int value)
+{
+    macro_target(value);
+}
+
 typedef struct MemberLeaf {
     int rate;
 } MemberLeaf;
@@ -52,5 +70,7 @@ int main(void)
     report("first", value);
     report("second", value + 1);
     report("third", value + 2);
+    macro_user(value);
+    direct_macro_target_user(value);
     return report_sink + member_total(&selected, &other);
 }

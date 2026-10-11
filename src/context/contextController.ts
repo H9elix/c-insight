@@ -369,7 +369,9 @@ export class ContextController implements vscode.Disposable {
           ? this.analysis.declaration(uri, position, token)
           : [],
         demand.callRoots
-          ? this.callRepository.prepare(uri, position, token).catch(() => [])
+          ? this.callRepository
+              .prepare(uri, position, token, { macroCallers: true })
+              .catch(() => [])
           : [],
         demand.hover
           ? this.analysis.hover(uri, position, token).catch(() => undefined)
@@ -381,9 +383,10 @@ export class ContextController implements vscode.Disposable {
     if (generation !== this.generation || token.isCancellationRequested) {
       return undefined;
     }
-    const name = symbolInfo?.name ?? callRoots[0]?.raw.name;
+    const macroName = callRoots[0]?.macroCallerScope?.name;
+    const name = macroName ?? symbolInfo?.name ?? callRoots[0]?.raw.name;
     const qualifiedName =
-      symbolInfo?.containerName && name
+      !macroName && symbolInfo?.containerName && name
         ? `${symbolInfo.containerName}::${name}`
         : name;
     return {

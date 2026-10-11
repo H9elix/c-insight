@@ -9,6 +9,7 @@
   "command.cInsight.goToDefinition.title": "C Insight: Go to Definition",
   "command.cInsight.findReferences.title": "C Insight: Find All References",
   "command.cInsight.showIncomingCalls.title": "C Insight: Show Incoming Calls",
+  "command.cInsight.callers.showExpandedTarget.title": "C Insight: Show Expanded Function Callers",
   "command.cInsight.showOutgoingCalls.title": "C Insight: Show Outgoing Calls",
   "command.cInsight.pinContext.title": "C Insight: Pin Context",
   "command.cInsight.unpinContext.title": "C Insight: Unpin Context",
