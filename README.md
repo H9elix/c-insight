@@ -93,7 +93,7 @@ C Insight searches the workspace root and common build directories, or you can r
 ## Interaction model
 
 - **Single activation:** preview the exact source location without moving the editor.
-- **Second activation:** open the same result in the editor. The interval is controlled by `cInsight.navigation.doubleClickInterval`.
+- **Second activation:** open the same result in the editor.
 - **Open Location:** bypass the preview step and open immediately.
 - **Pin Context or References:** block automatic cursor-follow replacement for that view; explicit commands can still replace the result.
 - **Pin Call Hierarchy:** Callers and Callees display separate buttons but share one synchronized pin state.
