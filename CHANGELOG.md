@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Kept source-level macro identity in Callers when an object-like or function-like macro expands to a function: the default tree now derives exact macro-use locations from References, while a contextual title-bar action can explicitly replace it with the expanded function's Callers.
+- Kept source-level macro identity in Callers when an object-like or function-like macro expands to a function: the default tree now derives exact macro-use locations from References both at the macro definition and at its uses, while a contextual title-bar action can explicitly replace it with the expanded function's Callers. Definition-position target resolution is deferred until that action is invoked.
 - Reworked the repository and Marketplace landing page around the product purpose, visible workflow, quick start, engine boundary, and documentation entry points, with a synchronized Simplified Chinese README plus privacy-masked overview, navigation, call-hierarchy, and relationship-graph media that remain outside the VSIX payload.
 
 ## 0.22.18

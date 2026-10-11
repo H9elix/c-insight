@@ -447,17 +447,19 @@ export class ViewRegistry implements vscode.Disposable {
             : undefined,
         ),
       );
-      const calleeRoots = context.callRoots.map((root, index) =>
-        this.callTreeNode(
-          root,
-          "outgoing",
-          [],
-          0,
-          index === 0 && !root.macroCallerScope
-            ? preferredLocation
-            : undefined,
-        ),
-      );
+      const calleeRoots = context.callRoots
+        .filter((root) => !root.syntheticMacroRoot)
+        .map((root, index) =>
+          this.callTreeNode(
+            root,
+            "outgoing",
+            [],
+            0,
+            index === 0 && !root.macroCallerScope
+              ? preferredLocation
+              : undefined,
+          ),
+        );
       this.callResultsStaleReason = undefined;
       this.callers.setRoots(this.withCallPinBanner(callerRoots, "incoming"));
       this.callees.setRoots(this.withCallPinBanner(calleeRoots, "outgoing"));
@@ -886,13 +888,27 @@ export class ViewRegistry implements vscode.Disposable {
       );
       return false;
     }
+    const expandedTarget = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: vscode.l10n.t("Resolving expanded macro target..."),
+        cancellable: true,
+      },
+      (_progress, token) =>
+        this.callRepository.resolveExpandedMacroTarget(
+          displayedRoot.callNode!,
+          token,
+        ),
+    );
+    if (!expandedTarget) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("C Insight could not resolve a callable target from this macro's uses."),
+      );
+      return false;
+    }
     this.stopCallExpansion();
     this.callTreeState.incoming.reset();
     this.expandedCallPaths.incoming.clear();
-    const expandedTarget: CallNode = {
-      ...displayedRoot.callNode,
-      expandedMacroTarget: true,
-    };
     const root = this.callTreeNode(
       expandedTarget,
       "incoming",
@@ -1626,20 +1642,29 @@ export class ViewRegistry implements vscode.Disposable {
     node.previewMode = kind === "definition" ? "definition" : "declaration";
     node.previewTitle = node.label;
     if (node.callNode?.macroCallerScope && !node.callNode.expandedMacroTarget) {
-      node.description = vscode.l10n.t(
-        "Macro uses · expands to {target} · {location}",
-        {
-          target: node.callNode.macroCallerScope.expandedTargetName,
-          location: target,
-        },
-      );
-      node.tooltip = vscode.l10n.t(
-        "Callers are derived from references to macro {name}. Use Show Expanded Function Callers to query {target} instead.",
-        {
-          name: node.callNode.macroCallerScope.name,
-          target: node.callNode.macroCallerScope.expandedTargetName,
-        },
-      );
+      const expandedTargetName =
+        node.callNode.macroCallerScope.expandedTargetName;
+      node.description = expandedTargetName
+        ? vscode.l10n.t(
+            "Macro uses · expands to {target} · {location}",
+            { target: expandedTargetName, location: target },
+          )
+        : vscode.l10n.t(
+            "Macro uses · expanded target resolved on demand · {location}",
+            { location: target },
+          );
+      node.tooltip = expandedTargetName
+        ? vscode.l10n.t(
+            "Callers are derived from references to macro {name}. Use Show Expanded Function Callers to query {target} instead.",
+            {
+              name: node.callNode.macroCallerScope.name,
+              target: expandedTargetName,
+            },
+          )
+        : vscode.l10n.t(
+            "Callers are derived from references to macro {name}. Show Expanded Function Callers resolves a callable target from an actual macro use only when requested.",
+            { name: node.callNode.macroCallerScope.name },
+          );
       return;
     }
     node.description = kind === "definition"

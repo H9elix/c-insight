@@ -62,7 +62,7 @@ Field and property Callers again retain the Provider's complete semantic result 
 
 ### Macro-aware Callers (`Unreleased`)
 
-When a selected macro expands to a function, the Callers tree now preserves the selected macro identity and derives its exact source uses from References instead of accepting the Provider's silent redirection to the expanded function. Uses remain occurrence-based and expandable through their enclosing callable. A contextual title action deliberately switches only the Callers tree to the retained expanded function root; Refresh restores macro-use semantics. Callees and Relationship Graph keep their existing Provider behavior, and the two incoming modes use separate cache identities.
+When a selected macro expands to a function, the Callers tree now preserves the selected macro identity and derives its exact source uses from References instead of accepting the Provider's silent redirection to the expanded function. The same result is available directly from the macro's `#define` name through a synthetic caller-only root. Uses remain occurrence-based and expandable through their enclosing callable. A contextual title action deliberately switches only the Callers tree to the retained expanded function root or resolves one lazily from a bounded set of actual uses; Refresh restores macro-use semantics. Callees and Relationship Graph keep their existing Provider behavior, and macro-use, unresolved-target, and expanded-target cache identities remain separate.
 
 ## Deferred fourth phase
 

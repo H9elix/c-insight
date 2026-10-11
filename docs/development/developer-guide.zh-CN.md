@@ -153,7 +153,7 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 | `callHierarchyRepository.ts` | 调用层次根准备、传入/传出（Incoming/Outgoing）懒查询、源码修改后的按需缓存失效、方向独立 LRU、展开节点的定义/声明位置缓存、轻量源码读取、完整成员链实例分类、Microsoft 安全调用者（Callers）回退和被调用者（Callees）证据。树和关系图共用此仓库。 |
 | `callOccurrenceModel.ts` | 将语义调用关系及其 `fromRanges` 投影为按源码位置排序的调用点，去除完全重复范围，并把每组最早调用点标记为唯一规范展开点。它是无 VS Code 依赖的纯模型。 |
 | `memberCallerScopeModel.ts` | 从源码中保守识别 `base.member`、`base->member->nested` 和带单层括号的简单根变量，保留完整成员路径并提供位置/偏移换算；调用、数组、强制转换等复杂根表达式保持未解析。它是无 VS Code 依赖的纯模型。 |
-| `macroCallerScopeModel.ts` | 保存宏调用者的原始查询位置、宏定义和展开函数目标；提供宏定义行识别、稳定缓存键及定义引用排除规则。它是无 VS Code 依赖的纯模型。 |
+| `macroCallerScopeModel.ts` | 保存宏调用者的原始查询位置、宏定义和可选展开函数目标；准确定位 `#define` 左侧名称，并提供稳定缓存键及定义引用排除规则。它是无 VS Code 依赖的纯模型。 |
 | `microsoftCallerFallbackModel.ts` | 将引用（References）映射到最内层可调用文档符号（Document Symbol），形成保守的基于引用（References-based）调用者。 |
 | `microsoftCalleeEvidenceModel.ts` | 汇总 Microsoft 原生传出调用（Outgoing Calls）的成功、空、失败、取消和耗时证据。 |
 
@@ -167,7 +167,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 开启配置时，同一变量和路径、其他变量或路径、无法归属的复杂表达式分别进入 `same-variable`、`other-variable` 和 `unresolved-variable`，三类全部保留。`ViewRegistry` 用不可导航的分隔节点按上述顺序展示；分隔节点不计入深度、节点预算、路径或导出。关系图边使用 `selected-variable-access`、`other-variable-access` 和 `unresolved-variable-access` 状态，并在会话快照中保存查询根及完整路径，以便恢复后继续展开时维持相同语义。此过程只能证明简单直接访问，不得扩展为别名或指针指向推断。关闭配置时不生成这些分组、边状态或会话作用域。
 
-光标导航准备调用者根时会额外启用宏识别：只有分析提供程序返回的函数名与光标下拼写不同，且定义位置的源码确认为同名 `#define`，才给原始调用层次项附加 `macroCallerScope`。默认传入展开必须从原始光标位置查询宏引用、排除定义并映射外层函数；不得从已经展开后的函数声明位置查询引用。标题栏“查询宏展开后函数的调用者”只克隆当前根并设置 `expandedMacroTarget`，不能丢弃提供程序（Provider）的不透明 `data`。关系图和其他直接仓库调用不启用宏展示模式，以免把宏使用边伪装成普通函数调用边。修改该路径时必须覆盖宏别名链、直接函数调用隔离、定义排除、两种显示模式的独立缓存以及 clangd Extension Host 切换测试。
+光标导航准备调用者根时会额外启用宏识别：分析提供程序返回的函数名与光标下拼写不同时，定义位置的源码必须确认为同名 `#define`，才能给原始调用层次项附加 `macroCallerScope`。如果光标正位于 `#define` 左侧宏名且提供程序没有返回根，则创建只供调用者使用的 `syntheticMacroRoot`；同一行替换项中的同名文本不能误判，合成根也不能进入被调用者查询。默认传入展开必须从原始光标位置查询宏引用、排除定义并映射外层函数；不得从已经展开后的函数声明位置查询引用。标题栏“查询宏展开后函数的调用者”优先保留提供程序（Provider）的原始不透明 `data`；合成根没有该数据时，只有用户执行命令后才按顺序尝试最多 16 个实际宏使用位置，并缓存首个可用调用层次根。解析失败不得清空现有宏结果。关系图和其他直接仓库调用不启用宏展示模式，以免把宏使用边伪装成普通函数调用边。修改该路径时必须覆盖宏别名链、定义处查询、直接函数调用隔离、定义排除、两种显示模式的独立缓存以及 clangd Extension Host 切换测试。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 

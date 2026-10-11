@@ -33,6 +33,7 @@ export interface CallNode {
   memberCallerScope?: MemberCallerScope;
   macroCallerScope?: MacroCallerScope;
   expandedMacroTarget?: boolean;
+  syntheticMacroRoot?: boolean;
   syntheticMemberRoot?: boolean;
 }
 

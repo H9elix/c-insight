@@ -770,6 +770,38 @@ async function verifyMacroCallers(): Promise<void> {
       ? state
       : undefined;
   }, "Refreshing Callers did not restore macro-use semantics");
+
+  editor.selection = new vscode.Selection(macroDefinition, macroDefinition);
+  await waitForNavigationIdle();
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  const definitionState = await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    return state.incomingRoots[0] === "MACRO_TARGET_2" &&
+      state.incomingOccurrences.length === 1 &&
+      state.incomingOccurrences[0].line === macroUse.line &&
+      state.session?.position.line === macroDefinition.line
+      ? state
+      : undefined;
+  }, "Macro definition Callers did not show the macro's use sites");
+  assert.equal(definitionState.incomingRootLocations[0].line, macroDefinition.line);
+
+  const resolvedFromDefinition = await vscode.commands.executeCommand<boolean>(
+    "cInsight.callers.showExpandedTarget",
+  );
+  assert.equal(resolvedFromDefinition, true);
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>(
+      "cInsight.test.callHierarchyState",
+    );
+    const labels = state.incomingOccurrences.map((item) => item.label);
+    return state.incomingRoots[0] === "macro_target" &&
+      labels.includes("macro_user") &&
+      labels.includes("direct_macro_target_user")
+      ? state
+      : undefined;
+  }, "Macro definition did not lazily resolve the expanded function Callers");
 }
 
 async function verifyMemberCallerScope(): Promise<void> {

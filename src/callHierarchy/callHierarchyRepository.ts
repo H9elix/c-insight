@@ -31,6 +31,7 @@ import {
 import {
   isMacroDefinitionLocation,
   macroCallerScopeKey,
+  macroDefinitionDirective,
   macroDefinitionName,
   MacroCallerScope,
   sourceLineAt,
@@ -63,7 +64,7 @@ export interface IncomingCallResult {
   memberScope?: ScopedIncomingCalls;
   macroScope?: {
     name: string;
-    expandedTargetName: string;
+    expandedTargetName?: string;
     unmappedReferences: LocationResult[];
   };
 }
@@ -82,6 +83,7 @@ export class CallHierarchyRepository {
     CallHierarchyOutgoingCall[]
   >;
   private readonly symbolLocationCache: LruPromiseCache<CallSymbolLocations>;
+  private readonly expandedMacroTargetCache: LruPromiseCache<CallNode | undefined>;
   private dirty = false;
 
   constructor(private readonly analysis: AnalysisService) {
@@ -89,6 +91,7 @@ export class CallHierarchyRepository {
     this.incomingCache = new LruPromiseCache(size);
     this.outgoingCache = new LruPromiseCache(size);
     this.symbolLocationCache = new LruPromiseCache(size);
+    this.expandedMacroTargetCache = new LruPromiseCache(size);
   }
 
   prepare(
@@ -194,6 +197,62 @@ export class CallHierarchyRepository {
     );
   }
 
+  resolveExpandedMacroTarget(
+    node: CallNode,
+    token?: vscode.CancellationToken,
+  ): Promise<CallNode | undefined> {
+    this.ensureFresh();
+    const scope = node.macroCallerScope;
+    if (!scope) return Promise.resolve(undefined);
+    if (!node.syntheticMacroRoot) {
+      return Promise.resolve({ ...node, expandedMacroTarget: true });
+    }
+    return this.expandedMacroTargetCache.getOrCreate(
+      macroCallerScopeKey(scope),
+      async () => {
+        const references = await this.analysis.references(
+          vscode.Uri.parse(scope.queryUri),
+          new vscode.Position(
+            scope.queryPosition.line,
+            scope.queryPosition.character,
+          ),
+          false,
+          token,
+        );
+        const candidates = references.filter(
+          (reference) =>
+            !isMacroDefinitionLocation(
+              scope,
+              reference.uri.toString(),
+              toProtocolPosition(reference.range.start),
+            ),
+        ).slice(0, 16);
+        for (const candidate of candidates) {
+          if (token?.isCancellationRequested) {
+            throw new vscode.CancellationError();
+          }
+          const roots = await this.analysis.prepareCallHierarchy(
+            candidate.uri,
+            candidate.range.start,
+            token,
+          );
+          const target = roots[0];
+          if (target) {
+            return {
+              ...target,
+              macroCallerScope: {
+                ...scope,
+                expandedTargetName: target.raw.name,
+              },
+              expandedMacroTarget: true,
+            };
+          }
+        }
+        return undefined;
+      },
+    );
+  }
+
   symbolLocations(
     node: CallNode,
     token?: vscode.CancellationToken,
@@ -270,9 +329,11 @@ export class CallHierarchyRepository {
     this.incomingCache.resize(size);
     this.outgoingCache.resize(size);
     this.symbolLocationCache.resize(size);
+    this.expandedMacroTargetCache.resize(size);
     this.incomingCache.clear();
     this.outgoingCache.clear();
     this.symbolLocationCache.clear();
+    this.expandedMacroTargetCache.clear();
     this.microsoftIncomingEvidence.clear();
     this.microsoftOutgoingEvidence.clear();
   }
@@ -316,6 +377,37 @@ export class CallHierarchyRepository {
       return roots;
     }
     const memberName = document.getText(wordRange);
+    const source = document.getText();
+    if (detectMacroCallers) {
+      const directive = macroDefinitionDirective(
+        document.lineAt(position.line).text,
+      );
+      if (
+        directive?.name === memberName &&
+        directive.startCharacter === wordRange.start.character &&
+        directive.endCharacter === wordRange.end.character
+      ) {
+        const range = toProtocolRange(wordRange);
+        const macroScope: MacroCallerScope = {
+          queryUri: uri.toString(),
+          queryPosition: toProtocolPosition(position),
+          name: memberName,
+          definitions: [{ uri: uri.toString(), range }],
+        };
+        return [{
+          ...this.analysis.callNode({
+            name: memberName,
+            kind: SymbolKind.Constant,
+            detail: vscode.l10n.t("Macro definition"),
+            uri: uri.toString(),
+            range,
+            selectionRange: range,
+          }),
+          macroCallerScope: macroScope,
+          syntheticMacroRoot: true,
+        }];
+      }
+    }
     if (detectMacroCallers && roots.length > 0) {
       const macroScope = await this.detectMacroCallerScope(
         uri,
@@ -331,7 +423,6 @@ export class CallHierarchyRepository {
     if (!classifyMemberCallers && this.analysis.analysisEngine !== "microsoft") {
       return roots;
     }
-    const source = document.getText();
     if (
       roots.length === 0 &&
       this.analysis.analysisEngine === "microsoft" &&

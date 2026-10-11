@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   isMacroDefinitionLocation,
   macroCallerScopeKey,
+  macroDefinitionDirective,
   macroDefinitionName,
   sourceLineAt,
 } from "../../src/callHierarchy/macroCallerScopeModel";
@@ -12,6 +13,20 @@ describe("macro caller scope", () => {
     assert.equal(macroDefinitionName("#define LOG printf"), "LOG");
     assert.equal(macroDefinitionName("  # define LOG(...) printf(__VA_ARGS__)"), "LOG");
     assert.equal(macroDefinitionName("printf(\"#define LOG\")"), undefined);
+    assert.deepEqual(
+      macroDefinitionDirective("  # define LOG(...) printf(__VA_ARGS__)"),
+      { name: "LOG", startCharacter: 11, endCharacter: 14 },
+    );
+  });
+
+  it("distinguishes the definition name from a same-line replacement token", () => {
+    const directive = macroDefinitionDirective("#define LOG_ALIAS LOG");
+    assert.deepEqual(directive, {
+      name: "LOG_ALIAS",
+      startCharacter: 8,
+      endCharacter: 17,
+    });
+    assert.notEqual(directive?.startCharacter, 18);
   });
 
   it("reads source lines with LF or CRLF endings", () => {
@@ -50,6 +65,18 @@ describe("macro caller scope", () => {
         { line: 8, character: 4 },
       ),
       false,
+    );
+  });
+
+  it("keeps a stable key before an expanded target is resolved", () => {
+    assert.match(
+      macroCallerScopeKey({
+        queryUri: "file:///fixture.c",
+        queryPosition: { line: 2, character: 8 },
+        name: "LOG_ALIAS",
+        definitions: [],
+      }),
+      /LOG_ALIAS:unresolved$/,
     );
   });
 });
