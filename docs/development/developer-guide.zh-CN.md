@@ -64,6 +64,7 @@ AnalysisService（调度、计时、统一结果）
 | `THIRD_PARTY_NOTICES.md` | 从生产依赖树生成并由质量门检查的第三方许可证声明。 |
 | `LICENSE` | MIT 许可证。 |
 | `.github/` | GitHub Actions、Dependabot、Issue 表单和 Pull Request 模板。 |
+| `.github/readme-assets/` | 英文和简体中文 README 共用的压缩产品截图与动图；原始录屏保存在被忽略的 `.cache/` 中，不进入版本库或 VSIX。 |
 | `docs/releases/v<version>.md` | 与 GitHub Release 正文一致的版本化中英双语发布说明；版本提升时必须同步新增。 |
 | `.gitattributes` | 跨平台文本换行和二进制文件规则。 |
 | `media/c-insight.svg` | Activity Bar 容器图标。 |

@@ -8,7 +8,7 @@ C Insight 是一款在 VS Code 中提供 Source Insight 风格 C/C++ 源码浏�
 
 C Insight 默认把语义分析委托给自身管理的 `clangd` 进程，也可以在明确选择后使用已安装的 Microsoft C/C++ language service (cpptools)。它是源码导航和可视化层，不负责代替编译器、构建系统，也不会替你生成 `compile_commands.json`。
 
-<!-- README_ASSET: 截图完成后在这里插入 .github/readme-assets/overview.png。 -->
+![文档符号、上下文、代码预览、调用者和引用同时可见的 C Insight 工作区](.github/readme-assets/overview.png)
 
 ## 为什么使用 C Insight？
 
@@ -31,19 +31,19 @@ VS Code 已经提供“转到定义”和“查找所有引用”等命令。C I
 
 单击普通源码结果会在代码预览中显示其准确位置；在配置的双击间隔内再次激活同一结果，则会在编辑器中打开。显式选择的结果会一直保留在代码预览中，直到你主动移动编辑器光标或执行显式刷新。
 
-<!-- README_ASSET: 在这里插入 .github/readme-assets/core-navigation.gif。 -->
+![从编辑器符号经过代码预览查看定义、引用和准确源码位置](.github/readme-assets/core-navigation.gif)
 
 ### 查看每一个调用位置
 
 调用者和被调用者会把语义父节点返回的每个调用位置直接显示出来。同一函数中的重复调用仍然是各自可导航的结果，只有同一语义关系中最早的调用位置负责展开下一层。选择某个调用位置时，代码预览显示的是实际调用行，而不只是调用者函数的定义。
 
-<!-- README_ASSET: 在这里插入 .github/readme-assets/call-hierarchy.gif。 -->
+![选择不同调用者结果并预览每一个准确调用位置](.github/readme-assets/call-hierarchy.gif)
 
 ### 使用关系图浏览工程
 
 可以为函数打开调用图，为 C++ 类或结构体打开类型图，也可以为活动源码或头文件打开文件图。关系图支持按需展开、搜索已加载节点、预览选中结果、折叠分支、添加书签，以及导出 Text、JSON 或 Mermaid。
 
-<!-- README_ASSET: 在这里插入 .github/readme-assets/relationship-graph.gif。 -->
+![打开并展开交互式调用关系图](.github/readme-assets/relationship-graph.gif)
 
 ## 包含哪些功能？
 

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Reworked the repository and Marketplace landing page around the product purpose, visible workflow, quick start, engine boundary, and documentation entry points, with a synchronized Simplified Chinese README and reserved positions for focused demonstration media.
+- Reworked the repository and Marketplace landing page around the product purpose, visible workflow, quick start, engine boundary, and documentation entry points, with a synchronized Simplified Chinese README plus privacy-masked overview, navigation, call-hierarchy, and relationship-graph media that remain outside the VSIX payload.
 
 ## 0.22.18
 

@@ -8,7 +8,7 @@ C Insight is a Source Insight-style C/C++ code-browsing extension for VS Code. I
 
 C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It is a navigation and visualization layer: it does not compile the project, replace the build system, or create `compile_commands.json` for you.
 
-<!-- README_ASSET: Insert .github/readme-assets/overview.png here after capture. -->
+![C Insight workspace with Document Symbols, Context, Code Preview, Callers, and References visible together](.github/readme-assets/overview.png)
 
 ## Why C Insight?
 
@@ -31,19 +31,19 @@ Move the editor cursor deliberately onto a C/C++ symbol. Context and Code Previe
 
 Single-click any ordinary source result to show its exact location in Code Preview. Activate the same result again within the configured double-activation interval to open it in the editor. An explicit result selection remains in Code Preview until you deliberately move the editor cursor or run an explicit refresh.
 
-<!-- README_ASSET: Insert .github/readme-assets/core-navigation.gif here. -->
+![Move from an editor symbol to its definition, references, and exact source locations through Code Preview](.github/readme-assets/core-navigation.gif)
 
 ### Inspect every call occurrence
 
 Callers and Callees show every returned call site directly beneath its semantic parent. Repeated calls remain separate navigable rows, while only the earliest occurrence of a semantic relation expands the next level. Selecting an occurrence previews the calling line rather than merely jumping to the caller's definition.
 
-<!-- README_ASSET: Insert .github/readme-assets/call-hierarchy.gif here. -->
+![Select different caller occurrences and preview each exact call site](.github/readme-assets/call-hierarchy.gif)
 
 ### Explore relationship graphs
 
 Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a File Graph for the active source/header. Expand only the relations you need, search loaded nodes, preview a selection, collapse branches, add bookmarks, and export the loaded graph as Text, JSON, or Mermaid.
 
-<!-- README_ASSET: Insert .github/readme-assets/relationship-graph.gif here. -->
+![Open and expand an interactive call relationship graph](.github/readme-assets/relationship-graph.gif)
 
 ## What is included?
 

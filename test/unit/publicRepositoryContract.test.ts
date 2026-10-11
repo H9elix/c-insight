@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const repositoryUrl = "https://github.com/H9elix/c-insight";
@@ -31,6 +31,29 @@ describe("public repository contract", () => {
     assert.match(chineseReadme, /\[Read the English README\]\(README\.md\)/);
     assert.equal(manifest.files?.includes("README.md"), true);
     assert.equal(manifest.files?.includes("README.zh-CN.md"), true);
+  });
+
+  it("publishes bounded README media without adding it to the VSIX", () => {
+    const englishReadme = readFileSync("README.md", "utf8");
+    const chineseReadme = readFileSync("README.zh-CN.md", "utf8");
+    const assets = [
+      "overview.png",
+      "core-navigation.gif",
+      "call-hierarchy.gif",
+      "relationship-graph.gif",
+    ];
+    let totalBytes = 0;
+    for (const asset of assets) {
+      const path = `.github/readme-assets/${asset}`;
+      assert.equal(existsSync(path), true, `Missing README asset: ${path}`);
+      assert.match(englishReadme, new RegExp(`\\(${path.replaceAll(".", "\\.")}\\)`));
+      assert.match(chineseReadme, new RegExp(`\\(${path.replaceAll(".", "\\.")}\\)`));
+      const bytes = statSync(path).size;
+      totalBytes += bytes;
+      assert.ok(bytes <= 5 * 1024 * 1024, `${path} exceeds 5 MiB`);
+    }
+    assert.ok(totalBytes <= 12 * 1024 * 1024, "README media exceeds 12 MiB");
+    assert.equal(manifest.files?.some((file) => file.startsWith(".github/")), false);
   });
 
   it("keeps local state and machine-specific test paths out of publication", () => {
