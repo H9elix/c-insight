@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.22.20
+
 - Added the official ice-blue frame and cyan relationship-node product icon for the VS Code Marketplace and Extension Manager, with matching gallery metadata and a packaging contract that excludes design candidates from the VSIX.
 
 ## 0.22.19
