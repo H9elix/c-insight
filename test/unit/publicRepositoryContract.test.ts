@@ -4,7 +4,11 @@ import { describe, it } from "node:test";
 
 const repositoryUrl = "https://github.com/H9elix/c-insight";
 const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
+  publisher?: string;
   author?: { name?: string };
+  icon?: string;
+  galleryBanner?: { color?: string; theme?: string };
+  pricing?: string;
   repository?: { url?: string };
   homepage?: string;
   bugs?: { url?: string };
@@ -14,6 +18,7 @@ const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
 
 describe("public repository contract", () => {
   it("publishes stable repository and maintainer metadata", () => {
+    assert.equal(manifest.publisher, "H9elix");
     assert.equal(manifest.author?.name, "H9elix");
     assert.equal(manifest.repository?.url, `${repositoryUrl}.git`);
     assert.equal(manifest.homepage, `${repositoryUrl}#readme`);
@@ -22,6 +27,26 @@ describe("public repository contract", () => {
       manifest.scripts?.package ?? "",
       /allow-missing-repository/,
     );
+  });
+
+  it("publishes a bounded 256px Marketplace icon and listing metadata", () => {
+    const iconPath = manifest.icon;
+    assert.equal(iconPath, "media/c-insight.png");
+    assert.ok(iconPath);
+    assert.equal(manifest.files?.includes(iconPath), true);
+    assert.equal(
+      manifest.files?.some((file) => file.includes("icon-candidates")),
+      false,
+    );
+
+    const icon = readFileSync(iconPath);
+    assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    assert.equal(icon.readUInt32BE(16), 256);
+    assert.equal(icon.readUInt32BE(20), 256);
+    assert.ok(statSync(iconPath).size <= 1024 * 1024, "Marketplace icon exceeds 1 MiB");
+    assert.match(manifest.galleryBanner?.color ?? "", /^#[0-9A-F]{6}$/);
+    assert.equal(manifest.galleryBanner?.theme, "dark");
+    assert.equal(manifest.pricing, "Free");
   });
 
   it("publishes linked English and Simplified Chinese landing pages", () => {

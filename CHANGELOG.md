@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added the official ice-blue frame and cyan relationship-node product icon for the VS Code Marketplace and Extension Manager, with matching gallery metadata and a packaging contract that excludes design candidates from the VSIX.
+
 ## 0.22.19
 
 - Kept source-level macro identity in Callers when an object-like or function-like macro expands to a function: the default tree now derives exact macro-use locations from References both at the macro definition and at its uses, while a contextual title-bar action can explicitly replace it with the expanded function's Callers. Definition-position target resolution is deferred until that action is invoked.

@@ -7,6 +7,12 @@
   "author": {
     "name": "H9elix"
   },
+  "icon": "media/c-insight.png",
+  "galleryBanner": {
+    "color": "#141F32",
+    "theme": "dark"
+  },
+  "pricing": "Free",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -37,7 +43,8 @@
     "package.nls.json",
     "package.nls.zh-cn.json",
     "l10n/**/*",
-    "media/**/*",
+    "media/c-insight.svg",
+    "media/c-insight.png",
     "README.md",
     "README.zh-CN.md",
     "CHANGELOG.md",

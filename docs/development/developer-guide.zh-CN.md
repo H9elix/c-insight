@@ -68,6 +68,8 @@ AnalysisService（调度、计时、统一结果）
 | `docs/releases/v<version>.md` | 与 GitHub Release 正文一致的版本化中英双语发布说明；版本提升时必须同步新增。 |
 | `.gitattributes` | 跨平台文本换行和二进制文件规则。 |
 | `media/c-insight.svg` | Activity Bar 容器图标。 |
+| `media/c-insight.png` | VS Code Marketplace 与扩展管理界面使用的 256×256 PNG 产品图标。 |
+| `media/icon-candidates/` | 产品图标设计候选与原始素材；不进入 VSIX，运行时也不会读取。 |
 
 `dist/`、`.vscode-test/` 和 `*.vsix` 是构建或测试产物，不是源代码。不要手工修改 `dist/extension.js`。
 
