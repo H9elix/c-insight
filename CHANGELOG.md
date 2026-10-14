@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Made the first Code Preview wheel gesture effective when incremental context is not yet scrollable by performing bounded layout prefill, replaying one viewport-bounded deferred wheel delta after insertion, and deriving later prefetch direction from actual vertical movement.
+
 ## 0.22.20
 
 - Added the official ice-blue frame and cyan relationship-node product icon for the VS Code Marketplace and Extension Manager, with matching gallery metadata and a packaging contract that excludes design candidates from the VSIX.

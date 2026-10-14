@@ -1175,6 +1175,9 @@ function htmlDocument(
     let clickTimer;
     let loadingMore = false;
     let pendingDirection;
+    let pendingWheelDelta = 0;
+    let initialFillAttempts = 0;
+    const maximumInitialFillAttempts = 2;
     let hasBefore = ${incremental.hasBefore};
     let hasAfter = ${incremental.hasAfter};
     let startLine = ${incremental.startLine};
@@ -1204,12 +1207,12 @@ function htmlDocument(
         ' / ' + totalLines + ' · ' + boundary;
     }
     function requestMore(direction) {
-      if (!incrementalLoading) return;
+      if (!incrementalLoading) return false;
+      if (direction === 'before' ? !hasBefore : !hasAfter) return false;
       if (loadingMore) {
         pendingDirection = direction;
-        return;
+        return true;
       }
-      if (direction === 'before' ? !hasBefore : !hasAfter) return;
       loadingMore = true;
       updateLoadStatus(
         direction === 'before'
@@ -1217,18 +1220,78 @@ function htmlDocument(
           : text.loadingLater
       );
       vscode.postMessage({ type: 'loadMore', direction });
+      return true;
     }
-    function loadAtScrollEdge(deltaY) {
+    function requestAtScrollEdge(direction) {
       if (!codeContainer) return;
       const threshold = 80;
-      if (deltaY <= 0 && codeContainer.scrollTop <= threshold) {
+      if (direction === 'before' && codeContainer.scrollTop <= threshold) {
         requestMore('before');
       } else if (
-        deltaY >= 0 &&
+        direction === 'after' &&
         codeContainer.scrollTop + codeContainer.clientHeight >=
           codeContainer.scrollHeight - threshold
       ) {
         requestMore('after');
+      }
+    }
+    function normalizedWheelDelta(event) {
+      if (!codeContainer) return 0;
+      if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+        return event.deltaY * codeContainer.clientHeight;
+      }
+      if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+        const firstLine = codeContainer.querySelector('.line');
+        const lineHeight = firstLine?.getBoundingClientRect().height || 16;
+        return event.deltaY * lineHeight;
+      }
+      return event.deltaY;
+    }
+    function canScroll(direction) {
+      if (!codeContainer) return false;
+      const maximum = Math.max(
+        0,
+        codeContainer.scrollHeight - codeContainer.clientHeight
+      );
+      return direction === 'before'
+        ? codeContainer.scrollTop > 0.5
+        : codeContainer.scrollTop < maximum - 0.5;
+    }
+    function rememberWheelDelta(delta) {
+      if (!codeContainer || delta === 0) return;
+      if (
+        pendingWheelDelta !== 0 &&
+        Math.sign(pendingWheelDelta) !== Math.sign(delta)
+      ) {
+        pendingWheelDelta = delta;
+      } else {
+        pendingWheelDelta += delta;
+      }
+      const limit = Math.max(1, codeContainer.clientHeight);
+      pendingWheelDelta = Math.max(-limit, Math.min(limit, pendingWheelDelta));
+    }
+    function takeWheelDelta(direction) {
+      const matches = direction === 'before'
+        ? pendingWheelDelta < 0
+        : pendingWheelDelta > 0;
+      if (!matches) return 0;
+      const delta = pendingWheelDelta;
+      pendingWheelDelta = 0;
+      return delta;
+    }
+    function ensureScrollable() {
+      if (
+        !incrementalLoading ||
+        !codeContainer ||
+        loadingMore ||
+        initialFillAttempts >= maximumInitialFillAttempts ||
+        codeContainer.scrollHeight > codeContainer.clientHeight + 1
+      ) {
+        return;
+      }
+      const direction = hasAfter ? 'after' : hasBefore ? 'before' : undefined;
+      if (direction && requestMore(direction)) {
+        initialFillAttempts += 1;
       }
     }
     let scrollSaveTimer;
@@ -1254,20 +1317,40 @@ function htmlDocument(
       clearTimeout(scrollSaveTimer);
       scrollSaveTimer = setTimeout(saveScroll, 150);
     }
+    let lastScrollTop = codeContainer?.scrollTop ?? 0;
     codeContainer?.addEventListener('scroll', () => {
-      loadAtScrollEdge(0);
+      const currentScrollTop = codeContainer.scrollTop;
+      const direction =
+        currentScrollTop < lastScrollTop - 0.5
+          ? 'before'
+          : currentScrollTop > lastScrollTop + 0.5
+            ? 'after'
+            : undefined;
+      lastScrollTop = currentScrollTop;
+      if (direction) requestAtScrollEdge(direction);
       scheduleScrollSave();
     });
     codeContainer?.addEventListener(
       'wheel',
-      event => loadAtScrollEdge(event.deltaY),
-      { passive: true }
+      event => {
+        if (!incrementalLoading) return;
+        const delta = normalizedWheelDelta(event);
+        if (delta === 0) return;
+        const direction = delta < 0 ? 'before' : 'after';
+        const hasMore = direction === 'before' ? hasBefore : hasAfter;
+        if (canScroll(direction) || !hasMore) return;
+        event.preventDefault();
+        rememberWheelDelta(delta);
+        requestMore(direction);
+      },
+      { passive: false }
     );
     window.addEventListener('message', event => {
       const message = event.data;
       if (!message || message.type !== 'incrementalLines' || !codeContainer) return;
       if (message.error) {
         loadingMore = false;
+        pendingWheelDelta = 0;
         updateLoadStatus(text.sourceLoadingFailed + message.error, true);
         pendingDirection = undefined;
         return;
@@ -1295,6 +1378,7 @@ function htmlDocument(
         codeContainer.scrollTop += anchor.offsetTop - anchorTop;
       }
       codeContainer.scrollLeft = scrollLeft;
+      lastScrollTop = codeContainer.scrollTop;
       hasBefore = Boolean(message.hasBefore);
       hasAfter = Boolean(message.hasAfter);
       startLine = Number(message.startLine);
@@ -1304,7 +1388,20 @@ function htmlDocument(
       scheduleScrollSave();
       const queued = pendingDirection;
       pendingDirection = undefined;
-      if (queued) setTimeout(() => requestMore(queued), 0);
+      const wheelDelta = takeWheelDelta(direction);
+      requestAnimationFrame(() => {
+        if (wheelDelta !== 0) {
+          codeContainer.scrollTop += wheelDelta;
+          lastScrollTop = codeContainer.scrollTop;
+          requestAtScrollEdge(direction);
+          scheduleScrollSave();
+        }
+        if (queued) {
+          requestMore(queued);
+        } else {
+          ensureScrollable();
+        }
+      });
     });
     if (restoredScroll && codeContainer) {
       const anchor = codeContainer.querySelector(
@@ -1315,7 +1412,9 @@ function htmlDocument(
         codeContainer.scrollLeft = restoredScroll.scrollLeft;
       }
     }
+    lastScrollTop = codeContainer?.scrollTop ?? 0;
     updateLoadStatus();
+    requestAnimationFrame(ensureScrollable);
     function sourcePosition(event, allowLineFallback = false) {
       const code = event.target.closest && event.target.closest('code[data-line]');
       if (!code) {

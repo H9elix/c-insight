@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.18`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.20`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -19,6 +19,8 @@ Set `cInsight.references.autoExpandGroups` to `true` to initially expand every r
 Single-clicking any source-location result in a C Insight tree previews it in Code Preview; double-clicking the same result opens that exact location in the editor. This includes Context definitions/declarations, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, workspace and document symbols, and source diagnostics. Disclosure arrows still expand hierarchical nodes, while explicit **Open Location** actions open immediately. Exact provider target ranges remain highlighted, while a local style reset removes the Webview host's gray preformatted-element background and rounded box from ordinary per-line `<code>` content.
 
 An explicit tree, history, graph, or in-preview selection temporarily owns Code Preview. Pending reference details, call counts, and preferred-definition retries for the previous cursor symbol may still update their own views, but cannot replace the selected source location. Deliberate mouse or arrow-key movement in the editor, or an explicit refresh/query, lets the newer context reclaim Code Preview. Merely revealing another C Insight view does not reclaim it, and Lock Preview remains the stronger rule.
+
+Code Preview loads additional source context incrementally near its vertical edges. When the initial source rows do not create a scrollable range, the Webview performs a bounded prefill after layout. A wheel gesture that arrives before that prefill finishes is retained and applied after the new rows are inserted, so the first gesture moves the preview instead of only changing the scrollbar. Actual `scrollTop` movement selects the loading direction; inserted or trimmed rows preserve the visible anchor and horizontal position.
 
 For callable symbols, Code Preview and both Callers/Callees roots prefer a provider definition distinct from the declaration. The Call Hierarchy query retains its original opaque provider item even when the displayed root points to the implementation. A declaration fallback is shown while no distinct definition is available; clangd index completion or bounded definition-only retries upgrade the current unlocked and unpinned location without clearing loaded branches.
 
