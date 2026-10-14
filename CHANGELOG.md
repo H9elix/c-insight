@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Made the first Code Preview wheel gesture effective when incremental context is not yet scrollable by replaying one viewport-bounded deferred wheel delta after insertion and deriving later prefetch direction from actual vertical movement, without proactively changing scroll geometry after a symbol is selected.
+- Made Code Preview prepare a bounded source buffer on both sides of a fresh target, position the hidden initial layout before revealing it, and prefetch within one viewport of a loaded edge. The deferred first-wheel replay remains as a fallback for unusually large viewports and fast boundary input.
 
 ## 0.22.20
 

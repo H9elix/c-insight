@@ -174,6 +174,21 @@ describe("code preview highlighting", () => {
     assert.doesNotMatch(provider, /ensureScrollable/);
   });
 
+  it("positions a buffered initial preview before revealing it", () => {
+    const provider = readFileSync(
+      "src/views/codePreviewProvider.ts",
+      "utf8",
+    );
+    assert.match(provider, /incrementalLoading \? loadBatchLines : 0/);
+    assert.match(provider, /\.code\.initializing \{ visibility: hidden; \}/);
+    assert.match(provider, /anchor\.offsetTop - first\.offsetTop/);
+    assert.match(provider, /classList\.remove\('initializing'\)/);
+    assert.match(
+      provider,
+      /const threshold = Math\.max\(80, codeContainer\.clientHeight\);/,
+    );
+  });
+
   it("derives incremental loading direction from actual scroll movement", () => {
     const provider = readFileSync(
       "src/views/codePreviewProvider.ts",

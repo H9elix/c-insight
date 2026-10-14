@@ -146,7 +146,7 @@
   "configuration.cInsight.codePreview.semanticTokenCacheSize.description": "Maximum number of document-version semantic-token results retained in memory.",
   "configuration.cInsight.codePreview.semanticTokenCacheMaximumMegabytes.description": "Approximate maximum total memory in MiB retained by completed Code Preview semantic-token cache entries.",
   "configuration.cInsight.codePreview.incrementalLoading.description": "Load more source context when Code Preview is scrolled near its top or bottom edge.",
-  "configuration.cInsight.codePreview.loadBatchLines.description": "Number of source lines added for each incremental Code Preview load.",
+  "configuration.cInsight.codePreview.loadBatchLines.description": "Number of source lines preloaded on each available side of a fresh target and added by each later incremental Code Preview load.",
   "configuration.cInsight.codePreview.maximumLoadedLines.description": "Maximum source lines retained in the Code Preview DOM; distant lines are trimmed and can be loaded again.",
   "configuration.cInsight.codePreview.restoreScrollPositions.description": "Restore loaded context and vertical/horizontal scroll position when returning to a previous Code Preview target.",
   "configuration.cInsight.codePreview.maximumScrollPositions.description": "Maximum Code Preview target scroll positions retained for the current extension session.",

@@ -146,7 +146,7 @@
   "configuration.cInsight.codePreview.semanticTokenCacheSize.description": "内存中保留的文档版本语义标记结果最大数量。",
   "configuration.cInsight.codePreview.semanticTokenCacheMaximumMegabytes.description": "已完成的代码预览语义标记缓存条目可占用的近似最大总内存（MiB）。",
   "configuration.cInsight.codePreview.incrementalLoading.description": "滚动到代码预览顶部或底部附近时加载更多源码上下文。",
-  "configuration.cInsight.codePreview.loadBatchLines.description": "代码预览每次增量加载增加的源码行数。",
+  "configuration.cInsight.codePreview.loadBatchLines.description": "新目标显示前在可用的上下方向各预读的源码行数，也是代码预览之后每次增量加载增加的行数。",
   "configuration.cInsight.codePreview.maximumLoadedLines.description": "代码预览 DOM 中保留的最大源码行数；较远的行会被裁剪，之后仍可重新加载。",
   "configuration.cInsight.codePreview.restoreScrollPositions.description": "返回之前的代码预览目标时，恢复已加载上下文及垂直/水平滚动位置。",
   "configuration.cInsight.codePreview.maximumScrollPositions.description": "当前扩展会话中保留的代码预览目标滚动位置最大数量。",

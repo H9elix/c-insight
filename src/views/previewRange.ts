@@ -10,6 +10,45 @@ export interface PreviewRangeExpansion extends PreviewLineRange {
   addedEndLine: number;
 }
 
+export function initialPreviewRange(
+  targetLine: number,
+  lastLine: number,
+  linesBefore: number,
+  linesAfter: number,
+  bufferLines: number,
+  maximumLoadedLines: number,
+): PreviewLineRange {
+  const last = Math.max(0, Math.floor(lastLine));
+  const target = Math.max(0, Math.min(last, Math.floor(targetLine)));
+  const before = Math.max(
+    0,
+    Math.floor(linesBefore),
+    Math.floor(bufferLines),
+  );
+  const after = Math.max(
+    0,
+    Math.floor(linesAfter),
+    Math.floor(bufferLines),
+  );
+  const maximum = Math.max(1, Math.floor(maximumLoadedLines));
+  const desiredStart = Math.max(0, target - before);
+  const desiredEnd = Math.min(last, target + after);
+  if (desiredEnd - desiredStart + 1 <= maximum) {
+    return { startLine: desiredStart, endLine: desiredEnd };
+  }
+
+  const sideBudget = maximum - 1;
+  const requestedSides = before + after;
+  const beforeBudget =
+    requestedSides === 0
+      ? 0
+      : Math.round((sideBudget * before) / requestedSides);
+  let startLine = Math.max(0, target - beforeBudget);
+  const endLine = Math.min(last, startLine + maximum - 1);
+  startLine = Math.max(0, endLine - maximum + 1);
+  return { startLine, endLine };
+}
+
 export function restorePreviewRange(
   saved: PreviewLineRange,
   lastLine: number,

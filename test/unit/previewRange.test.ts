@@ -2,10 +2,29 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   expandPreviewRange,
+  initialPreviewRange,
   restorePreviewRange,
 } from "../../src/views/previewRange";
 
 describe("code preview incremental range", () => {
+  it("preloads one batch on both sides of a fresh target", () => {
+    assert.deepEqual(initialPreviewRange(200, 499, 2, 8, 50, 1000), {
+      startLine: 150,
+      endLine: 250,
+    });
+    assert.deepEqual(initialPreviewRange(20, 499, 2, 8, 50, 1000), {
+      startLine: 0,
+      endLine: 70,
+    });
+  });
+
+  it("keeps an oversized initial buffer within the DOM budget", () => {
+    const range = initialPreviewRange(200, 499, 2, 8, 100, 50);
+    assert.equal(range.endLine - range.startLine + 1, 50);
+    assert.ok(range.startLine <= 200);
+    assert.ok(range.endLine >= 200);
+  });
+
   it("loads batches in both directions and clamps to the document", () => {
     assert.deepEqual(
       expandPreviewRange(

@@ -12,6 +12,7 @@ import type { PreviewSessionState } from "../session/workspaceSession";
 import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 import {
   expandPreviewRange,
+  initialPreviewRange,
   PreviewLoadDirection,
   restorePreviewRange,
 } from "./previewRange";
@@ -521,18 +522,36 @@ export class CodePreviewProvider
     try {
       const document = await vscode.workspace.openTextDocument(location.uri);
       const config = vscode.workspace.getConfiguration("cInsight.codePreview");
-      const linesBefore = config.get<number>("linesBefore", 6);
-      const linesAfter = config.get<number>("linesAfter", 8);
+      const linesBefore = Math.max(
+        0,
+        Math.floor(config.get<number>("linesBefore", 6)),
+      );
+      const linesAfter = Math.max(
+        0,
+        Math.floor(config.get<number>("linesAfter", 8)),
+      );
       const targetLine = location.range.start.line;
-      let startLine = Math.max(0, targetLine - linesBefore);
-      let endLine = Math.min(
-        document.lineCount - 1,
-        targetLine + linesAfter,
+      const incrementalLoading = config.get<boolean>(
+        "incrementalLoading",
+        true,
+      );
+      const loadBatchLines = Math.max(
+        1,
+        Math.floor(config.get<number>("loadBatchLines", 50)),
       );
       const maximumLoadedLines = Math.max(
         1,
         Math.floor(config.get<number>("maximumLoadedLines", 1000)),
       );
+      const initialRange = initialPreviewRange(
+        targetLine,
+        document.lineCount - 1,
+        linesBefore,
+        linesAfter,
+        incrementalLoading ? loadBatchLines : 0,
+        maximumLoadedLines,
+      );
+      let { startLine, endLine } = initialRange;
       const scrollKey = previewScrollKey(this.state);
       const savedScroll = config.get<boolean>("restoreScrollPositions", true)
         ? this.scrollStates.get(scrollKey)
@@ -547,17 +566,6 @@ export class CodePreviewProvider
       if (restoredRange) {
         startLine = restoredRange.startLine;
         endLine = restoredRange.endLine;
-      }
-      if (endLine - startLine + 1 > maximumLoadedLines) {
-        startLine = Math.max(
-          0,
-          targetLine - Math.min(linesBefore, maximumLoadedLines - 1),
-        );
-        endLine = Math.min(
-          document.lineCount - 1,
-          startLine + maximumLoadedLines - 1,
-        );
-        startLine = Math.max(0, endLine - maximumLoadedLines + 1);
       }
       const semanticHighlighting = config.get<boolean>(
         "semanticHighlighting",
@@ -590,13 +598,16 @@ export class CodePreviewProvider
           locked: this.locked,
         },
         {
-          enabled: config.get<boolean>("incrementalLoading", true),
+          enabled: incrementalLoading,
           hasBefore: startLine > 0,
           hasAfter: endLine < document.lineCount - 1,
           startLine,
           endLine,
           totalLines: document.lineCount,
-          scroll: savedScroll,
+          scroll: restoredRange ? savedScroll : undefined,
+          initialAnchorLine: restoredRange
+            ? undefined
+            : Math.max(startLine, targetLine - linesBefore),
         },
       );
     } catch (error) {
@@ -1017,6 +1028,7 @@ function htmlDocument(
     endLine: number;
     totalLines: number;
     scroll?: PreviewScrollState;
+    initialAnchorLine?: number;
   },
 ): string {
   const scriptPolicy = nonce ? ` script-src 'nonce-${nonce}';` : "";
@@ -1080,6 +1092,7 @@ function htmlDocument(
       font-family: var(--vscode-editor-font-family);
       font-size: var(--vscode-editor-font-size);
     }
+    .code.initializing { visibility: hidden; }
     .line {
       display: flex; width: max-content; min-width: 100%;
       min-height: 1.45em; white-space: pre; cursor: text;
@@ -1167,7 +1180,7 @@ function htmlDocument(
     </div>
     <div class="location">${location}</div>
   </div>
-  <div class="code">${body}</div>
+  <div class="code${nonce ? " initializing" : ""}">${body}</div>
   <div class="load-status" aria-live="polite"></div>
   ${nonce ? `<script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
@@ -1182,6 +1195,7 @@ function htmlDocument(
     let endLine = ${incremental.endLine};
     const totalLines = ${incremental.totalLines};
     const restoredScroll = ${JSON.stringify(incremental.scroll ?? null)};
+    const initialAnchorLine = ${JSON.stringify(incremental.initialAnchorLine ?? null)};
     const incrementalLoading = ${incremental.enabled};
     const codeContainer = document.querySelector('.code');
     const loadStatus = document.querySelector('.load-status');
@@ -1222,7 +1236,7 @@ function htmlDocument(
     }
     function requestAtScrollEdge(direction) {
       if (!codeContainer) return;
-      const threshold = 80;
+      const threshold = Math.max(80, codeContainer.clientHeight);
       if (direction === 'before' && codeContainer.scrollTop <= threshold) {
         requestMore('before');
       } else if (
@@ -1392,9 +1406,18 @@ function htmlDocument(
         codeContainer.scrollTop = anchor.offsetTop + restoredScroll.anchorOffset;
         codeContainer.scrollLeft = restoredScroll.scrollLeft;
       }
+    } else if (initialAnchorLine !== null && codeContainer) {
+      const anchor = codeContainer.querySelector(
+        '.line[data-line="' + initialAnchorLine + '"]'
+      );
+      const first = codeContainer.querySelector('.line[data-line]');
+      if (anchor && first) {
+        codeContainer.scrollTop = Math.max(0, anchor.offsetTop - first.offsetTop);
+      }
     }
     lastScrollTop = codeContainer?.scrollTop ?? 0;
     updateLoadStatus();
+    codeContainer?.classList.remove('initializing');
     function sourcePosition(event, allowLineFallback = false) {
       const code = event.target.closest && event.target.closest('code[data-line]');
       if (!code) {
