@@ -161,23 +161,6 @@ describe("code preview highlighting", () => {
     assert.match(rule, /box-shadow: none;/);
   });
 
-  it("pre-fills a non-scrollable preview within a bounded batch count", () => {
-    const provider = readFileSync(
-      "src/views/codePreviewProvider.ts",
-      "utf8",
-    );
-    assert.match(provider, /const maximumInitialFillAttempts = 2;/);
-    assert.match(
-      provider,
-      /codeContainer\.scrollHeight > codeContainer\.clientHeight \+ 1/,
-    );
-    assert.match(provider, /requestAnimationFrame\(ensureScrollable\);/);
-    assert.match(
-      provider,
-      /const direction = hasAfter \? 'after' : hasBefore \? 'before' : undefined;/,
-    );
-  });
-
   it("replays a first wheel gesture after incremental lines arrive", () => {
     const provider = readFileSync(
       "src/views/codePreviewProvider.ts",
@@ -188,6 +171,7 @@ describe("code preview highlighting", () => {
     assert.match(provider, /\{ passive: false \}/);
     assert.match(provider, /const wheelDelta = takeWheelDelta\(direction\);/);
     assert.match(provider, /codeContainer\.scrollTop \+= wheelDelta;/);
+    assert.doesNotMatch(provider, /ensureScrollable/);
   });
 
   it("derives incremental loading direction from actual scroll movement", () => {

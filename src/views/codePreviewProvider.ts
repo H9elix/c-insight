@@ -1176,8 +1176,6 @@ function htmlDocument(
     let loadingMore = false;
     let pendingDirection;
     let pendingWheelDelta = 0;
-    let initialFillAttempts = 0;
-    const maximumInitialFillAttempts = 2;
     let hasBefore = ${incremental.hasBefore};
     let hasAfter = ${incremental.hasAfter};
     let startLine = ${incremental.startLine};
@@ -1278,21 +1276,6 @@ function htmlDocument(
       const delta = pendingWheelDelta;
       pendingWheelDelta = 0;
       return delta;
-    }
-    function ensureScrollable() {
-      if (
-        !incrementalLoading ||
-        !codeContainer ||
-        loadingMore ||
-        initialFillAttempts >= maximumInitialFillAttempts ||
-        codeContainer.scrollHeight > codeContainer.clientHeight + 1
-      ) {
-        return;
-      }
-      const direction = hasAfter ? 'after' : hasBefore ? 'before' : undefined;
-      if (direction && requestMore(direction)) {
-        initialFillAttempts += 1;
-      }
     }
     let scrollSaveTimer;
     function saveScroll() {
@@ -1398,8 +1381,6 @@ function htmlDocument(
         }
         if (queued) {
           requestMore(queued);
-        } else {
-          ensureScrollable();
         }
       });
     });
@@ -1414,7 +1395,6 @@ function htmlDocument(
     }
     lastScrollTop = codeContainer?.scrollTop ?? 0;
     updateLoadStatus();
-    requestAnimationFrame(ensureScrollable);
     function sourcePosition(event, allowLineFallback = false) {
       const code = event.target.closest && event.target.closest('code[data-line]');
       if (!code) {
