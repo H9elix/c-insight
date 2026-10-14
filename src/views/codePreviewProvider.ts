@@ -10,6 +10,7 @@ import {
 import { LocationResult } from "../models/types";
 import type { PreviewSessionState } from "../session/workspaceSession";
 import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
+import { sameDefinitionLocation } from "../utils/definitionLocation";
 import {
   expandPreviewRange,
   initialPreviewRange,
@@ -39,6 +40,7 @@ interface RenderedDocument {
   document: vscode.TextDocument;
   startLine: number;
   endLine: number;
+  target: LocationResult;
 }
 
 interface PreviewMessage {
@@ -180,13 +182,32 @@ export class CodePreviewProvider
       title: title ?? previewModeLabel(mode),
     };
     const sameTarget = this.state?.mode === mode &&
-      this.state.location.uri.toString() === location.uri.toString() &&
-      this.state.location.range.isEqual(location.range);
+      sameDefinitionLocation(this.state.location, location);
     if (!sameTarget) {
       this.navigationHistory.record(location, mode, next.title, source);
     }
     this.state = next;
+    if (
+      this.rendered &&
+      sameDefinitionLocation(this.rendered.target, location)
+    ) {
+      await this.updateMetadata(next);
+      return;
+    }
     await this.render();
+  }
+
+  private async updateMetadata(state: PreviewState): Promise<void> {
+    if (!this.view) {
+      return;
+    }
+    await this.view.webview.postMessage({
+      type: "previewMetadata",
+      title: `${previewModeLabel(state.mode)} · ${state.title}`,
+      location:
+        `${vscode.workspace.asRelativePath(state.location.uri)}:` +
+        `${state.location.range.start.line + 1}`,
+    });
   }
 
   beginContextUpdate(generation: number, reclaim: boolean): void {
@@ -394,6 +415,9 @@ export class CodePreviewProvider
       case "saveScroll":
         this.saveScrollState(message);
         break;
+      case "previewInteraction":
+        this.ownership.claimInteraction();
+        break;
     }
   }
 
@@ -577,7 +601,7 @@ export class CodePreviewProvider
       if (generation !== this.renderGeneration || !this.view) {
         return;
       }
-      this.rendered = { document, startLine, endLine };
+      this.rendered = { document, startLine, endLine, target: location };
       const lines = renderSourceLines(
         document,
         startLine,
@@ -1189,6 +1213,7 @@ function htmlDocument(
     let loadingMore = false;
     let pendingDirection;
     let pendingWheelDelta = 0;
+    let interactionClaimed = false;
     let hasBefore = ${incremental.hasBefore};
     let hasAfter = ${incremental.hasAfter};
     let startLine = ${incremental.startLine};
@@ -1199,6 +1224,11 @@ function htmlDocument(
     const incrementalLoading = ${incremental.enabled};
     const codeContainer = document.querySelector('.code');
     const loadStatus = document.querySelector('.load-status');
+    function claimInteraction() {
+      if (interactionClaimed) return;
+      interactionClaimed = true;
+      vscode.postMessage({ type: 'previewInteraction' });
+    }
     function updateLoadStatus(message, error = false) {
       if (!loadStatus) return;
       loadStatus.classList.toggle('error', error);
@@ -1330,9 +1360,10 @@ function htmlDocument(
     codeContainer?.addEventListener(
       'wheel',
       event => {
-        if (!incrementalLoading) return;
         const delta = normalizedWheelDelta(event);
         if (delta === 0) return;
+        claimInteraction();
+        if (!incrementalLoading) return;
         const direction = delta < 0 ? 'before' : 'after';
         const hasMore = direction === 'before' ? hasBefore : hasAfter;
         if (canScroll(direction) || !hasMore) return;
@@ -1342,9 +1373,22 @@ function htmlDocument(
       },
       { passive: false }
     );
+    codeContainer?.addEventListener('pointerdown', claimInteraction);
     window.addEventListener('message', event => {
       const message = event.data;
-      if (!message || message.type !== 'incrementalLines' || !codeContainer) return;
+      if (!message) return;
+      if (message.type === 'previewMetadata') {
+        const title = document.querySelector('.title');
+        const location = document.querySelector('.location');
+        if (title && typeof message.title === 'string') {
+          title.textContent = message.title;
+        }
+        if (location && typeof message.location === 'string') {
+          location.textContent = message.location;
+        }
+        return;
+      }
+      if (message.type !== 'incrementalLines' || !codeContainer) return;
       if (message.error) {
         loadingMore = false;
         pendingWheelDelta = 0;

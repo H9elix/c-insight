@@ -198,4 +198,35 @@ describe("code preview highlighting", () => {
     assert.match(provider, /currentScrollTop > lastScrollTop \+ 0\.5/);
     assert.doesNotMatch(provider, /loadAtScrollEdge\(0\)/);
   });
+
+  it("does not rebuild an already rendered source target", () => {
+    const provider = readFileSync(
+      "src/views/codePreviewProvider.ts",
+      "utf8",
+    );
+    assert.match(
+      provider,
+      /sameDefinitionLocation\(this\.rendered\.target, location\)/,
+    );
+    assert.match(provider, /await this\.updateMetadata\(next\);\s+return;/);
+    assert.match(provider, /message\.type === 'previewMetadata'/);
+    assert.match(provider, /title\.textContent = message\.title/);
+  });
+
+  it("claims preview ownership as soon as the user scrolls or points", () => {
+    const provider = readFileSync(
+      "src/views/codePreviewProvider.ts",
+      "utf8",
+    );
+    assert.match(provider, /type: 'previewInteraction'/);
+    assert.match(provider, /claimInteraction\(\);\s+if \(!incrementalLoading\)/);
+    assert.match(
+      provider,
+      /addEventListener\('pointerdown', claimInteraction\)/,
+    );
+    assert.match(
+      provider,
+      /case "previewInteraction":\s+this\.ownership\.claimInteraction\(\)/,
+    );
+  });
 });
