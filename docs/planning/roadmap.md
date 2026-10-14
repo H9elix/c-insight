@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.20`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, complete member-field caller results with optional selected-variable classification, macro-identity Callers from both use and definition positions, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, icon-only primary view-title actions, query-free Document Symbols viewport-center highlighting, edit-aware suppression of redundant semantic work, and generation-bound ownership for explicit Code Preview selections. It also establishes the public GitHub repository contract, automated quality/release workflows, versioned curated bilingual Release Notes, dependency auditing, generated third-party notices, explicit real-workspace test paths, repository-wide prose-format enforcement, and a validated Marketplace product identity. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
+The maintained code and documentation baseline is `0.22.21`. No new feature phase is active: the current release retains the implemented dual-engine architecture and `0.22.x` call-occurrence UI, complete member-field caller results with optional selected-variable classification, macro-identity Callers from both use and definition positions, corrected Code Preview source-row styling, bounded automatic recovery from unexpected managed-clangd exits, configurable References group expansion that defaults off, preservation of navigation results at symbol-free cursor positions, icon-only primary view-title actions, query-free Document Symbols viewport-center highlighting, edit-aware suppression of redundant semantic work, and generation-bound ownership for explicit Code Preview selections and preview scrolling. Code Preview now prepares a bounded initial buffer, positions it before reveal, prefetches before loaded edges, and treats repeated publications of one URI/range as metadata-only updates. The release also retains the public GitHub repository contract, automated quality/release workflows, versioned curated bilingual Release Notes, dependency auditing, generated third-party notices, explicit real-workspace test paths, repository-wide prose-format enforcement, and a validated Marketplace product identity. Deferred fourth-phase items remain memo-only until the user explicitly reactivates one of them.
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 
@@ -13,6 +13,8 @@ Version `0.22.18` gives explicit Code Preview selections generation-bound owners
 Version `0.22.19` preserves the exact selected macro in Callers, derives every direct source use from References at either the macro use or its `#define` name, and resolves the expanded callable target only when explicitly requested. It also introduces the synchronized bilingual, demonstration-led repository and Marketplace landing pages.
 
 Version `0.22.20` adds the official Marketplace and Extension Manager product icon, matching gallery metadata, and a package contract that retains only runtime image assets in the VSIX.
+
+Version `0.22.21` makes Code Preview scrolling stable from the first gesture: a fresh target is buffered on both sides and positioned before reveal, later ranges are prefetched within one viewport, repeated detail publications cannot rebuild the same source target, and wheel/pointer interaction prevents delayed definition upgrades from resetting the source being read.
 
 ## Completed phases
 
@@ -71,6 +73,10 @@ When a selected macro expands to a function, the Callers tree now preserves the 
 ### Marketplace product identity (`0.22.20`)
 
 The extension manifest now declares a 256×256 ice-blue frame and cyan relationship-node PNG for the VS Code Marketplace and Extension Manager, together with a matching dark gallery banner and explicit free pricing. The package allowlist and repository contract keep the final PNG and Activity Bar SVG while excluding design candidates and downloaded-file metadata from the VSIX.
+
+### Stable Code Preview scrolling (`0.22.21`)
+
+A fresh Code Preview target now prepares at least one `loadBatchLines` batch on each available side before the Webview is shown. The hidden initial layout restores the configured `linesBefore` position before reveal, and subsequent batches are requested within one viewport of a loaded edge; deferred wheel replay remains only a boundary fallback. Repeated context-detail publications for the exact rendered URI/range update metadata without replacing `webview.html`. Wheel and pointer interaction claim generation-bound preview ownership, so later declaration-to-definition upgrades may still update other views but cannot reset source already being read. A deliberate editor cursor target or explicit refresh reclaims normal context following.
 
 ## Deferred fourth phase
 

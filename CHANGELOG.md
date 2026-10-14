@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.22.21
+
 - Made Code Preview prepare a bounded source buffer on both sides of a fresh target, position the hidden initial layout before revealing it, and prefetch within one viewport of a loaded edge. The deferred first-wheel replay remains as a fallback for unusually large viewports and fast boundary input.
 - Prevented delayed context details from rebuilding an already rendered Code Preview target, and made wheel or pointer interaction retain ownership so a later declaration-to-definition upgrade cannot reset a preview the user is reading.
 

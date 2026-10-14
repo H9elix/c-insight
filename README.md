@@ -29,7 +29,7 @@ VS Code already provides commands such as Go to Definition and Find All Referenc
 
 Move the editor cursor deliberately onto a C/C++ symbol. Context and Code Preview update automatically, while expensive References and first-level call details are staged until the cursor remains stable. Moving within the same identifier, typing, or landing on a symbol-free position does not repeatedly discard or rerun the current investigation.
 
-Single-click any ordinary source result to show its exact location in Code Preview. Activate the same result again within the configured double-activation interval to open it in the editor. An explicit result selection remains in Code Preview until you deliberately move the editor cursor or run an explicit refresh.
+Single-click any ordinary source result to show its exact location in Code Preview. Activate the same result again within the configured double-activation interval to open it in the editor. Code Preview buffers source on both sides before reveal and prefetches near loaded edges for immediate scrolling. An explicit result selection, wheel gesture, or pointer interaction remains stable through delayed context details and definition upgrades until you deliberately move the editor cursor or run an explicit refresh.
 
 ![Move from an editor symbol to its definition, references, and exact source locations through Code Preview](.github/readme-assets/core-navigation.gif)
 
@@ -51,7 +51,7 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 
 | Area | Main capabilities |
 | --- | --- |
-| Context and Code Preview | Symbol identity, signature, definition/declaration evidence, semantic source coloring, incremental scrolling, Back/Forward, locking, copy, and editor navigation |
+| Context and Code Preview | Symbol identity, signature, definition/declaration evidence, semantic source coloring, buffered incremental scrolling, stable asynchronous updates, Back/Forward, locking, copy, and editor navigation |
 | References Explorer | Definition/declaration/call/read/write/address classification, file/directory/function/type grouping, scope and evidence filters, lazy snippets, paging, pinning, and export |
 | Call Hierarchy | Exact incoming/outgoing call occurrences, lazy multi-level expansion, recursion handling, loaded-tree search, bounded path search, pinning, session restoration, and export |
 | Type and Include Hierarchy | C++ supertypes/subtypes plus forward Includes and reverse Included By, with lazy expansion, cycle handling, search, limits, and export |
