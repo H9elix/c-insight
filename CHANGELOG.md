@@ -7,6 +7,7 @@
 - Recognized numeric/expression macros and macro replacement-list references even when the Provider returns no Call Hierarchy root, while preserving exact macro-use scope and keeping expanded-function Callers behind the existing explicit action.
 - Reused the cursor's Definition promise for macro detection, kept unopened macro-reference files as exact navigable locations instead of bulk-opening their ASTs, and retained references when an individual caller-symbol lookup fails; cancellation still propagates.
 - Added real-clangd and repository regressions for empty native roots, replacement tokens, header definitions, unopened files, partial AST failure, cache reuse, and default-versus-explicit expanded targets. The temporary preview completed user acceptance before this release.
+- Hardened the slow-typing smoke precondition by restoring editor focus immediately before each native input, rather than before an asynchronous idle wait, while preserving the exact text, query-count, and edit-gate assertions.
 
 ## 0.22.22
 

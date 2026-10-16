@@ -326,9 +326,6 @@ async function verifyEditAwareCursorRefresh(
   editor: vscode.TextEditor,
   position: vscode.Position,
 ): Promise<void> {
-  // Resolving/focusing a Webview can finish after showTextDocument returns.
-  // Type only after explicitly restoring editor focus, not into the view UI.
-  await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
   editor.selection = new vscode.Selection(position, position);
   await waitForNavigationIdle();
   const original = document.getText();
@@ -342,12 +339,21 @@ async function verifyEditAwareCursorRefresh(
   }>("cInsight.test.runtimeDiagnostics");
 
   for (const text of ["x", "y", "z"]) {
+    // A Webview can finish loading/focusing during the idle wait or between
+    // slow keystrokes. Restore focus immediately before every native input,
+    // not before the wait; keep all query-count/edit-gate assertions intact.
+    await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+    assert.equal(vscode.window.activeTextEditor?.document.uri.toString(), document.uri.toString());
     await vscode.commands.executeCommand("default:type", { text });
     typed += text;
     const expected = original.slice(0, insertionOffset) + typed +
       original.slice(insertionOffset);
-    await waitFor(async () => document.getText() === expected ? true : undefined,
-      `Slow typing '${typed}' did not reach the fixture editor`, 5_000);
+    try {
+      await waitFor(async () => document.getText() === expected ? true : undefined,
+        `Slow typing '${typed}' did not reach the fixture editor`, 5_000);
+    } catch (error) {
+      throw new Error(`${String(error)}; active=${vscode.window.activeTextEditor?.document.uri}, caret=${JSON.stringify(editor.selection.active)}, changed=${document.getText() !== original}, line=${JSON.stringify(document.lineAt(position.line).text)}`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 1_200));
     const timing = await vscode.commands.executeCommand<RequestTimingProbe>(
       "cInsight.test.requestTiming",
