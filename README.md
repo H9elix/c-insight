@@ -41,6 +41,8 @@ Callers and Callees show every returned call site directly beneath its semantic 
 
 When the selected spelling is a macro that expands to a function, Callers keeps the macro identity and lists only uses of that exact macro instead of silently switching to every caller of the expanded function. This works both on a macro use and on its `#define` name. The Callers title bar and macro-root context menu then offer **Show Expanded Function Callers** when you deliberately want the Provider's expanded target instead; from a definition, that target is resolved lazily through an actual use.
 
+The current source also handles numeric/expression macros and references in another macro's replacement text when no callable root exists. Macro references in unopened files remain exact navigable positions without bulk AST loading. This maintenance fix is under [Unreleased](CHANGELOG.md#unreleased), available first in a temporary preview package; the latest official release remains `0.22.22`.
+
 ![Select different caller occurrences and preview each exact call site](.github/readme-assets/call-hierarchy.gif)
 
 ### Explore relationship graphs

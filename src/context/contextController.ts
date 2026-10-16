@@ -360,17 +360,21 @@ export class ContextController implements vscode.Disposable {
     demand: CursorQueryDemand,
     definitionRequest?: Promise<LocationResult[]>,
   ): Promise<SymbolContext | undefined> {
+    const definitionsRequest = demand.definitions
+      ? definitionRequest ?? this.analysis.definition(uri, position, token)
+      : undefined;
     const [definitions, declarations, callRoots, hover, symbolInfo] =
       await Promise.all([
-        demand.definitions
-          ? definitionRequest ?? this.analysis.definition(uri, position, token)
-          : [],
+        definitionsRequest ?? [],
         demand.declarations
           ? this.analysis.declaration(uri, position, token)
           : [],
         demand.callRoots
           ? this.callRepository
-              .prepare(uri, position, token, { macroCallers: true })
+              .prepare(uri, position, token, {
+                macroCallers: true,
+                definitions: definitionsRequest,
+              })
               .catch(() => [])
           : [],
         demand.hover

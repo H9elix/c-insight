@@ -1,5 +1,6 @@
 import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
+import { verifyMacroCallerRepositoryRegressions } from "./macroCallerRegressions";
 
 const extensionId = "H9elix.c-insight";
 
@@ -179,6 +180,8 @@ async function runClangdAcceptance(): Promise<void> {
   await verifyPreferredDefinitionRoots();
   await verifyFlatCallOccurrences();
   await verifyMacroCallers();
+  await verifyMacroCallerRepositoryRegressions();
+  await verifyNonCallableMacroCallers();
   await verifyMemberCallerScope();
   const graphEditor = await vscode.window.showTextDocument(document);
   graphEditor.selection = new vscode.Selection(position, position);
@@ -846,6 +849,92 @@ async function verifyMacroCallers(): Promise<void> {
       ? state
       : undefined;
   }, "Macro definition did not lazily resolve the expanded function Callers");
+}
+
+async function verifyNonCallableMacroCallers(): Promise<void> {
+  const workspace = vscode.workspace.workspaceFolders![0].uri;
+  const uri = vscode.Uri.joinPath(workspace, "src", "call_sites.c");
+  const document = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(document);
+  const aliasLine = findPosition(document, "#define MACRO_TARGET_2", "MACRO_TARGET_2").line;
+  const replacement = new vscode.Position(aliasLine,
+    document.lineAt(aliasLine).text.lastIndexOf("MACRO_TARGET") + 1);
+  editor.selection = new vscode.Selection(replacement, replacement);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+    return state.incomingRoots[0] === "MACRO_TARGET" &&
+      state.incomingNavigationLabels.filter((name) => name === "MACRO_TARGET").length > 0
+      ? state : undefined;
+  }, "A macro used on the right of another definition did not retain direct-use semantics");
+  const aliasRows = await resultRows();
+  assert.ok(aliasRows.some((row) => row.parent && row.uri === uri.toString() && row.line === aliasLine));
+  assert.ok(!aliasRows.some((row) => row.label === "macro_user" || row.label === "direct_macro_target_user"));
+
+  const aliasesUri = vscode.Uri.joinPath(workspace, "include", "macro_aliases.h");
+  assert.ok(!vscode.workspace.textDocuments.some((item) => item.uri.toString() === aliasesUri.toString()));
+  const number = findPosition(document, "return MACRO_VALUE(MACRO_NUMBER)", "MACRO_NUMBER");
+  editor.selection = new vscode.Selection(number, number);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+    return state.incomingRoots[0] === "MACRO_NUMBER" &&
+      state.incomingOccurrences.some((item) => item.label === "numeric_macro_user")
+      ? state : undefined;
+  }, "Numeric macro uses did not produce a References-based root");
+  const numericRows = await resultRows();
+  const providerReferences = await vscode.commands.executeCommand<vscode.Location[]>(
+    "vscode.executeReferenceProvider", uri, number,
+  );
+  // clangd versions/index states differ in whether references from included
+  // headers are reported before that header has ever been opened. Assert
+  // preservation for every one actually supplied, not invented references.
+  for (const reference of providerReferences.filter((item) => item.uri.toString() === aliasesUri.toString())) {
+    assert.ok(numericRows.some((row) => row.parent && row.uri === aliasesUri.toString() &&
+      row.line === reference.range.start.line),
+    `The unopened header reference was lost: ${JSON.stringify(numericRows)}`);
+  }
+  assert.ok(!vscode.workspace.textDocuments.some((item) => item.uri.toString() === aliasesUri.toString()),
+    "Macro caller labels must not implicitly open every referenced source file");
+  const numericState = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+  assert.deepEqual(numericState.outgoingRoots, []);
+
+  const expression = findPosition(document, "return MACRO_VALUE(MACRO_NUMBER)", "MACRO_VALUE");
+  editor.selection = new vscode.Selection(expression, expression);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+    return state.incomingRoots[0] === "MACRO_VALUE" && state.incomingOccurrences.length === 1
+      ? state : undefined;
+  }, "Expression macro uses did not produce their own caller occurrence");
+
+  const headerUri = vscode.Uri.joinPath(workspace, "include", "macro_values.h");
+  const header = await vscode.workspace.openTextDocument(headerUri);
+  const headerEditor = await vscode.window.showTextDocument(header);
+  const definition = findPosition(header, "#define MACRO_NUMBER ", "MACRO_NUMBER");
+  headerEditor.selection = new vscode.Selection(definition, definition);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+    return state.incomingRoots[0] === "MACRO_NUMBER" &&
+      state.incomingOccurrences.some((item) => item.label === "numeric_macro_user")
+      ? state : undefined;
+  }, "A header macro definition lost its cross-file uses");
+  const unused = findPosition(header, "#define MACRO_UNUSED", "MACRO_UNUSED");
+  headerEditor.selection = new vscode.Selection(unused, unused);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitFor(async () => {
+    const state = await vscode.commands.executeCommand<CallHierarchyProbe>("cInsight.test.callHierarchyState");
+    return state.incomingRoots[0] === "MACRO_UNUSED" && state.incomingOccurrences.length === 0
+      ? state : undefined;
+  }, "An unused macro definition should remain a valid empty macro root");
+  console.log("Real clangd macro regressions passed: replacement tokens, numeric/expression macros, unopened reference headers, and header definitions.");
+}
+
+async function resultRows(): Promise<Array<{
+  label: string; parent?: string; uri?: string; line?: number;
+}>> {
+  return vscode.commands.executeCommand("cInsight.test.resultTreeInteraction", "cInsight.callers");
 }
 
 async function verifyMemberCallerScope(): Promise<void> {

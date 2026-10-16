@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Recognize numeric/expression macros and macro replacement-list references even when the Provider returns no Call Hierarchy root, while preserving exact macro-use scope and keeping expanded-function Callers behind the existing explicit action.
+- Reuse the cursor's Definition promise for macro detection, keep unopened macro-reference files as exact navigable locations instead of bulk-opening their ASTs, and retain references when an individual caller-symbol lookup fails; cancellation still propagates.
+- Add real-clangd and repository regressions for empty native roots, replacement tokens, header definitions, unopened files, partial AST failure, cache reuse, and default-versus-explicit expanded targets. This maintenance change is distributed as a temporary preview VSIX pending user acceptance; the package version remains `0.22.22`.
+
 ## 0.22.22
 
 - Replaced native result TreeViews with an accepted shared Webview tree for Context, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, Document Symbols, and Project Diagnostics. Single-click previews and double-click editor navigation preserve branch expansion; arrows and left/right keys control expansion. Retained lazy loading, depth expansion, sessions, theme-colored Codicons, context actions, and hidden-view demand gates, with virtual scrolling and a local visible-result filter.

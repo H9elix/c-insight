@@ -74,3 +74,10 @@ int main(void)
     direct_macro_target_user(value);
     return report_sink + member_total(&selected, &other);
 }
+
+#include "macro_aliases.h"
+
+static int numeric_macro_user(void)
+{
+    return MACRO_VALUE(MACRO_NUMBER) + MACRO_NUMBER_ALIAS;
+}

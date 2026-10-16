@@ -1876,7 +1876,7 @@ export class ViewRegistry implements vscode.Disposable {
             ].join(":"),
             label: incoming.macroScope!.name,
             description: vscode.l10n.t(
-              "macro use outside a callable · {location}",
+              "macro reference · {location}",
               {
                 location: `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`,
               },

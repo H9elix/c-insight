@@ -92,7 +92,7 @@
   "callees": "callees",
   "No {direction} found yet — results may be incomplete": "No {direction} found yet — results may be incomplete",
   "Call hierarchy node limit reached": "Call hierarchy node limit reached",
-  "macro use outside a callable · {location}": "macro use outside a callable · {location}",
+  "macro reference · {location}": "macro reference · {location}",
   "Selected variable: {name}": "Selected variable: {name}",
   "{count} direct accesses": "{count} direct accesses",
   "These accesses use the selected variable and the same member path.": "These accesses use the selected variable and the same member path.",

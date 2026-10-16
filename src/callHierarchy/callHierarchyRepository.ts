@@ -71,6 +71,7 @@ export interface IncomingCallResult {
 
 export interface PrepareCallHierarchyOptions {
   macroCallers?: boolean;
+  definitions?: Promise<LocationResult[]>;
 }
 
 export class CallHierarchyRepository {
@@ -115,6 +116,7 @@ export class CallHierarchyRepository {
       classifyMemberCallers,
       Boolean(options.macroCallers),
       token,
+      options.definitions,
     );
   }
 
@@ -231,12 +233,24 @@ export class CallHierarchyRepository {
           if (token?.isCancellationRequested) {
             throw new vscode.CancellationError();
           }
-          const roots = await this.analysis.prepareCallHierarchy(
-            candidate.uri,
-            candidate.range.start,
-            token,
-          );
-          const target = roots[0];
+          let roots: CallNode[];
+          try {
+            // This is an explicit expanded-target action, never automatic
+            // macro-use discovery. Sync only its bounded candidate documents.
+            await vscode.workspace.openTextDocument(candidate.uri);
+            if (token?.isCancellationRequested) throw new vscode.CancellationError();
+            roots = await this.analysis.prepareCallHierarchy(
+              candidate.uri,
+              candidate.range.start,
+              token,
+            );
+          } catch (error) {
+            if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
+              throw new vscode.CancellationError();
+            }
+            continue;
+          }
+          const target = roots.find(isCallableRoot);
           if (target) {
             return {
               ...target,
@@ -357,6 +371,7 @@ export class CallHierarchyRepository {
     classifyMemberCallers: boolean,
     detectMacroCallers: boolean,
     token?: vscode.CancellationToken,
+    definitions?: Promise<LocationResult[]>,
   ): Promise<CallNode[]> {
     let roots = await this.analysis.prepareCallHierarchy(uri, position, token);
     if (token?.isCancellationRequested) return roots;
@@ -387,37 +402,28 @@ export class CallHierarchyRepository {
         directive.startCharacter === wordRange.start.character &&
         directive.endCharacter === wordRange.end.character
       ) {
-        const range = toProtocolRange(wordRange);
         const macroScope: MacroCallerScope = {
           queryUri: uri.toString(),
           queryPosition: toProtocolPosition(position),
           name: memberName,
-          definitions: [{ uri: uri.toString(), range }],
+          definitions: [{ uri: uri.toString(), range: toProtocolRange(wordRange) }],
         };
-        return [{
-          ...this.analysis.callNode({
-            name: memberName,
-            kind: SymbolKind.Constant,
-            detail: vscode.l10n.t("Macro definition"),
-            uri: uri.toString(),
-            range,
-            selectionRange: range,
-          }),
-          macroCallerScope: macroScope,
-          syntheticMacroRoot: true,
-        }];
+        return [this.syntheticMacroNode(macroScope)];
       }
     }
-    if (detectMacroCallers && roots.length > 0) {
+    if (detectMacroCallers) {
       const macroScope = await this.detectMacroCallerScope(
         uri,
         position,
         memberName,
         roots,
         token,
+        definitions,
       );
       if (macroScope) {
-        return [{ ...roots[0], macroCallerScope: macroScope }];
+        return roots[0] && macroScope.expandedTargetName
+          ? [{ ...roots[0], macroCallerScope: macroScope }]
+          : [this.syntheticMacroNode(macroScope)];
       }
     }
     if (!classifyMemberCallers && this.analysis.analysisEngine !== "microsoft") {
@@ -712,10 +718,13 @@ export class CallHierarchyRepository {
     selectedName: string,
     roots: CallNode[],
     token?: vscode.CancellationToken,
+    definitionRequest?: Promise<LocationResult[]>,
   ): Promise<MacroCallerScope | undefined> {
     if (
+      roots.length > 0 &&
       roots.every(
         (root) =>
+          root.raw.kind !== SymbolKind.Constant &&
           (root.raw.name.split("::").at(-1) ?? root.raw.name) === selectedName,
       )
     ) {
@@ -723,12 +732,15 @@ export class CallHierarchyRepository {
     }
     let definitions: LocationResult[];
     try {
-      definitions = await this.analysis.definition(
+      definitions = await (definitionRequest ?? this.analysis.definition(
         queryUri,
         queryPosition,
         token,
-      );
-    } catch {
+      ));
+    } catch (error) {
+      if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
+        throw new vscode.CancellationError();
+      }
       return undefined;
     }
     const sources = new Map<string, Promise<string>>();
@@ -766,8 +778,25 @@ export class CallHierarchyRepository {
       queryUri: queryUri.toString(),
       queryPosition: toProtocolPosition(queryPosition),
       name: selectedName,
-      expandedTargetName: roots[0].raw.name,
+      expandedTargetName: roots[0] && isCallableRoot(roots[0])
+        ? roots[0].raw.name : undefined,
       definitions: matching,
+    };
+  }
+
+  private syntheticMacroNode(scope: MacroCallerScope): CallNode {
+    const definition = scope.definitions[0];
+    return {
+      ...this.analysis.callNode({
+        name: scope.name,
+        kind: SymbolKind.Constant,
+        detail: vscode.l10n.t("Macro definition"),
+        uri: definition.uri,
+        range: definition.range,
+        selectionRange: definition.range,
+      }),
+      macroCallerScope: scope,
+      syntheticMacroRoot: true,
     };
   }
 
@@ -851,7 +880,28 @@ export class CallHierarchyRepository {
       }
       let symbols = symbolsByUri.get(uri);
       if (!symbols) {
-        symbols = await this.analysis.documentSymbols(reference.uri);
+        // clangd cannot build a documentSymbol result for an unopened file.
+        // Do not open every macro reference's file just to obtain labels: it
+        // would trigger AST/preamble work across the entire project. Preserve
+        // exact locations instead, and use functions when already available.
+        const macroDocumentUnavailable = node.macroCallerScope &&
+          this.analysis.analysisEngine !== "microsoft" &&
+          !vscode.workspace.textDocuments.some((document) =>
+            document.uri.toString() === uri);
+        if (macroDocumentUnavailable) {
+          symbols = [];
+        } else {
+          try {
+            symbols = await this.analysis.documentSymbols(reference.uri);
+          } catch (error) {
+            if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
+              throw new vscode.CancellationError();
+            }
+            if (!node.macroCallerScope) throw error;
+            symbols = [];
+          }
+        }
+        if (token?.isCancellationRequested) throw new vscode.CancellationError();
         symbolsByUri.set(uri, symbols);
       }
       const item = enclosingCaller(
@@ -903,6 +953,12 @@ export class CallHierarchyRepository {
       unmappedReferences: unmappedMacroReferences,
     };
   }
+}
+
+function isCallableRoot(node: CallNode): boolean {
+  return node.raw.kind === SymbolKind.Function ||
+    node.raw.kind === SymbolKind.Method ||
+    node.raw.kind === SymbolKind.Constructor;
 }
 
 function sameMemberPath(

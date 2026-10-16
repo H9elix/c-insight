@@ -2,6 +2,8 @@
 
 本文档集对应 C Insight `0.22.22`，包含统一自绘结果树的操作、布局和维护说明；正式发布记录以 `releases/` 和更新日志为准。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
 
+当前源码还包含更新日志 Unreleased 中的宏调用者维护修复：补齐无函数调用根的宏及跨文件引用，暂以保留 `0.22.22` 基础版本号的临时 VSIX 验收，不表示已发布新的正式版本。
+
 ## 用户文档 `user/`
 
 - [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
