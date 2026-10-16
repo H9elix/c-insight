@@ -74,6 +74,7 @@ export class MutableTreeProvider
 {
   private roots: TreeNode[] = [];
   private interactionScope = "unregistered";
+  private readonly pendingChildren = new WeakMap<TreeNode, Promise<TreeNode[]>>();
   private readonly emitter = new vscode.EventEmitter<
     TreeNode | undefined | null | void
   >();
@@ -86,6 +87,15 @@ export class MutableTreeProvider
 
   setRoots(roots: TreeNode[]): void {
     this.roots = roots;
+    const seen = new Set<TreeNode>();
+    const queue = roots.map((node) => ({ node, parent: undefined as TreeNode | undefined }));
+    while (queue.length) {
+      const { node, parent } = queue.pop()!;
+      if (seen.has(node)) continue;
+      seen.add(node);
+      node.parent = parent;
+      for (const child of node.children ?? []) queue.push({ node: child, parent: node });
+    }
     this.emitter.fire();
   }
 
@@ -142,8 +152,18 @@ export class MutableTreeProvider
       return this.roots;
     }
     if (node.loadChildren && !node.children) {
-      node.children = await node.loadChildren();
-      node.loadChildren = undefined;
+      let pending = this.pendingChildren.get(node);
+      if (!pending) {
+        const load = node.loadChildren;
+        pending = Promise.resolve().then(load);
+        this.pendingChildren.set(node, pending);
+      }
+      try {
+        node.children = await pending;
+        node.loadChildren = undefined;
+      } finally {
+        if (this.pendingChildren.get(node) === pending) this.pendingChildren.delete(node);
+      }
     }
     const children = node.children ?? [];
     for (const child of children) {

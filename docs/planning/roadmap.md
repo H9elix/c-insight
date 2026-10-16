@@ -6,6 +6,8 @@ The maintained code and documentation baseline is `0.22.21`. No new feature phas
 
 The user guides define current behavior. Versioned validation reports preserve evidence from the environment and date named in each report; they are not rolling claims about every later release.
 
+The shared Webview renderer introduced on `experiment/custom-result-trees` was accepted by the user and incorporated into `main` on `2026-10-17`. It separates name activation from branch expansion, retains the analysis and repository layers, adds virtual scrolling and viewport-only source-description resolution, and adapts depth expansion, search, sessions, and node menus. The package still uses the `0.22.21` base version; these changes remain under Unreleased and temporary preview packaging until a formal version and publication are authorized. See [the interaction and maintenance guide](../development/custom-result-trees.zh-CN.md).
+
 Version `0.22.17` suppresses edit-induced cursor queries across both rapid and slowly spaced input, associates multiple or slightly displaced VS Code selection events with their originating edit, deduplicates lexical cursor targets, lazily invalidates Call and Type Hierarchy caches, and coalesces edit-driven Document Symbols, Code Preview, Include Hierarchy, Relationship Graph, and Project Diagnostics work. Deliberate navigation and explicit commands still resume queries immediately.
 
 Version `0.22.18` gives explicit Code Preview selections generation-bound ownership. Delayed cursor details and preferred-definition retries can finish without replacing a selected call site; deliberate cursor navigation or explicit refresh reclaims the preview, while a visibility-only refresh does not.

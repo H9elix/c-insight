@@ -37,7 +37,7 @@ AnalysisService（调度、计时、统一结果）
 
 1. `activate()` 创建输出通道、分析服务、仓库（Repository）、浏览器（Explorer）、视图（View）和诊断组件。
 2. `runtimeInitialization.ts` 发布初始上下文键（Context Keys），并启动选定引擎。
-3. `ViewLifecycle` 注册 TreeView 和代码预览（Code Preview） Webview，记录实时可见性。
+3. `ViewLifecycle` 注册共享结果树和代码预览（Code Preview） Webview，记录实时可见性；接入、布局边界与回归范围见[自绘结果树交互与维护](custom-result-trees.zh-CN.md)。
 4. `ContextController` 监听活动编辑器和光标，经过防抖后根据可见窗口生成查询需求。
 5. `AnalysisService` 将请求交给 `RequestScheduler`，然后路由至 clangd 或 Microsoft 提供程序（Provider），并统一转换位置、符号和调用节点。
 6. 返回结果携带查询 generation；过期 generation 的结果被丢弃，不能覆盖新光标。
@@ -130,7 +130,10 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `viewLifecycle.ts` | TreeView/Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
+| `viewLifecycle.ts` | 共享结果树及代码预览 Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
+| `resultTreeModel.ts` | 自绘树的纯状态模型：稳定节点标识、展开、懒加载投影、定位、全部折叠与异步结果代次。 |
+| `resultTreeView.ts` | 现有树数据与 Webview 的宿主适配，校验导航、展开、可见节点描述和右键动作，保留层次展开事件与定位接口。 |
+| `resultTreeWebview.ts` | 共享树的虚拟滚动、名称单/双击、独立箭头、键盘、ARIA、右键菜单、本地筛选与消息解析。 |
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动、相同目标元数据更新、锁定（Lock）、滚动/指针交互与上下文代次的写入仲裁、编辑范围感知与 200 ms 重绘合并，以及源码 `<code>` 元素的宿主预格式样式重置。 |
@@ -205,9 +208,9 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | 文件 | 管理的功能 |
 | --- | --- |
 | `history/navigationHistoryModel.ts` | 历史记录、游标、前进/后退、分支截断、合并、上限和来源分类。 |
-| `history/navigationHistoryExplorer.ts` | 导航历史树视图（History TreeView）、过滤、选择/打开和代码预览（Code Preview）共享游标。 |
+| `history/navigationHistoryExplorer.ts` | 导航历史树数据、过滤、选择/打开和代码预览（Code Preview）共享游标，渲染交给统一结果树。 |
 | `bookmarks/bookmarkModel.ts` | 书签分组、排序、过滤、重命名、去重、导入导出和符号重定位算法。 |
-| `bookmarks/bookmarkExplorer.ts` | workspaceState 持久化、TreeView、文件访问和命令交互。 |
+| `bookmarks/bookmarkExplorer.ts` | workspaceState 持久化、书签树数据、文件访问和命令交互，渲染交给统一结果树。 |
 | `symbols/symbolSearchModel.ts` | 工作区符号（Workspace Symbols）的过滤、类型/文件/目录分组和结果上限。 |
 | `symbols/symbolSearchExplorer.ts` | 符号搜索（Symbol Search）的 Webview View 提供程序、防抖查询、generation、分组/过滤、统一导航和会话状态；文件读取与命令执行仍由扩展宿主持有。 |
 | `symbols/symbolSearchWebview.ts` | 顶部常驻搜索框、独立滚动结果区、严格 CSP、HTML 属性转义及入站消息白名单；动态符号文字仅通过 DOM `textContent` 写入。 |
@@ -381,7 +384,7 @@ npm run package
 
 - `ClangdManager` 唯一拥有 C Insight 启动的 clangd 进程。
 - `AnalysisService` 唯一拥有跨引擎查询路由、调度和请求计时。
-- `ViewLifecycle` 唯一拥有 VS Code TreeView/Webview 注册与释放。
+- `ViewLifecycle` 唯一拥有共享结果树及代码预览 Webview 注册与释放；`WebviewResultTree` 只持有其视图内事件，`ResultTreeModel` 只拥有展示展开状态。
 - `ReferenceExplorer` 唯一拥有引用（References）固定（Pin）和结果状态。
 - `CallHierarchyViewState` 唯一拥有调用者（Callers）/被调用者（Callees）共享固定状态。
 - `CodePreviewProvider` 唯一拥有 Preview 锁定（Lock）、历史和渲染状态。

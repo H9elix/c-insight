@@ -1,6 +1,6 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.21`。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
+本文档集对应以 C Insight `0.22.21` 为版本基线的当前 `main` 源码，包含已验收合入、尚未正式发布的自绘结果树交互；正式发布记录以 `releases/` 和更新日志为准。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
 
 ## 用户文档 `user/`
 
@@ -13,6 +13,7 @@
 
 - [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、测试与发布流程。
 - [架构说明](development/architecture.md)：核心架构、数据流、信任边界和架构守卫。
+- [自绘结果树交互与维护](development/custom-result-trees.zh-CN.md)：已验收并纳入主干的改造范围、操作规则、视图分组、维护边界与重点回归项目；尚未正式发布。
 
 ## 规划设计 `planning/`
 

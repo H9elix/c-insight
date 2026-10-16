@@ -28,6 +28,7 @@ import {
   viewStatusNode,
 } from "../views/treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
+import type { ResultTreeView } from "../views/resultTreeView";
 
 export type { TypeHierarchyDirection } from "./typeHierarchyRepository";
 
@@ -36,7 +37,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
   readonly subtypes = new MutableTreeProvider();
   private readonly views = new Map<
     TypeHierarchyDirection,
-    vscode.TreeView<TreeNode>
+    ResultTreeView
   >();
   private readonly treeState = {
     supertypes: new HierarchyTreeState(),
@@ -55,7 +56,7 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
 
   attachTreeView(
     direction: TypeHierarchyDirection,
-    view: vscode.TreeView<TreeNode>,
+    view: ResultTreeView,
   ): void {
     this.views.set(direction, view);
   }

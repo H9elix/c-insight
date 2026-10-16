@@ -1,21 +1,23 @@
 import * as vscode from "vscode";
 import { VIEWS, ViewId } from "../ids";
+import { MutableTreeProvider } from "./treeNode";
+import { ResultTreeView, WebviewResultTree } from "./resultTreeView";
 
-export class ViewLifecycle<T> implements vscode.Disposable {
-  private readonly treeViews = new Map<ViewId, vscode.TreeView<T>>();
+export class ViewLifecycle implements vscode.Disposable {
+  private readonly treeViews = new Map<ViewId, ResultTreeView>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<string>();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
 
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
   createTreeView(
     id: ViewId,
-    provider: vscode.TreeDataProvider<T>,
+    provider: MutableTreeProvider,
     notifyVisibility: boolean,
-  ): vscode.TreeView<T> {
-    const view = vscode.window.createTreeView(id, {
-      treeDataProvider: provider,
-      showCollapseAll: true,
-    });
+  ): ResultTreeView {
+    const view = new WebviewResultTree(id, provider, this.extensionUri);
+    this.track(vscode.window.registerWebviewViewProvider(id, view));
     this.treeViews.set(id, view);
     this.track(view);
     if (notifyVisibility) {
@@ -35,7 +37,7 @@ export class ViewLifecycle<T> implements vscode.Disposable {
     );
   }
 
-  get(id: ViewId): vscode.TreeView<T> | undefined {
+  get(id: ViewId): ResultTreeView | undefined {
     return this.treeViews.get(id);
   }
 
