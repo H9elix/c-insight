@@ -2,7 +2,11 @@
 
 ## Unreleased
 
+## 0.22.22
+
 - Replaced native result TreeViews with an accepted shared Webview tree for Context, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, Document Symbols, and Project Diagnostics. Single-click previews and double-click editor navigation preserve branch expansion; arrows and left/right keys control expansion. Retained lazy loading, depth expansion, sessions, theme-colored Codicons, context actions, and hidden-view demand gates, with virtual scrolling and a local visible-result filter.
+- Documented native view-container ownership and moving multiple result views into one existing panel, and synchronized the bilingual READMEs, user guides, developer documentation, roadmap, and curated release notes with the accepted implementation.
+- Made the edit-aware Extension Host probe explicitly restore editor focus and verify actual typed text before checking semantic-query suppression, avoiding a Webview-focus race in CI without weakening the runtime assertions.
 
 ## 0.22.21
 

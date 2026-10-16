@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应以 C Insight `0.22.21` 为版本基线的当前 `main` 源码，包含已验收合入、尚未正式发布的自绘结果树交互，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.22.22`，包含导航与展开相互独立的统一自绘结果树交互，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。
 
 ### 界面语言
 

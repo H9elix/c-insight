@@ -1,6 +1,6 @@
 # 自绘结果树交互与维护
 
-自绘结果树由 `experiment/custom-result-trees` 分支引入，已于 `2026-10-17` 经用户验收并纳入 `main`。当前保留正式版本 `0.22.21` 的基础版本号，更新记录在 `CHANGELOG.md` 的 Unreleased 部分；临时 VSIX 通过文件名中的预览后缀区分，不代表新增正式版本、Tag 或 Release。
+自绘结果树由 `experiment/custom-result-trees` 分支引入，已于 `2026-10-17` 经用户验收并纳入 `main`，在 `0.22.22` 中正式提供。试验期间使用的 `0.22.21` 基础版本临时 VSIX 不属于独立正式发布；当前安装与校验方法见[本版发布说明](../releases/v0.22.22.md)。
 
 ## 范围与操作
 

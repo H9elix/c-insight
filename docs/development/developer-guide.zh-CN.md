@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.21` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.22` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -352,6 +352,8 @@ npm run probe:microsoft
 npm run test:e2e:microsoft
 npm run test:e2e:ffmpeg:microsoft
 ```
+
+慢速输入的 Extension Host 用例在调用 `default:type` 前显式恢复编辑器焦点，并确认字符实际写入夹具源码后再检查语义请求数量和编辑门控计数。Webview 解析及聚焦可能晚于 `showTextDocument` 返回，不能只依据计数为零就认定输入抑制成功，也不能放宽运行时断言来掩盖焦点问题。
 
 发布包使用：
 
