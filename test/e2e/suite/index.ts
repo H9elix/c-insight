@@ -323,9 +323,14 @@ async function verifyEditAwareCursorRefresh(
   editor: vscode.TextEditor,
   position: vscode.Position,
 ): Promise<void> {
+  // Resolving/focusing a Webview can finish after showTextDocument returns.
+  // Type only after explicitly restoring editor focus, not into the view UI.
+  await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
   editor.selection = new vscode.Selection(position, position);
   await waitForNavigationIdle();
   const original = document.getText();
+  const insertionOffset = document.offsetAt(position);
+  let typed = "";
   const timingBefore = await vscode.commands.executeCommand<RequestTimingProbe>(
     "cInsight.test.requestTiming",
   );
@@ -335,6 +340,11 @@ async function verifyEditAwareCursorRefresh(
 
   for (const text of ["x", "y", "z"]) {
     await vscode.commands.executeCommand("default:type", { text });
+    typed += text;
+    const expected = original.slice(0, insertionOffset) + typed +
+      original.slice(insertionOffset);
+    await waitFor(async () => document.getText() === expected ? true : undefined,
+      `Slow typing '${typed}' did not reach the fixture editor`, 5_000);
     await new Promise((resolve) => setTimeout(resolve, 1_200));
     const timing = await vscode.commands.executeCommand<RequestTimingProbe>(
       "cInsight.test.requestTiming",
@@ -354,7 +364,7 @@ async function verifyEditAwareCursorRefresh(
   assert.ok(
     counter(runtimeTyped, "navigation.editRefreshSuppressed") -
         counter(runtimeBefore, "navigation.editRefreshSuppressed") >= 3,
-    "The slow text edits were not recognized by the cursor refresh gate",
+    `The slow text edits were not recognized by the cursor refresh gate: before=${JSON.stringify(runtimeBefore.counters)}, after=${JSON.stringify(runtimeTyped.counters)}`,
   );
 
   await vscode.commands.executeCommand("undo");
