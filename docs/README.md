@@ -13,6 +13,7 @@
 
 - [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、测试与发布流程。
 - [架构说明](development/architecture.md)：核心架构、数据流、信任边界和架构守卫。
+- [自绘结果树试验](development/custom-result-trees.zh-CN.md)：本分支的改造范围、操作规则、维护边界与重点验收项目；基于 `0.22.21`，尚未正式发布。
 
 ## 规划设计 `planning/`
 

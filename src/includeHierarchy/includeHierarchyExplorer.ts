@@ -19,6 +19,7 @@ import {
   viewStatusNode,
 } from "../views/treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
+import type { ResultTreeView } from "../views/resultTreeView";
 import {
   hierarchyExpansionMessage,
   hierarchyExpansionStopReason,
@@ -37,7 +38,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
   readonly includedBy = new MutableTreeProvider();
   private readonly views = new Map<
     IncludeHierarchyDirection,
-    vscode.TreeView<TreeNode>
+    ResultTreeView
   >();
   private readonly treeState = {
     includes: new HierarchyTreeState(),
@@ -79,7 +80,7 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
 
   attachTreeView(
     direction: IncludeHierarchyDirection,
-    view: vscode.TreeView<TreeNode>,
+    view: ResultTreeView,
   ): void {
     this.views.set(direction, view);
   }

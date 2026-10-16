@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental branch `experiment/custom-result-trees`: replaced native result TreeViews with a shared Webview tree for Context, References, Callers, Callees, Type/Include Hierarchy, Navigation History, Bookmarks, Document Symbols, and Project Diagnostics. Single-click previews and double-click editor navigation preserve branch expansion; arrows and left/right keys control expansion. Retained lazy loading, depth expansion, sessions, theme-colored Codicons, context actions, and hidden-view demand gates, with virtual scrolling and a local visible-result filter.
+
 ## 0.22.21
 
 - Made Code Preview prepare a bounded source buffer on both sides of a fresh target, position the hidden initial layout before revealing it, and prefetch within one viewport of a loaded edge. The deferred first-wheel replay remains as a fallback for unusually large viewports and fast boundary input.

@@ -588,6 +588,32 @@ async function verifyPreferredDefinitionRoots(): Promise<void> {
   );
 }
 
+async function verifySeparatedTreeInteraction(view: string, label: string, root: boolean): Promise<void> {
+  interface Row {
+    id: string; label: string; parent?: string; expandable: boolean;
+    expanded: boolean; uri?: string; line?: number;
+  }
+  const rows = await vscode.commands.executeCommand<Row[]>("cInsight.test.resultTreeInteraction", view);
+  const target = rows.find((row) => row.label === label && row.expandable && (!row.parent) === root);
+  assert.ok(target, `No expandable ${label} result in ${view}`);
+  for (const intent of ["preview", "open"]) {
+    const after: Row[] = await vscode.commands.executeCommand<Row[]>("cInsight.test.resultTreeInteraction", view, {
+      type: "activate", id: target.id, intent,
+    });
+    assert.equal(after.find((row) => row.id === target.id)?.expanded, target.expanded,
+      `${view} ${intent} changed branch expansion`);
+  }
+  assert.equal(vscode.window.activeTextEditor?.document.uri.toString(), target.uri);
+  assert.equal(vscode.window.activeTextEditor?.selection.active.line, target.line);
+  const afterArrow = await vscode.commands.executeCommand<Row[]>("cInsight.test.resultTreeInteraction", view, {
+    type: "expand", id: target.id, expanded: !target.expanded,
+  });
+  assert.equal(afterArrow.find((row) => row.id === target.id)?.expanded, !target.expanded);
+  await vscode.commands.executeCommand("cInsight.test.resultTreeInteraction", view, {
+    type: "expand", id: target.id, expanded: target.expanded,
+  });
+}
+
 async function verifyFlatCallOccurrences(): Promise<void> {
   const workspace = vscode.workspace.workspaceFolders?.[0]?.uri ??
     assert.fail("The C++ fixture workspace was not opened");
@@ -698,8 +724,16 @@ async function verifyFlatCallOccurrences(): Promise<void> {
   );
   assert.deepEqual(outgoing.map((item) => item.label), ["report", "report"]);
   assert.deepEqual(outgoing.map((item) => item.line), addCalls);
+  await verifySeparatedTreeInteraction("cInsight.callees", "add", true);
   assert.deepEqual(outgoing.map((item) => item.canonical), [true, false]);
   assert.ok(outgoing.every((item) => item.previewMode === "callee-call-site"));
+  // These probes open the editor and intentionally arm cursor-follow suppression.
+  // Keep them after cursor-follow assertions so scripted selections are not mistaken for mouse input.
+  const probeEditor = await vscode.window.showTextDocument(document);
+  probeEditor.selection = new vscode.Selection(reportDefinition, reportDefinition);
+  await vscode.commands.executeCommand("cInsight.showIncomingCalls");
+  await waitForCallOccurrences("incoming", 5, "cInsight.showIncomingCalls", "Caller interaction root was not restored");
+  await verifySeparatedTreeInteraction("cInsight.callers", "add", false);
 }
 
 async function verifyMacroCallers(): Promise<void> {

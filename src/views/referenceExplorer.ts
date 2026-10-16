@@ -29,6 +29,7 @@ import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import type { ReferenceSessionState } from "../session/workspaceSession";
 import { encodeExportWithinBudget } from "../utils/exportBudget";
 import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
+import type { ResultTreeView } from "./resultTreeView";
 
 type GroupMode =
   | "file"
@@ -70,7 +71,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   private displayedLimit = 200;
   private restoredDisplayedLimit?: number;
   private generation = 0;
-  private treeView?: vscode.TreeView<TreeNode>;
+  private treeView?: ResultTreeView;
   private loadingStarted?: number;
   private lastDurationMs?: number;
   private macroSymbol = false;
@@ -112,7 +113,7 @@ export class ReferenceExplorer implements vscode.Disposable {
     ]);
   }
 
-  attachTreeView(treeView: vscode.TreeView<TreeNode>): void {
+  attachTreeView(treeView: ResultTreeView): void {
     this.treeView = treeView;
   }
 
@@ -563,9 +564,7 @@ export class ReferenceExplorer implements vscode.Disposable {
   }
 
   async collapseAll(): Promise<void> {
-    await vscode.commands.executeCommand(
-      "workbench.actions.treeView.cInsight.references.collapseAll",
-    );
+    await this.treeView?.collapseAll();
   }
 
   async groupExpansionConfigurationChanged(): Promise<void> {

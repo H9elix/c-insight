@@ -79,6 +79,7 @@ function dependencyNotice(location, metadata) {
     license: manifest.license ?? metadata.license ?? "Unspecified",
     licenseText: readFileSync(path.join(directory, licenseFile), "utf8")
       .replaceAll("\r\n", "\n")
+      .replace(/[ \t]+$/gm, "")
       .trim(),
   };
 }

@@ -40,6 +40,7 @@
   "l10n": "./l10n",
   "files": [
     "dist/extension.js",
+    "dist/codicons/*",
     "package.nls.json",
     "package.nls.zh-cn.json",
     "l10n/**/*",
@@ -77,7 +78,7 @@
   ],
   "scripts": {
     "compile": "tsc -p .",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js && node scripts/copy-webview-assets.mjs",
     "build": "npm run compile && npm run bundle",
     "watch": "tsc -p . --watch",
     "lint": "eslint src test --ext .ts",
@@ -110,6 +111,7 @@
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.46-24",
     "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
@@ -1131,7 +1133,8 @@
       "cInsight": [
         {
           "id": "cInsight.context",
-          "name": "%view.cInsight.context.name%"
+          "name": "%view.cInsight.context.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.preview",
@@ -1140,39 +1143,48 @@
         },
         {
           "id": "cInsight.references",
-          "name": "%view.cInsight.references.name%"
+          "name": "%view.cInsight.references.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.callers",
-          "name": "%view.cInsight.callers.name%"
+          "name": "%view.cInsight.callers.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.callees",
-          "name": "%view.cInsight.callees.name%"
+          "name": "%view.cInsight.callees.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.supertypes",
-          "name": "%view.cInsight.supertypes.name%"
+          "name": "%view.cInsight.supertypes.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.subtypes",
-          "name": "%view.cInsight.subtypes.name%"
+          "name": "%view.cInsight.subtypes.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.includes",
-          "name": "%view.cInsight.includes.name%"
+          "name": "%view.cInsight.includes.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.includedBy",
-          "name": "%view.cInsight.includedBy.name%"
+          "name": "%view.cInsight.includedBy.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.history",
-          "name": "%view.cInsight.history.name%"
+          "name": "%view.cInsight.history.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.bookmarks",
-          "name": "%view.cInsight.bookmarks.name%"
+          "name": "%view.cInsight.bookmarks.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.workspaceSymbols",
@@ -1181,11 +1193,13 @@
         },
         {
           "id": "cInsight.symbols",
-          "name": "%view.cInsight.symbols.name%"
+          "name": "%view.cInsight.symbols.name%",
+          "type": "webview"
         },
         {
           "id": "cInsight.status",
-          "name": "%view.cInsight.status.name%"
+          "name": "%view.cInsight.status.name%",
+          "type": "webview"
         }
       ]
     },

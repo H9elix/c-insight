@@ -47,6 +47,7 @@ export function registerNavigationCommands(
   register(INTERNAL_COMMANDS.ACTIVATE_TREE_LOCATION, async (
     value: unknown,
     scope: unknown,
+    intent: unknown,
   ) => {
     const node = value as TreeNode | undefined;
     if (!node?.location) return;
@@ -54,10 +55,10 @@ export function registerNavigationCommands(
       typeof scope === "string" ? scope : "unknown",
       node,
     );
-    const activation = treeClicks.classify(
-      key,
-      readConfiguration().navigationDoubleClickInterval,
-    );
+    const activation = intent === "preview" || intent === "open"
+      ? intent
+      : treeClicks.classify(key, readConfiguration().navigationDoubleClickInterval);
+    if (intent === "preview" || intent === "open") treeClicks.reset();
     let location = node.location;
     let mode = (node.previewMode ?? "reference") as PreviewMode;
     let title = node.previewTitle ?? node.label;

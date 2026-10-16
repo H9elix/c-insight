@@ -86,6 +86,7 @@ export async function activate(
     typeHierarchy,
     includeHierarchy,
     callRepository,
+    context.extensionUri,
   );
   const controller = new ContextController(
     analysis,
@@ -427,6 +428,9 @@ export async function activate(
   );
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(
+      vscode.commands.registerCommand("cInsight.test.resultTreeInteraction", (id, message) =>
+        views.resultTreeInteractionForTest(id, message),
+      ),
       vscode.commands.registerCommand("cInsight.test.previewState", () =>
         views.preview.sessionState(),
       ),

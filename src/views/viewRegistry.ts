@@ -65,6 +65,7 @@ import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
+import { WebviewResultTree } from "./resultTreeView";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
 import {
@@ -88,8 +89,10 @@ export class ViewRegistry implements vscode.Disposable {
   readonly symbols = new MutableTreeProvider();
   readonly status = new MutableTreeProvider();
   readonly preview: CodePreviewProvider;
-  private readonly lifecycle = new ViewLifecycle<TreeNode>();
-  readonly onDidChangeNavigationVisibility = this.lifecycle.onDidChangeVisibility;
+  private readonly lifecycle: ViewLifecycle;
+  get onDidChangeNavigationVisibility(): vscode.Event<string> {
+    return this.lifecycle.onDidChangeVisibility;
+  }
   private readonly sourceLines = new SourceLineCache();
   private readonly callTreeState = {
     incoming: new HierarchyTreeState(),
@@ -140,6 +143,11 @@ export class ViewRegistry implements vscode.Disposable {
     return this.lifecycle.isVisible(id);
   }
 
+  async resultTreeInteractionForTest(id: ViewId, message?: unknown): Promise<unknown> {
+    const view = this.lifecycle.get(id);
+    return view instanceof WebviewResultTree ? view.interactionForTest(message) : undefined;
+  }
+
   beginContextPreview(generation: number, reclaim = true): void {
     this.preview.beginContextUpdate(generation, reclaim);
   }
@@ -151,7 +159,9 @@ export class ViewRegistry implements vscode.Disposable {
     typeHierarchy: TypeHierarchyExplorer,
     includeHierarchy: IncludeHierarchyExplorer,
     private readonly callRepository: CallHierarchyRepository,
+    extensionUri: vscode.Uri,
   ) {
+    this.lifecycle = new ViewLifecycle(extensionUri);
     this.preview = new CodePreviewProvider(analysis, history);
     this.referenceExplorer = new ReferenceExplorer(
       analysis,
@@ -797,12 +807,8 @@ export class ViewRegistry implements vscode.Disposable {
     this.expandedCallPaths.incoming.clear();
     this.expandedCallPaths.outgoing.clear();
     await Promise.all([
-      vscode.commands.executeCommand(
-        "workbench.actions.treeView.cInsight.callers.collapseAll",
-      ),
-      vscode.commands.executeCommand(
-        "workbench.actions.treeView.cInsight.callees.collapseAll",
-      ),
+      this.lifecycle.get(VIEWS.CALLERS)?.collapseAll(),
+      this.lifecycle.get(VIEWS.CALLEES)?.collapseAll(),
     ]);
     const maximumDepth = vscode.workspace
       .getConfiguration("cInsight.callHierarchy")
