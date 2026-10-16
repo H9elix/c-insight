@@ -12,7 +12,7 @@ C Insight delegates semantic analysis to a managed `clangd` process by default, 
 
 ## Why C Insight?
 
-This branch, `experiment/custom-result-trees`, tests a shared result-tree Webview on top of `0.22.21`: single-click previews, double-click opens the editor without expanding or collapsing, and disclosure arrows control branches independently. The same interaction covers Callers, Callees, and the other result views. See the [experiment and acceptance guide](docs/development/custom-result-trees.zh-CN.md); temporary preview packages are not official releases.
+The current `main` source includes the accepted shared result-tree Webview: single-click previews, double-click opens the editor without expanding or collapsing, and disclosure arrows control branches independently. The same interaction covers Callers, Callees, and the other result views. These changes are recorded under [Unreleased](CHANGELOG.md#unreleased); the latest official release remains `0.22.21`. See the [interaction and maintenance guide](docs/development/custom-result-trees.zh-CN.md).
 
 VS Code already provides commands such as Go to Definition and Find All References. C Insight turns those individual queries into a persistent browsing workspace: the editor remains available for the code you are reading while related definitions, exact call sites, references, and source snippets stay visible in dedicated views.
 

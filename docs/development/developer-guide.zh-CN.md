@@ -37,7 +37,7 @@ AnalysisService（调度、计时、统一结果）
 
 1. `activate()` 创建输出通道、分析服务、仓库（Repository）、浏览器（Explorer）、视图（View）和诊断组件。
 2. `runtimeInitialization.ts` 发布初始上下文键（Context Keys），并启动选定引擎。
-3. `ViewLifecycle` 注册共享结果树和代码预览（Code Preview） Webview，记录实时可见性；本分支的接入与验收见[自绘结果树试验说明](custom-result-trees.zh-CN.md)。
+3. `ViewLifecycle` 注册共享结果树和代码预览（Code Preview） Webview，记录实时可见性；接入、布局边界与回归范围见[自绘结果树交互与维护](custom-result-trees.zh-CN.md)。
 4. `ContextController` 监听活动编辑器和光标，经过防抖后根据可见窗口生成查询需求。
 5. `AnalysisService` 将请求交给 `RequestScheduler`，然后路由至 clangd 或 Microsoft 提供程序（Provider），并统一转换位置、符号和调用节点。
 6. 返回结果携带查询 generation；过期 generation 的结果被丢弃，不能覆盖新光标。
