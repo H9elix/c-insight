@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.24`, including shared result trees with independent navigation and branch expansion. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.25`, including shared result trees with independent navigation and branch expansion. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -50,13 +50,83 @@ C Insight treats the second click on the same result name within `cInsight.navig
 
 Since `0.22.24`, source-result activation, Code Preview editor actions, Go to Definition, and Relationship Graph include the target caret in the initial editor-open request. Native VS Code Back/Forward, including mouse side buttons bound to those commands, returns directly between the origin and destination without stopping at a file's transient restored last-closed position. Existing open tabs and same-file jumps use the same path. The fix does not clear legitimate history or retroactively remove redundant entries created by older versions, and it preserves cursor-follow suppression, pin/lock behavior, centering, and tab policy. Code Preview's own browsing history remains separate.
 
-## Code Preview colors (local experiment)
+## Code Preview colors
 
-The `experiment/code-preview-fixed-colors` branch adds `cInsight.codePreview.colorScheme`: `"theme"` (default), `"fixed-dark"`, or `"fixed-light"`. Theme mode retains the public VS Code color-variable mapping; it does not reproduce the editor's complete TextMate/semantic color resolution. Fixed modes define source background, foreground, gutter and target highlights as well as token colors, independently of the editor theme. The preview header and toolbar still follow VS Code. This experiment is not yet part of a formal release.
+Version `0.22.25` adds `cInsight.codePreview.colorScheme`: `"theme"` (default), `"fixed-dark"`, or `"fixed-light"`. Theme mode retains the public VS Code color-variable mapping; it does not reproduce the editor's complete TextMate/semantic color resolution. Fixed modes define source background, foreground, gutter and target highlights as well as token colors, independently of the editor theme. The preview header and toolbar still follow VS Code. The maintainer accepted the temporary VSIX before the feature was merged into main and formally versioned.
 
-`cInsight.codePreview.tokenColors` defaults to `{}` and accepts independent category overrides such as `{ "function": "#DCDCAA", "property": "#9CDCFE" }`. Only opaque six-digit `#RRGGBB` values are accepted; invalid entries fall back to the selected palette with a deduplicated warning. Function and method, or type and class, are separate keys. Preset colors, all 22 keys and manual checks appear in the [Chinese experiment guide](../validation/code-preview-fixed-colors.zh-CN.md).
+`cInsight.codePreview.tokenColors` defaults to `{}` and accepts independent category overrides. Only opaque six-digit `#RRGGBB` values are accepted; invalid entries fall back to the selected palette with a deduplicated warning. Function and method, or type and class, are separate keys. All 22 keys, preset colors and copyable settings appear below; validation boundaries remain in the [Chinese configuration and validation guide](../validation/code-preview-fixed-colors.zh-CN.md).
 
 Colors change presentation only: semantic classification still comes from the active registered provider, with the same bounded timeout and lexical fallback. Disabling semantic highlighting still uses the selected palette for lexical categories. Color-setting and theme changes update a dedicated style element without replacing source HTML, clearing token/scroll caches, querying the engine, or changing lock/history state. Hidden views defer style work until shown or ready. Existing parameter/readonly italics and deprecated strikethrough remain unchanged.
+
+### Default fixed-palette colors
+
+With `cInsight.codePreview.tokenColors` omitted or `{}`, the fixed schemes use the following 22 categories. Theme mode uses public theme variables and has no theme-independent hex table. Classification depends on the provider; identifiers not classified during lexical fallback use the plain foreground.
+
+| Category key | Meaning | Fixed dark | Fixed light |
+| --- | --- | --- | --- |
+| `namespace` | namespace | `#4EC9B0` | `#267F99` |
+| `type` | type | `#4EC9B0` | `#267F99` |
+| `class` | class | `#4EC9B0` | `#267F99` |
+| `struct` | struct | `#4EC9B0` | `#267F99` |
+| `interface` | interface | `#4EC9B0` | `#267F99` |
+| `enum` | enum | `#4EC9B0` | `#267F99` |
+| `typeParameter` | typeParameter | `#4EC9B0` | `#267F99` |
+| `function` | function | `#DCDCAA` | `#795E26` |
+| `method` | method | `#DCDCAA` | `#795E26` |
+| `variable` | variable | `#9CDCFE` | `#001080` |
+| `parameter` | parameter | `#9CDCFE` | `#001080` |
+| `property` | property | `#9CDCFE` | `#001080` |
+| `enumMember` | enumMember | `#B5CEA8` | `#098658` |
+| `event` | event | `#9CDCFE` | `#001080` |
+| `macro` | macro | `#C586C0` | `#AF00DB` |
+| `label` | label | `#C8C8C8` | `#000000` |
+| `decorator` | decorator | `#DCDCAA` | `#795E26` |
+| `keyword` | keyword | `#C586C0` | `#0000FF` |
+| `string` | string | `#CE9178` | `#A31515` |
+| `comment` | comment | `#6A9955` | `#008000` |
+| `number` | number | `#B5CEA8` | `#098658` |
+| `operator` | operator | `#D4D4D4` | `#000000` |
+
+The source-surface defaults below are not supported `tokenColors` category keys:
+
+| Source element | Fixed dark | Fixed light |
+| --- | --- | --- |
+| Source background | `#1E1E1E` | `#FFFFFF` |
+| Plain text / unclassified identifiers | `#D4D4D4` | `#000000` |
+| Line numbers | `#858585` | `#6E7681` |
+| Target line background | `#264F78` | `#DCEBFA` |
+| Target line left border | `#007ACC` | `#007ACC` |
+| Target symbol background | `#5B4B18` | `#FFF2B2` |
+| Target symbol outline | `#D7BA7D` | `#B89500` |
+
+### settings.json examples and reset
+
+Merge these keys into your existing `settings.json`; do not replace unrelated settings. Use workspace `.vscode/settings.json` to affect only this project. These settings do not change the main editor theme. This example deliberately overrides six categories; all other categories retain the selected preset:
+
+```json
+{
+  "cInsight.codePreview.colorScheme": "fixed-dark",
+  "cInsight.codePreview.tokenColors": {
+    "function": "#FFD866",
+    "method": "#FFD866",
+    "variable": "#D4D4D4",
+    "property": "#78DCE8",
+    "macro": "#AB9DF2",
+    "comment": "#808080"
+  }
+}
+```
+
+Function and method are independent; changing variable does not change parameter or property. To use the fixed light defaults without overrides:
+
+```json
+{
+  "cInsight.codePreview.colorScheme": "fixed-light",
+  "cInsight.codePreview.tokenColors": {}
+}
+```
+
+Use `fixed-dark` for the dark defaults. To restore the original theme mapping, set `colorScheme` to `theme` and `tokenColors` to `{}`. Removing one category key restores only that category to the selected preset.
 
 ## Configuration and commands
 

@@ -102,6 +102,53 @@ describe("Code Preview color configuration and Webview wiring", () => {
     assert.deepEqual(contentKeys.sort(), [...PREVIEW_CONTENT_SETTINGS].sort());
   });
 
+  it("keeps documented palette defaults and settings.json examples aligned with runtime colors", () => {
+    const styles = ["fixed-dark", "fixed-light"].map(scheme => previewColorStyle(scheme, {}).css);
+    for (const path of [
+      "docs/user/user-guide.zh-CN.md", "docs/user/user-guide.en.md",
+      "docs/validation/code-preview-fixed-colors.zh-CN.md",
+    ]) {
+      const guide = readFileSync(path, "utf8");
+      for (const key of PREVIEW_TOKEN_TYPES) {
+        const row = guide.split("\n").find(line => line.startsWith(`| \`${key}\` |`));
+        assert(row, `Missing palette category ${key} in ${path}`);
+        for (const [index, css] of styles.entries()) {
+          const color = css.match(new RegExp(`--ci-preview-${key}: (#[0-9A-F]{6});`))?.[1];
+          assert(color);
+          assert.equal(row.split("|")[index + 3].trim(), `\`${color}\``, `Outdated ${key} preset in ${path}`);
+        }
+      }
+      for (const [key, chinese, english] of [
+        ["background", "源码背景", "Source background"],
+        ["foreground", "普通文字／未分类标识符", "Plain text / unclassified identifiers"],
+        ["lineNumber", "行号", "Line numbers"],
+        ["lineHighlight", "目标行背景", "Target line background"],
+        ["focusBorder", "目标行左边线", "Target line left border"],
+        ["matchBackground", "目标符号背景", "Target symbol background"],
+        ["matchBorder", "目标符号轮廓", "Target symbol outline"],
+      ]) {
+        const label = path.endsWith(".zh-CN.md") ? chinese : english;
+        const row = guide.split("\n").find(line => line.startsWith(`| ${label} |`));
+        assert(row, `Missing palette surface ${key} in ${path}`);
+        for (const [index, css] of styles.entries()) {
+          const color = css.match(new RegExp(`--ci-preview-${key}: (#[0-9A-F]{6});`))?.[1];
+          assert(color);
+          assert.equal(row.split("|")[index + 2].trim(), `\`${color}\``, `Outdated ${key} surface in ${path}`);
+        }
+      }
+      let customExamples = 0;
+      for (const match of guide.matchAll(/```json\n([\s\S]*?)\n```/g)) {
+        if (!match[1].includes('"cInsight.codePreview.tokenColors"')) continue;
+        const settings = JSON.parse(match[1]);
+        const overrides = settings["cInsight.codePreview.tokenColors"];
+        assert(overrides && typeof overrides === "object" && !Array.isArray(overrides));
+        assert.equal(previewColorStyle(settings["cInsight.codePreview.colorScheme"], overrides).invalidTokens.length, 0);
+        if (Object.keys(overrides).length > 0) customExamples++;
+      }
+      assert(customExamples > 0, `Missing custom settings.json example in ${path}`);
+    }
+  });
+
   it("routes color-only changes without rendering, clearing caches, or semantic work", () => {
     const refresh = provider.slice(provider.indexOf("  refreshColors():"), provider.indexOf("  private colorStyle():"));
     assert.match(refresh, /if \(!this\.visible \|\| !this\.view\) return/);

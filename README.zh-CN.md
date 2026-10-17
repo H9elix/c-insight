@@ -8,7 +8,7 @@ C Insight 是一款在 VS Code 中提供 Source Insight 风格 C/C++ 源码浏�
 
 C Insight 默认把语义分析委托给自身管理的 `clangd` 进程，也可以在明确选择后使用已安装的 Microsoft C/C++ language service (cpptools)。它是源码导航和可视化层，不负责代替编译器、构建系统，也不会替你生成 `compile_commands.json`。
 
-本地试验分支 `experiment/code-preview-fixed-colors` 新增可选的代码预览固定深浅配色和类别颜色覆盖，默认仍跟随主题。尚未正式发布，配置与验收见[固定配色试验说明](docs/validation/code-preview-fixed-colors.zh-CN.md)。
+`0.22.25` 新增可选的代码预览固定深浅配色和独立类别颜色覆盖，默认仍跟随主题。切换颜色不重新查询引擎，保留预览内容、滚动位置和锁定状态。[默认颜色及 settings.json 示例](docs/user/user-guide.zh-CN.md#code-preview-default-colors)已写入用户手册，更新内容见[发布说明](docs/releases/v0.22.25.md)。
 
 ![文档符号、上下文、代码预览、调用者和引用同时可见的 C Insight 工作区](.github/readme-assets/overview.png)
 

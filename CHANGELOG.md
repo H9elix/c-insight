@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.22.25
 
-- Local experiment on `experiment/code-preview-fixed-colors`: add opt-in fixed dark/light Code Preview palettes and validated `#RRGGBB` category overrides while preserving theme mode as default. Color-only updates do not rebuild source, reset scroll/lock/history, clear caches, or query semantic providers. Includes bilingual settings, model/message/Extension Host coverage and an acceptance guide; temporary VSIX first, pending user acceptance, with no formal version change.
-- Added a Chinese history-driven regression testing guide and an initial 48-case catalog, distinguishing confirmed fixes, configuration/external-engine issues, interaction contracts, known limitations, existing automated coverage, and manual checks. Repository agent and contribution rules now require updating this knowledge when new problems are reported; no runtime behavior or formal version changes.
+- Added optional fixed dark/light Code Preview palettes and independent, strictly validated `#RRGGBB` category overrides, while keeping theme mode as default. Fixed presets cover source background, foreground, line numbers and target highlights; the editor and preview toolbar retain their existing theme behavior.
+- Color-setting and theme changes update styles without rebuilding source HTML, resetting scroll/lock/history, clearing caches, or querying semantic providers. Hidden views apply the latest colors when shown or ready. Semantic-token classification, bounded timeout and lexical fallback are unchanged.
+- Documented all 22 token-category defaults, both source-surface palettes, copyable `settings.json` examples, reset behavior and validation boundaries in the bilingual user guides. The maintainer accepted the temporary VSIX before merge and formal versioning; model, message and dual-engine Extension Host regressions cover the new path.
+- Added a Chinese history-driven regression guide and an initial 48-case catalog, separating confirmed defects, configuration/external-engine issues, interaction contracts, known limitations, automated coverage and manual checks. Repository agent and contribution rules require ongoing updates when new problems are reported.
 
 ## 0.22.24
 
