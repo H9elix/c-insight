@@ -11,6 +11,7 @@ import { LocationResult } from "../models/types";
 import type { PreviewSessionState } from "../session/workspaceSession";
 import { runtimeDiagnostics } from "../diagnostics/runtimeDiagnostics";
 import { sameDefinitionLocation } from "../utils/definitionLocation";
+import { showEditorLocation } from "../utils/editorNavigation";
 import {
   expandPreviewRange,
   initialPreviewRange,
@@ -972,15 +973,7 @@ async function openEditor(
   document: vscode.TextDocument,
   position: vscode.Position,
 ): Promise<void> {
-  const editor = await vscode.window.showTextDocument(document, {
-    preview: true,
-    preserveFocus: false,
-  });
-  editor.selection = new vscode.Selection(position, position);
-  editor.revealRange(
-    new vscode.Range(position, position),
-    vscode.TextEditorRevealType.InCenter,
-  );
+  await showEditorLocation(document, new vscode.Range(position, position));
 }
 
 function previewModeLabel(mode: PreviewMode): string {

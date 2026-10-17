@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
+import { showEditorLocation } from "../utils/editorNavigation";
 import {
   DocumentSymbol,
   SymbolKind,
@@ -538,18 +539,10 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       return;
     }
     const document = await vscode.workspace.openTextDocument(location.uri);
-    const editor = await vscode.window.showTextDocument(document, {
+    await showEditorLocation(document, location.range, {
       preview: false,
-      preserveFocus: false,
+      revealType: vscode.TextEditorRevealType.InCenterIfOutsideViewport,
     });
-    editor.selection = new vscode.Selection(
-      location.range.start,
-      location.range.start,
-    );
-    editor.revealRange(
-      location.range,
-      vscode.TextEditorRevealType.InCenterIfOutsideViewport,
-    );
   }
 
   private async locationAvailable(

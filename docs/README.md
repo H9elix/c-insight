@@ -24,6 +24,7 @@
 
 ## 测试验收 `validation/`
 
+- [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界和临时包验收项目；当前为本地待验收修复。
 - [性能基准](validation/performance-baseline.zh-CN.md)：当前基准场景、执行方法和带日期的实测快照。
 - [第三阶段验收报告](validation/third-phase-acceptance.zh-CN.md)：`0.17.x`/`0.20.x` 性能与可靠性阶段的历史验收证据。
 - [Microsoft 提供程序探测说明](validation/microsoft-provider-probe.zh-CN.md)：`0.18.0` 隔离探测方法、后续生产接入状态与公开 API 边界。

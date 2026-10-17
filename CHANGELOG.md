@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Open source locations with the target caret included in the initial VS Code editor-open request, avoiding an extra Back/Forward stop at a file's restored last-closed position. Shared result navigation, Code Preview, Go to Definition, and Relationship Graph retain their existing focus, preview-tab, centering, and cursor-follow policies.
+- Added real Extension Host regressions for closed and already-open target files, same-file navigation, repeated native Back/Forward, Code Preview message handlers, result-tree activation, and pinned graph tabs. This change is local-only pending temporary-VSIX acceptance; the formal version remains `0.22.23`.
+
 ## 0.22.23
 
 - Recognized numeric/expression macros and macro replacement-list references even when the Provider returns no Call Hierarchy root, while preserving exact macro-use scope and keeping expanded-function Callers behind the existing explicit action.

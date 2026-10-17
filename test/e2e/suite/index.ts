@@ -1,6 +1,7 @@
 import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { verifyMacroCallerRepositoryRegressions } from "./macroCallerRegressions";
+import { verifyEditorNavigationHistory } from "./editorNavigationRegressions";
 
 const extensionId = "H9elix.c-insight";
 
@@ -311,6 +312,7 @@ async function runClangdAcceptance(): Promise<void> {
   await vscode.commands.executeCommand("cInsight.callHierarchy.stopExpansion");
 
   assert.ok(references.length >= 2);
+  await verifyEditorNavigationHistory();
 }
 
 interface SymbolSearchProbe {

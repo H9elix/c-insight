@@ -1,5 +1,6 @@
 import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
+import { verifyEditorNavigationHistory } from "./editorNavigationRegressions";
 
 export async function run(): Promise<void> {
   const configuration = vscode.workspace.getConfiguration("cInsight");
@@ -52,6 +53,7 @@ export async function run(): Promise<void> {
       "microsoft",
     );
     await verifyMemberCallerScope(workspace);
+    await verifyEditorNavigationHistory();
   } finally {
     await configuration.update(
       "engine",

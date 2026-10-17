@@ -5,6 +5,7 @@ import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer"
 import { NavigationSource } from "../history/navigationHistoryModel";
 import { COMMANDS, INTERNAL_COMMANDS } from "../ids";
 import { LocationResult } from "../models/types";
+import { showEditorLocation } from "../utils/editorNavigation";
 import { TreeLocationClickClassifier } from "../utils/treeLocationInteraction";
 import {
   CodePreviewProvider,
@@ -40,9 +41,7 @@ export function registerNavigationCommands(
         candidate.previewTitle ?? candidate.label ?? "Location", "selection");
     }
     const document = await vscode.workspace.openTextDocument(location.uri);
-    const editor = await vscode.window.showTextDocument(document, { preview: true, preserveFocus: false });
-    editor.selection = new vscode.Selection(location.range.start, location.range.start);
-    editor.revealRange(location.range, vscode.TextEditorRevealType.InCenter);
+    await showEditorLocation(document, location.range);
   });
   register(INTERNAL_COMMANDS.ACTIVATE_TREE_LOCATION, async (
     value: unknown,
@@ -130,10 +129,5 @@ function treeLocationKey(scope: string, node: TreeNode): string {
 
 async function openEditorLocation(location: LocationResult): Promise<void> {
   const document = await vscode.workspace.openTextDocument(location.uri);
-  const editor = await vscode.window.showTextDocument(document, {
-    preview: true,
-    preserveFocus: false,
-  });
-  editor.selection = new vscode.Selection(location.range.start, location.range.start);
-  editor.revealRange(location.range, vscode.TextEditorRevealType.InCenter);
+  await showEditorLocation(document, location.range);
 }

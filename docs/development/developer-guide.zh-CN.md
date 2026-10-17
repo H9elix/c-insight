@@ -269,6 +269,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `lruPromiseCache.ts` | 可合并进行中 Promise、失败不留存的有界 LRU。 |
 | `exportBudget.ts` | 按 UTF-8 字节限制编码导出，防止超大副本长期驻留。 |
 | `exportWriter.ts` | VS Code 文件选择和受预算保护的导出写入。 |
+| `editorNavigation.ts` | 源码定位的共享编辑器打开入口；在 `showTextDocument` 中一次传入目标光标位置，再仅调整可见范围，避免文件恢复位置进入原生后退/前进历史；保留各入口的标签页与居中策略。 |
 | `mermaid.ts` | Mermaid 标签转义和调用边渲染。 |
 | `viewPin.ts` | 固定（Pin）状态下自动/手动更新的统一纯策略。 |
 | `cursorFollowSuppression.ts` | 记录树双击的编辑器目标，过滤程序化编辑器/选区事件，并在鼠标或键盘移动到其他位置时恢复随光标刷新。 |
@@ -318,12 +319,14 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 - `documentationCompleteness.test.ts`：配置、命令和视图全部出现在用户手册。
 - `localizationManifest.test.ts`：中英文 manifest 文本完整。
 - `secondPhaseCompatibility.test.ts`：旧会话和导出格式保持兼容。
+- `editorNavigationWiring.test.ts`：源码打开入口共享原子定位，不在打开后再次赋值光标，不通过清空历史隐藏冗余记录。
 
 ### 7.2 集成与 E2E
 
 - `test/integration/clangdHandshake.test.ts`：真实 clangd 初始化及调用层次（Call Hierarchy）协议。
 - `test/fixtures/basic-cpp/`：隔离的最小 CMake/C++ 工程和编译 flags。
 - `test/e2e/runTest.ts` + `suite/index.ts`：C Insight/clangd Extension Host 主回归。
+- `suite/editorNavigationRegressions.ts`：clangd 与 Microsoft 两套 Extension Host 均执行的真实 VS Code 原生后退/前进回归，覆盖关闭文件的旧光标恢复、已打开文件、同文件跳转、树激活、代码预览消息和关系图；临时纯文本夹具位于系统临时目录，不修改用户工程。
 - `runMicrosoftProbe.ts` + `suite/microsoftProviderProbe.ts`：只加载 cpptools，探测公开提供程序（Provider）能力。
 - `runMicrosoftEngineTest.ts` + `suite/microsoftEngine.ts`：最小工程 Microsoft 模式回归。
 - `runFfmpegMicrosoftTest.ts` + `suite/ffmpegMicrosoft.ts`：真实 FFmpeg Microsoft 模式回归。
