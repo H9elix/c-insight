@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.23` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.24` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -365,6 +365,8 @@ npm run package
 ```
 
 该命令会再次执行完整 `check`，然后生成 `c-insight-<version>.vsix`。
+
+新功能或修复先使用可区分的临时 VSIX 文件名供用户验收，不提前迭代正式版本、推送或发布。用户确认功能正确并授权发布后，再提升 `package.json` 与锁文件版本、更新当前文档和对应的中英双语发布说明，按下述流程发布；历史版本说明和带日期的实测数据保留原始含义。
 
 公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
 

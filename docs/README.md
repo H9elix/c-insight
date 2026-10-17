@@ -1,8 +1,10 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.23`，包含统一自绘结果树的操作、布局和维护说明；正式发布记录以 `releases/` 和更新日志为准。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
+本文档集对应 C Insight `0.22.24`，包含统一自绘结果树的操作、布局和维护说明；正式发布记录以 `releases/` 和更新日志为准。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
 
 `0.22.23` 包含已完成临时包验收的宏调用者维护修复：补齐无函数调用根的宏及跨文件引用，默认仍只查询宏自身的直接引用，手动操作才切换到展开后的函数。
+
+`0.22.24` 包含已完成临时包验收的编辑器导航历史修复：源码打开与目标定位合并为同一次操作，鼠标侧键或原生后退/前进不再停留于文件临时恢复的旧光标位置；既有合法历史保持不变。
 
 ## 用户文档 `user/`
 
@@ -24,7 +26,7 @@
 
 ## 测试验收 `validation/`
 
-- [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界和临时包验收项目；当前为本地待验收修复。
+- [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。
 - [性能基准](validation/performance-baseline.zh-CN.md)：当前基准场景、执行方法和带日期的实测快照。
 - [第三阶段验收报告](validation/third-phase-acceptance.zh-CN.md)：`0.17.x`/`0.20.x` 性能与可靠性阶段的历史验收证据。
 - [Microsoft 提供程序探测说明](validation/microsoft-provider-probe.zh-CN.md)：`0.18.0` 隔离探测方法、后续生产接入状态与公开 API 边界。
@@ -33,7 +35,7 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.22.23 发布说明](releases/v0.22.23.md)：与 GitHub Release 正文一致的当前版本中英双语功能、验证、安装和校验说明；同目录保留旧版本发布记录。
+- [C Insight 0.22.24 发布说明](releases/v0.22.24.md)：与 GitHub Release 正文一致的当前版本中英双语功能、验证、安装和校验说明；同目录保留旧版本发布记录。
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门会验证版本、必需章节和占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 

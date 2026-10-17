@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## 0.22.24
+
 - Open source locations with the target caret included in the initial VS Code editor-open request, avoiding an extra Back/Forward stop at a file's restored last-closed position. Shared result navigation, Code Preview, Go to Definition, and Relationship Graph retain their existing focus, preview-tab, centering, and cursor-follow policies.
-- Added real Extension Host regressions for closed and already-open target files, same-file navigation, repeated native Back/Forward, Code Preview message handlers, result-tree activation, and pinned graph tabs. This change is local-only pending temporary-VSIX acceptance; the formal version remains `0.22.23`.
+- Added real Extension Host regressions for closed and already-open target files, same-file navigation, repeated native Back/Forward, Code Preview message handlers, result-tree activation, and pinned graph tabs. The temporary VSIX completed user acceptance before formal versioning.
+- Synchronized current documentation and curated bilingual release notes with `0.22.24`, preserving dated validation evidence and historical release records. The complete quality gate, 284 tests across 69 suites, and both clangd and Microsoft C/C++ Extension Host regressions passed.
 
 ## 0.22.23
 

@@ -12,6 +12,8 @@ C Insight delegates semantic analysis to a managed `clangd` process by default, 
 
 ## Why C Insight?
 
+Version `0.22.24` fixes an extra editor Back/Forward stop after opening source from Code Preview, Callers, and other navigation results: returning now skips the file's transient restored position. Existing history is preserved. See the [release notes](docs/releases/v0.22.24.md).
+
 Since `0.22.22`, result views use a shared Webview tree: single-click previews, double-click opens the editor without expanding or collapsing, and disclosure arrows control branches independently. The same interaction covers Callers, Callees, and the other result views. See the [release notes](docs/releases/v0.22.22.md) and [interaction and maintenance guide](docs/development/custom-result-trees.zh-CN.md).
 
 VS Code already provides commands such as Go to Definition and Find All References. C Insight turns those individual queries into a persistent browsing workspace: the editor remains available for the code you are reading while related definitions, exact call sites, references, and source snippets stay visible in dedicated views.

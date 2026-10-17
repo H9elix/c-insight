@@ -37,7 +37,7 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Preserve configured depth, node, result, cache, and export safety limits.
 - Add deterministic tests for model or protocol behavior.
 - Update `CHANGELOG.md`, the Chinese user guide, and relevant architecture or acceptance documentation in the same change.
-- Increment the extension version before packaging a modified test build so every VSIX filename identifies one exact implementation. Release handoff notes must list the behavior that needs focused manual testing.
+- Package new behavior first as a descriptively named temporary VSIX without incrementing the formal version, pushing, tagging, or publishing. After the user accepts that build and authorizes release, increment the version and synchronize current documentation before formal packaging. Handoff notes must identify the build and list focused manual tests.
 - Run `npm run docs:commands` after adding or changing commands; it updates both the English and Simplified Chinese command references.
 - Run `npm run ids:generate` after adding, removing, or renaming contributed commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
 - Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls; `npm run check` verifies that both runtime catalogs remain synchronized.

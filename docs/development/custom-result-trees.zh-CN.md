@@ -1,6 +1,6 @@
 # 自绘结果树交互与维护
 
-自绘结果树由 `experiment/custom-result-trees` 分支引入，已于 `2026-10-17` 经用户验收并纳入 `main`，在 `0.22.22` 中正式提供。试验期间使用的 `0.22.21` 基础版本临时 VSIX 不属于独立正式发布；当前安装与校验方法见[当前发布说明](../releases/v0.22.23.md)。
+自绘结果树由 `experiment/custom-result-trees` 分支引入，已于 `2026-10-17` 经用户验收并纳入 `main`，在 `0.22.22` 中正式提供。试验期间使用的 `0.22.21` 基础版本临时 VSIX 不属于独立正式发布；当前安装与校验方法见[当前发布说明](../releases/v0.22.24.md)。
 
 ## 范围与操作
 
@@ -33,7 +33,7 @@
 - `resultTreeView.ts`：将现有 `MutableTreeProvider` 接到 Webview，校验消息及节点菜单动作，桥接展开事件、可见性与源码导航。
 - `resultTreeWebview.ts`：独立点击处理、虚拟滚动、键盘导航、ARIA 树角色、上下文菜单及本地筛选；动态文本仅通过 DOM 文本属性输出。
 - `viewLifecycle.ts`：统一注册和释放上述视图，视图 ID 及原有标题栏命令保持一致。
-- `utils/editorNavigation.ts`：在打开编辑器时直接指定目标光标，不先恢复旧位置再跳行；结果树、代码预览、显式打开和关系图共用该路径，不清空或接管 VS Code 原生导航历史。此项为本地待验收修复，尚未发布新版本。
+- `utils/editorNavigation.ts`：在打开编辑器时直接指定目标光标，不先恢复旧位置再跳行；结果树、代码预览、显式打开和关系图共用该路径，不清空或接管 VS Code 原生导航历史。此项已通过临时包用户验收，纳入 `0.22.24`。
 - `treeNode.ts`：保留业务节点并合并同一节点的并发子项加载，防止程序化展开与 UI 刷新重复查询。
 - `scripts/copy-webview-assets.mjs`：在构建时复制官方 Codicons 的 CSS 与字体到 `dist/codicons`，通过 VSIX 文件清单打包；许可计入第三方声明。
 
