@@ -143,6 +143,7 @@ See [PRIVACY.md](PRIVACY.md) for data boundaries and [SECURITY.md](SECURITY.md) 
 - [交叉编译与嵌入式工程配置](docs/user/cross-compilation.zh-CN.md)
 - [中文开发者手册](docs/development/developer-guide.zh-CN.md)
 - [Architecture](docs/development/architecture.md)
+- [Regression testing guide and historical cases (中文)](docs/validation/regression-testing-guide.zh-CN.md)
 - [Documentation index](docs/README.md)
 - [Versioned release notes](docs/releases/)
 

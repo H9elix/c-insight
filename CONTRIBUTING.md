@@ -44,6 +44,12 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Keep local Markdown links valid; `npm run check` verifies their target files.
 - Keep repository, issue, security, privacy, and release links pointed at `https://github.com/H9elix/c-insight`.
 
+## Bug reports and persistent regression knowledge
+
+Use the [regression testing guide](docs/validation/regression-testing-guide.zh-CN.md) and [historical issue catalog](docs/validation/historical-issues.zh-CN.md) when investigating a reported problem. Each new actual report must update an existing stable `CI-REG-NNN` entry or add the next ID during that task, including unresolved reports. Record known environment/build, reproduction, expected versus observed behavior, evidence, confirmed and suspected causes, existing/new automated coverage, manual gaps, and actual validation/acceptance status. Never invent missing evidence, reuse IDs, erase disproved hypotheses, or treat an external-engine limitation as a fixed product defect.
+
+Bug fixes should add the smallest appropriate automated regression and retain a manual scenario for hardware or UI behavior that tests do not exercise. Update the guide's smoke checklist or affected-area matrix when the report exposes a shared risk. Handoffs should name the issue ID and distinguish executed checks from planned checks. Documentation-only maintenance does not require a new extension version or VSIX. Repository agents also follow the durable rules in [AGENTS.md](AGENTS.md).
+
 ## Release workflow
 
 Every package version must have curated bilingual notes at `docs/releases/v<version>.md`. Start from the user-visible changes in `CHANGELOG.md`, include Chinese and English sections plus installation and verification guidance, and remove every `TODO` or `TBD` placeholder. `npm run release:notes:check` validates the file independently and is also part of `npm run check`.

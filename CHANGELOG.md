@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a Chinese history-driven regression testing guide and an initial 48-case catalog, distinguishing confirmed fixes, configuration/external-engine issues, interaction contracts, known limitations, existing automated coverage, and manual checks. Repository agent and contribution rules now require updating this knowledge when new problems are reported; no runtime behavior or formal version changes.
+
 ## 0.22.24
 
 - Open source locations with the target caret included in the initial VS Code editor-open request, avoiding an extra Back/Forward stop at a file's restored last-closed position. Shared result navigation, Code Preview, Go to Definition, and Relationship Graph retain their existing focus, preview-tab, centering, and cursor-follow policies.

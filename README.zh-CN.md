@@ -143,6 +143,7 @@ C Insight 会搜索工作区根目录和常见构建目录，也可以执行 **C
 - [Cross-compilation and embedded projects](docs/user/cross-compilation.en.md)
 - [中文开发者手册](docs/development/developer-guide.zh-CN.md)
 - [架构说明](docs/development/architecture.md)
+- [历史问题驱动测试指南与回归案例](docs/validation/regression-testing-guide.zh-CN.md)
 - [文档索引](docs/README.md)
 - [版本化发布说明](docs/releases/)
 
