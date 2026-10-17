@@ -28,6 +28,7 @@
 
 - [历史问题驱动测试指南](validation/regression-testing-guide.zh-CN.md)：按修改范围选择测试、自动与人工边界、高频冒烟清单，以及以后收到问题时的持续登记流程。
 - [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：首批 48 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及实际测试入口；新反馈在此增补。
+- [代码预览固定配色试验](validation/code-preview-fixed-colors.zh-CN.md)：独立分支中的深浅预设、类别颜色、校验边界和验收步骤；待用户验收，尚未正式发布。
 - [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。
 - [性能基准](validation/performance-baseline.zh-CN.md)：当前基准场景、执行方法和带日期的实测快照。
 - [第三阶段验收报告](validation/third-phase-acceptance.zh-CN.md)：`0.17.x`/`0.20.x` 性能与可靠性阶段的历史验收证据。

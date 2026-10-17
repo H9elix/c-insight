@@ -50,6 +50,14 @@ C Insight treats the second click on the same result name within `cInsight.navig
 
 Since `0.22.24`, source-result activation, Code Preview editor actions, Go to Definition, and Relationship Graph include the target caret in the initial editor-open request. Native VS Code Back/Forward, including mouse side buttons bound to those commands, returns directly between the origin and destination without stopping at a file's transient restored last-closed position. Existing open tabs and same-file jumps use the same path. The fix does not clear legitimate history or retroactively remove redundant entries created by older versions, and it preserves cursor-follow suppression, pin/lock behavior, centering, and tab policy. Code Preview's own browsing history remains separate.
 
+## Code Preview colors (local experiment)
+
+The `experiment/code-preview-fixed-colors` branch adds `cInsight.codePreview.colorScheme`: `"theme"` (default), `"fixed-dark"`, or `"fixed-light"`. Theme mode retains the public VS Code color-variable mapping; it does not reproduce the editor's complete TextMate/semantic color resolution. Fixed modes define source background, foreground, gutter and target highlights as well as token colors, independently of the editor theme. The preview header and toolbar still follow VS Code. This experiment is not yet part of a formal release.
+
+`cInsight.codePreview.tokenColors` defaults to `{}` and accepts independent category overrides such as `{ "function": "#DCDCAA", "property": "#9CDCFE" }`. Only opaque six-digit `#RRGGBB` values are accepted; invalid entries fall back to the selected palette with a deduplicated warning. Function and method, or type and class, are separate keys. Preset colors, all 22 keys and manual checks appear in the [Chinese experiment guide](../validation/code-preview-fixed-colors.zh-CN.md).
+
+Colors change presentation only: semantic classification still comes from the active registered provider, with the same bounded timeout and lexical fallback. Disabling semantic highlighting still uses the selected palette for lexical categories. Color-setting and theme changes update a dedicated style element without replacing source HTML, clearing token/scroll caches, querying the engine, or changing lock/history state. Hidden views defer style work until shown or ready. Existing parameter/readonly italics and deprecated strikethrough remain unchanged.
+
 ## Configuration and commands
 
 Open **Settings** and search for `C Insight` to see every setting, accepted value, range, and default in the active display language. Stable configuration IDs begin with `cInsight.`. Important groups include:

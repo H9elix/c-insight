@@ -138,6 +138,7 @@ AnalysisService（调度、计时、统一结果）
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动、相同目标元数据更新、锁定（Lock）、滚动/指针交互与上下文代次的写入仲裁、编辑范围感知与 200 ms 重绘合并，以及源码 `<code>` 元素的宿主预格式样式重置。 |
 | `sourceHighlight.ts` | C/C++ 词法回退高亮、语义令牌（Semantic Tokens）解码、HTML 转义及精确目标范围叠加。 |
+| `previewColors.ts` | 本地试验中的纯配色模型：主题变量/固定深浅预设、独立类别覆盖、严格六位颜色校验和样式生成；不访问 VS Code、源码或分析引擎。 |
 | `sourceLineCache.ts` | 引用和预览所需源码行的有界缓存。 |
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |
@@ -148,6 +149,8 @@ AnalysisService（调度、计时、统一结果）
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
 
 文档符号的视口中心跟随由 `extension.ts` 监听活动编辑器可见范围并进行 75 ms 防抖，`documentSymbolFocusModel.ts` 以纯函数计算中心行和最深层包含符号，`ViewRegistry` 保存当前树的范围索引、恢复节点原始展示并调用 `TreeView.reveal`。该路径只能使用已加载的文档符号，不得从滚动事件调用 `AnalysisService`；窗口隐藏时必须停止调度。新增或修改跟随规则时，应同时补充 `documentSymbolFocusModel.test.ts` 的范围边界测试和 `documentSymbolFocusWiring.test.ts` 的配置、监听及非抢焦点契约。
+
+固定配色试验中，`CodePreviewProvider.configurationChanged` 将内容配置与配色配置分开：内容项仍调用 `refresh()`，配色项与主题变化仅发送 `previewColors`。浏览器只修改独立样式元素的 `textContent`；`previewReady` 同步页面创建期间的最新配色，隐藏窗口跳过消息。新增内容配置必须同步 `PREVIEW_CONTENT_SETTINGS`，由单测核对清单。`previewColors.test.ts` 覆盖纯模型、接线和实际消息分支；`test/e2e/suite/previewColorRegressions.ts` 在两个真实扩展宿主中以受控 Webview 验证不重复渲染、查询或清缓存。物理滚轮与实际颜色对比仍需[人工验收](../validation/code-preview-fixed-colors.zh-CN.md)。此试验尚未正式发布。
 
 Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点身份。所有源码内容进入 HTML 前必须转义。
 

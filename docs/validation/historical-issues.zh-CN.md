@@ -186,7 +186,8 @@
 - 历史现象：两处函数/成员颜色不同；外部 C/C++、clangd 禁用后，编辑器令牌检查仍显示 `property/classScope`，`Other` 被误解为识别失败。
 - 定位与现状：这是当前边界与解释项，不是已实现的编辑器级完全同步。编辑器保留 TextMate 基础着色，C Insight 自管 clangd 也注册语义令牌；预览把类型映射到公开主题颜色变量，不复用完整编辑器主题决议。
 - 复现与预期：在 `dc->frame` 等成员上比较令牌检查与预览；区分语义分类、主题回退规则和普通 token 大类。`Other` 不等于语义未知，颜色相同也不等于没用语义；不得宣称当前每个主题逐字符完全一致。
-- 覆盖：[高亮分类单测](../../test/unit/codePreview.test.ts)；具体主题、字体和颜色对照主要是人工检查，完整同步尚无承诺。
+- 本次增强：用户授权在 `experiment/code-preview-fixed-colors` 实现固定深浅预设与严格的类别颜色覆盖，默认仍为主题模式；只更新样式而不重建源码或新增语义查询。这是对已知边界的替代方案，不宣称修复全部编辑器颜色同步。基于 `0.22.24`，待用户验收，尚未发布；详见[试验说明](code-preview-fixed-colors.zh-CN.md)。
+- 覆盖：[高亮分类单测](../../test/unit/codePreview.test.ts)、[配色模型与消息分支测试](../../test/unit/previewColors.test.ts)、[受控 Webview 的扩展宿主配色回归](../../test/e2e/suite/previewColorRegressions.ts)。具体主题、字体、物理滚动与热更新的视觉稳定性仍需人工检查，完整同步尚无承诺；本次实际执行结果见试验说明。
 
 <a id="ci-reg-021"></a>
 

@@ -2,6 +2,7 @@ import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { verifyMacroCallerRepositoryRegressions } from "./macroCallerRegressions";
 import { verifyEditorNavigationHistory } from "./editorNavigationRegressions";
+import { verifyPreviewColors } from "./previewColorRegressions";
 
 const extensionId = "H9elix.c-insight";
 
@@ -313,6 +314,7 @@ async function runClangdAcceptance(): Promise<void> {
 
   assert.ok(references.length >= 2);
   await verifyEditorNavigationHistory();
+  await verifyPreviewColors();
 }
 
 interface SymbolSearchProbe {

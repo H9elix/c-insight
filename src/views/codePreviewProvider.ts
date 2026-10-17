@@ -28,6 +28,7 @@ import {
 } from "./sourceHighlight";
 import { PreviewClearGuard } from "./previewClearGuard";
 import { PreviewOwnership } from "./previewOwnership";
+import { PREVIEW_CONTENT_SETTINGS, previewColorStyle } from "./previewColors";
 export type PreviewMode = NavigationMode;
 export type ExplicitPreviewSource = Exclude<NavigationSource, "context">;
 
@@ -85,6 +86,7 @@ export class CodePreviewProvider
   private documentChangeTimer?: NodeJS.Timeout;
   private renderGeneration = 0;
   private loadingMore = false;
+  private colorWarning?: string;
   private readonly semanticTokens = new Map<
     string,
     SemanticTokenCacheEntry
@@ -110,9 +112,7 @@ export class CodePreviewProvider
   ) {
     this.disposables.push(
       vscode.window.onDidChangeActiveColorTheme(() => {
-        if (this.visible) {
-          void this.render();
-        }
+        this.refreshColors();
       }),
     );
   }
@@ -135,7 +135,10 @@ export class CodePreviewProvider
           this.visibilityEmitter.fire();
         }
       }),
-      view.onDidChangeVisibility(() => this.visibilityEmitter.fire()),
+      view.onDidChangeVisibility(() => {
+        this.refreshColors();
+        this.visibilityEmitter.fire();
+      }),
     );
     this.visibilityEmitter.fire();
     void this.render();
@@ -258,6 +261,36 @@ export class CodePreviewProvider
     void this.render();
   }
 
+  configurationChanged(event: vscode.ConfigurationChangeEvent): void {
+    if (PREVIEW_CONTENT_SETTINGS.some(key =>
+      event.affectsConfiguration(`cInsight.codePreview.${key}`),
+    )) {
+      this.refresh();
+    } else {
+      this.refreshColors();
+    }
+  }
+
+  refreshColors(): void {
+    if (!this.visible || !this.view) return;
+    void this.view.webview.postMessage({ type: "previewColors", css: this.colorStyle() })
+      .then(undefined, () => undefined);
+  }
+
+  private colorStyle(): string {
+    const config = vscode.workspace.getConfiguration("cInsight.codePreview", this.state?.location.uri);
+    const result = previewColorStyle(config.get("colorScheme", "theme"), config.get("tokenColors", {}));
+    const warning = result.invalidTokens.join(", ");
+    if (warning && warning !== this.colorWarning) {
+      void vscode.window.showWarningMessage(vscode.l10n.t(
+        "C Insight: Invalid Code Preview token colors for {tokens}. Use #RRGGBB; default colors are used instead.",
+        { tokens: warning },
+      ));
+    }
+    this.colorWarning = warning || undefined;
+    return result.css;
+  }
+
   preserveForEditorOpen(): void {
     this.clearGuard.arm();
   }
@@ -352,6 +385,9 @@ export class CodePreviewProvider
 
   private async receiveMessage(message: PreviewMessage): Promise<void> {
     switch (message.type) {
+      case "previewReady":
+        this.refreshColors();
+        break;
       case "previewDefinition": {
         const position = this.validPosition(message);
         if (position) {
@@ -634,6 +670,7 @@ export class CodePreviewProvider
             ? undefined
             : Math.max(startLine, targetLine - linesBefore),
         },
+        this.colorStyle(),
       );
     } catch (error) {
       this.rendered = undefined;
@@ -1047,6 +1084,7 @@ function htmlDocument(
     scroll?: PreviewScrollState;
     initialAnchorLine?: number;
   },
+  colorStyle: string = previewColorStyle("theme", {}).css,
 ): string {
   const scriptPolicy = nonce ? ` script-src 'nonce-${nonce}';` : "";
   const text = {
@@ -1108,6 +1146,8 @@ function htmlDocument(
       overflow-anchor: none;
       font-family: var(--vscode-editor-font-family);
       font-size: var(--vscode-editor-font-size);
+      color: var(--ci-preview-foreground);
+      background: var(--ci-preview-background);
     }
     .code.initializing { visibility: hidden; }
     .line {
@@ -1115,60 +1155,25 @@ function htmlDocument(
       min-height: 1.45em; white-space: pre; cursor: text;
     }
     .line.target {
-      background: var(--vscode-editor-selectionBackground);
-      border-left: 2px solid var(--vscode-focusBorder);
+      background: var(--ci-preview-lineHighlight);
+      border-left: 2px solid var(--ci-preview-focusBorder);
     }
     .number {
       flex: 0 0 3.5em; padding-right: 1em; text-align: right;
-      color: var(--vscode-editorLineNumber-foreground); user-select: none;
+      color: var(--ci-preview-lineNumber); user-select: none;
     }
     .code .line > code {
       flex: none; width: max-content; margin: 0; padding: 0;
-      color: var(--vscode-editor-foreground); background: transparent;
+      color: var(--ci-preview-foreground); background: transparent;
       border: 0; border-radius: 0; box-shadow: none; outline: none;
     }
     .target-symbol {
       color: inherit;
-      background: var(--vscode-editor-findMatchHighlightBackground);
-      outline: 1px solid var(--vscode-editor-findMatchHighlightBorder, var(--vscode-focusBorder));
-    }
-    .kw { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
-    .str { color: var(--vscode-symbolIcon-stringForeground, #ce9178); }
-    .comment { color: var(--vscode-editorLineNumber-foreground); }
-    .num { color: var(--vscode-symbolIcon-numberForeground, #b5cea8); }
-    .sem-namespace { color: var(--vscode-symbolIcon-namespaceForeground, #4ec9b0); }
-    .sem-type, .sem-class, .sem-struct, .sem-interface, .sem-enum,
-    .sem-typeParameter {
-      color: var(--vscode-symbolIcon-classForeground, #4ec9b0);
-    }
-    .sem-function, .sem-method {
-      color: var(--vscode-symbolIcon-methodForeground, #dcdcaa);
-    }
-    .sem-macro {
-      color: var(--vscode-symbolIcon-constantForeground, #c586c0);
+      background: var(--ci-preview-matchBackground);
+      outline: 1px solid var(--ci-preview-matchBorder);
     }
     .sem-parameter {
-      color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
       font-style: italic;
-    }
-    .sem-variable, .sem-property, .sem-enumMember, .sem-event {
-      color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
-    }
-    .sem-label {
-      color: var(--vscode-symbolIcon-keyForeground, #c8c8c8);
-    }
-    .sem-keyword, .sem-modification {
-      color: var(--vscode-symbolIcon-keywordForeground, #c586c0);
-    }
-    .sem-comment { color: var(--vscode-editorLineNumber-foreground); }
-    .sem-string {
-      color: var(--vscode-symbolIcon-stringForeground, #ce9178);
-    }
-    .sem-number {
-      color: var(--vscode-symbolIcon-numberForeground, #b5cea8);
-    }
-    .sem-operator {
-      color: var(--vscode-symbolIcon-operatorForeground, var(--vscode-editor-foreground));
     }
     .sem-navigable { cursor: pointer; }
     .sem-mod-deprecated { text-decoration: line-through; }
@@ -1181,6 +1186,7 @@ function htmlDocument(
     .load-status.error { color: var(--vscode-errorForeground); }
     .empty, .error { color: var(--vscode-descriptionForeground); }
   </style>
+  <style id="preview-colors">${colorStyle}</style>
 </head>
 <body>
   <div class="header">
@@ -1370,6 +1376,11 @@ function htmlDocument(
     window.addEventListener('message', event => {
       const message = event.data;
       if (!message) return;
+      if (message.type === 'previewColors') {
+        const style = document.getElementById('preview-colors');
+        if (style && typeof message.css === 'string') style.textContent = message.css;
+        return;
+      }
       if (message.type === 'previewMetadata') {
         const title = document.querySelector('.title');
         const location = document.querySelector('.location');
@@ -1517,6 +1528,7 @@ function htmlDocument(
         selection: type === 'copyCode' ? window.getSelection().toString() : undefined
       });
     });
+    vscode.postMessage({ type: 'previewReady' });
   </script>` : ""}
 </body>
 </html>`;

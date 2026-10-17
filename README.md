@@ -8,6 +8,8 @@ C Insight is a Source Insight-style C/C++ code-browsing extension for VS Code. I
 
 C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It is a navigation and visualization layer: it does not compile the project, replace the build system, or create `compile_commands.json` for you.
 
+Local experiment on `experiment/code-preview-fixed-colors`: optional fixed dark/light Code Preview palettes and category color overrides, with theme mode retained as default. This is not in a formal release yet; see the [configuration and acceptance guide](docs/validation/code-preview-fixed-colors.zh-CN.md).
+
 ![C Insight workspace with Document Symbols, Context, Code Preview, Callers, and References visible together](.github/readme-assets/overview.png)
 
 ## Why C Insight?

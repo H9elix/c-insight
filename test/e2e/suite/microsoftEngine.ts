@@ -1,6 +1,7 @@
 import * as assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { verifyEditorNavigationHistory } from "./editorNavigationRegressions";
+import { verifyPreviewColors } from "./previewColorRegressions";
 
 export async function run(): Promise<void> {
   const configuration = vscode.workspace.getConfiguration("cInsight");
@@ -54,6 +55,7 @@ export async function run(): Promise<void> {
     );
     await verifyMemberCallerScope(workspace);
     await verifyEditorNavigationHistory();
+    await verifyPreviewColors();
   } finally {
     await configuration.update(
       "engine",

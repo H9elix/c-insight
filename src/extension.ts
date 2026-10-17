@@ -784,7 +784,7 @@ export async function activate(
         scheduleProviderConflictCheck(undefined, 0);
       }
       if (event.affectsConfiguration("cInsight.codePreview")) {
-        views.preview.refresh();
+        views.preview.configurationChanged(event);
       }
       if (
         event.affectsConfiguration(

@@ -1356,6 +1356,227 @@
           "default": true,
           "description": "%configuration.cInsight.codePreview.semanticHighlighting.description%"
         },
+        "cInsight.codePreview.colorScheme": {
+          "type": "string",
+          "enum": [
+            "theme",
+            "fixed-dark",
+            "fixed-light"
+          ],
+          "default": "theme",
+          "enumDescriptions": [
+            "%configuration.cInsight.codePreview.colorScheme.theme%",
+            "%configuration.cInsight.codePreview.colorScheme.fixedDark%",
+            "%configuration.cInsight.codePreview.colorScheme.fixedLight%"
+          ],
+          "description": "%configuration.cInsight.codePreview.colorScheme.description%"
+        },
+        "cInsight.codePreview.tokenColors": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": false,
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "class": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "struct": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "interface": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "enum": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "typeParameter": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#4EC9B0"
+                }
+              ]
+            },
+            "function": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#DCDCAA"
+                }
+              ]
+            },
+            "method": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#DCDCAA"
+                }
+              ]
+            },
+            "variable": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#9CDCFE"
+                }
+              ]
+            },
+            "parameter": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#9CDCFE"
+                }
+              ]
+            },
+            "property": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#9CDCFE"
+                }
+              ]
+            },
+            "enumMember": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#B5CEA8"
+                }
+              ]
+            },
+            "event": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#9CDCFE"
+                }
+              ]
+            },
+            "macro": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#C586C0"
+                }
+              ]
+            },
+            "label": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#C8C8C8"
+                }
+              ]
+            },
+            "decorator": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#DCDCAA"
+                }
+              ]
+            },
+            "keyword": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#C586C0"
+                }
+              ]
+            },
+            "string": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#CE9178"
+                }
+              ]
+            },
+            "comment": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#6A9955"
+                }
+              ]
+            },
+            "number": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#B5CEA8"
+                }
+              ]
+            },
+            "operator": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "defaultSnippets": [
+                {
+                  "body": "#D4D4D4"
+                }
+              ]
+            }
+          },
+          "description": "%configuration.cInsight.codePreview.tokenColors.description%"
+        },
         "cInsight.codePreview.semanticTokenTimeout": {
           "type": "number",
           "default": 1500,

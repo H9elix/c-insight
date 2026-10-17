@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Local experiment on `experiment/code-preview-fixed-colors`: add opt-in fixed dark/light Code Preview palettes and validated `#RRGGBB` category overrides while preserving theme mode as default. Color-only updates do not rebuild source, reset scroll/lock/history, clear caches, or query semantic providers. Includes bilingual settings, model/message/Extension Host coverage and an acceptance guide; temporary VSIX first, pending user acceptance, with no formal version change.
 - Added a Chinese history-driven regression testing guide and an initial 48-case catalog, distinguishing confirmed fixes, configuration/external-engine issues, interaction contracts, known limitations, existing automated coverage, and manual checks. Repository agent and contribution rules now require updating this knowledge when new problems are reported; no runtime behavior or formal version changes.
 
 ## 0.22.24

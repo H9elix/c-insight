@@ -258,7 +258,25 @@ C Insight 有两类查询。
 
 代码预览（Code Preview）默认通过 VS Code Document 语义令牌（Semantic Tokens）命令复用当前 C/C++ 文档已注册的语义令牌提供器。使用 C Insight 自带 clangd 时，函数、方法、变量、参数、类型、命名空间和宏等分类来自同一 clangd；关键字、字符串、数字和注释等未被语义令牌覆盖的区间继续使用轻量词法高亮。语义请求暂不可用时会自动退回纯词法高亮，不影响预览和导航。语义令牌提供器超过 `cInsight.codePreview.semanticTokenTimeout` 仍未返回时也会执行相同回退，避免大型跨文件目标的着色请求阻塞定义预览。
 
-Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成后的全部 `semanticTokenColors`，因此代码预览使用当前主题公开的 VS Code 颜色变量映射语义类别。符号分类与编辑器一致，但极少数主题中的具体颜色和字体样式可能不完全相同。
+Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成后的全部 `semanticTokenColors`。默认的主题配色（Theme）使用公开的 VS Code 颜色变量映射语义类别，不保证与编辑器逐字符同色；分类来自提供程序，词法回退也不等于完整的编辑器语法分析。
+
+本地试验分支 `experiment/code-preview-fixed-colors` 新增固定深色（Fixed Dark）和固定浅色（Fixed Light）预设，尚未纳入正式发布。通过 `cInsight.codePreview.colorScheme` 选择 `"theme"`（默认）、`"fixed-dark"` 或 `"fixed-light"`。固定模式同时设定源码背景、普通文字、行号、目标行和目标符号颜色，不随 VS Code 明暗主题改变；预览标题及工具栏仍跟随 VS Code 主题。它只改变已有语义类别及词法回退的显示颜色，不增加查询，不补出提供程序未返回的分类，也不改变现有的参数/只读斜体与弃用删除线。
+
+`cInsight.codePreview.tokenColors` 可在任意模式下覆盖指定类别，其余类别沿用所选模式。每个键独立生效，例如 `function` 不会同时修改 `method`，`type` 不会同时修改 `class` 或 `struct`。仅接受不含透明度的六位十六进制颜色 `#RRGGBB`；无效值回退到预设并给出一次去重提示，不会作为 CSS 执行。全部类别、默认色及验收步骤见[固定配色试验说明](../validation/code-preview-fixed-colors.zh-CN.md)。例如：
+
+```json
+{
+  "cInsight.codePreview.colorScheme": "fixed-dark",
+  "cInsight.codePreview.tokenColors": {
+    "function": "#DCDCAA",
+    "method": "#DCDCAA",
+    "property": "#9CDCFE",
+    "comment": "#6A9955"
+  }
+}
+```
+
+只修改这两个配色项或切换 VS Code 主题时，可见预览只替换样式，不重建源码、不清缓存、不重新请求语义令牌，也不改变滚动位置、历史和锁定状态。隐藏窗口不处理配色消息；重新显示或新页面准备完成时读取最新配置。
 
 ### 4.3 引用（References）
 
@@ -1020,6 +1038,8 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.codePreview.linesBefore` | number | `6` | 0–100 | 目标行之前显示的源码行数 |
 | `cInsight.codePreview.linesAfter` | number | `8` | 0–100 | 目标行之后显示的源码行数 |
 | `cInsight.codePreview.semanticHighlighting` | boolean | `true` | `true` / `false` | 是否使用当前 VS Code 语义令牌提供器着色符号；关闭后只使用词法高亮 |
+| `cInsight.codePreview.colorScheme` | string | `"theme"` | `"theme"`、`"fixed-dark"`、`"fixed-light"` | 本地试验：跟随主题、固定深色或固定浅色；只改变预览源码配色 |
+| `cInsight.codePreview.tokenColors` | object | `{}` | 类别名到 `#RRGGBB` 字符串的映射 | 本地试验：独立覆盖指定语义或词法类别的颜色；未指定类别使用所选预设 |
 | `cInsight.codePreview.semanticTokenTimeout` | number | `1500` | 100–10000 | 等待语义令牌的最长毫秒数；超时后立即使用词法高亮显示，不阻塞预览导航 |
 | `cInsight.codePreview.semanticTokenCacheSize` | number | `32` | 1–256 | 内存中最多保留的按文档及其版本区分的语义令牌结果数 |
 | `cInsight.codePreview.semanticTokenCacheMaximumMegabytes` | number | `16` | 1–256 | 已完成语义令牌缓存允许占用的近似总内存 MiB；与条目数限制同时生效 |
@@ -1029,7 +1049,7 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.codePreview.restoreScrollPositions` | boolean | `true` | `true` / `false` | 返回之前的预览目标时是否恢复加载范围及水平/垂直滚动位置 |
 | `cInsight.codePreview.maximumScrollPositions` | number | `100` | 10–1000 | 当前扩展会话最多保留的预览目标滚动位置数 |
 
-修改后会清空该文档的语义令牌和滚动恢复缓存。修改完全位于当前已渲染行之后时不重新渲染；可能影响当前片段时，把连续输入合并到 200 ms 后只渲染一次。切换颜色主题时，可见的代码预览仍会立即重新渲染。
+源码修改后会清空该文档的语义令牌和滚动恢复缓存。修改完全位于当前已渲染行之后时不重新渲染；可能影响当前片段时，把连续输入合并到 200 ms 后只渲染一次。本地试验中的配色项及 VS Code 主题变化仅更新样式；其他代码预览配置变化仍清理缓存并重新渲染，滚动容量对后续记录生效。
 
 ### 9.4 引用（References）
 
@@ -1345,7 +1365,8 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 配置类别 | 生效方式 |
 | --- | --- |
 | `cInsight.clangd.*`、`compileCommandsDir`、`fallbackFlags`、`backgroundIndex` | 重启 clangd，相关结果标记已过期（stale）并清理相应缓存 |
-| `cInsight.codePreview.*` | 清除语义令牌缓存并重新渲染当前预览；滚动容量对后续记录生效 |
+| `cInsight.codePreview.colorScheme`、`cInsight.codePreview.tokenColors` | 本地试验：只更新可见预览的样式；保留语义令牌缓存、滚动、锁定及历史，不发起新语义查询 |
+| 其他 `cInsight.codePreview.*` | 清除语义令牌缓存并重新渲染当前预览；滚动容量对后续记录生效 |
 | `cInsight.analysis.*` | 下一次语义请求进入调度器时更新总并发和后台并发上限 |
 | `cInsight.references.*` | 下次查询/分组/分页时生效；分组立即刷新当前树 |
 | `cInsight.export.*` | 下一次批量输出或文件导出时生效；不会改变当前已加载的树或图 |

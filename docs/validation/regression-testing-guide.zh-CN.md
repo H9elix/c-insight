@@ -43,7 +43,7 @@
 | --- | --- | --- |
 | clangd 启动、客户端、日志 | 001–006 | `clangdArguments`、`navigationLanguageClient`、`clangdLog`、`clangdRecovery` 单测；协议集成和 clangd E2E |
 | 提供程序冲突、配置、Remote、Microsoft | 006–010 | `providerConflictModel`、`microsoftProviderStatus`、`microsoftCallerFallback`；Microsoft E2E；WSL/SSH 设置写入仍需对应环境验证 |
-| 预览定义、语义令牌与 HTML/CSS | 011–021、024 | `codePreview`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E；主题、滚轮与空白双击人工检查 |
+| 预览定义、语义令牌与 HTML/CSS | 011–021、024 | `codePreview`、`previewColors`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E 含受控 Webview 配色回归；主题、滚轮与空白双击人工检查 |
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
 | 字段调用者、宏、引用分类 | 029–034、048 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎及宏仓库 E2E |
 | 自动刷新、资源、取消、包含层次 | 035–039 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力和按方向查询验证 |
@@ -119,7 +119,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 10. 字段：成员分类关闭时走原始完整结果路径；开启时保留同一变量、其他路径和无法确认三组，不隐藏不确定候选，也不批量打开候选文件。
 11. 光标与编辑：空白不清空已有结果；慢速输入前三个字符和持续输入都不触发额外的光标自动语义查询；随后鼠标或方向键主动移动仍能恢复跟随。
 12. 可见性与状态：隐藏或折叠窗口不触发其光标查询，独立查询包含/被包含方向；关闭关系图后重开工作区不能恢复它；未关闭的受支持会话状态按配置恢复。
-13. 主题与布局：中文/英文、明暗主题、长行、多面板布局及文档符号中心指示正常；不要把主题颜色不同或显示“编辑器中心”当成语义查询失败。
+13. 主题与布局：中文/英文、明暗主题、长行、多面板布局及文档符号中心指示正常；不要把主题颜色不同或显示“编辑器中心”当成语义查询失败。固定配色试验还需检查三种模式、类别覆盖/非法值回退、锁定时热更新不重置滚动和隐藏后应用新配置，详见[试验验收](code-preview-fixed-colors.zh-CN.md)。
 14. 配置与交付：在对应 WSL/SSH 或多根环境核对配置写入位置；确认临时包、版本、提交和日志来自同一构建。发布按先主干 CI、后版本 Tag 的顺序执行，并下载正式附件验校验和。
 15. 引用分组展开：所有非平铺分组都遵守 `cInsight.references.autoExpandGroups`，默认关闭；运行时切换不额外查询，平铺与手动全部展开/折叠不回归。
 
