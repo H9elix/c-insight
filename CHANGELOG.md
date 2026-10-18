@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added a compilable two-file C fixture with macros supplied only through `-D`, a real compiler positive/negative control, a raw clangd probe, and an isolated C Insight query scenario. Documented working macro hovers/exact References and observed definition/Caller/search limitations under `CI-REG-049`; no runtime fix or version change.
+
 ## 0.22.25
 
 - Added optional fixed dark/light Code Preview palettes and independent, strictly validated `#RRGGBB` category overrides, while keeping theme mode as default. Fixed presets cover source background, foreground, line numbers and target highlights; the editor and preview toolbar retain their existing theme behavior.

@@ -105,8 +105,10 @@
     "test:e2e": "npm run build && node dist/test/e2e/runTest.js",
     "test:e2e:xvfb": "xvfb-run -a npm run test:e2e",
     "probe:microsoft": "npm run compile && xvfb-run -a node dist/test/e2e/runMicrosoftProbe.js",
+    "probe:command-line-macros": "node test/fixtures/command-line-macros/build.mjs && node scripts/probe-command-line-macros.mjs",
     "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
     "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
+    "test:e2e:command-line-macros": "npm run build && node test/fixtures/command-line-macros/build.mjs && xvfb-run -a node dist/test/e2e/runCommandLineMacroTest.js",
     "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:commands:check && npm run docs:terms:check && npm run docs:prose:check && npm run docs:links:check && npm run release:notes:check && npm run third-party:check && npm run build",
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },

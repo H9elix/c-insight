@@ -29,8 +29,9 @@
 ## 测试验收 `validation/`
 
 - [历史问题驱动测试指南](validation/regression-testing-guide.zh-CN.md)：按修改范围选择测试、自动与人工边界、高频冒烟清单，以及以后收到问题时的持续登记流程。
-- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：首批 48 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及实际测试入口；新反馈在此增补。
+- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：当前 49 条稳定编号场景，首批 48 条后新增编译参数宏 049；包含历史现象、已确认与未确认的原因、复现预期及实际测试入口，新反馈在此增补。
 - [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：已纳入 `0.22.25` 的深浅预设、完整默认颜色、自定义配置、校验边界和验收记录。
+- [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，区分已可用的识别/引用与尚未覆盖的定义/调用者路径；关联 `CI-REG-049`。
 - [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。
 - [性能基准](validation/performance-baseline.zh-CN.md)：当前基准场景、执行方法和带日期的实测快照。
 - [第三阶段验收报告](validation/third-phase-acceptance.zh-CN.md)：`0.17.x`/`0.20.x` 性能与可靠性阶段的历史验收证据。

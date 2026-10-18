@@ -331,6 +331,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 - `test/integration/clangdHandshake.test.ts`：真实 clangd 初始化及调用层次（Call Hierarchy）协议。
 - `test/fixtures/basic-cpp/`：隔离的最小 CMake/C++ 工程和编译 flags。
 - `test/e2e/runTest.ts` + `suite/index.ts`：C Insight/clangd Extension Host 主回归。
+- `test/e2e/runCommandLineMacroTest.ts` + `suite/commandLineMacros.ts`：独立编译参数宏场景，核对精确引用与源码宏对照，记录定义/调用者边界；配合 `scripts/probe-command-line-macros.mjs` 排除 VS Code/插件转换因素。`test/fixtures/command-line-macros/build.mjs` 生成真实编译数据库并编译运行，`test/integration/commandLineMacros.test.ts` 在独立临时目录做编译正负对照。详见[编译参数宏验证](../validation/command-line-macros.zh-CN.md)。
 - `suite/editorNavigationRegressions.ts`：clangd 与 Microsoft 两套 Extension Host 均执行的真实 VS Code 原生后退/前进回归，覆盖关闭文件的旧光标恢复、已打开文件、同文件跳转、树激活、代码预览消息和关系图；临时纯文本夹具位于系统临时目录，不修改用户工程。
 - `runMicrosoftProbe.ts` + `suite/microsoftProviderProbe.ts`：只加载 cpptools，探测公开提供程序（Provider）能力。
 - `runMicrosoftEngineTest.ts` + `suite/microsoftEngine.ts`：最小工程 Microsoft 模式回归。

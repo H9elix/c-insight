@@ -1,6 +1,6 @@
 # C Insight 历史问题驱动测试指南
 
-本指南基于当前 `0.22.25` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。它是一份持续维护的测试指导，不是一次测试通过报告。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，首批记录 `CI-REG-001` 至 `CI-REG-048`。
+本指南基于当前 `0.22.25` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。它是一份持续维护的测试指导，不是一次测试通过报告。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，首批记录 `CI-REG-001` 至 `CI-REG-048`，随后增补编译参数宏场景 `CI-REG-049`。
 
 本指南及案例库中的源码、测试和仓库规则链接面向 GitHub 或完整源码工作副本；VSIX 不包含测试目录和代理维护规则。通过已安装扩展阅读时，应从项目仓库打开相应源码，而不是假设测试文件已经随扩展安装。
 
@@ -25,7 +25,7 @@
 | FFmpeg 或实际嵌入式工程 | 编译配置、跨文件行为、真实索引和请求数量 | 单次耗时代表所有机器，或单一编译平台覆盖所有宏分支 |
 | 人工 UI 验收 | 滚动闪烁、布局、固定按钮、主题、侧键和操作连续性 | 不记录环境就具有可重复性，或结果没变就说明没有重复查询 |
 
-只有实际执行且结果符合断言时才标记通过。跳过、不可用、超时、外部引擎崩溃和待用户确认必须分别记录。当前基线曾通过的 `284` 项测试不是以后版本固定的测试数量，也不是案例库 `48` 条均已重新手工验证的声明。
+只有实际执行且结果符合断言时才标记通过。跳过、不可用、超时、外部引擎崩溃和待用户确认必须分别记录。当前基线曾通过的 `284` 项测试不是以后版本固定的测试数量，也不是案例库所有条目均已重新手工验证的声明。
 
 ## 3. 环境与证据准备
 
@@ -45,7 +45,7 @@
 | 提供程序冲突、配置、Remote、Microsoft | 006–010 | `providerConflictModel`、`microsoftProviderStatus`、`microsoftCallerFallback`；Microsoft E2E；WSL/SSH 设置写入仍需对应环境验证 |
 | 预览定义、语义令牌与 HTML/CSS | 011–021、024 | `codePreview`、`previewColors`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E 含受控 Webview 配色回归；主题、滚轮与空白双击人工检查 |
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
-| 字段调用者、宏、引用分类 | 029–034、048 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎及宏仓库 E2E |
+| 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
 | 自动刷新、资源、取消、包含层次 | 035–039 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力和按方向查询验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`；关闭/重开工程与切换引擎 |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`cpptoolsExtensionPath`；Release 附件与隐私人工复核 |
@@ -103,6 +103,8 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 
 发布前还要执行联网的 `npm audit --audit-level=low`。网络失败不等于发现漏洞，也不等于审计通过；不得通过关闭 TLS 校验或忽略错误来完成发布。
 
+编译参数注入宏的独立场景见[验证说明](command-line-macros.zh-CN.md)。`npm run probe:command-line-macros` 构建并直接查询 clangd，`npm run test:e2e:command-line-macros` 在独立 VS Code 中查询 C Insight；均需要已有 `cc`，不安装新构建工具。后者不是默认主 E2E 的组成部分，需按范围单独运行。正向引用断言通过不意味着已知的定义/宏调用者限制已经修复。
+
 ## 6. 高频问题人工冒烟清单
 
 每次影响公共交互时至少选择相关项；正式发布验证与本次改动相邻的场景。下面是通过条件，不代表本次已经执行。
@@ -115,7 +117,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 6. 树操作：单击名称只预览，双击或 Enter 只打开编辑器而不改变展开状态；箭头、左右键只处理分支。双击不立即重刷随光标窗口，主动移到其他位置后才恢复。
 7. 原生历史：先在目标文件远处停留并关闭，再从源文件跳入；侧键后退一次直达源位置，前进一次直达目标；已打开文件和同文件跳转同样成立。
 8. 固定：引用独立固定、调用者与被调用者共享固定；浏览其他符号不重复查询或重绘固定引用，显式动作仍可执行，源修改允许标记过期，反复固定不累计状态行。
-9. 宏：宏别名默认只返回该拼写的直接引用；定义名、数值宏、表达式宏和替换文本均能查询；只有显式按钮才切换到展开后函数。
+9. 源码宏：宏别名默认只返回该拼写的直接引用；定义名、数值宏、表达式宏和替换文本均能查询；只有显式按钮才切换到展开后函数。仅由编译参数 `-D` 注入的宏另查 049，核对识别、引用及已知导航边界，不能把源码宏通过外推为完整支持。
 10. 字段：成员分类关闭时走原始完整结果路径；开启时保留同一变量、其他路径和无法确认三组，不隐藏不确定候选，也不批量打开候选文件。
 11. 光标与编辑：空白不清空已有结果；慢速输入前三个字符和持续输入都不触发额外的光标自动语义查询；随后鼠标或方向键主动移动仍能恢复跟随。
 12. 可见性与状态：隐藏或折叠窗口不触发其光标查询，独立查询包含/被包含方向；关闭关系图后重开工作区不能恢复它；未关闭的受支持会话状态按配置恢复。
