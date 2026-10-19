@@ -25,3 +25,10 @@
 - Commit completed local changes automatically, excluding unrelated user files. Use the repository's established `H9elix` / GitHub noreply identity; do not change global Git configuration or rewrite history without explicit authorization.
 - For an authorized release, synchronize current documentation and curated bilingual notes, push `main`, wait for that commit's CI success, then push the annotated version tag. Verify the published assets and checksums. GitHub Release publication is not Marketplace publication.
 - Never write credentials, private source excerpts, raw private logs, or personal machine paths into public regression records. Use minimal synthetic fixtures and redacted evidence.
+
+## GitHub Release writing preference
+
+- For future GitHub Releases, keep the curated bilingual body focused on functional additions, fixes, and user-visible behavior changes only. Omit validation results, test counts, audit results, and remaining-boundary/known-limitation sections from the Release body.
+- Continue performing all required validation and asset/checksum verification. Keep evidence, limitations, and regression status in the relevant project documentation; omitting them from Release notes does not waive maintenance or delivery requirements.
+- Apply this preference prospectively. Do not rewrite existing published Releases or historical notes unless explicitly requested.
+- When preparing the next release, adapt the legacy notes-contract requirement for an installation/verification section rather than adding unwanted boilerplate just to satisfy that old requirement. Preserve version consistency, bilingual notes, and unfinished-placeholder checks.
