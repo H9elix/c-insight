@@ -2,9 +2,12 @@
 
 ## Unreleased
 
-- Fixed clangd compiler-injected macro Callers using shared, lazy Hover identity evidence: numeric/conditional and function-alias macros retain exact macro uses across files, including `#if`. Source-less roots navigate to their selected use, expanded-function Callers remain explicit, and hidden Context no longer suppresses automatic macro refresh. CI-REG-049; maintainer accepted the local temporary build, not yet published. Provider definition/search limitations are unchanged.
-- Diagnosed the command-line conditional-macro auto-refresh discrepancy with live Provider evidence and controlled controller visibility: hidden Context can omit the only symbol evidence and suppress References details, while manual refresh bypasses the guard. Extended CI-REG-049 and documented the remaining actual-window check; no runtime behavior change or fix.
-- Added a compilable two-file C fixture with macros supplied only through `-D`, a real compiler positive/negative control, a raw clangd probe, and an isolated C Insight query scenario. Documented working macro hovers/exact References and observed definition/Caller/search limitations under `CI-REG-049`; no runtime fix or version change.
+## 0.22.26
+
+- Fixed clangd compiler-injected macro Callers using shared, lazy Hover identity evidence: numeric/conditional and function-alias macros retain exact macro uses across files, including `#if`. Source-less roots navigate to their selected use without inventing a source definition; expanded-function Callers remain explicit.
+- Fixed automatic macro refresh with Context hidden by supplementing missing symbol evidence before the empty-cursor guard. Context and macro identification share at most one Hover; normal matching functions retain their fast path, preview-only demand does not query relationships, and fully hidden navigation issues no query.
+- Added a real two-file compiler-macro fixture, compiler positive/negative controls, raw clangd probes, exact Caller/Reference location checks and six controlled visibility paths. CI runs the isolated compiler-macro Extension Host suite in addition to the main clangd regression.
+- The maintainer accepted the temporary VSIX before formal versioning. CI-REG-049 records the accepted Callers/refresh fix separately from unresolved compiler-macro definition, automatic Code Preview placement and workspace-symbol indexing boundaries; those preview/definition issues are not fixed by this release.
 
 ## 0.22.25
 

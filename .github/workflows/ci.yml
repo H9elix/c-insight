@@ -49,3 +49,6 @@ jobs:
 
       - name: Run VS Code Extension Host smoke test
         run: npm run test:e2e:xvfb
+
+      - name: Run compiler macro navigation regressions
+        run: npm run test:e2e:command-line-macros

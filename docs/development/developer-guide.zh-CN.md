@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.25` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.26` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -169,7 +169,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 调用者（Callers）/被调用者（Callees）树不会为一个语义函数建立额外的“函数 → 调用位置”层。`ViewRegistry` 将投影结果直接物化为调用点节点；只有规范调用点持有 `callPath` 和下一层加载器，其他同名调用点只负责代码预览（Code Preview）和编辑器导航。展开调用者规范节点时，`ViewRegistry` 在调用点前插入当前语义函数的独立声明；声明行没有 `callKey`，搜索可包含它，但批量展开、深度、预算、路径、会话与语义导出必须忽略它。根节点的显示定义位置和补充声明位置都不能写回 `CallHierarchyItem`，否则会破坏 clangd 的不透明 `data` 查询身份。
 
-`cInsight.callHierarchy.classifyMemberCallers` 默认关闭。不要求宏识别的仓库调用在关闭分支中必须从 `prepare()` 直接调用 `AnalysisService.prepareCallHierarchy()` 并返回。光标导航启用宏识别时，普通同名非宏根保留快速返回；没有调用根或者提供程序改为另一个目标时，才检查定义源码是否为同名 `#define`。`ContextController` 通过 `PrepareCallHierarchyOptions.definitions` 共享已有定义请求；当前本地修复另外通过惰性 `hover` 回调共享至多一次悬停，在源码宏证据缺失时识别 clangd 明确报告的编译参数宏，不扫描数据库或实际使用候选。没有任何基础证据的标识符在空符号保护前也可复用这次悬停；所有导航隐藏或非标识符位置不因此启动新查询。两条关闭路径都不能进入成员访问链解析、根变量引用查询、成员候选源码读取或逐候选定义回退；成员分类工作量与宏身份查询应分开计量，不能宣称新增悬停没有任何代价。Microsoft 模式可以在 cpptools 不提供字段调用层次根时进入安全的定义加引用回退，但关闭配置时不得继续实例分类。
+`cInsight.callHierarchy.classifyMemberCallers` 默认关闭。不要求宏识别的仓库调用在关闭分支中必须从 `prepare()` 直接调用 `AnalysisService.prepareCallHierarchy()` 并返回。光标导航启用宏识别时，普通同名非宏根保留快速返回；没有调用根或者提供程序改为另一个目标时，才检查定义源码是否为同名 `#define`。`ContextController` 通过 `PrepareCallHierarchyOptions.definitions` 共享已有定义请求；`0.22.26` 另外通过惰性 `hover` 回调共享至多一次悬停，在源码宏证据缺失时识别 clangd 明确报告的编译参数宏，不扫描数据库或实际使用候选。没有任何基础证据的标识符在空符号保护前也可复用这次悬停；所有导航隐藏或非标识符位置不因此启动新查询。两条关闭路径都不能进入成员访问链解析、根变量引用查询、成员候选源码读取或逐候选定义回退；成员分类工作量与宏身份查询应分开计量，不能宣称新增悬停没有任何代价。Microsoft 模式可以在 cpptools 不提供字段调用层次根时进入安全的定义加引用回退，但关闭配置时不得继续实例分类。
 
 配置开启后，成员字段根可携带 `memberCallerScope`。纯模型把 `st->codecpar->sample_rate` 解析为根变量 `st` 和完整成员路径；仓库复用根变量的一次引用查询，以引用起点和路径共同校验候选。未打开的候选文件通过 `workspace.fs.readFile` 读取，已经打开的文件优先复用 `TextDocument.getText()` 以保留未保存内容；分类过程不得调用 `openTextDocument`，否则会向语言服务器发送 `didOpen` 并引发额外 AST、预编译头、诊断和语义着色工作。引用查询不可用时，定义回退最多处理 16 个候选，其余结果降级为无法确认。
 
@@ -177,7 +177,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 光标导航准备调用者根时会额外启用宏识别：定义位置的源码必须确认为同名 `#define`，才能保留宏身份；不得要求提供程序先返回函数调用根。数值宏、表达式宏、定义左侧名称及替换文本中的宏引用均可建立 `syntheticMacroRoot`，但右侧引用必须绑定它自己真正的定义，而不是当前行定义的新宏。已有不同的可调用目标时才保留原始不透明项并附加 `macroCallerScope`。默认传入展开必须从原始光标位置查询宏引用、排除定义，绝不能从展开后函数的声明位置查询引用。clangd 分支仅对已打开的引用文档查询所属函数，未打开或查询失败的文件保留准确可导航引用；每次传入查询对同一文件只解析一次，不得批量 `openTextDocument`，也不得把解析失败当作确认位于函数之外。取消仍抛出取消异常，不能缓存成部分成功。标题栏“查询宏展开后函数的调用者”优先复用原始目标；没有目标时，只有用户执行命令后才同步并按顺序尝试最多 16 个实际宏使用位置，并缓存首个可用根。失败不得清空现有宏结果。关系图和其他直接仓库调用不启用宏展示模式。回归包括真实 clangd 数值/表达式宏、宏别名替换项、未打开头文件引用，以及 `macroCallerRegressions.ts` 中对缺失 AST、取消、共享定义请求、缓存和默认/显式两种范围的行为测试。该宏识别与跨文件回退修复已纳入 `0.22.23`。
 
-上一段描述源码证据路径；CI-REG-049 的当前本地修复增加了 clangd 悬停证据回退，要求首行宏身份标题与同名 `#define` 展示同时匹配，不能把普通文档中的宏示例当作证据。无源码定义时 `definitions=[]`，`queryRange` 精确记录所选拼写，`macroCallerAnchor` 统一为树根提供使用锚点，预览模式为引用而非伪造定义；调用者仍列出这个使用点。保留的函数目标只能通过显式展开命令进入函数范围。悬停失败保留原生结果，取消传播；普通同名函数不新增悬停请求。Microsoft 不使用这项宏证据回退，原始定义/工作区符号结果也没有被本次修复改写。
+上一段描述源码证据路径；CI-REG-049 在 `0.22.26` 的修复增加了 clangd 悬停证据回退，要求首行宏身份标题与同名 `#define` 展示同时匹配，不能把普通文档中的宏示例当作证据。无源码定义时 `definitions=[]`，`queryRange` 精确记录所选拼写，`macroCallerAnchor` 统一为树根提供使用锚点，预览模式为引用而非伪造定义；调用者仍列出这个使用点。保留的函数目标只能通过显式展开命令进入函数范围。悬停失败保留原生结果，取消传播；普通同名函数不新增悬停请求。Microsoft 不使用这项宏证据回退，原始定义/工作区符号结果也没有被本次修复改写。
 
 ### 4.7 类型层次（Type Hierarchy） `src/typeHierarchy`
 
