@@ -103,7 +103,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 
 发布前还要执行联网的 `npm audit --audit-level=low`。网络失败不等于发现漏洞，也不等于审计通过；不得通过关闭 TLS 校验或忽略错误来完成发布。
 
-编译参数注入宏的独立场景见[验证说明](command-line-macros.zh-CN.md)。`npm run probe:command-line-macros` 构建并直接查询 clangd，`npm run test:e2e:command-line-macros` 在独立 VS Code 中查询 C Insight；均需要已有 `cc`，不安装新构建工具。后者不是默认主 E2E 的组成部分，需按范围单独运行。正向引用断言通过不意味着已知的定义/宏调用者限制已经修复。
+编译参数注入宏的独立场景见[验证说明](command-line-macros.zh-CN.md)。`npm run probe:command-line-macros` 构建并直接查询 clangd，`npm run test:e2e:command-line-macros` 在独立 VS Code 中查询 C Insight；均需要已有 `cc`，不安装新构建工具。后者不是默认主 E2E 的组成部分，需按范围单独运行；另含真实提供程序结果加受控可见性的控制器自动路径诊断。显式查询、受控自动路径、原生输入/布局三层不得混为同一覆盖。正向引用断言通过不意味着已知的定义/宏调用者限制已经修复。
 
 ## 6. 高频问题人工冒烟清单
 

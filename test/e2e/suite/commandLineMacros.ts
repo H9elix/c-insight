@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { verifyCommandLineMacroAutoRefresh } from "./commandLineMacroAutoRefresh";
 
 interface TreeRow { label: string; uri?: string; line?: number }
 interface CallState {
@@ -110,9 +111,12 @@ export async function run(): Promise<void> {
       }
       reports.push(report);
     }
+    const automaticRefresh = await verifyCommandLineMacroAutoRefresh(
+      document.uri, position("#if CI_BUILD_FEATURE", "CI_BUILD_FEATURE"), numberPosition,
+    );
     writeFileSync(vscode.Uri.joinPath(workspace, "build/c-insight-probe.json").fsPath, JSON.stringify({
       extensionVersion: extension.packageJSON.version, vscodeVersion: vscode.version,
-      engine: "clangd", results: reports,
+      engine: "clangd", results: reports, automaticRefresh,
     }, null, 2) + "\n");
     console.log("COMMAND_LINE_MACRO_PROBE " + JSON.stringify(reports));
     console.log("Positive assertions passed: command-line macro hover, complete exact References, shared Provider definition mapping, and source-defined macro Caller control. Command-line macro definition/Caller limitations remain characterization results, not fixes.");

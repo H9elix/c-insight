@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Diagnosed the command-line conditional-macro auto-refresh discrepancy with live Provider evidence and controlled controller visibility: hidden Context can omit the only symbol evidence and suppress References details, while manual refresh bypasses the guard. Extended CI-REG-049 and documented the remaining actual-window check; no runtime behavior change or fix.
 - Added a compilable two-file C fixture with macros supplied only through `-D`, a real compiler positive/negative control, a raw clangd probe, and an isolated C Insight query scenario. Documented working macro hovers/exact References and observed definition/Caller/search limitations under `CI-REG-049`; no runtime fix or version change.
 
 ## 0.22.25
