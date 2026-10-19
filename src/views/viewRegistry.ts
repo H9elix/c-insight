@@ -19,7 +19,7 @@ import {
   memberCallerScopeKey,
   type MemberCallerOccurrenceScope,
 } from "../callHierarchy/memberCallerScopeModel";
-import { macroCallerScopeKey } from "../callHierarchy/macroCallerScopeModel";
+import { macroCallerAnchor, macroCallerScopeKey } from "../callHierarchy/macroCallerScopeModel";
 import {
   CallOccurrence,
   projectCallOccurrences,
@@ -1642,10 +1642,17 @@ export class ViewRegistry implements vscode.Disposable {
     node: TreeNode,
     presentation: PreferredFunctionLocation<LocationResult>,
   ): void {
-    const { location, kind } = presentation;
+    const scope = node.callNode?.macroCallerScope;
+    const macroReferences = scope && !node.callNode?.expandedMacroTarget;
+    const anchor = macroReferences ? macroCallerAnchor(scope) : undefined;
+    const location = anchor
+      ? { uri: vscode.Uri.parse(anchor.uri), range: this.analysis.toVsRange(anchor.range) }
+      : presentation.location;
+    const kind = presentation.kind;
     const target = `${vscode.workspace.asRelativePath(location.uri)}:${location.range.start.line + 1}`;
     node.location = location;
-    node.previewMode = kind === "definition" ? "definition" : "declaration";
+    node.previewMode = macroReferences && scope.definitions.length === 0
+      ? "reference" : kind === "definition" ? "definition" : "declaration";
     node.previewTitle = node.label;
     if (node.callNode?.macroCallerScope && !node.callNode.expandedMacroTarget) {
       const expandedTargetName =
@@ -1737,16 +1744,15 @@ export class ViewRegistry implements vscode.Disposable {
       Boolean(node.macroCallerScope) &&
       !node.expandedMacroTarget;
     const macroDefinition = macroReferences
-      ? node.macroCallerScope?.definitions[0]
+      ? macroCallerAnchor(node.macroCallerScope!)
       : undefined;
     const location =
-      presentation?.location ??
       (macroDefinition
         ? {
             uri: vscode.Uri.parse(macroDefinition.uri),
             range: this.analysis.toVsRange(macroDefinition.range),
           }
-        : providerLocation);
+        : presentation?.location ?? providerLocation);
     const recursion = recursionKind(node.key, ancestors);
     const recursive = recursion !== undefined;
     const { duplicate } = this.callTreeState[direction].record(

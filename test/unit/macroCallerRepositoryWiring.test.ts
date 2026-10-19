@@ -17,6 +17,14 @@ describe("macro caller repository wiring", () => {
     assert.match(repository, /definitionRequest \?\? this\.analysis\.definition/);
   });
 
+  it("shares a lazy Hover and limits source-less macro recognition to clangd evidence", () => {
+    assert.match(controller, /hover: queryHover/);
+    assert.match(controller, /hoverRequest \?\?= this\.analysis\.hover/);
+    assert.match(repository, /if \(this\.analysis\.analysisEngine !== "clangd"\) return undefined/);
+    assert.match(repository, /hoverDefinesMacro\(hover, selectedName\)/);
+    assert.match(repository, /const definition = macroCallerAnchor\(scope\)/);
+  });
+
   it("never bulk-opens macro reference files merely to obtain caller labels", () => {
     const mapping = repository.slice(repository.indexOf("private async referenceBasedIncoming"));
     assert.doesNotMatch(mapping, /openTextDocument/);

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   isMacroDefinitionLocation,
+  hoverDefinesMacro,
+  macroCallerAnchor,
   macroCallerScopeKey,
   macroDefinitionDirective,
   macroDefinitionName,
@@ -9,6 +11,26 @@ import {
 } from "../../src/callHierarchy/macroCallerScopeModel";
 
 describe("macro caller scope", () => {
+  it("requires a same-name macro heading and directive in clangd hover", () => {
+    assert.equal(hoverDefinesMacro("macro FEATURE\n\n#define FEATURE 1", "FEATURE"), true);
+    assert.equal(hoverDefinesMacro("### macro `TRACE`  \n\n---\n```cpp\n#define TRACE target\n```", "TRACE"), true);
+    assert.equal(hoverDefinesMacro("macro FEATURE\n#define OTHER 1", "FEATURE"), false);
+    assert.equal(hoverDefinesMacro("macro OTHER\n#define FEATURE 1", "FEATURE"), false);
+    assert.equal(hoverDefinesMacro("### function `FEATURE`\nExample:\n#define FEATURE 1", "FEATURE"), false);
+    assert.equal(hoverDefinesMacro("#define FEATURE 1", "FEATURE"), false);
+    assert.equal(hoverDefinesMacro(undefined, "FEATURE"), false);
+  });
+
+  it("anchors a source-less macro at the exact selected use without excluding it", () => {
+    const scope = {
+      queryUri: "file:///main.c", queryPosition: { line: 11, character: 8 },
+      queryRange: { start: { line: 11, character: 4 }, end: { line: 11, character: 11 } },
+      name: "FEATURE", definitions: [],
+    };
+    assert.deepEqual(macroCallerAnchor(scope), { uri: scope.queryUri, range: scope.queryRange });
+    assert.equal(isMacroDefinitionLocation(scope, scope.queryUri, scope.queryRange.start), false);
+  });
+
   it("recognizes object-like and function-like macro names", () => {
     assert.equal(macroDefinitionName("#define LOG printf"), "LOG");
     assert.equal(macroDefinitionName("  # define LOG(...) printf(__VA_ARGS__)"), "LOG");

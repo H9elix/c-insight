@@ -46,7 +46,7 @@
 | 预览定义、语义令牌与 HTML/CSS | 011–021、024 | `codePreview`、`previewColors`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E 含受控 Webview 配色回归；主题、滚轮与空白双击人工检查 |
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
 | 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
-| 自动刷新、资源、取消、包含层次 | 035–039 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力和按方向查询验证 |
+| 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`；关闭/重开工程与切换引擎 |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`cpptoolsExtensionPath`；Release 附件与隐私人工复核 |
 
@@ -117,7 +117,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 6. 树操作：单击名称只预览，双击或 Enter 只打开编辑器而不改变展开状态；箭头、左右键只处理分支。双击不立即重刷随光标窗口，主动移到其他位置后才恢复。
 7. 原生历史：先在目标文件远处停留并关闭，再从源文件跳入；侧键后退一次直达源位置，前进一次直达目标；已打开文件和同文件跳转同样成立。
 8. 固定：引用独立固定、调用者与被调用者共享固定；浏览其他符号不重复查询或重绘固定引用，显式动作仍可执行，源修改允许标记过期，反复固定不累计状态行。
-9. 源码宏：宏别名默认只返回该拼写的直接引用；定义名、数值宏、表达式宏和替换文本均能查询；只有显式按钮才切换到展开后函数。仅由编译参数 `-D` 注入的宏另查 049，核对识别、引用及已知导航边界，不能把源码宏通过外推为完整支持。
+9. 宏：宏别名默认只返回该拼写的直接引用；定义名、数值宏、表达式宏和替换文本均能查询；只有显式按钮才切换到展开后函数。仅由编译参数 `-D` 注入的宏另查 049：clangd 明确识别时调用者保留宏身份及 `#if` 使用，无源码定义的根锚定当前使用，不伪造定义；上下文隐藏仍自动跟随。核对精确位置和单次悬停共享、普通函数快速路径及全隐藏零请求；源码宏通过不等于所有引擎/导航边界都支持。
 10. 字段：成员分类关闭时走原始完整结果路径；开启时保留同一变量、其他路径和无法确认三组，不隐藏不确定候选，也不批量打开候选文件。
 11. 光标与编辑：空白不清空已有结果；慢速输入前三个字符和持续输入都不触发额外的光标自动语义查询；随后鼠标或方向键主动移动仍能恢复跟随。
 12. 可见性与状态：隐藏或折叠窗口不触发其光标查询，独立查询包含/被包含方向；关闭关系图后重开工作区不能恢复它；未关闭的受支持会话状态按配置恢复。

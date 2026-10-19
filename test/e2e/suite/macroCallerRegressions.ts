@@ -39,12 +39,20 @@ export async function verifyMacroCallerRepositoryRegressions(): Promise<void> {
   let definitionRequests = 0;
   let referenceRequests = 0;
   let nativeIncomingRequests = 0;
+  let hoverRequests = 0;
+  let macroHover: string | undefined = undefined;
+  let hoverError: Error | undefined;
   let symbolError: Error | undefined;
   const symbolRequests: string[] = [];
   const analysis = {
     analysisEngine: "clangd",
     prepareCallHierarchy: async () => nativeRoots,
     definition: async () => { definitionRequests++; return definitions; },
+    hover: async () => {
+      hoverRequests++;
+      if (hoverError) throw hoverError;
+      return macroHover;
+    },
     references: async () => { referenceRequests++; return references; },
     documentSymbols: async (target: vscode.Uri) => {
       symbolRequests.push(target.toString());
@@ -114,10 +122,32 @@ export async function verifyMacroCallerRepositoryRegressions(): Promise<void> {
   // detection is enabled by the cursor controller.
   nativeRoots = [analysis.callNode(callable)];
   const before = definitionRequests;
+  const beforeHover = hoverRequests;
   const ordinary = await repository.prepare(uri, functionPosition, undefined, { macroCallers: true });
   assert.equal(ordinary[0], nativeRoots[0]);
   assert.equal(definitionRequests, before);
-  console.log("Macro repository regressions passed: empty roots, exact references, unopened files, AST failure, cancellation, caching, and explicit expanded targets.");
+  assert.equal(hoverRequests, beforeHover, "Ordinary matching functions must not acquire a new Hover query");
+
+  nativeRoots = [];
+  definitions = [];
+  assert.deepEqual(await repository.prepare(uri, position, undefined, { macroCallers: true }), [],
+    "An empty native result is not itself macro evidence");
+  macroHover = "### macro `MACRO_NUMBER`\n\n```cpp\n#define MACRO_NUMBER 7\n```";
+  const [hoverRoot] = await repository.prepare(uri, position, undefined, { macroCallers: true });
+  assert.equal(hoverRoot.syntheticMacroRoot, true);
+  assert.deepEqual(hoverRoot.macroCallerScope?.definitions, []);
+  const selected = document.getWordRangeAtPosition(position)!;
+  assert.deepEqual(hoverRoot.raw.selectionRange, { start: { line: selected.start.line, character: selected.start.character },
+    end: { line: selected.end.line, character: selected.end.character } });
+  const beforeMicrosoftHover = hoverRequests;
+  const microsoft = new CallHierarchyRepository({ ...analysis, analysisEngine: "microsoft" } as unknown as AnalysisService);
+  assert.deepEqual(await microsoft.prepare(uri, position, undefined, { macroCallers: true }), []);
+  assert.equal(hoverRequests, beforeMicrosoftHover, "Do not silently expand Microsoft macro evidence capabilities");
+  hoverError = new Error("Hover unavailable");
+  assert.deepEqual(await repository.prepare(uri, position, undefined, { macroCallers: true }), []);
+  hoverError = new vscode.CancellationError();
+  await assert.rejects(repository.prepare(uri, position, undefined, { macroCallers: true }), vscode.CancellationError);
+  console.log("Macro repository regressions passed: empty roots, source/hover evidence, ordinary fast path, exact references, unopened files, AST/Hover failure, cancellation, caching, and explicit expanded targets.");
 }
 
 function tokenPosition(document: vscode.TextDocument, fragment: string, token: string): vscode.Position {

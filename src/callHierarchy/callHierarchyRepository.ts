@@ -30,6 +30,8 @@ import {
 } from "./memberCallerScopeModel";
 import {
   isMacroDefinitionLocation,
+  hoverDefinesMacro,
+  macroCallerAnchor,
   macroCallerScopeKey,
   macroDefinitionDirective,
   macroDefinitionName,
@@ -72,6 +74,7 @@ export interface IncomingCallResult {
 export interface PrepareCallHierarchyOptions {
   macroCallers?: boolean;
   definitions?: Promise<LocationResult[]>;
+  hover?: () => Promise<string | undefined>;
 }
 
 export class CallHierarchyRepository {
@@ -117,6 +120,7 @@ export class CallHierarchyRepository {
       Boolean(options.macroCallers),
       token,
       options.definitions,
+      options.hover,
     );
   }
 
@@ -372,6 +376,7 @@ export class CallHierarchyRepository {
     detectMacroCallers: boolean,
     token?: vscode.CancellationToken,
     definitions?: Promise<LocationResult[]>,
+    hover?: () => Promise<string | undefined>,
   ): Promise<CallNode[]> {
     let roots = await this.analysis.prepareCallHierarchy(uri, position, token);
     if (token?.isCancellationRequested) return roots;
@@ -405,6 +410,7 @@ export class CallHierarchyRepository {
         const macroScope: MacroCallerScope = {
           queryUri: uri.toString(),
           queryPosition: toProtocolPosition(position),
+          queryRange: toProtocolRange(wordRange),
           name: memberName,
           definitions: [{ uri: uri.toString(), range: toProtocolRange(wordRange) }],
         };
@@ -416,9 +422,11 @@ export class CallHierarchyRepository {
         uri,
         position,
         memberName,
+        wordRange,
         roots,
         token,
         definitions,
+        hover,
       );
       if (macroScope) {
         return roots[0] && macroScope.expandedTargetName
@@ -716,9 +724,11 @@ export class CallHierarchyRepository {
     queryUri: vscode.Uri,
     queryPosition: vscode.Position,
     selectedName: string,
+    queryRange: vscode.Range,
     roots: CallNode[],
     token?: vscode.CancellationToken,
     definitionRequest?: Promise<LocationResult[]>,
+    hoverRequest?: () => Promise<string | undefined>,
   ): Promise<MacroCallerScope | undefined> {
     if (
       roots.length > 0 &&
@@ -741,7 +751,7 @@ export class CallHierarchyRepository {
       if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
         throw new vscode.CancellationError();
       }
-      return undefined;
+      definitions = [];
     }
     const sources = new Map<string, Promise<string>>();
     const matching = [];
@@ -772,11 +782,25 @@ export class CallHierarchyRepository {
       }
     }
     if (matching.length === 0) {
-      return undefined;
+      // clangd can recognize a -D macro in Hover without returning a source
+      // definition (or may return the expanded function instead). One lazy,
+      // shared Hover is sufficient; never scan compile commands or uses here.
+      if (this.analysis.analysisEngine !== "clangd") return undefined;
+      const hover = await (hoverRequest
+        ? hoverRequest()
+        : this.analysis.hover(queryUri, queryPosition, token)).catch(error => {
+          if (token?.isCancellationRequested || error instanceof vscode.CancellationError) {
+            throw new vscode.CancellationError();
+          }
+          return undefined;
+        });
+      if (token?.isCancellationRequested) throw new vscode.CancellationError();
+      if (!hoverDefinesMacro(hover, selectedName)) return undefined;
     }
     return {
       queryUri: queryUri.toString(),
       queryPosition: toProtocolPosition(queryPosition),
+      queryRange: toProtocolRange(queryRange),
       name: selectedName,
       expandedTargetName: roots[0] && isCallableRoot(roots[0])
         ? roots[0].raw.name : undefined,
@@ -785,12 +809,14 @@ export class CallHierarchyRepository {
   }
 
   private syntheticMacroNode(scope: MacroCallerScope): CallNode {
-    const definition = scope.definitions[0];
+    const definition = macroCallerAnchor(scope);
     return {
       ...this.analysis.callNode({
         name: scope.name,
         kind: SymbolKind.Constant,
-        detail: vscode.l10n.t("Macro definition"),
+        detail: scope.definitions.length > 0
+          ? vscode.l10n.t("Macro definition")
+          : vscode.l10n.t("Macro use (no source definition)"),
         uri: definition.uri,
         range: definition.range,
         selectionRange: definition.range,

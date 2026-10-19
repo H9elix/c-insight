@@ -4,7 +4,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { verifyCommandLineMacroAutoRefresh } from "./commandLineMacroAutoRefresh";
 
-interface TreeRow { label: string; uri?: string; line?: number }
+interface TreeRow { label: string; uri?: string; line?: number; parent?: string }
 interface CallState {
   incomingRoots: string[];
   incomingLabels: string[];
@@ -70,6 +70,7 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand("cInsight.showIncomingCalls");
       await vscode.commands.executeCommand("cInsight.test.expandCallHierarchy", "incoming", 1);
       const callers = await vscode.commands.executeCommand<CallState>("cInsight.test.callHierarchyState");
+      const callerRows = await vscode.commands.executeCommand<TreeRow[]>("cInsight.test.resultTreeInteraction", "cInsight.callers");
       await vscode.commands.executeCommand("cInsight.test.symbolSearchQuery", name);
       const symbols = await waitFor(async () => {
         const state = await vscode.commands.executeCommand<{ query: string; loading: boolean; results: number }>("cInsight.test.symbolSearchState");
@@ -93,6 +94,9 @@ export async function run(): Promise<void> {
         cInsightCallSites: callers.incomingOccurrences.filter(row => row.depth === 1).map(row => ({
           name: row.label, line: row.line + 1,
         })),
+        cInsightCallerRows: callerRows.filter(row => row.uri && row.parent).map(row => ({
+          file: path.basename(vscode.Uri.parse(row.uri!).fsPath), line: (row.line ?? 0) + 1,
+        })),
         workspaceSymbolResults: symbols.results,
       };
       assert.deepEqual(report.cInsightDefinitions, report.definitions, "C Insight changed the Provider's definition locations");
@@ -104,6 +108,23 @@ export async function run(): Promise<void> {
           match => ({ file: path.basename(source.uri.fsPath), line: source.positionAt(match.index).line + 1 }),
         ));
         assert.deepEqual(report.references, expected, `Macro References do not match all exact uses: ${name}`);
+        assert.deepEqual(report.cInsightCallerRoots, [name], "Callers must retain the command-line macro identity");
+        // Compare children only: anchoring a root at the selected use must not
+        // conceal that use being accidentally removed from its child results.
+        const keys = (rows: Array<{ file: string; line: number }>) => rows.map(row => `${row.file}:${row.line}`).sort();
+        assert.deepEqual(keys(report.cInsightCallerRows), keys(expected), `Callers lost or widened macro uses: ${name}`);
+        const rootRow = callerRows.find(row => !row.parent && row.label === name);
+        assert.equal(rootRow?.uri, document.uri.toString());
+        assert.equal(rootRow?.line, at.line, "Source-less macro root must use the selected anchor, not an unrelated definition");
+        if (name === "CI_BUILD_TRACE") {
+          await vscode.commands.executeCommand("cInsight.callers.showExpandedTarget");
+          const expanded = await waitFor(async () => {
+            const state = await vscode.commands.executeCommand<CallState>("cInsight.test.callHierarchyState");
+            return state.incomingOccurrences.filter(row => row.depth === 1).length === 3 ? state : undefined;
+          }, "Expanded function Callers did not complete");
+          assert.deepEqual(expanded.incomingRoots, ["trace_value"], "Explicit expanded function action must remain available");
+          assert.equal(expanded.incomingOccurrences.filter(row => row.depth === 1).length, 3);
+        }
       }
       if (name === "SOURCE_TRACE") {
         assert.deepEqual(report.cInsightCallerRoots, ["SOURCE_TRACE"]);
@@ -119,7 +140,7 @@ export async function run(): Promise<void> {
       engine: "clangd", results: reports, automaticRefresh,
     }, null, 2) + "\n");
     console.log("COMMAND_LINE_MACRO_PROBE " + JSON.stringify(reports));
-    console.log("Positive assertions passed: command-line macro hover, complete exact References, shared Provider definition mapping, and source-defined macro Caller control. Command-line macro definition/Caller limitations remain characterization results, not fixes.");
+    console.log("Positive assertions passed: command-line macro Hover, exact References and Callers including #if uses, shared Hover in automatic hidden/visible Context paths, explicit expanded function action, and source-defined macro control. Provider definition/search limitations remain unchanged.");
   } finally {
     for (const [key, value] of previous) await config.update(key, value, vscode.ConfigurationTarget.Global);
   }

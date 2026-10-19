@@ -335,6 +335,7 @@
   "C Insight: Select a file named compile_commands.json.": "C Insight: Select a file named compile_commands.json.",
   "References-based member": "References-based member",
   "Macro definition": "Macro definition",
+  "Macro use (no source definition)": "Macro use (no source definition)",
   "Rename C Insight Bookmark": "Rename C Insight Bookmark",
   "Bookmark name cannot be empty": "Bookmark name cannot be empty",
   "$(add) New Group…": "$(add) New Group…",

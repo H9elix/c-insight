@@ -304,7 +304,8 @@ export class ContextController implements vscode.Disposable {
               .then((calls) => calls.length)
               .catch(() => undefined)
           : undefined,
-        this.analysis.analysisEngine !== "microsoft" && base.callRoots[0]
+        this.analysis.analysisEngine !== "microsoft" && base.callRoots[0] &&
+        !base.callRoots[0].syntheticMacroRoot
           ? this.analysis
               .outgoingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)
@@ -363,6 +364,11 @@ export class ContextController implements vscode.Disposable {
     const definitionsRequest = demand.definitions
       ? definitionRequest ?? this.analysis.definition(uri, position, token)
       : undefined;
+    // Macro identity and the visible Context share at most one Hover. Keep it
+    // lazy so a normal matching callable does not pay for a hidden Context.
+    let hoverRequest: Promise<string | undefined> | undefined;
+    const queryHover = () => hoverRequest ??= this.analysis.hover(uri, position, token)
+      .catch(() => undefined);
     const [definitions, declarations, callRoots, hover, symbolInfo] =
       await Promise.all([
         definitionsRequest ?? [],
@@ -374,11 +380,12 @@ export class ContextController implements vscode.Disposable {
               .prepare(uri, position, token, {
                 macroCallers: true,
                 definitions: definitionsRequest,
+                hover: queryHover,
               })
               .catch(() => [])
           : [],
         demand.hover
-          ? this.analysis.hover(uri, position, token).catch(() => undefined)
+          ? queryHover()
           : undefined,
         demand.symbolInfo
           ? this.analysis.symbolInfo(uri, position, token).catch(() => undefined)
@@ -387,6 +394,17 @@ export class ContextController implements vscode.Disposable {
     if (generation !== this.generation || token.isCancellationRequested) {
       return undefined;
     }
+    // Preview-only / Microsoft demand may omit roots entirely. Before the
+    // empty-symbol guard, make one fallback probe only for an identifier.
+    let resolvedHover = hover;
+    if (!hasCursorSymbolEvidence({ definitions, declarations, callRoots, hover,
+      name: symbolInfo?.name, symbolId: symbolInfo?.id })) {
+      const document = vscode.workspace.textDocuments.find(item => item.uri.toString() === uri.toString());
+      if (document?.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_]*/)) {
+        resolvedHover = await queryHover();
+      }
+    }
+    if (generation !== this.generation || token.isCancellationRequested) return undefined;
     const macroName = callRoots[0]?.macroCallerScope?.name;
     const name = macroName ?? symbolInfo?.name ?? callRoots[0]?.raw.name;
     const qualifiedName =
@@ -401,7 +419,7 @@ export class ContextController implements vscode.Disposable {
       declarations,
       references: [],
       callRoots,
-      hover,
+      hover: resolvedHover,
       name,
       qualifiedName,
       symbolId: symbolInfo?.id,
@@ -525,7 +543,7 @@ export class ContextController implements vscode.Disposable {
           : undefined,
         demand.outgoingCount &&
         this.analysis.analysisEngine !== "microsoft" &&
-        base.callRoots[0]
+        base.callRoots[0] && !base.callRoots[0].syntheticMacroRoot
           ? this.analysis
               .outgoingCalls(base.callRoots[0], cancellation.token)
               .then((calls) => calls.length)

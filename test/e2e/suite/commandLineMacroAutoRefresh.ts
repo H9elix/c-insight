@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
 import type { AnalysisService } from "../../../src/analysis/analysisService";
+import type { CallHierarchyItem } from "vscode-languageclient/node";
 import { CallHierarchyRepository } from "../../../src/callHierarchy/callHierarchyRepository";
 import { ContextController } from "../../../src/context/contextController";
 import type { NavigationVisibility } from "../../../src/context/navigationDemand";
 import type { LocationResult, SymbolContext } from "../../../src/models/types";
 import type { ViewRegistry } from "../../../src/views/viewRegistry";
+import { callHierarchyKey } from "../../../src/utils/callHierarchy";
 
 /** Actual controller base/detail paths, live Provider evidence, controlled visibility.
  * This intentionally does not claim native mouse events or physical view layout coverage.
@@ -16,11 +18,13 @@ export async function verifyCommandLineMacroAutoRefresh(
   number: vscode.Position,
 ): Promise<unknown[]> {
   const reports = [];
-  for (const [name, at, contextVisible, manual] of [
-    ["feature-hidden-context", feature, false, false],
-    ["number-hidden-context", number, false, false],
-    ["feature-visible-context", feature, true, false],
-    ["feature-manual-refresh", feature, false, true],
+  for (const [name, at, contextVisible, manual, mode] of [
+    ["feature-hidden-context", feature, false, false, "relations"],
+    ["number-hidden-context", number, false, false, "relations"],
+    ["feature-visible-context", feature, true, false, "relations"],
+    ["feature-manual-refresh", feature, false, true, "relations"],
+    ["feature-preview-only", feature, false, false, "preview"],
+    ["all-hidden", feature, false, false, "hidden"],
   ] as const) {
     const queries: string[] = [];
     const published: SymbolContext[] = [];
@@ -60,10 +64,11 @@ export async function verifyCommandLineMacroAutoRefresh(
         queries.push("references");
         return locations(await vscode.commands.executeCommand("vscode.executeReferenceProvider", target, position));
       },
+      callNode: (raw: CallHierarchyItem) => ({ raw, key: callHierarchyKey(raw) }),
     } as unknown as AnalysisService;
     const views = {
       navigationVisible: true,
-      navigationVisibility: { context: contextVisible, preview: true, references: true, callers: true, callees: false } as NavigationVisibility,
+      navigationVisibility: { context: contextVisible, preview: mode !== "hidden", references: mode === "relations", callers: mode === "relations", callees: false } as NavigationVisibility,
       preferredDefinitionNeedsUpgrade: false,
       onDidChangeNavigationVisibility: visibility.event,
       updateContext: (context: SymbolContext) => { published.push(context); },
@@ -82,16 +87,24 @@ export async function verifyCommandLineMacroAutoRefresh(
           resolveCursor(uri: vscode.Uri, at: vscode.Position, generation: number, intent: object): Promise<void>;
         }).resolveCursor(uri, at, 0, {});
       }
-      if (name !== "feature-hidden-context") {
+      if (mode !== "hidden") {
         const deadline = Date.now() + 10_000;
         while (published.at(-1)?.detailsPending !== false && Date.now() < deadline) {
           await new Promise(resolve => setTimeout(resolve, 25));
         }
         assert.equal(published.at(-1)?.detailsPending, false, `Details did not finish: ${name}`);
-        assert.equal(published.at(-1)?.references.length, at === feature ? 2 : 5);
+        assert.equal(published.at(-1)?.references.length, mode === "preview" ? 0 : at === feature ? 2 : 5);
+        assert.equal(published.at(-1)?.callRoots.length, mode === "preview" ? 0 : 1);
+        if (mode === "relations") {
+          assert.equal(published.at(-1)?.callRoots[0].macroCallerScope?.definitions.length, 0);
+        } else {
+          assert(!queries.includes("prepareCallHierarchy"));
+          assert(!queries.includes("references"));
+        }
+        assert.equal(queries.filter(query => query === "hover").length, 1, "Context and macro identification must share Hover");
       } else {
-        assert.equal(published.length, 0, "The visibility-dependent false-negative changed; recharacterize this limitation");
-        assert(!queries.includes("references"));
+        assert.deepEqual(queries, [], "Hidden views must not request fallback evidence");
+        assert.equal(published.length, 0);
       }
       assert.deepEqual(errors, []);
       reports.push({ name, contextVisible, manual, queries, publications: published.length,

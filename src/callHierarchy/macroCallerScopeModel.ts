@@ -8,6 +8,7 @@ export interface MacroDefinitionLocation {
 export interface MacroCallerScope {
   queryUri: string;
   queryPosition: Position;
+  queryRange?: Range;
   name: string;
   expandedTargetName?: string;
   definitions: MacroDefinitionLocation[];
@@ -31,6 +32,26 @@ export function macroCallerScopeKey(scope: MacroCallerScope): string {
 
 export function macroDefinitionName(sourceLine: string): string | undefined {
   return macroDefinitionDirective(sourceLine)?.name;
+}
+
+/** Require clangd's macro heading as well as its same-name definition text.
+ * A random #define example in an ordinary symbol's documentation is not proof.
+ */
+export function hoverDefinesMacro(hover: string | undefined, name: string): boolean {
+  const lines = hover?.trim().split(/\r?\n/) ?? [];
+  const heading = /^(?:#{1,6}\s+)?macro\s+`?([A-Za-z_][A-Za-z0-9_]*)`?\s*$/.exec(lines[0] ?? "");
+  return heading?.[1] === name && lines.some(line => macroDefinitionName(line) === name);
+}
+
+/** A source-less macro is anchored at its use, never at an invented #define. */
+export function macroCallerAnchor(scope: MacroCallerScope): MacroDefinitionLocation {
+  return scope.definitions[0] ?? {
+    uri: scope.queryUri,
+    range: scope.queryRange ?? {
+      start: scope.queryPosition,
+      end: { ...scope.queryPosition, character: scope.queryPosition.character + scope.name.length },
+    },
+  };
 }
 
 export function macroDefinitionDirective(
