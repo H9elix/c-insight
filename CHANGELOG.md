@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Fixed clangd compiler-injected macro Callers using shared, lazy Hover identity evidence: numeric/conditional and function-alias macros retain exact macro uses across files, including `#if`. Source-less roots navigate to their selected use, expanded-function Callers remain explicit, and hidden Context no longer suppresses automatic macro refresh. CI-REG-049; local temporary build pending maintainer acceptance. Provider definition/search limitations are unchanged.
+- Fixed clangd compiler-injected macro Callers using shared, lazy Hover identity evidence: numeric/conditional and function-alias macros retain exact macro uses across files, including `#if`. Source-less roots navigate to their selected use, expanded-function Callers remain explicit, and hidden Context no longer suppresses automatic macro refresh. CI-REG-049; maintainer accepted the local temporary build, not yet published. Provider definition/search limitations are unchanged.
 - Diagnosed the command-line conditional-macro auto-refresh discrepancy with live Provider evidence and controlled controller visibility: hidden Context can omit the only symbol evidence and suppress References details, while manual refresh bypasses the guard. Extended CI-REG-049 and documented the remaining actual-window check; no runtime behavior change or fix.
 - Added a compilable two-file C fixture with macros supplied only through `-D`, a real compiler positive/negative control, a raw clangd probe, and an isolated C Insight query scenario. Documented working macro hovers/exact References and observed definition/Caller/search limitations under `CI-REG-049`; no runtime fix or version change.
 
