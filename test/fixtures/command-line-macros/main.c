@@ -1,7 +1,7 @@
 #define SOURCE_TRACE trace_value
 
 int second_file_value(void);
-
+int verify_conditional_calls(void);
 int trace_value(int value)
 {
     return value + 1;
@@ -22,6 +22,8 @@ int main(void)
     int source_alias = SOURCE_TRACE(CI_BUILD_NUMBER);
     int direct = trace_value(CI_BUILD_NUMBER);
 
-    return feature_value() == 7 && second_file_value() == 7 &&
-           compiler_alias == 8 && source_alias == 8 && direct == 8 ? 0 : 1;
+    return feature_value() == second_file_value() &&
+           (feature_value() == 7 || feature_value() == -1) &&
+           compiler_alias == 8 && source_alias == 8 && direct == 8 &&
+           verify_conditional_calls() ? 0 : 1;
 }

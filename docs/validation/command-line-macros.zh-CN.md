@@ -6,6 +6,48 @@
 
 问题记录为 [CI-REG-049](historical-issues.zh-CN.md#ci-reg-049)，关联源码宏的 031–033 及空符号保护 036。以下保留修复前证据与本地修复后的验证，不能把历史限制当作当前实现，也不把异常的定义位置冻结成未来必须维持的行为。本次仍未测试 Microsoft C/C++ 或其他 clangd 版本。
 
+当前测试工程另含[条件分支和函数式编译宏](#条件分支中的函数与编译宏展开函数)，用于比较宏值 `1`、`0` 时的函数调用者。原始两文件工程的条件宏有 2 处引用；新增 `conditional-calls.c` 后为 4 处，数值宏和函数别名宏在默认配置仍为 5、1 处。下面旧验收及基线中的 `2/5/1` 属于当时的工程，不覆盖或改写历史证据。插件运行代码和正式版本未因此改变。
+
+## 条件分支中的函数与编译宏展开函数
+
+在 [conditional-calls.c](../../test/fixtures/command-line-macros/conditional-calls.c) 中构造两种情况：`#if CI_BUILD_FEATURE`、`#if !CI_BUILD_FEATURE` 中调用 `branch_target`；编译参数 `-DCI_BUILD_CALL(value)=compiler_macro_target(value)` 使 `CI_BUILD_CALL(5)` 调用 `compiler_macro_target`，另保留一次直接调用作为对照。构建脚本实际编译、链接、运行全部三个翻译单元。
+
+从仓库根目录生成默认和禁用两套编译数据库：
+
+```bash
+node test/fixtures/command-line-macros/build.mjs
+C_INSIGHT_MACRO_FEATURE=0 C_INSIGHT_MACRO_BUILD_DIR="$PWD/test/fixtures/command-line-macros/build-disabled" node test/fixtures/command-line-macros/build.mjs
+```
+
+两个目录均已忽略，不覆盖彼此。`C_INSIGHT_MACRO_FEATURE` 只接受 `0` 或 `1`，默认 `1`；`C_INSIGHT_MACRO_BUILD_DIR` 指定生成目录，默认当前测试工程的 `build`。这些是合成工程构建/测试脚本的环境变量，不是 C Insight 插件配置项。
+
+`2026-10-21` 在 clangd `20.1.2` 上重新实测，以下均指 `conditional-calls.c` 的准确调用位置：
+
+| 查询对象 | 宏值为 `1` | 宏值为 `0` |
+| --- | --- | --- |
+| 函数 `branch_target` 的调用者 | 第 14、25 行：`branch_target(1)`、`branch_target(4)` | 第 16、23 行：`branch_target(2)`、`branch_target(3)` |
+| 函数 `compiler_macro_target` 的调用者 | 第 31 行的宏调用、第 36 行的直接调用 | 同左 |
+| 宏 `CI_BUILD_CALL` 自身的调用者 | 仅第 31 行 `CI_BUILD_CALL(5)` | 同左 |
+| 在该宏上执行“查询宏展开后函数的调用者” | 切换到 `compiler_macro_target`，显示第 31、36 行 | 同左 |
+
+必须区分查询宏和查询函数：选择 `CI_BUILD_FEATURE` 本身时，调用者仍列出这个宏的使用位置（例如 `#if`），不会把条件分支内所有函数的调用自动合并到宏树；选择 `branch_target` 时，才查询该函数的调用者。函数结果只覆盖当前编译配置生效的分支，不把不同平台的条件分支做并集。禁用代码里写着函数名，不等于它参与了当前配置的语义调用图。函数式 `-D` 宏同样保留原始宏的查询范围，只有查询展开函数或点击显式按钮才显示那个函数的全部调用。
+
+人工查看：用新 VS Code 窗口打开 `test/fixtures/command-line-macros` 文件夹，沿用下方设置中的 `compileCommandsDir: "build"`。在 `conditional-calls.c` 第 1 行点选 `branch_target` 并展开调用者，应看到第 14、25 行；第 6 行点选 `compiler_macro_target`，应看到第 31、36 行；第 31 行选择 `CI_BUILD_CALL`，默认只返回自身的一处使用。要看宏值为 `0` 的对照，把当前测试文件夹的 `cInsight.compileCommandsDir` 改为 `build-disabled` 后执行“C Insight：重启 clangd”，再检查第 16、23 行；完成后改回 `build` 并重启，避免留下与下文默认值不一致的配置。本轮未修改用户的 VS Code 设置。
+
+原始协议与隔离扩展宿主均有两套执行入口，在仓库根目录运行：
+
+```bash
+npm run probe:command-line-macros
+C_INSIGHT_MACRO_FEATURE=0 C_INSIGHT_MACRO_BUILD_DIR="$PWD/test/fixtures/command-line-macros/build-disabled" npm run probe:command-line-macros
+
+C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test-vscode/code npm run test:e2e:command-line-macros
+C_INSIGHT_MACRO_FEATURE=0 C_INSIGHT_MACRO_BUILD_DIR="$PWD/test/fixtures/command-line-macros/build-disabled" C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test-vscode/code npm run test:e2e:command-line-macros
+```
+
+探针报告保存在各自生成目录的 `clangd-probe.json`、`c-insight-probe.json`。原始协议断言精确传入范围；[函数调用者宿主检查](../../test/e2e/suite/commandLineMacroFunctionCalls.ts)对比真实提供程序与 C Insight 树快照，核对调用者名称、文件、行号、禁用分支排除，以及函数式宏默认/展开两种范围。默认配置还执行原有宏引用、宏别名、自动刷新等回归；宏值为 `0` 的宿主只执行新增函数调用者对照，不声称覆盖全部旧的自动刷新场景。物理鼠标、原生布局、真实业务工程和其他引擎/版本仍需对应环境验证。
+
+本轮实际执行：GCC `13.3.0` 两种宏值的编译、链接、运行和去除 `-D` 的负对照均通过；两套原始协议探测、VS Code `1.130.0` 隔离扩展宿主专项以及 `npm run check` 通过。测试宿主在普通沙箱中曾因操作系统拒绝启动而退出，获准在沙箱外运行后两套最终断言均通过；不把该启动环境错误当作产品缺陷。CI 已接入禁用分支专项，但本轮没有推送，因此未宣称云端 CI 已执行。没有插件运行修改、临时包、新版本或发布；用户可按上节在实际 UI 复核，本轮没有新增用户验收结果。既有代码预览位置问题仍未修复。
+
 ## 0.22.26 修复与验收
 
 沿用下述同一最小工程、clangd `20.1.2` 和 VS Code `1.130.0`：调用者根应分别显示 `CI_BUILD_FEATURE`、`CI_BUILD_NUMBER`、`CI_BUILD_TRACE`，首层分别有 2、5、1 个准确使用位置。两个源码文件的条件宏引用均保留；根本身锚定当前使用，因此根与某个子结果指向同一位置是预期，不表示重复调用边。`CI_BUILD_TRACE` 只有显式执行查询宏展开后函数的调用者，才切换为 `trace_value` 的三处函数调用。源码宏 `SOURCE_TRACE` 仍只列出自身一处使用。
@@ -32,7 +74,7 @@
 
 ## 最小工程
 
-工程位于 [test/fixtures/command-line-macros](../../test/fixtures/command-line-macros)，包含 [main.c](../../test/fixtures/command-line-macros/main.c)、[other.c](../../test/fixtures/command-line-macros/other.c) 和 [build.mjs](../../test/fixtures/command-line-macros/build.mjs)。三个宏只从编译命令传入，源码中没有它们的 `#define`：
+工程位于 [test/fixtures/command-line-macros](../../test/fixtures/command-line-macros)，原始场景包含 [main.c](../../test/fixtures/command-line-macros/main.c)、[other.c](../../test/fixtures/command-line-macros/other.c) 和 [build.mjs](../../test/fixtures/command-line-macros/build.mjs)，当前另含上节的 `conditional-calls.c`。原始三个宏只从编译命令传入，源码中没有它们的 `#define`：
 
 ```text
 -DCI_BUILD_FEATURE=1
@@ -50,7 +92,7 @@
 node test/fixtures/command-line-macros/build.mjs
 ```
 
-脚本使用已有 `cc`，实际编译、链接并运行程序，同时把同一组编译参数写入子工程的 `build/compile_commands.json`。如需选择编译器，可设置 `CC` 为一个编译器可执行文件名或路径，不支持把额外参数混在 `CC` 字符串里。不需要安装 CMake，也不会修改其他工程。生成的数据库、目标文件、可执行文件和探测结果均被子工程 `.gitignore` 排除。
+脚本使用已有 `cc`，实际编译、链接并运行程序，同时把同一组编译参数写入子工程的 `build/compile_commands.json`，当前覆盖三个翻译单元。如需选择编译器，可设置 `CC` 为一个编译器可执行文件名或路径，不支持把额外参数混在 `CC` 字符串里。不需要安装 CMake，也不会修改其他工程。生成的数据库、目标文件、可执行文件和探测结果均被子工程 `.gitignore` 排除。
 
 然后在一个新 VS Code 窗口中打开 `test/fixtures/command-line-macros` 文件夹，而不是仓库根目录。在这个测试文件夹的 `.vscode/settings.json` 中合并：
 

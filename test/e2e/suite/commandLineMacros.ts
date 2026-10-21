@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { verifyCommandLineMacroAutoRefresh } from "./commandLineMacroAutoRefresh";
+import { verifyCommandLineMacroFunctionCalls } from "./commandLineMacroFunctionCalls";
 
 interface TreeRow { label: string; uri?: string; line?: number; parent?: string }
 interface CallState {
@@ -13,10 +14,12 @@ interface CallState {
 
 export async function run(): Promise<void> {
   const workspace = vscode.workspace.workspaceFolders![0].uri;
+  const build = process.env.C_INSIGHT_MACRO_BUILD_DIR ? vscode.Uri.file(path.resolve(process.env.C_INSIGHT_MACRO_BUILD_DIR)) : vscode.Uri.joinPath(workspace, "build");
+  const feature = process.env.C_INSIGHT_MACRO_FEATURE ?? "1";
   const config = vscode.workspace.getConfiguration("cInsight");
   const settings: Record<string, unknown> = {
     engine: "clangd", "clangd.path": process.env.CINSIGHT_TEST_CLANGD20 || "/usr/bin/clangd-20",
-    compileCommandsDir: vscode.Uri.joinPath(workspace, "build").fsPath,
+    compileCommandsDir: build.fsPath,
     followCursor: false, "session.restore": false,
     "references.groupBy": "flat", "codePreview.semanticHighlighting": false,
   };
@@ -31,6 +34,7 @@ export async function run(): Promise<void> {
     await extension.activate();
     const document = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(workspace, "main.c"));
     const other = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(workspace, "other.c"));
+    const conditional = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(workspace, "conditional-calls.c"));
     const editor = await vscode.window.showTextDocument(document);
     const position = (snippet: string, name: string) => {
       const offset = document.getText().indexOf(snippet);
@@ -38,8 +42,17 @@ export async function run(): Promise<void> {
       return document.positionAt(offset + snippet.indexOf(name) + 1);
     };
     const numberPosition = position("return CI_BUILD_NUMBER;", "CI_BUILD_NUMBER");
-    for (const opened of [document, other]) {
+    for (const opened of [document, other, conditional]) {
       await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", opened.uri);
+    }
+    if (feature === "0") {
+      const functionCallers = await verifyCommandLineMacroFunctionCalls(conditional, feature);
+      writeFileSync(vscode.Uri.joinPath(build, "c-insight-probe.json").fsPath, JSON.stringify({
+        extensionVersion: extension.packageJSON.version, vscodeVersion: vscode.version,
+        engine: "clangd", feature, functionCallers,
+      }, null, 2) + "\n");
+      console.log("COMMAND_LINE_MACRO_FUNCTION_CALLERS " + JSON.stringify({ feature, results: functionCallers }));
+      return;
     }
     await waitFor(async () => {
       const values = await vscode.commands.executeCommand<vscode.Hover[]>("vscode.executeHoverProvider", document.uri, numberPosition);
@@ -103,15 +116,15 @@ export async function run(): Promise<void> {
       assert.deepEqual(report.cInsightReferenceRows, report.references, `References UI lost source uses of ${name}`);
       if (name.startsWith("CI_BUILD_")) {
         assert(report.hover.includes(`#define ${name}`), `Missing command-line macro recognition: ${name}`);
-        const expected = [document, other].flatMap(source => Array.from(
+        const expected = [document, other, conditional].flatMap(source => Array.from(
           source.getText().matchAll(new RegExp(`\\b${name}\\b`, "g")),
           match => ({ file: path.basename(source.uri.fsPath), line: source.positionAt(match.index).line + 1 }),
         ));
-        assert.deepEqual(report.references, expected, `Macro References do not match all exact uses: ${name}`);
+        const keys = (rows: Array<{ file: string; line: number }>) => rows.map(row => `${row.file}:${row.line}`).sort();
+        assert.deepEqual(keys(report.references), keys(expected), `Macro References do not match all exact uses: ${name}`);
         assert.deepEqual(report.cInsightCallerRoots, [name], "Callers must retain the command-line macro identity");
         // Compare children only: anchoring a root at the selected use must not
         // conceal that use being accidentally removed from its child results.
-        const keys = (rows: Array<{ file: string; line: number }>) => rows.map(row => `${row.file}:${row.line}`).sort();
         assert.deepEqual(keys(report.cInsightCallerRows), keys(expected), `Callers lost or widened macro uses: ${name}`);
         const rootRow = callerRows.find(row => !row.parent && row.label === name);
         assert.equal(rootRow?.uri, document.uri.toString());
@@ -132,14 +145,17 @@ export async function run(): Promise<void> {
       }
       reports.push(report);
     }
+    const functionCallers = await verifyCommandLineMacroFunctionCalls(conditional, feature);
+    await vscode.window.showTextDocument(document);
     const automaticRefresh = await verifyCommandLineMacroAutoRefresh(
-      document.uri, position("#if CI_BUILD_FEATURE", "CI_BUILD_FEATURE"), numberPosition,
+      document.uri, position("#if CI_BUILD_FEATURE", "CI_BUILD_FEATURE"), numberPosition, 4,
     );
-    writeFileSync(vscode.Uri.joinPath(workspace, "build/c-insight-probe.json").fsPath, JSON.stringify({
+    writeFileSync(vscode.Uri.joinPath(build, "c-insight-probe.json").fsPath, JSON.stringify({
       extensionVersion: extension.packageJSON.version, vscodeVersion: vscode.version,
-      engine: "clangd", results: reports, automaticRefresh,
+      engine: "clangd", feature, results: reports, functionCallers, automaticRefresh,
     }, null, 2) + "\n");
     console.log("COMMAND_LINE_MACRO_PROBE " + JSON.stringify(reports));
+    console.log("COMMAND_LINE_MACRO_FUNCTION_CALLERS " + JSON.stringify({ feature, results: functionCallers }));
     console.log("Positive assertions passed: command-line macro Hover, exact References and Callers including #if uses, shared Hover in automatic hidden/visible Context paths, explicit expanded function action, and source-defined macro control. Provider definition/search limitations remain unchanged.");
   } finally {
     for (const [key, value] of previous) await config.update(key, value, vscode.ConfigurationTarget.Global);

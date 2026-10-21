@@ -16,6 +16,7 @@ export async function verifyCommandLineMacroAutoRefresh(
   uri: vscode.Uri,
   feature: vscode.Position,
   number: vscode.Position,
+  expectedFeatureReferences: number,
 ): Promise<unknown[]> {
   const reports = [];
   for (const [name, at, contextVisible, manual, mode] of [
@@ -93,7 +94,7 @@ export async function verifyCommandLineMacroAutoRefresh(
           await new Promise(resolve => setTimeout(resolve, 25));
         }
         assert.equal(published.at(-1)?.detailsPending, false, `Details did not finish: ${name}`);
-        assert.equal(published.at(-1)?.references.length, mode === "preview" ? 0 : at === feature ? 2 : 5);
+        assert.equal(published.at(-1)?.references.length, mode === "preview" ? 0 : at === feature ? expectedFeatureReferences : 5);
         assert.equal(published.at(-1)?.callRoots.length, mode === "preview" ? 0 : 1);
         if (mode === "relations") {
           assert.equal(published.at(-1)?.callRoots[0].macroCallerScope?.definitions.length, 0);
