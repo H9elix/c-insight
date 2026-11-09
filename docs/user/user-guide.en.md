@@ -130,6 +130,28 @@ Function and method are independent; changing variable does not change parameter
 
 Use `fixed-dark` for the dark defaults. To restore the original theme mapping, set `colorScheme` to `theme` and `tokenColors` to `{}`. Removing one category key restores only that category to the selected preset.
 
+## Project Files (development preview)
+
+The local development build adds **Project Files**, a shared Webview result view next to Document Symbols. It starts collapsed and enumerates only when shown. This feature has not been formally versioned or released; the published `0.22.26` package does not gain it through a documentation update.
+
+The flat inventory includes all file types across every workspace root, not only open editors or C/C++ sources. It honors folder-specific `files.exclude` and always removes `.git` metadata; `.gitignore`, `search.exclude`, and `cInsight.exclude` are not additional filters. Git-ignored build/dependency files can therefore appear unless hidden through `files.exclude`. Duplicate names show their relative directory and, in multi-root workspaces, their root name.
+
+Files use natural ascending name order (`file2.c` before `file10.c`). The title-bar Sort action also offers relative-path and extension order, with stable path tie-breaking. Sorting changes workspace settings but does not rescan or fetch timestamps. The active editor file is highlighted and marked **Active file**, then revealed without taking focus or changing list selection; image/custom resource editors are supported, and text diff editors use the modified side. Selecting a preview does not change this marker.
+
+The search box stays at the top while the list scrolls. Input immediately filters all loaded files by case-insensitive name/path substring, not regular expressions or fuzzy subsequences. Its **×** button appears only for nonempty input and clears without opening anything or moving focus away. Input/clear resets list scrolling to the top; no matches displays a localized empty message. Ctrl+F/Cmd+F focuses the input, and Escape clears without hiding it. Sorting, refreshing, editor changes, and losing focus do not clear input. Automatic active-file reveal preserves the query and does not force a filtered-out file into view.
+
+Single-click/Space previews text from line one; double-click/Enter/Open Location opens that location using the existing navigation history and delayed-follow policy. Images, binary files, and files above 10 MiB leave the text preview unchanged with an explanation on single click; opening uses VS Code's default resource editor. Explicit text previews retain existing optional semantic coloring.
+
+Create/delete/rename events coalesce into a 500 ms relisting; ordinary text edits do not rescan. Hiding the view cancels scans and stops its watchers; showing it reconciles files again. Enumeration, sorting, filtering, and activity markers neither read file contents nor call either semantic engine. Filesystem-watcher exclusions and remote/external changes may require the explicit Refresh action. The file inventory and query are not added to workspace-session snapshots.
+
+| Setting | Default | Values / range | Behavior |
+| --- | --- | --- | --- |
+| `cInsight.projectFiles.sortBy` | `"name"` | `"name"`, `"path"`, `"type"` | Ascending presentation order; no rescan |
+| `cInsight.projectFiles.followActiveEditor` | `true` | boolean | Highlight and reveal the active file without taking focus or clearing the query |
+| `cInsight.projectFiles.maximumFiles` | `50000` | integer, 1000–200000 | Reload when visible after changing the limit; otherwise defer until shown |
+
+When the limit is reached, a persistent status warns that both the inventory and its local search can be incomplete. No open workspace shows a folder/workspace prompt. The temporary package still needs maintainer UI acceptance.
+
 ## Configuration and commands
 
 Open **Settings** and search for `C Insight` to see every setting, accepted value, range, and default in the active display language. Stable configuration IDs begin with `cInsight.`. Important groups include:
@@ -275,5 +297,7 @@ This section is generated from `package.json`. Every command is available from t
 | Export Included By as Text | `cInsight.includedBy.exportText` | Command Palette; Included By title |
 | Export Included By as JSON | `cInsight.includedBy.exportJson` | Command Palette; Included By title |
 | Export Included By as Mermaid | `cInsight.includedBy.exportMermaid` | Command Palette; Included By title |
+| Refresh Project Files | `cInsight.projectFiles.refresh` | Command Palette; Project Files title |
+| Sort Project Files | `cInsight.projectFiles.sort` | Command Palette; Project Files title |
 
 <!-- GENERATED COMMAND REFERENCE END -->

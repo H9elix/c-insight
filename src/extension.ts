@@ -26,6 +26,7 @@ import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
 import { runtimeDiagnostics } from "./diagnostics/runtimeDiagnostics";
 import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
 import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
+import { ProjectFilesExplorer } from "./projectFiles/projectFilesExplorer";
 import {
   WorkspaceSessionManager,
   WorkspaceSessionSnapshot,
@@ -94,6 +95,7 @@ export async function activate(
     views,
     output,
   );
+  const projectFiles = new ProjectFilesExplorer(context.extensionUri);
   const projectDiagnostics = new ProjectDiagnostics(
     manager,
     analysis,
@@ -395,6 +397,7 @@ export async function activate(
     bookmarks,
     symbolSearch,
     symbolSearchRegistration,
+    projectFiles,
     typeHierarchy,
     includeHierarchy,
     relationshipGraph,
@@ -424,13 +427,16 @@ export async function activate(
       workspaceSession,
       engine,
       restoreWorkspaceSession: () => restoreWithProgress(),
+      projectFiles,
     },
   );
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(
       vscode.commands.registerCommand("cInsight.test.resultTreeInteraction", (id, message) =>
-        views.resultTreeInteractionForTest(id, message),
+        id === VIEWS.PROJECT_FILES ? projectFiles.view.interactionForTest(message) : views.resultTreeInteractionForTest(id, message),
       ),
+      vscode.commands.registerCommand("cInsight.test.projectFilesState", () => projectFiles.stateForTest()),
+      vscode.commands.registerCommand("cInsight.test.projectFilesController", () => projectFiles),
       vscode.commands.registerCommand("cInsight.test.previewState", () =>
         views.preview.sessionState(),
       ),

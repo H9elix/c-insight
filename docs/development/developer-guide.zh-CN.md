@@ -222,6 +222,10 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `symbols/symbolPresentation.ts` | 文档/工作区符号（Document/Workspace Symbols）的“大纲”（Outline）风格 ThemeIcon 映射。 |
 | `symbols/documentSymbolFocusModel.ts` | 文档符号视口中心行计算，以及按层级、范围宽度和提供程序顺序选择包含符号的纯算法。 |
 
+### 4.10.1 工程文件 `src/projectFiles`
+
+开发预览另有独立的 `src/projectFiles/`：`projectFileModel.ts` 管理稳定自然排序、文件数量上限、Git 元数据排除与常见二进制判断；`projectFilesExplorer.ts` 管理无语义引擎依赖的工作区文件枚举、可见性、串行可取消扫描、500 ms 文件事件合并、活动编辑器标记、排序及文本/资源文件激活。该视图复用共享结果树的可选常驻搜索模式；筛选只在 Webview 的已加载清单上执行，活动标记通过行元数据补丁更新，不为切换编辑器重传整份清单。URI 由宿主中已有节点解析，不接受 Webview 自报路径；资源文件右键打开沿用与双击相同的宿主入口。
+
 ### 4.11 会话 `src/session`
 
 | 文件 | 管理的功能 |
@@ -314,6 +318,8 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
 
 ## 7. 测试结构
+
+工程文件开发预览增加 `projectFileModel.test.ts`、共享结果树浏览器用例及 `test/e2e/runProjectFilesTest.ts`/`suite/projectFiles.ts`。`npm run test:e2e:project-files` 创建独立临时多根工作区，验证排除、排序、活动文本/资源文件、文件事件、隐藏暂停、预览/打开及显式数量上限；临时工作区在宿主退出后删除。真实硬件、主题及 WSL/SSH 布局仍需人工核对，运行证据见[工程文件验证](../validation/project-files.zh-CN.md)。
 
 历史问题驱动的选择矩阵、分层命令及人工冒烟清单见[测试指南](../validation/regression-testing-guide.zh-CN.md)，实际问题及行为边界见[回归案例库](../validation/historical-issues.zh-CN.md)。以后每次收到实际问题反馈，都先复用或新增稳定编号，记录环境、复现、证据与未确认项；修复时补自动断言和人工空白，交付时引用编号及实际执行结果。不能把某个测试文件存在等同于 UI 全覆盖，也不能把历史测试通过写成本次重测成功。此维护约定同时写入根目录 `AGENTS.md` 和贡献指南，便于后续会话继续执行。
 

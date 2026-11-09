@@ -34,6 +34,17 @@ function fixture(initialRoots: Node[]) {
 }
 
 describe("custom result tree model", () => {
+  it("updates presentation without loading branches or changing row identities", async () => {
+    const root: Node = { key: "file", load: async () => [{ key: "child" }] };
+    const f = fixture([root]);
+    await f.model.refresh();
+    const original = f.model.snapshot()[0];
+    const patched = f.model.updateDescription(root);
+    assert.equal(patched?.id, original.id);
+    assert.equal(f.model.row(original.id)?.node, root);
+    assert.equal(f.loads(), 0);
+    assert.equal(f.model.updateDescription({ key: "absent" }), undefined);
+  });
   it("loads only explicitly expanded branches and retains expansion on metadata refresh", async () => {
     const root: Node = { key: "caller", load: async () => [{ key: "child" }] };
     const f = fixture([root]);

@@ -3,6 +3,7 @@ export interface ResultTreeDescription {
   key: string;
   label: string;
   description?: string;
+  filterText?: string;
   tooltip?: string;
   icon?: string;
   iconColor?: string;
@@ -57,6 +58,15 @@ export class ResultTreeModel<T extends object> {
 
   row(id: string): ResultTreeRow<T> | undefined {
     return this.byId.get(id);
+  }
+
+  updateDescription(node: T): ResultTreeRow<T> | undefined {
+    const index = this.rows.findIndex(row => row.node === node);
+    if (index < 0) return undefined;
+    const row = { ...this.rows[index], ...this.source.describe(node) };
+    this.rows[index] = row;
+    this.byId.set(row.id, row);
+    return row;
   }
 
   async refresh(collapseNewBranches = false): Promise<void> {

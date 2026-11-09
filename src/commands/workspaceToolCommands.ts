@@ -5,6 +5,7 @@ import { COMMANDS } from "../ids";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { RegisterCommand } from "./commandRegistrar";
+import { ProjectFilesExplorer } from "../projectFiles/projectFilesExplorer";
 
 interface WorkspaceToolDependencies {
   history: NavigationHistoryExplorer;
@@ -12,6 +13,7 @@ interface WorkspaceToolDependencies {
   symbolSearch: SymbolSearchExplorer;
   workspaceSession: WorkspaceSessionManager;
   restoreWorkspaceSession: () => Promise<boolean>;
+  projectFiles: ProjectFilesExplorer;
 }
 
 export function registerWorkspaceToolCommands(
@@ -19,6 +21,8 @@ export function registerWorkspaceToolCommands(
   dependencies: WorkspaceToolDependencies,
 ): void {
   const { history, bookmarks, symbolSearch, workspaceSession, restoreWorkspaceSession } = dependencies;
+  register(COMMANDS.PROJECT_FILES_REFRESH, () => dependencies.projectFiles.refresh());
+  register(COMMANDS.PROJECT_FILES_SORT, () => dependencies.projectFiles.chooseSort());
   register(COMMANDS.HISTORY_FILTER, () => history.chooseFilter());
   register(COMMANDS.HISTORY_CLEAR, () => history.clear());
   register(COMMANDS.BOOKMARKS_ADD_CURRENT, () => bookmarks.addCurrent());

@@ -109,6 +109,7 @@
     "test:e2e:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runMicrosoftEngineTest.js",
     "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
     "test:e2e:command-line-macros": "npm run build && node test/fixtures/command-line-macros/build.mjs && xvfb-run -a node dist/test/e2e/runCommandLineMacroTest.js",
+    "test:e2e:project-files": "npm run build && xvfb-run -a node dist/test/e2e/runProjectFilesTest.js",
     "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:commands:check && npm run docs:terms:check && npm run docs:prose:check && npm run docs:links:check && npm run release:notes:check && npm run third-party:check && npm run build",
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },
@@ -610,6 +611,16 @@
       {
         "command": "cInsight.includedBy.exportMermaid",
         "title": "%command.cInsight.includedBy.exportMermaid.title%"
+      },
+      {
+        "command": "cInsight.projectFiles.refresh",
+        "title": "%command.cInsight.projectFiles.refresh.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cInsight.projectFiles.sort",
+        "title": "%command.cInsight.projectFiles.sort.title%",
+        "icon": "$(sort-precedence)"
       }
     ],
     "keybindings": [
@@ -683,6 +694,16 @@
         }
       ],
       "view/title": [
+        {
+          "command": "cInsight.projectFiles.sort",
+          "when": "view == cInsight.projectFiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.projectFiles.refresh",
+          "when": "view == cInsight.projectFiles",
+          "group": "navigation@2"
+        },
         {
           "command": "cInsight.includeHierarchy.showIncludes",
           "when": "view == cInsight.includes",
@@ -1199,6 +1220,12 @@
           "type": "webview"
         },
         {
+          "id": "cInsight.projectFiles",
+          "name": "%view.cInsight.projectFiles.name%",
+          "type": "webview",
+          "visibility": "collapsed"
+        },
+        {
           "id": "cInsight.status",
           "name": "%view.cInsight.status.name%",
           "type": "webview"
@@ -1331,6 +1358,24 @@
           "type": "boolean",
           "default": true,
           "description": "%configuration.cInsight.documentSymbols.followEditorCenter.description%"
+        },
+        "cInsight.projectFiles.sortBy": {
+          "type": "string",
+          "enum": ["name", "path", "type"],
+          "default": "name",
+          "description": "%configuration.cInsight.projectFiles.sortBy.description%"
+        },
+        "cInsight.projectFiles.followActiveEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.cInsight.projectFiles.followActiveEditor.description%"
+        },
+        "cInsight.projectFiles.maximumFiles": {
+          "type": "integer",
+          "default": 50000,
+          "minimum": 1000,
+          "maximum": 200000,
+          "description": "%configuration.cInsight.projectFiles.maximumFiles.description%"
         },
         "cInsight.navigation.doubleClickInterval": {
           "type": "number",

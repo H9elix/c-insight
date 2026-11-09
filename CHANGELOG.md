@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added a development-preview Project Files view with a flat multi-root file inventory, natural name/path/type sorting, active-file highlighting, a persistent live name/path filter and a contextual clear button.
+- File listing is independent of semantic engines, pauses while hidden, coalesces file creation/deletion/rename events, skips text-edit rescans, and preserves filter input during automatic active-file reveal. Text files use shared preview/navigation; binary and oversized resources open through VS Code.
+
 ## 0.22.26
 
 - Fixed clangd compiler-injected macro Callers using shared, lazy Hover identity evidence: numeric/conditional and function-alias macros retain exact macro uses across files, including `#if`. Source-less roots navigate to their selected use without inventing a source definition; expanded-function Callers remain explicit.

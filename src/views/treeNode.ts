@@ -13,6 +13,7 @@ export interface TreeNode {
   id?: string;
   label: string;
   labelHighlights?: Array<[number, number]>;
+  filterText?: string;
   description?: string;
   tooltip?: string | vscode.MarkdownString;
   icon?: vscode.ThemeIcon;

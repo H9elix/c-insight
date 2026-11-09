@@ -107,6 +107,8 @@ export const COMMANDS = {
   INCLUDED_BY_EXPORT_TEXT: "cInsight.includedBy.exportText",
   INCLUDED_BY_EXPORT_JSON: "cInsight.includedBy.exportJson",
   INCLUDED_BY_EXPORT_MERMAID: "cInsight.includedBy.exportMermaid",
+  PROJECT_FILES_REFRESH: "cInsight.projectFiles.refresh",
+  PROJECT_FILES_SORT: "cInsight.projectFiles.sort",
 } as const;
 
 export const INTERNAL_COMMANDS = {
@@ -136,6 +138,7 @@ export const VIEWS = {
   BOOKMARKS: "cInsight.bookmarks",
   WORKSPACE_SYMBOLS: "cInsight.workspaceSymbols",
   SYMBOLS: "cInsight.symbols",
+  PROJECT_FILES: "cInsight.projectFiles",
   STATUS: "cInsight.status",
 } as const;
 

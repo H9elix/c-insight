@@ -19,6 +19,13 @@ export interface ResultTreeView extends vscode.Disposable {
 
 interface ResultTreeAction { command: string; label: string }
 
+export interface ResultTreeOptions {
+  persistentFilter?: boolean;
+  filterTitle?: string;
+  hideCollapseAll?: boolean;
+  onActivate?: (node: TreeNode, intent: "preview" | "open") => Promise<void>;
+}
+
 export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private ready = false;
@@ -33,6 +40,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   private readonly collapseEmitter = new vscode.EventEmitter<{ element: TreeNode }>();
   private readonly resolutionTokens = new WeakMap<TreeNode, number>();
   private nextResolutionToken = 1;
+  private status = "";
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
   readonly onDidExpandElement = this.expandEmitter.event;
   readonly onDidCollapseElement = this.collapseEmitter.event;
@@ -42,6 +50,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     private readonly id: ViewId,
     private readonly provider: MutableTreeProvider,
     private readonly extensionUri: vscode.Uri,
+    private readonly options: ResultTreeOptions = {},
   ) {
     this.model = new ResultTreeModel({
       roots: () => provider.getRoots(),
@@ -75,7 +84,11 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       iconsUri: view.webview.asWebviewUri(vscode.Uri.joinPath(assets, "codicon.css")).toString(),
       label: view.title ?? this.id,
       collapseTitle: vscode.l10n.t("Collapse All"),
-      filterTitle: vscode.l10n.t("Filter visible results"),
+      filterTitle: this.options.filterTitle ?? vscode.l10n.t("Filter visible results"),
+      persistentFilter: this.options.persistentFilter,
+      hideCollapseAll: this.options.hideCollapseAll,
+      clearTitle: vscode.l10n.t("Clear file filter"),
+      noMatchesTitle: vscode.l10n.t("No matching files"),
       expandTitle: vscode.l10n.t("Expand"),
       collapseNodeTitle: vscode.l10n.t("Collapse"),
     });
@@ -104,17 +117,34 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       if (!this.view) await vscode.commands.executeCommand(`${this.id}.focus`);
       this.view?.show(!options.focus);
     }
-    const id = await this.model.reveal(node,
+    const existing = this.options.persistentFilter && !options.expand
+      ? this.model.snapshot().find(row => row.node === node)?.id : undefined;
+    const id = existing ?? await this.model.reveal(node,
       options.expand === true ? 1 : typeof options.expand === "number" ? options.expand : 0);
     if (id) {
       this.pendingReveal = {
         type: "reveal", id, focus: !!options.focus, select: options.select !== false,
       };
-      this.publish();
+      this.publishReveal();
     }
   }
 
   async collapseAll(): Promise<void> { await this.model.collapseAll(); }
+
+  setStatus(status: string): void {
+    this.status = status;
+    if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "status", status });
+  }
+
+  refreshPresentations(nodes: TreeNode[]): void {
+    const rows = nodes.map(node => this.model.updateDescription(node));
+    if (rows.some(row => !row)) { this.scheduleRefresh(); return; }
+    if (!this.ready || !this.visible) return;
+    void this.view?.webview.postMessage({ type: "patch", rows: rows.map(row => {
+      const { node, ...value } = row!;
+      return { ...value, actions: this.actions(node) };
+    }) });
+  }
 
   async interactionForTest(message?: unknown): Promise<unknown> {
     if (message) await this.handleMessage(message);
@@ -166,6 +196,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       key: createHash("sha256").update(rawKey).digest("hex").slice(0, 24),
       label,
       description: node.description?.replace(/\r?\n/g, " "),
+      filterText: node.filterText,
       tooltip: typeof node.tooltip === "string" ? node.tooltip : node.tooltip?.value,
       icon: node.icon?.id, iconColor: node.icon?.color?.id,
       highlights: node.labelHighlights,
@@ -202,7 +233,9 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (message.type === "expand") {
       await this.model.setExpanded(row.id, message.expanded);
     } else if (message.type === "activate") {
-      if (row.node.command) {
+      if (this.options.onActivate && row.node.location) {
+        await this.options.onActivate(row.node, message.intent);
+      } else if (row.node.command) {
         const command = row.node.command;
         await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []));
       } else if (row.node.location) {
@@ -212,7 +245,11 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       }
     } else if (message.type === "action" &&
       this.actions(row.node).some((action) => action.command === message.command)) {
-      await vscode.commands.executeCommand(message.command, row.node);
+      if (this.options.onActivate && message.command === COMMANDS.OPEN_LOCATION) {
+        await this.options.onActivate(row.node, "open");
+      } else {
+        await vscode.commands.executeCommand(message.command, row.node);
+      }
     }
   }
 
@@ -220,11 +257,16 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (!this.ready || !this.visible || this.disposed) return;
     void this.view?.webview.postMessage({
       type: "state", doubleClickInterval: readConfiguration().navigationDoubleClickInterval,
+      status: this.status,
       rows: this.model.snapshot().map(({ node, ...row }) => ({
         ...row, actions: this.actions(node),
       })),
     });
-    if (this.pendingReveal && this.model.row(this.pendingReveal.id)) {
+    this.publishReveal();
+  }
+
+  private publishReveal(): void {
+    if (this.ready && this.visible && this.pendingReveal && this.model.row(this.pendingReveal.id)) {
       void this.view?.webview.postMessage(this.pendingReveal);
       this.pendingReveal = undefined;
     }
@@ -234,7 +276,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     const actions: ResultTreeAction[] = [];
     if (node.location) {
       actions.push({ command: COMMANDS.OPEN_LOCATION, label: vscode.l10n.t("Open Location") });
-      if (node.contextValue !== "bookmarkLocation") {
+      if (node.contextValue !== "bookmarkLocation" && !this.options.onActivate) {
         actions.push({ command: COMMANDS.BOOKMARKS_ADD, label: vscode.l10n.t("Add Bookmark") });
       }
     }

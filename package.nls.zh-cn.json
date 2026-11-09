@@ -200,5 +200,11 @@
   "configuration.cInsight.callHierarchy.pathSearchMaximumDepth.description": "搜索调用者/被调用者路径时探索的最大边深度。",
   "configuration.cInsight.callHierarchy.pathSearchMaximumPaths.description": "一次搜索返回的最大匹配调用路径数。",
   "configuration.cInsight.callHierarchy.pathSearchMaximumNodes.description": "一次调用路径搜索访问的最大语义节点数。",
-  "configuration.cInsight.exclude.description": "从 C Insight 结果视图中排除的路径片段。"
+  "configuration.cInsight.exclude.description": "从 C Insight 结果视图中排除的路径片段。",
+  "command.cInsight.projectFiles.refresh.title": "C Insight: 刷新工程文件",
+  "command.cInsight.projectFiles.sort.title": "C Insight: 工程文件排序",
+  "view.cInsight.projectFiles.name": "工程文件",
+  "configuration.cInsight.projectFiles.sortBy.description": "工程文件列表的升序排列方式：文件名、相对路径或文件类型。",
+  "configuration.cInsight.projectFiles.followActiveEditor.description": "在工程文件列表中高亮并定位当前活动文件，不抢占焦点或清空搜索。",
+  "configuration.cInsight.projectFiles.maximumFiles.description": "工程文件列表最多加载的文件数。达到上限时提示列表和搜索可能不完整。"
 }

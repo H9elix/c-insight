@@ -37,6 +37,10 @@ interface ResultTreeWebviewOptions {
   filterTitle: string;
   expandTitle: string;
   collapseNodeTitle: string;
+  persistentFilter?: boolean;
+  hideCollapseAll?: boolean;
+  clearTitle?: string;
+  noMatchesTitle?: string;
 }
 
 export function renderResultTreeWebview(options: ResultTreeWebviewOptions): string {
@@ -57,6 +61,13 @@ export function renderResultTreeWebview(options: ResultTreeWebviewOptions): stri
     button:focus-visible, input:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     #filter { width: 100%; min-width: 0; height: 23px; padding: 2px 5px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); }
     #filter[hidden] { display: none; }
+    #filter-box { position: relative; display: flex; flex: 1; min-width: 0; }
+    #filter-box.persistent #filter { padding-right: 27px; }
+    #filter-box.persistent #filter::-webkit-search-cancel-button { -webkit-appearance: none; }
+    #filter-clear { position: absolute; right: 2px; top: 1px; width: 23px; height: 21px; }
+    #filter-clear[hidden] { display: none; }
+    #empty, #status { flex: 0 0 auto; padding: 4px 8px; color: var(--vscode-descriptionForeground); font-size: .9em; }
+    #empty[hidden], #status[hidden] { display: none; }
     #tree { flex: 1; min-height: 0; overflow: auto; position: relative; outline: none; scrollbar-gutter: stable; }
     #canvas { position: relative; min-width: 100%; }
     .row { position: absolute; height: 24px; display: flex; align-items: center; width: 100%; min-width: max-content; padding-right: 9px; user-select: none; cursor: default; }
@@ -77,11 +88,16 @@ export function renderResultTreeWebview(options: ResultTreeWebviewOptions): stri
     #menu button:hover, #menu button:focus { background: var(--vscode-menu-selectionBackground); color: var(--vscode-menu-selectionForeground); }
     @media (prefers-reduced-motion: reduce) { .codicon-modifier-spin { animation: none !important; } }
   </style></head><body>
-  <div id="toolbar">
-    <input id="filter" hidden type="search" aria-label="${escape(options.filterTitle)}" placeholder="${escape(options.filterTitle)}">
-    <button id="filter-toggle" title="${escape(options.filterTitle)}" aria-label="${escape(options.filterTitle)}"><span class="codicon codicon-filter"></span></button>
-    <button id="collapse" title="${escape(options.collapseTitle)}" aria-label="${escape(options.collapseTitle)}"><span class="codicon codicon-collapse-all"></span></button>
+  <div id="toolbar" data-persistent-filter="${!!options.persistentFilter}">
+    <div id="filter-box" class="${options.persistentFilter ? "persistent" : ""}">
+      <input id="filter" ${options.persistentFilter ? "" : "hidden"} type="search" spellcheck="false" autocomplete="off" aria-label="${escape(options.filterTitle)}" placeholder="${escape(options.filterTitle)}">
+      <button id="filter-clear" hidden type="button" title="${escape(options.clearTitle ?? "Clear")}" aria-label="${escape(options.clearTitle ?? "Clear")}">×</button>
+    </div>
+    <button id="filter-toggle" ${options.persistentFilter ? "hidden" : ""} title="${escape(options.filterTitle)}" aria-label="${escape(options.filterTitle)}"><span class="codicon codicon-filter"></span></button>
+    <button id="collapse" ${options.hideCollapseAll ? "hidden" : ""} title="${escape(options.collapseTitle)}" aria-label="${escape(options.collapseTitle)}"><span class="codicon codicon-collapse-all"></span></button>
   </div>
+  <div id="empty" hidden role="status">${escape(options.noMatchesTitle ?? "")}</div>
+  <div id="status" hidden role="status"></div>
   <div id="tree" role="tree" tabindex="0" aria-label="${escape(options.label)}" data-expand-label="${escape(options.expandTitle)}" data-collapse-label="${escape(options.collapseNodeTitle)}"><div id="canvas"></div></div>
   <div id="menu" role="menu" hidden></div>
   <script nonce="${escape(options.nonce)}">${resultTreeClientScript}</script>
@@ -95,6 +111,10 @@ export const resultTreeClientScript = String.raw`
   const canvas = document.getElementById('canvas');
   const filter = document.getElementById('filter');
   const menu = document.getElementById('menu');
+  const persistentFilter = document.getElementById('toolbar')?.dataset.persistentFilter === 'true';
+  const clearFilter = document.getElementById('filter-clear');
+  const empty = document.getElementById('empty');
+  const status = document.getElementById('status');
   let rows = [], visibleRows = [], selected, pendingClick, interval = 500;
   let rowHeight = 24, scheduled = false, menuRow;
   const resolved = new Set();
@@ -129,7 +149,9 @@ export const resultTreeClientScript = String.raw`
   function draw() {
     scheduled = false;
     const needle = filter.value.toLocaleLowerCase();
-    visibleRows = rows.filter(row => !needle || (row.label + ' ' + (row.description || '')).toLocaleLowerCase().includes(needle));
+    visibleRows = rows.filter(row => !needle || row.searchText.includes(needle));
+    if (clearFilter) clearFilter.hidden = !persistentFilter || !filter.value;
+    if (empty) empty.hidden = !persistentFilter || !filter.value || visibleRows.length > 0;
     canvas.style.height = (visibleRows.length * rowHeight) + 'px';
     if (restoreScroll && rows.length) { tree.scrollTop = restoreScroll; restoreScroll = 0; }
     const begin = Math.max(0, Math.floor(tree.scrollTop / rowHeight) - 10);
@@ -269,26 +291,43 @@ export const resultTreeClientScript = String.raw`
   document.addEventListener('pointerdown', event => { if (!menu.contains(event.target)) hideMenu(); });
   document.getElementById('collapse').addEventListener('click', () => { pendingClick = undefined; post({ type: 'collapseAll' }); });
   document.getElementById('filter-toggle').addEventListener('click', () => { pendingClick = undefined; filter.hidden = !filter.hidden; if (!filter.hidden) filter.focus(); else { filter.value = ''; draw(); } });
-  filter.addEventListener('input', () => { tree.scrollTop = 0; pendingClick = undefined; draw(); });
+  function resetFilter() {
+    filter.value = ''; tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; draw();
+    if (persistentFilter) filter.focus();
+  }
+  clearFilter?.addEventListener('click', resetFilter);
+  filter.addEventListener('input', () => { tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; if (persistentFilter) scheduleDraw(); else draw(); });
   filter.addEventListener('keydown', event => {
-    if (event.key === 'Escape') { filter.value = ''; filter.hidden = true; draw(); tree.focus(); }
+    if (event.key === 'Escape') { if (persistentFilter) resetFilter(); else { filter.value = ''; filter.hidden = true; draw(); tree.focus(); } }
+    else if ((event.ctrlKey || event.metaKey) && event.key === 'f') { event.preventDefault(); filter.focus(); }
     else if (event.key === 'ArrowDown') { event.preventDefault(); focusRow(visibleRows[0]); }
   });
   window.addEventListener('message', event => {
     const message = event.data;
     if (message?.type === 'state') {
-      rows = message.rows; interval = message.doubleClickInterval || 500;
+      rows = message.rows.map(row => ({ ...row, searchText: (row.filterText ?? (row.label + ' ' + (row.description || ''))).toLocaleLowerCase() })); interval = message.doubleClickInterval || 500;
+      if (status) { status.textContent = message.status || ''; status.hidden = !message.status; }
       if (selected && !rows.some(row => row.id === selected)) { selected = undefined; pendingClick = undefined; }
       draw();
     } else if (message?.type === 'reveal') {
-      filter.value = ''; draw();
+      if (!persistentFilter) filter.value = '';
+      draw();
       const row = rows.find(row => row.id === message.id);
       if (!row) return;
       const index = visibleRows.indexOf(row);
+      if (index < 0) return;
       if (message.select) selected = row.id;
       tree.scrollTop = Math.max(0, index * rowHeight - tree.clientHeight / 2);
       if (message.focus) tree.focus({ preventScroll: true });
       draw(); persist();
+    } else if (message?.type === 'patch') {
+      for (const patch of message.rows || []) {
+        const index = rows.findIndex(row => row.id === patch.id);
+        if (index >= 0) rows[index] = { ...patch, searchText: (patch.filterText ?? (patch.label + ' ' + (patch.description || ''))).toLocaleLowerCase() };
+      }
+      draw();
+    } else if (message?.type === 'status' && status) {
+      status.textContent = message.status || ''; status.hidden = !message.status;
     }
   });
   new ResizeObserver(scheduleDraw).observe(tree);

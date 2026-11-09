@@ -12,6 +12,7 @@ import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
+import { ProjectFilesExplorer } from "../projectFiles/projectFilesExplorer";
 import { registerCallHierarchyCommands } from "./callHierarchyCommands";
 import { registerDiagnosticCommands } from "./diagnosticCommands";
 import { registerExtensionControlCommands } from "./extensionControlCommands";
@@ -27,6 +28,7 @@ export interface CommandDependencies {
   symbolSearch: SymbolSearchExplorer; typeHierarchy: TypeHierarchyExplorer;
   includeHierarchy: IncludeHierarchyExplorer; workspaceSession: WorkspaceSessionManager;
   engine: AnalysisEngine; restoreWorkspaceSession: () => Promise<boolean>;
+  projectFiles: ProjectFilesExplorer;
 }
 
 export function registerCommands(context: vscode.ExtensionContext, dependencies: CommandDependencies): void {
@@ -54,6 +56,7 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
     history: d.navigationHistory, bookmarks: d.bookmarks, symbolSearch: d.symbolSearch,
     workspaceSession: d.workspaceSession,
     restoreWorkspaceSession: d.restoreWorkspaceSession,
+    projectFiles: d.projectFiles,
   });
   registerHierarchyCommands(register, d.typeHierarchy, d.includeHierarchy, activePosition);
 }

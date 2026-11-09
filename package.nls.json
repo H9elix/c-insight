@@ -200,5 +200,11 @@
   "configuration.cInsight.callHierarchy.pathSearchMaximumDepth.description": "Maximum edge depth explored by caller/callee path search.",
   "configuration.cInsight.callHierarchy.pathSearchMaximumPaths.description": "Maximum matching call paths returned by one search.",
   "configuration.cInsight.callHierarchy.pathSearchMaximumNodes.description": "Maximum semantic nodes visited by one call path search.",
-  "configuration.cInsight.exclude.description": "Path fragments excluded from C Insight result views."
+  "configuration.cInsight.exclude.description": "Path fragments excluded from C Insight result views.",
+  "command.cInsight.projectFiles.refresh.title": "C Insight: Refresh Project Files",
+  "command.cInsight.projectFiles.sort.title": "C Insight: Sort Project Files",
+  "view.cInsight.projectFiles.name": "Project Files",
+  "configuration.cInsight.projectFiles.sortBy.description": "Ascending sort order for Project Files: file name, relative path, or file type.",
+  "configuration.cInsight.projectFiles.followActiveEditor.description": "Highlight and reveal the active editor file without taking focus or clearing the file filter.",
+  "configuration.cInsight.projectFiles.maximumFiles.description": "Maximum files loaded in Project Files. A visible limit warning also applies to search completeness."
 }
