@@ -120,7 +120,7 @@ export const resultTreeClientScript = String.raw`
   const menu = document.getElementById('menu');
   const persistentFilter = document.getElementById('toolbar')?.dataset.persistentFilter === 'true';
   const trackInteraction = document.getElementById('toolbar')?.dataset.trackInteraction === 'true';
-  let viewFocused = false, inputRevision = 0, autoFollowBlocked = true, rejectedOpenTarget;
+  let viewFocused = false, inputRevision = 0, autoFollowBlocked = true, rejectedOpenTarget, lastAutoFollowId;
   const clearFilter = document.getElementById('filter-clear');
   const empty = document.getElementById('empty');
   const status = document.getElementById('status');
@@ -136,7 +136,7 @@ export const resultTreeClientScript = String.raw`
   }
   function interaction(focused) {
     viewFocused = focused;
-    if (focused) rejectedOpenTarget = undefined;
+    if (focused) { rejectedOpenTarget = undefined; lastAutoFollowId = undefined; }
     if (trackInteraction) post({ type: 'interaction', focused, inputRevision });
   }
   if (trackInteraction) {
@@ -347,7 +347,7 @@ export const resultTreeClientScript = String.raw`
       if (message.focus) tree.focus({ preventScroll: true });
       draw(); persist();
     } else if (message?.type === 'autoFollowPolicy' && trackInteraction) {
-      if (autoFollowBlocked && !message.blocked) rejectedOpenTarget = undefined;
+      if (autoFollowBlocked && !message.blocked) { rejectedOpenTarget = undefined; lastAutoFollowId = undefined; }
       autoFollowBlocked = !!message.blocked;
     } else if (message?.type === 'autoFollow' && trackInteraction) {
       if (autoFollowBlocked || viewFocused || (typeof document.hasFocus === 'function' && document.hasFocus())) return;
@@ -360,15 +360,21 @@ export const resultTreeClientScript = String.raw`
       const row = rows.find(candidate => candidate.id === message.id);
       if (!row) return;
       draw();
-      if (message.clear === 'always' || (filter.value && !visibleRows.includes(row))) {
+      const clearQuery = message.clear === 'always' || (!!filter.value && !visibleRows.includes(row));
+      if (clearQuery) {
         filter.value = ''; pendingClick = undefined; restoreScroll = 0;
         draw();
       }
       if (message.reveal) {
         const index = visibleRows.indexOf(row);
         if (index < 0) return;
-        if (index * rowHeight < tree.scrollTop) tree.scrollTop = index * rowHeight;
-        else if ((index + 1) * rowHeight > tree.scrollTop + tree.clientHeight) tree.scrollTop = Math.max(0, (index + 1) * rowHeight - tree.clientHeight);
+        const outside = index * rowHeight < tree.scrollTop || (index + 1) * rowHeight > tree.scrollTop + tree.clientHeight;
+        // Center new follow actions, not repeated metadata for a file the user can still see.
+        if (lastAutoFollowId !== message.id || clearQuery || outside) {
+          const maximumScroll = Math.max(0, visibleRows.length * rowHeight - tree.clientHeight);
+          tree.scrollTop = Math.max(0, Math.min(maximumScroll, (index + 0.5) * rowHeight - tree.clientHeight / 2));
+        }
+        lastAutoFollowId = message.id;
         draw(); persist();
       }
     } else if (message?.type === 'patch') {

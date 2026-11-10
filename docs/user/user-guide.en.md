@@ -143,12 +143,14 @@ The search box stays at the top while the list scrolls. Input immediately filter
 | State / action | Query | Automatic scrolling |
 | --- | --- | --- |
 | Unlocked single-click/Space preview | Preserved | No preview-driven movement |
-| Unlocked successful double-click/Enter/Open Location | Cleared | Reveal the opened file if following is enabled |
+| Unlocked successful double-click/Enter/Open Location | Cleared | Center the opened file where possible if following is enabled |
 | Focus inside the file view, search or its menus | Preserved | Deferred |
-| Unlocked focus outside the file view | Cleared only if it hides the current file | Reveal the current file if following is enabled |
+| Unlocked focus outside the file view | Cleared only if it hides the current file | Center the current file where possible if following is enabled |
 | Locked | Never automatically cleared | Disabled; active-file highlighting still updates |
 
 Automatic actions never focus the search input, steal focus or change list selection. Failed opens do not clear; delayed completions cannot overwrite a newer query. A file outside the workspace, excluded by `files.exclude`, or absent from the bounded inventory does not cause clearing just to reveal it. Hidden views and an unfocused VS Code window defer automatic actions.
+
+Automatic reveal places the highlighted row near the center of the list viewport, including after opening a filtered result or switching editor tabs. Near either end, or with less than one screen of files, normal scroll limits apply without adding blank rows. Repeated updates for the same visible file do not pull the list back after manual scrolling; another focus-leave cycle, unlocking or an explicit open can position it again.
 
 The independent title-bar Lock/Unlock actions use a stable pin-icon slot. They affect only Project Files automatic clearing/scrolling, not other views, the persisted follow setting, manual operations or filesystem updates. Lock defaults off and is not session-persisted. Unlock synchronizes once when focus is outside; otherwise it waits for focus to leave. Disabling `followActiveEditor` removes highlighting and automatic reveal, but successful explicit opens still clear when unlocked.
 

@@ -271,4 +271,60 @@ describe("custom result tree browser interaction", () => {
     assert.equal(h.elements.get("filter")!.value, "");
     assert.equal(h.elements.get("filter")!.focused, false);
   });
+
+  it("centers the opened file after clearing a filtered list without taking focus", () => {
+    const h = harness(true, true); h.state(false, 100);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("function_50"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-50", clear: "always", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("tree")!.scrollTop, 1092);
+    assert.equal(h.elements.get("filter")!.focused, false);
+  });
+
+  it("centers editor-tab targets in both scroll directions and retains a matching query", () => {
+    const h = harness(true, true); h.state(false, 100);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("function_"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-60", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("tree")!.scrollTop, 1332);
+    h.receive({ type: "autoFollow", id: "node-20", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("tree")!.scrollTop, 372);
+    assert.equal(h.elements.get("filter")!.value, "function_");
+  });
+
+  it("centers an already visible new target and uses its filtered position", () => {
+    const h = harness(true, true); h.state(false, 100);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    h.receive({ type: "autoFollow", id: "node-8", clear: "ifHidden", reveal: true, inputRevision: 0 });
+    assert.equal(h.elements.get("tree")!.scrollTop, 84);
+    const revision = h.input("function_5"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-54", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "function_5");
+    assert.equal(h.elements.get("tree")!.scrollTop, 12);
+  });
+
+  for (const [count, index, height, expected] of [[100, 0, 240, 0], [100, 99, 240, 2160], [3, 1, 240, 0], [100, 50, 360, 1032]]) {
+    it(`clamps centered target ${index}/${count} within a ${height}px list`, () => {
+      const h = harness(true, true); h.state(false, count);
+      h.elements.get("tree")!.clientHeight = height;
+      h.receive({ type: "autoFollowPolicy", blocked: false });
+      h.receive({ type: "autoFollow", id: `node-${index}`, clear: "ifHidden", reveal: true, inputRevision: 0 });
+      assert.equal(h.elements.get("tree")!.scrollTop, expected);
+    });
+  }
+
+  it("does not recenter repeated metadata for a visible file until a new focus cycle", () => {
+    const h = harness(true, true); h.state(false, 100);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const follow = { type: "autoFollow", id: "node-50", clear: "ifHidden", reveal: true, inputRevision: 0 };
+    h.receive(follow);
+    const tree = h.elements.get("tree")!;
+    tree.scrollTop = 1100;
+    h.receive(follow);
+    assert.equal(tree.scrollTop, 1100);
+    h.focus(true); h.focus(false);
+    h.receive(follow);
+    assert.equal(tree.scrollTop, 1092);
+  });
 });
