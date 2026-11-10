@@ -1,9 +1,10 @@
 export type ResultTreeMessage =
   | { type: "ready" | "collapseAll" | "focus" }
-  | { type: "activate"; id: string; intent: "preview" | "open" }
+  | { type: "interaction"; focused: boolean; inputRevision: number }
+  | { type: "activate"; id: string; intent: "preview" | "open"; inputRevision?: number }
   | { type: "expand"; id: string; expanded: boolean }
   | { type: "resolve"; ids: string[] }
-  | { type: "action"; id: string; command: string };
+  | { type: "action"; id: string; command: string; inputRevision?: number };
 
 export function parseResultTreeMessage(value: unknown): ResultTreeMessage | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -11,19 +12,24 @@ export function parseResultTreeMessage(value: unknown): ResultTreeMessage | unde
   if (item.type === "ready" || item.type === "collapseAll" || item.type === "focus") {
     return { type: item.type };
   }
+  const revision = typeof item.inputRevision === "number" && Number.isSafeInteger(item.inputRevision) && item.inputRevision >= 0
+    ? item.inputRevision : undefined;
+  if (item.type === "interaction" && typeof item.focused === "boolean" && revision !== undefined) {
+    return { type: "interaction", focused: item.focused, inputRevision: revision };
+  }
   if (item.type === "resolve" && Array.isArray(item.ids) && item.ids.length <= 400 &&
     item.ids.every((id) => typeof id === "string" && id.length <= 16_384)) {
     return { type: "resolve", ids: item.ids as string[] };
   }
   if (typeof item.id !== "string" || item.id.length > 16_384) return undefined;
   if (item.type === "activate" && (item.intent === "preview" || item.intent === "open")) {
-    return { type: "activate", id: item.id, intent: item.intent };
+    return { type: "activate", id: item.id, intent: item.intent, ...(revision === undefined ? {} : { inputRevision: revision }) };
   }
   if (item.type === "expand" && typeof item.expanded === "boolean") {
     return { type: "expand", id: item.id, expanded: item.expanded };
   }
   if (item.type === "action" && typeof item.command === "string" && item.command.length < 128) {
-    return { type: "action", id: item.id, command: item.command };
+    return { type: "action", id: item.id, command: item.command, ...(revision === undefined ? {} : { inputRevision: revision }) };
   }
   return undefined;
 }
@@ -41,6 +47,7 @@ interface ResultTreeWebviewOptions {
   hideCollapseAll?: boolean;
   clearTitle?: string;
   noMatchesTitle?: string;
+  trackInteraction?: boolean;
 }
 
 export function renderResultTreeWebview(options: ResultTreeWebviewOptions): string {
@@ -88,7 +95,7 @@ export function renderResultTreeWebview(options: ResultTreeWebviewOptions): stri
     #menu button:hover, #menu button:focus { background: var(--vscode-menu-selectionBackground); color: var(--vscode-menu-selectionForeground); }
     @media (prefers-reduced-motion: reduce) { .codicon-modifier-spin { animation: none !important; } }
   </style></head><body>
-  <div id="toolbar" data-persistent-filter="${!!options.persistentFilter}">
+  <div id="toolbar" data-persistent-filter="${!!options.persistentFilter}" data-track-interaction="${!!options.trackInteraction}">
     <div id="filter-box" class="${options.persistentFilter ? "persistent" : ""}">
       <input id="filter" ${options.persistentFilter ? "" : "hidden"} type="search" spellcheck="false" autocomplete="off" aria-label="${escape(options.filterTitle)}" placeholder="${escape(options.filterTitle)}">
       <button id="filter-clear" hidden type="button" title="${escape(options.clearTitle ?? "Clear")}" aria-label="${escape(options.clearTitle ?? "Clear")}">×</button>
@@ -112,6 +119,8 @@ export const resultTreeClientScript = String.raw`
   const filter = document.getElementById('filter');
   const menu = document.getElementById('menu');
   const persistentFilter = document.getElementById('toolbar')?.dataset.persistentFilter === 'true';
+  const trackInteraction = document.getElementById('toolbar')?.dataset.trackInteraction === 'true';
+  let viewFocused = false, inputRevision = 0, autoFollowBlocked = true, rejectedOpenTarget;
   const clearFilter = document.getElementById('filter-clear');
   const empty = document.getElementById('empty');
   const status = document.getElementById('status');
@@ -121,7 +130,22 @@ export const resultTreeClientScript = String.raw`
   const saved = vscode.getState() || {};
   selected = saved.selected;
   let restoreScroll = Number(saved.scrollTop) || 0;
-  function post(message) { vscode.postMessage(message); }
+  function post(message) {
+    if (trackInteraction && (message.type === 'activate' || message.type === 'action')) message.inputRevision = inputRevision;
+    vscode.postMessage(message);
+  }
+  function interaction(focused) {
+    viewFocused = focused;
+    if (focused) rejectedOpenTarget = undefined;
+    if (trackInteraction) post({ type: 'interaction', focused, inputRevision });
+  }
+  if (trackInteraction) {
+    document.addEventListener('focusin', () => interaction(true));
+    document.addEventListener('focusout', () => queueMicrotask(() => interaction(document.hasFocus())));
+    document.addEventListener('pointerdown', () => interaction(true));
+    window.addEventListener('focus', () => interaction(document.hasFocus()));
+    window.addEventListener('blur', () => interaction(false));
+  }
   function persist() { vscode.setState({ selected, scrollTop: tree.scrollTop }); }
   function hideMenu() { menu.hidden = true; menu.replaceChildren(); menuRow = undefined; }
   function focusRow(row, preview = false) {
@@ -292,11 +316,13 @@ export const resultTreeClientScript = String.raw`
   document.getElementById('collapse').addEventListener('click', () => { pendingClick = undefined; post({ type: 'collapseAll' }); });
   document.getElementById('filter-toggle').addEventListener('click', () => { pendingClick = undefined; filter.hidden = !filter.hidden; if (!filter.hidden) filter.focus(); else { filter.value = ''; draw(); } });
   function resetFilter() {
+    inputRevision++;
     filter.value = ''; tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; draw();
     if (persistentFilter) filter.focus();
+    if (trackInteraction) interaction(true);
   }
   clearFilter?.addEventListener('click', resetFilter);
-  filter.addEventListener('input', () => { tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; if (persistentFilter) scheduleDraw(); else draw(); });
+  filter.addEventListener('input', () => { inputRevision++; if (trackInteraction) interaction(true); tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; if (persistentFilter) scheduleDraw(); else draw(); });
   filter.addEventListener('keydown', event => {
     if (event.key === 'Escape') { if (persistentFilter) resetFilter(); else { filter.value = ''; filter.hidden = true; draw(); tree.focus(); } }
     else if ((event.ctrlKey || event.metaKey) && event.key === 'f') { event.preventDefault(); filter.focus(); }
@@ -320,6 +346,31 @@ export const resultTreeClientScript = String.raw`
       tree.scrollTop = Math.max(0, index * rowHeight - tree.clientHeight / 2);
       if (message.focus) tree.focus({ preventScroll: true });
       draw(); persist();
+    } else if (message?.type === 'autoFollowPolicy' && trackInteraction) {
+      if (autoFollowBlocked && !message.blocked) rejectedOpenTarget = undefined;
+      autoFollowBlocked = !!message.blocked;
+    } else if (message?.type === 'autoFollow' && trackInteraction) {
+      if (autoFollowBlocked || viewFocused || (typeof document.hasFocus === 'function' && document.hasFocus())) return;
+      if (message.inputRevision !== inputRevision) {
+        if (message.clear === 'always') rejectedOpenTarget = message.id;
+        return;
+      }
+      if (rejectedOpenTarget === message.id) return;
+      if (rejectedOpenTarget && rejectedOpenTarget !== message.id) rejectedOpenTarget = undefined;
+      const row = rows.find(candidate => candidate.id === message.id);
+      if (!row) return;
+      draw();
+      if (message.clear === 'always' || (filter.value && !visibleRows.includes(row))) {
+        filter.value = ''; pendingClick = undefined; restoreScroll = 0;
+        draw();
+      }
+      if (message.reveal) {
+        const index = visibleRows.indexOf(row);
+        if (index < 0) return;
+        if (index * rowHeight < tree.scrollTop) tree.scrollTop = index * rowHeight;
+        else if ((index + 1) * rowHeight > tree.scrollTop + tree.clientHeight) tree.scrollTop = Math.max(0, (index + 1) * rowHeight - tree.clientHeight);
+        draw(); persist();
+      }
     } else if (message?.type === 'patch') {
       for (const patch of message.rows || []) {
         const index = rows.findIndex(row => row.id === patch.id);
@@ -332,4 +383,5 @@ export const resultTreeClientScript = String.raw`
   });
   new ResizeObserver(scheduleDraw).observe(tree);
   post({ type: 'ready' });
+  if (trackInteraction) interaction(document.hasFocus());
 `;

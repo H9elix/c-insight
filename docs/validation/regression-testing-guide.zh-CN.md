@@ -48,7 +48,7 @@
 | 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`；关闭/重开工程与切换引擎 |
-| 工程文件开发预览 | 022、024、037、042 | `projectFileModel`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
+| 工程文件开发预览 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`cpptoolsExtensionPath`；Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。案例库按条说明覆盖层级；同名测试文件存在不表示某个 UI 动作已有端到端覆盖。
@@ -125,7 +125,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 13. 主题与布局：中文/英文、明暗主题、长行、多面板布局及文档符号中心指示正常；不要把主题颜色不同或显示“编辑器中心”当成语义查询失败。固定配色还需检查三种模式、类别覆盖/非法值回退、锁定时热更新不重置滚动和隐藏后应用新配置，详见[配色验收](code-preview-fixed-colors.zh-CN.md)。
 14. 配置与交付：在对应 WSL/SSH 或多根环境核对配置写入位置；确认临时包、版本、提交和日志来自同一构建。发布按先主干 CI、后版本 Tag 的顺序执行，并下载正式附件验校验和。
 15. 引用分组展开：所有非平铺分组都遵守 `cInsight.references.autoExpandGroups`，默认关闭；运行时切换不额外查询，平铺与手动全部展开/折叠不回归。
-16. 工程文件开发预览：顶部搜索常驻且支持清空；活动标记不清空筛选、不抢焦点，过滤隐藏的活动文件不强行显示；隐藏不扫描、文本编辑不重扫，文件变化合并刷新。核对多根同名文件、二进制默认打开及清单/搜索上限提示，不能以旧文档符号验收代替新窗口验收。
+16. 工程文件开发预览：搜索常驻；未锁定成功打开后清空，离焦时只在筛选隐藏当前文件时清空并定位，视图内搜索/菜单交互不跳动；锁定后保留输入及滚动但高亮继续更新。自动动作不抢焦点，失败或迟到打开不覆盖新查询。隐藏不扫描、文本编辑不重扫，文件变化合并刷新；另核对多根同名文件、二进制打开、数量提示及稳定锁定按钮，不能以旧文档符号验收代替新窗口验收。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

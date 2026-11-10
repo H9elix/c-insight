@@ -12,7 +12,7 @@
 
 ## 用户文档 `user/`
 
-当前本地开发预览另含工程文件窗口（平铺文件清单、常驻实时过滤、排序及活动文件高亮），尚未正式发布；见[使用说明](user/user-guide.zh-CN.md#417-工程文件project-files)及[专项验证](validation/project-files.zh-CN.md)。
+当前本地开发预览另含工程文件窗口（平铺文件清单、常驻实时过滤、排序、活动文件高亮及独立锁定的焦点跟随），尚未正式发布；成功打开后自动清空，普通离焦仅在筛选隐藏目标时清空并定位。见[使用说明](user/user-guide.zh-CN.md#417-工程文件project-files)及[专项验证](validation/project-files.zh-CN.md)。
 
 - [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
 - [English user guide](user/user-guide.en.md)：英文使用说明。

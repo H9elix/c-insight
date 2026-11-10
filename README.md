@@ -14,7 +14,7 @@ Version `0.22.26` fixes clangd compiler-injected macro Callers: numeric, conditi
 
 ## Why C Insight?
 
-Development preview: the local source also includes **Project Files**, a flat workspace file list with active-file highlighting, sorting and a persistent live filter. It is not yet included in a formal release; see the [user guide](docs/user/user-guide.en.md#project-files-development-preview).
+Development preview: the local source also includes **Project Files**, a flat workspace file list with active-file highlighting, sorting and a persistent live filter. Successful opens clear the query; focus-aware automatic reveal has its own Lock/Unlock controls while highlighting continues. It is not yet included in a formal release; see the [user guide](docs/user/user-guide.en.md#project-files-development-preview).
 
 Version `0.22.24` fixes an extra editor Back/Forward stop after opening source from Code Preview, Callers, and other navigation results: returning now skips the file's transient restored position. Existing history is preserved. See the [release notes](docs/releases/v0.22.24.md).
 

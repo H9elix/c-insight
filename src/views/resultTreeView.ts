@@ -23,7 +23,8 @@ export interface ResultTreeOptions {
   persistentFilter?: boolean;
   filterTitle?: string;
   hideCollapseAll?: boolean;
-  onActivate?: (node: TreeNode, intent: "preview" | "open") => Promise<void>;
+  trackInteraction?: boolean;
+  onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number) => Promise<void>;
 }
 
 export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProvider {
@@ -41,6 +42,13 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   private readonly resolutionTokens = new WeakMap<TreeNode, number>();
   private nextResolutionToken = 1;
   private status = "";
+  private focused = false;
+  private revision = 0;
+  private automaticFollowBlocked = true;
+  private readonly interactionEmitter = new vscode.EventEmitter<{ focused: boolean; inputRevision: number }>();
+  readonly onDidChangeInteraction = this.interactionEmitter.event;
+  get hasFocus(): boolean { return this.focused; }
+  get inputRevision(): number { return this.revision; }
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
   readonly onDidExpandElement = this.expandEmitter.event;
   readonly onDidCollapseElement = this.collapseEmitter.event;
@@ -87,6 +95,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       filterTitle: this.options.filterTitle ?? vscode.l10n.t("Filter visible results"),
       persistentFilter: this.options.persistentFilter,
       hideCollapseAll: this.options.hideCollapseAll,
+      trackInteraction: this.options.trackInteraction,
       clearTitle: vscode.l10n.t("Clear file filter"),
       noMatchesTitle: vscode.l10n.t("No matching files"),
       expandTitle: vscode.l10n.t("Expand"),
@@ -99,6 +108,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
         });
       }),
       view.onDidChangeVisibility(() => {
+        if (!view.visible) this.focused = false;
         this.visibilityEmitter.fire({ visible: view.visible });
         if (view.visible) this.scheduleRefresh();
       }),
@@ -136,6 +146,19 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "status", status });
   }
 
+  setAutomaticFollowBlocked(blocked: boolean): void {
+    this.automaticFollowBlocked = blocked;
+    if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "autoFollowPolicy", blocked });
+  }
+
+  async followFile(node: TreeNode, action: { clear: "always" | "ifHidden"; reveal: boolean; inputRevision: number }, current: () => boolean): Promise<boolean> {
+    if (!current() || !this.ready || !this.visible || this.automaticFollowBlocked) return false;
+    const id = this.model.snapshot().find(row => row.node === node)?.id ?? await this.model.reveal(node);
+    if (!id || !current() || this.automaticFollowBlocked || !this.ready || !this.visible) return false;
+    await this.view?.webview.postMessage({ type: "autoFollow", id, ...action });
+    return true;
+  }
+
   refreshPresentations(nodes: TreeNode[]): void {
     const rows = nodes.map(node => this.model.updateDescription(node));
     if (rows.some(row => !row)) { this.scheduleRefresh(); return; }
@@ -163,6 +186,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     this.disposables.splice(0).forEach((item) => item.dispose());
     this.model.dispose();
     this.visibilityEmitter.dispose(); this.expandEmitter.dispose(); this.collapseEmitter.dispose();
+    this.interactionEmitter.dispose();
   }
 
   private scheduleRefresh(): void {
@@ -214,8 +238,18 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (!message) return;
     if (message.type === "ready") {
       this.ready = true;
+      this.revision = 0;
       this.dirty = true;
       if (this.visible) await this.refresh();
+      this.setAutomaticFollowBlocked(this.automaticFollowBlocked);
+      return;
+    }
+    if (message.type === "interaction") {
+      if (this.options.trackInteraction) {
+        this.focused = message.focused;
+        this.revision = message.inputRevision;
+        this.interactionEmitter.fire(message);
+      }
       return;
     }
     if (message.type === "focus") return;
@@ -234,7 +268,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       await this.model.setExpanded(row.id, message.expanded);
     } else if (message.type === "activate") {
       if (this.options.onActivate && row.node.location) {
-        await this.options.onActivate(row.node, message.intent);
+        await this.options.onActivate(row.node, message.intent, message.inputRevision ?? this.revision);
       } else if (row.node.command) {
         const command = row.node.command;
         await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []));
@@ -246,7 +280,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     } else if (message.type === "action" &&
       this.actions(row.node).some((action) => action.command === message.command)) {
       if (this.options.onActivate && message.command === COMMANDS.OPEN_LOCATION) {
-        await this.options.onActivate(row.node, "open");
+        await this.options.onActivate(row.node, "open", message.inputRevision ?? this.revision);
       } else {
         await vscode.commands.executeCommand(message.command, row.node);
       }

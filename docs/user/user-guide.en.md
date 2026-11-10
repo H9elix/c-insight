@@ -136,9 +136,21 @@ The local development build adds **Project Files**, a shared Webview result view
 
 The flat inventory includes all file types across every workspace root, not only open editors or C/C++ sources. It honors folder-specific `files.exclude` and always removes `.git` metadata; `.gitignore`, `search.exclude`, and `cInsight.exclude` are not additional filters. Git-ignored build/dependency files can therefore appear unless hidden through `files.exclude`. Duplicate names show their relative directory and, in multi-root workspaces, their root name.
 
-Files use natural ascending name order (`file2.c` before `file10.c`). The title-bar Sort action also offers relative-path and extension order, with stable path tie-breaking. Sorting changes workspace settings but does not rescan or fetch timestamps. The active editor file is highlighted and marked **Active file**, then revealed without taking focus or changing list selection; image/custom resource editors are supported, and text diff editors use the modified side. Selecting a preview does not change this marker.
+Files use natural ascending name order (`file2.c` before `file10.c`). The title-bar Sort action also offers relative-path and extension order, with stable path tie-breaking. Sorting changes workspace settings but does not rescan or fetch timestamps. The active editor file is highlighted and marked **Active file**; image/custom resource editors are supported, and text diff editors use the modified side. Selecting a preview does not change this marker. Highlighting is independent from automatic scrolling.
 
-The search box stays at the top while the list scrolls. Input immediately filters all loaded files by case-insensitive name/path substring, not regular expressions or fuzzy subsequences. Its **×** button appears only for nonempty input and clears without opening anything or moving focus away. Input/clear resets list scrolling to the top; no matches displays a localized empty message. Ctrl+F/Cmd+F focuses the input, and Escape clears without hiding it. Sorting, refreshing, editor changes, and losing focus do not clear input. Automatic active-file reveal preserves the query and does not force a filtered-out file into view.
+The search box stays at the top while the list scrolls. Input immediately filters all loaded files by case-insensitive name/path substring, not regular expressions or fuzzy subsequences. Its **×** button appears only for nonempty input and clears without opening anything or moving focus away. Manual input/clear resets list scrolling to the top; no matches displays a localized empty message. Ctrl+F/Cmd+F focuses the input, and Escape clears without hiding it. Manual sorting and refreshing preserve input. Automatic handling follows these rules:
+
+| State / action | Query | Automatic scrolling |
+| --- | --- | --- |
+| Unlocked single-click/Space preview | Preserved | No preview-driven movement |
+| Unlocked successful double-click/Enter/Open Location | Cleared | Reveal the opened file if following is enabled |
+| Focus inside the file view, search or its menus | Preserved | Deferred |
+| Unlocked focus outside the file view | Cleared only if it hides the current file | Reveal the current file if following is enabled |
+| Locked | Never automatically cleared | Disabled; active-file highlighting still updates |
+
+Automatic actions never focus the search input, steal focus or change list selection. Failed opens do not clear; delayed completions cannot overwrite a newer query. A file outside the workspace, excluded by `files.exclude`, or absent from the bounded inventory does not cause clearing just to reveal it. Hidden views and an unfocused VS Code window defer automatic actions.
+
+The independent title-bar Lock/Unlock actions use a stable pin-icon slot. They affect only Project Files automatic clearing/scrolling, not other views, the persisted follow setting, manual operations or filesystem updates. Lock defaults off and is not session-persisted. Unlock synchronizes once when focus is outside; otherwise it waits for focus to leave. Disabling `followActiveEditor` removes highlighting and automatic reveal, but successful explicit opens still clear when unlocked.
 
 Single-click/Space previews text from line one; double-click/Enter/Open Location opens that location using the existing navigation history and delayed-follow policy. Images, binary files, and files above 10 MiB leave the text preview unchanged with an explanation on single click; opening uses VS Code's default resource editor. Explicit text previews retain existing optional semantic coloring.
 
@@ -147,7 +159,7 @@ Create/delete/rename events coalesce into a 500 ms relisting; ordinary text edit
 | Setting | Default | Values / range | Behavior |
 | --- | --- | --- | --- |
 | `cInsight.projectFiles.sortBy` | `"name"` | `"name"`, `"path"`, `"type"` | Ascending presentation order; no rescan |
-| `cInsight.projectFiles.followActiveEditor` | `true` | boolean | Highlight and reveal the active file without taking focus or clearing the query |
+| `cInsight.projectFiles.followActiveEditor` | `true` | boolean | Highlight the active file; reveal only while unfocused and unlocked, clearing a hiding filter if needed; disabling does not suppress clearing after an unlocked explicit open |
 | `cInsight.projectFiles.maximumFiles` | `50000` | integer, 1000–200000 | Reload when visible after changing the limit; otherwise defer until shown |
 
 When the limit is reached, a persistent status warns that both the inventory and its local search can be incomplete. No open workspace shows a folder/workspace prompt. The temporary package still needs maintainer UI acceptance.
@@ -299,5 +311,7 @@ This section is generated from `package.json`. Every command is available from t
 | Export Included By as Mermaid | `cInsight.includedBy.exportMermaid` | Command Palette; Included By title |
 | Refresh Project Files | `cInsight.projectFiles.refresh` | Command Palette; Project Files title |
 | Sort Project Files | `cInsight.projectFiles.sort` | Command Palette; Project Files title |
+| Lock Project Files Following | `cInsight.projectFiles.lock` | Command Palette; Project Files title |
+| Unlock Project Files Following | `cInsight.projectFiles.unlock` | Command Palette; Project Files title |
 
 <!-- GENERATED COMMAND REFERENCE END -->

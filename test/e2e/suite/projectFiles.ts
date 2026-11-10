@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
+import { verifyProjectFilesFollowing } from "./projectFilesFollowing";
 
 interface State {
   visible: boolean; scanning: boolean; dirty: boolean; scans: number; truncated: boolean; status: string;
@@ -82,6 +83,8 @@ export async function run(): Promise<void> {
     return input instanceof vscode.TabInputCustom && input.uri.toString() === uri("pixel.png").toString() ? true : undefined;
   }, "Image did not open in its default resource editor");
   await wait(async () => (await state()).files.find(file => file.active && file.uri === uri("pixel.png").toString()), "Resource editor activity not marked");
+
+  await verifyProjectFilesFollowing(folders);
 
   await vscode.commands.executeCommand("workbench.action.toggleSidebarVisibility");
   await wait(async () => !(await state()).visible ? true : undefined, "View did not hide");

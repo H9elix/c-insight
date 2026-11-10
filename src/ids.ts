@@ -109,6 +109,8 @@ export const COMMANDS = {
   INCLUDED_BY_EXPORT_MERMAID: "cInsight.includedBy.exportMermaid",
   PROJECT_FILES_REFRESH: "cInsight.projectFiles.refresh",
   PROJECT_FILES_SORT: "cInsight.projectFiles.sort",
+  PROJECT_FILES_LOCK: "cInsight.projectFiles.lock",
+  PROJECT_FILES_UNLOCK: "cInsight.projectFiles.unlock",
 } as const;
 
 export const INTERNAL_COMMANDS = {
@@ -146,6 +148,7 @@ export const CONTEXT_KEYS = {
   ACTIVE: "cInsight.active",
   CONTEXT_PINNED: "cInsight.pinned",
   PREVIEW_LOCKED: "cInsight.previewLocked",
+  PROJECT_FILES_LOCKED: "cInsight.projectFilesLocked",
   REFERENCES_PINNED: "cInsight.referencesPinned",
   CALL_HIERARCHY_PINNED: "cInsight.callHierarchyPinned",
   CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE: "cInsight.callersExpandedMacroTargetAvailable",

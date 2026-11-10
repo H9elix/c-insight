@@ -205,6 +205,8 @@
   "command.cInsight.projectFiles.sort.title": "C Insight: 工程文件排序",
   "view.cInsight.projectFiles.name": "工程文件",
   "configuration.cInsight.projectFiles.sortBy.description": "工程文件列表的升序排列方式：文件名、相对路径或文件类型。",
-  "configuration.cInsight.projectFiles.followActiveEditor.description": "在工程文件列表中高亮并定位当前活动文件，不抢占焦点或清空搜索。",
-  "configuration.cInsight.projectFiles.maximumFiles.description": "工程文件列表最多加载的文件数。达到上限时提示列表和搜索可能不完整。"
+  "configuration.cInsight.projectFiles.followActiveEditor.description": "高亮活动文件；工程文件未聚焦且未锁定时自动定位，必要时清空遮挡目标的筛选。关闭不影响未锁定时显式打开后的自动清空。",
+  "configuration.cInsight.projectFiles.maximumFiles.description": "工程文件列表最多加载的文件数。达到上限时提示列表和搜索可能不完整。",
+  "command.cInsight.projectFiles.lock.title": "C Insight: 锁定工程文件自动定位",
+  "command.cInsight.projectFiles.unlock.title": "C Insight: 解锁工程文件自动定位"
 }

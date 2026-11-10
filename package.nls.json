@@ -205,6 +205,8 @@
   "command.cInsight.projectFiles.sort.title": "C Insight: Sort Project Files",
   "view.cInsight.projectFiles.name": "Project Files",
   "configuration.cInsight.projectFiles.sortBy.description": "Ascending sort order for Project Files: file name, relative path, or file type.",
-  "configuration.cInsight.projectFiles.followActiveEditor.description": "Highlight and reveal the active editor file without taking focus or clearing the file filter.",
-  "configuration.cInsight.projectFiles.maximumFiles.description": "Maximum files loaded in Project Files. A visible limit warning also applies to search completeness."
+  "configuration.cInsight.projectFiles.followActiveEditor.description": "Highlight the active file and reveal it while Project Files is unfocused and unlocked, clearing a hiding filter if needed. Disabling does not suppress clearing after an unlocked explicit open.",
+  "configuration.cInsight.projectFiles.maximumFiles.description": "Maximum files loaded in Project Files. A visible limit warning also applies to search completeness.",
+  "command.cInsight.projectFiles.lock.title": "C Insight: Lock Project Files Following",
+  "command.cInsight.projectFiles.unlock.title": "C Insight: Unlock Project Files Following"
 }

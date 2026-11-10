@@ -621,6 +621,16 @@
         "command": "cInsight.projectFiles.sort",
         "title": "%command.cInsight.projectFiles.sort.title%",
         "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "cInsight.projectFiles.lock",
+        "title": "%command.cInsight.projectFiles.lock.title%",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "cInsight.projectFiles.unlock",
+        "title": "%command.cInsight.projectFiles.unlock.title%",
+        "icon": "$(pinned)"
       }
     ],
     "keybindings": [
@@ -694,6 +704,16 @@
         }
       ],
       "view/title": [
+        {
+          "command": "cInsight.projectFiles.lock",
+          "when": "view == cInsight.projectFiles && !cInsight.projectFilesLocked",
+          "group": "navigation@0"
+        },
+        {
+          "command": "cInsight.projectFiles.unlock",
+          "when": "view == cInsight.projectFiles && cInsight.projectFilesLocked",
+          "group": "navigation@0"
+        },
         {
           "command": "cInsight.projectFiles.sort",
           "when": "view == cInsight.projectFiles",

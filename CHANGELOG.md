@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Added a development-preview Project Files view with a flat multi-root file inventory, natural name/path/type sorting, active-file highlighting, a persistent live name/path filter and a contextual clear button.
-- File listing is independent of semantic engines, pauses while hidden, coalesces file creation/deletion/rename events, skips text-edit rescans, and preserves filter input during automatic active-file reveal. Text files use shared preview/navigation; binary and oversized resources open through VS Code.
+- File listing is independent of semantic engines, pauses while hidden, coalesces file creation/deletion/rename events, and skips text-edit rescans. Text files use shared preview/navigation; binary and oversized resources open through VS Code.
+- Updated the preview's follow interaction: successful opens clear the query, focus outside the file view reveals the active file and only clears a hiding filter, and an independent Lock keeps input/scroll stable while active-file highlighting continues. Stale asynchronous opens cannot overwrite newer input.
 
 ## 0.22.26
 

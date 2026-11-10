@@ -48,10 +48,13 @@ class Element {
   get firstElementChild(): Element | undefined { return this.children[0]; }
 }
 
-function harness(persistentFilter = false) {
+function harness(persistentFilter = false, trackInteraction = false) {
   const elements = new Map(["tree", "canvas", "filter", "menu", "collapse", "filter-toggle", "toolbar", "filter-clear", "empty", "status"]
     .map((id) => [id, new Element()]));
   elements.get("toolbar")!.dataset.persistentFilter = String(persistentFilter);
+  elements.get("toolbar")!.dataset.trackInteraction = String(trackInteraction);
+  const documentListeners = new Map<string, Array<(event: any) => void>>();
+  let documentFocused = false;
   const messages: any[] = [];
   const windowListeners = new Map<string, (event: any) => void>();
   let now = 1_000;
@@ -63,10 +66,12 @@ function harness(persistentFilter = false) {
       createElement: (tag: string) => new Element(tag),
       createDocumentFragment: () => new Element("fragment"),
       createTextNode: (text: string) => Object.assign(new Element("text"), { textContent: text }),
-      addEventListener: () => undefined,
+      hasFocus: () => documentFocused,
+      addEventListener: (name: string, listener: (event: any) => void) => documentListeners.set(name, [...documentListeners.get(name) ?? [], listener]),
     },
     window: { addEventListener: (name: string, listener: (event: any) => void) => windowListeners.set(name, listener), innerWidth: 600, innerHeight: 400 },
     requestAnimationFrame: (callback: () => void) => callback(),
+    queueMicrotask: (callback: () => void) => callback(),
     ResizeObserver: class { observe(): void {} },
   });
   const receive = (data: unknown): void => { windowListeners.get("message")!({ data }); };
@@ -84,7 +89,17 @@ function harness(persistentFilter = false) {
       target, detail: 1, preventDefault: () => undefined, stopPropagation: () => undefined, ...extra,
     });
   };
-  return { elements, messages, state, dispatch, receive, advance: (ms: number) => { now += ms; } };
+  const focus = (focused: boolean): void => {
+    documentFocused = focused;
+    for (const listener of documentListeners.get(focused ? "focusin" : "focusout") ?? []) listener({});
+    windowListeners.get(focused ? "focus" : "blur")?.({});
+  };
+  const input = (value: string): number => {
+    focus(true); elements.get("filter")!.value = value;
+    elements.get("filter")!.listeners.get("input")!({});
+    return messages.at(-1)?.inputRevision ?? 0;
+  };
+  return { elements, messages, state, dispatch, receive, focus, input, advance: (ms: number) => { now += ms; } };
 }
 
 describe("custom result tree browser interaction", () => {
@@ -192,5 +207,68 @@ describe("custom result tree browser interaction", () => {
     h.receive({ type: "status", status: "Limit reached" });
     assert.equal(h.elements.get("status")!.textContent, "Limit reached");
     assert.equal(h.messages.some(message => message.type === "activate"), false);
+  });
+
+  it("tracks the whole file view and only clears a successful open after focus leaves", () => {
+    const h = harness(true, true); h.state(false, 30);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("function_2");
+    h.receive({ type: "autoFollow", id: "node-2", clear: "always", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "function_2", "Typing focus must protect the query");
+    h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-2", clear: "always", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("filter")!.focused, false, "Automatic clear must not focus the input");
+    assert.equal(h.messages.at(-1).focused, false);
+  });
+
+  it("only clears nonempty filters if ordinary follow would hide the active file", () => {
+    const h = harness(true, true); h.state(false, 30);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("function_2"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-2", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "function_2");
+    h.receive({ type: "autoFollow", id: "node-0", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("filter")!.focused, false);
+  });
+
+  it("keeps locked input and scroll intact but still allows manual clear", () => {
+    const h = harness(true, true); h.state(false, 30);
+    const revision = h.input("function_2"); h.focus(false);
+    h.elements.get("tree")!.scrollTop = 43;
+    h.receive({ type: "autoFollowPolicy", blocked: true });
+    h.receive({ type: "autoFollow", id: "node-20", clear: "always", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "function_2");
+    assert.equal(h.elements.get("tree")!.scrollTop, 43);
+    h.elements.get("filter-clear")!.listeners.get("click")!({});
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("filter")!.focused, true);
+  });
+
+  it("rejects a delayed open and its ordinary follow fallback after newer input", () => {
+    const h = harness(true, true); h.state(false, 30);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const previous = h.input("function_0");
+    const current = h.input("function_2"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-0", clear: "always", reveal: true, inputRevision: previous });
+    h.receive({ type: "autoFollow", id: "node-0", clear: "ifHidden", reveal: true, inputRevision: current });
+    assert.equal(h.elements.get("filter")!.value, "function_2");
+    h.focus(true); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-0", clear: "ifHidden", reveal: true, inputRevision: current });
+    assert.equal(h.elements.get("filter")!.value, "", "A new deliberate focus cycle resumes following");
+  });
+
+  it("lets an explicit unlock resume following after an old open was rejected", () => {
+    const h = harness(true, true); h.state(false, 3);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const previous = h.input("function_0");
+    const current = h.input("function_2"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "node-0", clear: "always", reveal: true, inputRevision: previous });
+    h.receive({ type: "autoFollowPolicy", blocked: true });
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    h.receive({ type: "autoFollow", id: "node-0", clear: "ifHidden", reveal: true, inputRevision: current });
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("filter")!.focused, false);
   });
 });

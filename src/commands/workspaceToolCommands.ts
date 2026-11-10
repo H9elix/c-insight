@@ -23,6 +23,8 @@ export function registerWorkspaceToolCommands(
   const { history, bookmarks, symbolSearch, workspaceSession, restoreWorkspaceSession } = dependencies;
   register(COMMANDS.PROJECT_FILES_REFRESH, () => dependencies.projectFiles.refresh());
   register(COMMANDS.PROJECT_FILES_SORT, () => dependencies.projectFiles.chooseSort());
+  register(COMMANDS.PROJECT_FILES_LOCK, () => dependencies.projectFiles.setLocked(true));
+  register(COMMANDS.PROJECT_FILES_UNLOCK, () => dependencies.projectFiles.setLocked(false));
   register(COMMANDS.HISTORY_FILTER, () => history.chooseFilter());
   register(COMMANDS.HISTORY_CLEAR, () => history.clear());
   register(COMMANDS.BOOKMARKS_ADD_CURRENT, () => bookmarks.addCurrent());
