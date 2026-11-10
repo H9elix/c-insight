@@ -40,4 +40,4 @@ C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test-vscode/code npm run test:e2e:xvfb
 
 原生滚动、窗口高度、明暗主题及 WSL/SSH 的持续回归按上方清单执行。
 
-`0.22.27` 发布准备：完整质量门、工程文件专项和 clangd 主宿主回归通过，文档检查同步通过。依赖审计阻止正式发布，处理记录见 [CI-REG-046](historical-issues.zh-CN.md#ci-reg-046)。
+`0.22.27` 发布验证：安全依赖和客户端构建兼容补丁完成后，全新锁定安装、零漏洞审计、完整质量门 74 个测试文件、7 项依赖兼容测试、工程文件专项、clangd/Microsoft 主宿主及编译宏两种分支检查通过。依赖修复依据见 [CI-REG-046](historical-issues.zh-CN.md#ci-reg-046)。

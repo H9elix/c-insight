@@ -78,7 +78,7 @@
   ],
   "scripts": {
     "compile": "tsc -p .",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js && node scripts/copy-webview-assets.mjs",
+    "bundle": "node scripts/bundle-extension.mjs && node scripts/copy-webview-assets.mjs",
     "build": "npm run compile && npm run bundle",
     "watch": "tsc -p . --watch",
     "lint": "eslint src test --ext .ts",
@@ -127,6 +127,12 @@
     "eslint": "^9.16.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0"
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "11.0.5",
+    "@vscode/l10n-dev": {
+      "glob": "14.0.4"
+    }
   },
   "contributes": {
     "commands": [

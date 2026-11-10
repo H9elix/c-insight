@@ -49,7 +49,7 @@
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
-| 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`cpptoolsExtensionPath`；Release 附件与隐私人工复核 |
+| 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。案例库按条说明覆盖层级；同名测试文件存在不表示某个 UI 动作已有端到端覆盖。
 
@@ -103,6 +103,8 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 `acceptance:ffmpeg` 是只读协议验收；Microsoft 的真实工程 E2E 应使用启动器创建的隔离测试实例。命令不会替项目生成正确的编译数据库。环境、数据和索引不同，不设置“所有查询必须少于某个固定秒数”这样的跨机器门槛。
 
 发布前还要执行联网的 `npm audit --audit-level=low`。网络失败不等于发现漏洞，也不等于审计通过；不得通过关闭 TLS 校验或忽略错误来完成发布。
+
+依赖跨主版本覆盖需要同时检查兼容性：`dependencyCompatibility.test.ts` 覆盖实际语言客户端的路径匹配、本地化枚举、过期嵌套依赖及构建补丁保护。`npm ci` 后重新执行检查与宿主回归，并生成第三方声明；审计为零不能替代接口验证。客户端补丁和适用版本见[开发者手册](../development/developer-guide.zh-CN.md#8-常用开发流程)。
 
 编译参数注入宏的独立场景见[验证说明](command-line-macros.zh-CN.md)。`npm run probe:command-line-macros` 构建并直接查询 clangd，`npm run test:e2e:command-line-macros` 在独立 VS Code 中查询 C Insight；均需要已有 `cc`，不安装新构建工具。后者不是默认主 E2E 的组成部分，需按范围单独运行；另含真实提供程序结果加受控可见性的控制器自动路径诊断。显式查询、受控自动路径、原生输入/布局三层不得混为同一覆盖。正向引用断言通过不意味着已知的定义/宏调用者限制已经修复。
 

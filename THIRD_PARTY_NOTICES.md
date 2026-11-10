@@ -4,10 +4,11 @@ This file is generated from the production dependency tree by `npm run third-par
 
 | Package | Declared license |
 | --- | --- |
+| `@isaacs/nonrecursive-glob-match@1.1.0` | BlueOak-1.0.0 |
 | `@vscode/codicons@0.0.46-24` | CC-BY-4.0 |
 | `balanced-match@4.0.4` | MIT |
 | `brace-expansion@5.0.12` | MIT |
-| `minimatch@10.2.6` | BlueOak-1.0.0 |
+| `minimatch@11.0.5` | BlueOak-1.0.0 |
 | `semver@7.8.5` | ISC |
 | `vscode-jsonrpc@9.0.1` | MIT |
 | `vscode-languageclient@10.1.0` | MIT |
@@ -16,6 +17,66 @@ This file is generated from the production dependency tree by `npm run third-par
 | `vscode-languageserver-types@3.18.0` | MIT |
 
 ## License texts
+
+### @isaacs/nonrecursive-glob-match@1.1.0
+
+```text
+# Blue Oak Model License
+
+Version 1.0.0
+
+## Purpose
+
+This license gives everyone as much permission to work with
+this software as possible, while protecting contributors
+from liability.
+
+## Acceptance
+
+In order to receive this license, you must agree to its
+rules.  The rules of this license are both obligations
+under that agreement and conditions to your license.
+You must not do anything with this software that triggers
+a rule that you cannot or will not follow.
+
+## Copyright
+
+Each contributor licenses you to do everything with this
+software that would otherwise infringe that contributor's
+copyright in it.
+
+## Notices
+
+You must ensure that everyone who gets a copy of
+any part of this software from you, with or without
+changes, also gets the text of this license or a link to
+<https://blueoakcouncil.org/license/1.0.0>.
+
+## Excuse
+
+If anyone notifies you in writing that you have not
+complied with [Notices](#notices), you can keep your
+license by taking all practical steps to comply within 30
+days after the notice.  If you do not do so, your license
+ends immediately.
+
+## Patent
+
+Each contributor licenses you to do everything with this
+software that would otherwise infringe any patent claims
+they can license or become able to license.
+
+## Reliability
+
+No contributor can revoke this license.
+
+## No Liability
+
+***As far as the law allows, this software comes as is,
+without any warranty or condition, and no contributor
+will be liable to anyone for any damages related to this
+software or this license, under any kind of legal claim.***
+```
 
 ### @vscode/codicons@0.0.46-24
 
@@ -477,7 +538,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### minimatch@10.2.6
+### minimatch@11.0.5
 
 ```text
 # Blue Oak Model License

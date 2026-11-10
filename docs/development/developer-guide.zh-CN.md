@@ -318,6 +318,8 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/format-markdown-prose.mjs` / `npm run docs:prose` | 合并根目录维护文档和 `docs/` 中普通段落、列表项的不合时宜硬换行，同时保留标题、表格、代码块和其他 Markdown 结构；`docs:prose:check` 防止格式回退。 |
 | `scripts/check-document-links.mjs` / `npm run docs:links:check` | 检查仓库内 Markdown 本地链接的目标是否存在；标准质量门会自动执行。 |
 | `scripts/generate-third-party-notices.mjs` / `npm run third-party:generate` | 从锁定的生产依赖及其许可证文件生成 `THIRD_PARTY_NOTICES.md`；`third-party:check` 检查漂移。 |
+| `scripts/bundle-extension.mjs` | esbuild 生产打包入口，保持 `vscode` 外部依赖并启用客户端匹配器兼容补丁。 |
+| `scripts/languageclient-minimatch-compat.mjs` | 仅在打包时适配 `vscode-languageclient@10.1.0` 两处旧匹配器检查；版本、源码位置或打包覆盖不符时终止构建。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
 
@@ -373,6 +375,8 @@ npm run probe:microsoft
 npm run test:e2e:microsoft
 npm run test:e2e:ffmpeg:microsoft
 ```
+
+依赖安全覆盖固定在 `package.json` 的 `overrides` 中：受影响的 minimatch 版本使用 `11.0.5`，本地化工具的 glob 使用 `14.0.4`，ESLint 的 minimatch 3 保持原样。新版匹配器移除了 `makeRe()`；构建补丁把客户端两处仅作有效性判断的调用改为检查解析后的 `set` 是否为空，路径匹配仍由 `match()` 完成。补丁不修改 `node_modules` 或全局原型。升级客户端或覆盖版本时，需同步审查补丁，运行 `dependencyCompatibility.test.ts`、完整质量门和宿主回归，重新生成第三方声明，并核对生产包。
 
 慢速输入的 Extension Host 用例在每次调用 `default:type` 前立即恢复编辑器焦点，并确认字符实际写入夹具源码后再检查语义请求数量和编辑门控计数。不要仅在异步空闲等待前聚焦，因为 Webview 可能在等待期间或两次慢速输入之间才完成聚焦。失败信息同时记录活动文档、光标位置、源码是否修改及目标行。不能只依据计数为零就认定输入抑制成功，也不能放宽运行时断言来掩盖焦点问题。
 
