@@ -376,7 +376,7 @@ npm run test:e2e:microsoft
 npm run test:e2e:ffmpeg:microsoft
 ```
 
-依赖安全覆盖固定在 `package.json` 的 `overrides` 中：受影响的 minimatch 版本使用 `11.0.5`，本地化工具的 glob 使用 `14.0.4`，ESLint 的 minimatch 3 保持原样。新版匹配器移除了 `makeRe()`；构建补丁把客户端两处仅作有效性判断的调用改为检查解析后的 `set` 是否为空，路径匹配仍由 `match()` 完成。补丁不修改 `node_modules` 或全局原型。升级客户端或覆盖版本时，需同步审查补丁，运行 `dependencyCompatibility.test.ts`、完整质量门和宿主回归，重新生成第三方声明，并核对生产包。
+依赖安全覆盖固定在 `package.json` 的 `overrides` 中：语言客户端、发布工具和 TypeScript ESLint 解析器分别使用 minimatch `11.0.5`，本地化工具的 glob 使用 `14.0.4`，ESLint 的 minimatch 3 保持原样。按使用方定向覆盖，兼容 CI 的 npm 10 和本地 npm 11 锁文件校验。新版匹配器移除了 `makeRe()`；构建补丁把客户端两处仅作有效性判断的调用改为检查解析后的 `set` 是否为空，路径匹配仍由 `match()` 完成。补丁不修改 `node_modules` 或全局原型。升级客户端或覆盖版本时，需同步审查补丁，运行 `dependencyCompatibility.test.ts`、完整质量门和宿主回归，重新生成第三方声明，并核对生产包。
 
 慢速输入的 Extension Host 用例在每次调用 `default:type` 前立即恢复编辑器焦点，并确认字符实际写入夹具源码后再检查语义请求数量和编辑门控计数。不要仅在异步空闲等待前聚焦，因为 Webview 可能在等待期间或两次慢速输入之间才完成聚焦。失败信息同时记录活动文档、光标位置、源码是否修改及目标行。不能只依据计数为零就认定输入抑制成功，也不能放宽运行时断言来掩盖焦点问题。
 

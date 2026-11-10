@@ -129,7 +129,15 @@
     "typescript-eslint": "^8.18.0"
   },
   "overrides": {
-    "minimatch@>=7.0.0 <11.0.1": "11.0.5",
+    "vscode-languageclient": {
+      "minimatch": "11.0.5"
+    },
+    "@vscode/vsce": {
+      "minimatch": "11.0.5"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.5"
+    },
     "@vscode/l10n-dev": {
       "glob": "14.0.4"
     }

@@ -44,6 +44,17 @@ async function clientMatcher(): Promise<(pattern: unknown, resource: { fsPath: s
 }
 
 describe("security override dependency compatibility", () => {
+  it("uses explicit consumer overrides compatible with npm 10 lock validation", () => {
+    const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
+      overrides: Record<string, { minimatch?: string; glob?: string }>;
+    };
+    for (const consumer of ["vscode-languageclient", "@vscode/vsce", "@typescript-eslint/typescript-estree"]) {
+      assert.equal(manifest.overrides[consumer]?.minimatch, "11.0.5", consumer);
+    }
+    assert.equal(manifest.overrides["@vscode/l10n-dev"]?.glob, "14.0.4");
+    assert.equal(Object.keys(manifest.overrides).some(key => key.startsWith("minimatch")), false);
+  });
+
   it("tests the fixed matcher actually resolved by the language client and rejects stale nested copies", () => {
     const lock = JSON.parse(readFileSync("package-lock.json", "utf8")) as {
       packages: Record<string, { version?: string }>;
