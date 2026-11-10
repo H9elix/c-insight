@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.22.26`, including shared result trees with independent navigation and branch expansion. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
+This guide applies to C Insight `0.22.27`. C Insight is a Source Insight-style C/C++ navigation extension for VS Code. Source, issues, and releases are hosted at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight). It follows the VS Code display language: Simplified Chinese is used for `zh-cn`, while English is the fallback for English and untranslated locales. Run **Configure Display Language** and reload the window to switch languages.
 
 ## Getting started
 
@@ -130,9 +130,9 @@ Function and method are independent; changing variable does not change parameter
 
 Use `fixed-dark` for the dark defaults. To restore the original theme mapping, set `colorScheme` to `theme` and `tokenColors` to `{}`. Removing one category key restores only that category to the selected preset.
 
-## Project Files (development preview)
+## Project Files
 
-The local development build adds **Project Files**, a shared Webview result view next to Document Symbols. It starts collapsed and enumerates only when shown. This feature has not been formally versioned or released; the published `0.22.26` package does not gain it through a documentation update.
+**Project Files** is a shared Webview result view next to Document Symbols, available since `0.22.27`. It starts collapsed and enumerates only when shown. The view can be moved to the bottom panel or another view group.
 
 The flat inventory includes all file types across every workspace root, not only open editors or C/C++ sources. It honors folder-specific `files.exclude` and always removes `.git` metadata; `.gitignore`, `search.exclude`, and `cInsight.exclude` are not additional filters. Git-ignored build/dependency files can therefore appear unless hidden through `files.exclude`. Duplicate names show their relative directory and, in multi-root workspaces, their root name.
 
@@ -164,7 +164,7 @@ Create/delete/rename events coalesce into a 500 ms relisting; ordinary text edit
 | `cInsight.projectFiles.followActiveEditor` | `true` | boolean | Highlight the active file; reveal only while unfocused and unlocked, clearing a hiding filter if needed; disabling does not suppress clearing after an unlocked explicit open |
 | `cInsight.projectFiles.maximumFiles` | `50000` | integer, 1000–200000 | Reload when visible after changing the limit; otherwise defer until shown |
 
-When the limit is reached, a persistent status warns that both the inventory and its local search can be incomplete. No open workspace shows a folder/workspace prompt. The temporary package still needs maintainer UI acceptance.
+When the limit is reached, a persistent status warns that both the inventory and its local search can be incomplete. No open workspace shows a folder/workspace prompt.
 
 ## Configuration and commands
 

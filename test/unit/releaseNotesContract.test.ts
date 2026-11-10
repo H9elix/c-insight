@@ -13,13 +13,14 @@ describe("release notes contract", () => {
   it("keeps curated bilingual notes for the package version", () => {
     assert.equal(existsSync(notesPath), true, `Missing ${notesPath}`);
     const notes = readFileSync(notesPath, "utf8");
-    assert.match(notes, new RegExp(`^# C Insight ${manifest.version}$`, "m"));
+    assert.match(notes, new RegExp(`^# C Insight ${manifest.version.replaceAll(".", "\\.")}$`, "m"));
     assert.match(notes, /^## 中文$/m);
     assert.match(notes, /^## English$/m);
-    assert.match(
+    assert.doesNotMatch(
       notes,
-      /^## 安装与校验 \/ Installation and verification$/m,
+      /^## (?:安装与校验|验证|保留边界|已知限制|Installation and verification|Validation|Known limitations)(?:\s|$)/mi,
     );
+    assert.match(notes, new RegExp(`https://github\\.com/H9elix/c-insight/compare/[^\\s]+\\.\\.${tag.replaceAll(".", "\\.")}`));
     assert.doesNotMatch(notes, /\b(?:TODO|TBD)\b/i);
   });
 

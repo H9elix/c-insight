@@ -1,18 +1,10 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.26`，包含统一自绘结果树的操作、布局和维护说明；正式发布记录以 `releases/` 和更新日志为准。文档按用途分为以下五类；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。项目的简明介绍、核心工作流和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)。
-
-`0.22.23` 包含已完成临时包验收的宏调用者维护修复：补齐无函数调用根的宏及跨文件引用，默认仍只查询宏自身的直接引用，手动操作才切换到展开后的函数。
-
-`0.22.24` 包含已完成临时包验收的编辑器导航历史修复：源码打开与目标定位合并为同一次操作，鼠标侧键或原生后退/前进不再停留于文件临时恢复的旧光标位置；既有合法历史保持不变。
-
-`0.22.25` 增加已验收的固定深浅预览配色、独立类别颜色覆盖和纯样式热更新；中英文用户手册列出全部默认颜色及 `settings.json` 示例。历史问题测试指导与案例库同步纳入维护。
-
-`0.22.26` 纳入已验收的编译参数宏调用者与上下文隐藏时自动刷新修复：默认保留宏自身使用，只有显式操作才展开函数范围；编译宏定义和自动代码预览位置的已知边界仍未修复。
+本文档集对应 C Insight `0.22.27`，按用途分为以下五类。项目介绍和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
 
 ## 用户文档 `user/`
 
-当前本地开发预览另含工程文件窗口（平铺文件清单、常驻实时过滤、排序、活动文件高亮及独立锁定的焦点跟随），尚未正式发布；成功打开后自动清空，普通离焦仅在筛选隐藏目标时清空并定位。见[使用说明](user/user-guide.zh-CN.md#417-工程文件project-files)及[专项验证](validation/project-files.zh-CN.md)。
+`0.22.27` 新增工程文件窗口：平铺文件清单、实时搜索、排序、活动文件高亮、居中跟随及独立锁定。见[使用说明](user/user-guide.zh-CN.md#417-工程文件project-files)及[专项验证](validation/project-files.zh-CN.md)。
 
 - [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
 - [English user guide](user/user-guide.en.md)：英文使用说明。
@@ -34,6 +26,7 @@
 
 - [历史问题驱动测试指南](validation/regression-testing-guide.zh-CN.md)：按修改范围选择测试、自动与人工边界、高频冒烟清单，以及以后收到问题时的持续登记流程。
 - [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：当前 49 条稳定编号场景，首批 48 条后新增编译参数宏 049；包含历史现象、已确认与未确认的原因、复现预期及实际测试入口，新反馈在此增补。
+- [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
 - [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：已纳入 `0.22.25` 的深浅预设、完整默认颜色、自定义配置、校验边界和验收记录。
 - [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，含宏值 `1`、`0` 的生效分支函数调用者与函数式编译宏展开对照；区分已验收的识别、引用及宏调用者与未修复的定义/自动预览边界，关联 `CI-REG-049`。
 - [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。
@@ -45,8 +38,8 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.22.26 发布说明](releases/v0.22.26.md)：与 GitHub Release 正文一致的当前版本中英双语功能、验证、安装和校验说明；同目录保留旧版本发布记录。
+- [C Insight 0.22.27 发布说明](releases/v0.22.27.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
 
-每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门会验证版本、必需章节和占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
+每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门检查版本、中英双语、比较链接和未完成占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 
 用户行为和配置以用户手册为准；源码维护以开发者手册及实际代码为准；带日期或版本的验收数字只代表记录中的环境；规划文档中的延期项目不表示已经实现。

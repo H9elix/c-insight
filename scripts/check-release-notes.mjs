@@ -32,10 +32,6 @@ if (!existsSync(releaseNotesPath)) {
     ["Chinese section", /^## 中文$/m],
     ["English section", /^## English$/m],
     [
-      "installation and verification section",
-      /^## 安装与校验 \/ Installation and verification$/m,
-    ],
-    [
       "version comparison link",
       new RegExp(
         `https://github\\.com/H9elix/c-insight/compare/[^\\s]+\\.\\.${escapeRegExp(expectedTag)}`,

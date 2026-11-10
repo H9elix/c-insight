@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.26` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.27` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -224,7 +224,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 ### 4.10.1 工程文件 `src/projectFiles`
 
-开发预览另有独立的 `src/projectFiles/`：`projectFileModel.ts` 管理稳定自然排序、文件数量上限、Git 元数据排除与常见二进制判断；`projectFilesExplorer.ts` 管理无语义引擎依赖的工作区文件枚举、可见性、串行可取消扫描、500 ms 文件事件合并、活动编辑器标记、排序及文本/资源文件激活。该视图复用共享结果树的可选常驻搜索模式；筛选只在 Webview 的已加载清单上执行，活动标记通过行元数据补丁更新，不为切换编辑器重传整份清单。URI 由宿主中已有节点解析，不接受 Webview 自报路径；资源文件右键打开沿用与双击相同的宿主入口。
+`src/projectFiles/` 独立管理工程文件：`projectFileModel.ts` 管理稳定自然排序、文件数量上限、Git 元数据排除与常见二进制判断；`projectFilesExplorer.ts` 管理无语义引擎依赖的工作区文件枚举、可见性、串行可取消扫描、500 ms 文件事件合并、活动编辑器标记、排序及文本/资源文件激活。该视图复用共享结果树的可选常驻搜索模式；筛选只在 Webview 的已加载清单上执行，活动标记通过行元数据补丁更新，不为切换编辑器重传整份清单。URI 由宿主中已有节点解析，不接受 Webview 自报路径；资源文件右键打开沿用与双击相同的宿主入口。
 
 `projectFileFollowModel.ts` 单独决定焦点、应用可见性、打开过程、菜单交互、跟随配置与独立锁定下允许的自动动作。高亮不受锁定影响；焦点离开后的动作经过 100 ms 合并，执行前复核目标与操作代次。共享 Webview 只对工程文件启用完整视图焦点和用户输入修订号，不传输筛选文字；自动清空不复用会聚焦输入框的手动清空入口。成功打开（含同一文件）和普通活动文件跟随分开处理；浏览器拒绝迟到操作清空新查询。锁定命令只更新运行期状态及独立上下文键，不能借用持久化跟随配置或影响其他窗口。
 
@@ -323,7 +323,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 ## 7. 测试结构
 
-工程文件开发预览增加 `projectFileModel.test.ts`、共享结果树浏览器用例及 `test/e2e/runProjectFilesTest.ts`/`suite/projectFiles.ts`。`npm run test:e2e:project-files` 创建独立临时多根工作区，验证排除、排序、活动文本/资源文件、文件事件、隐藏暂停、预览/打开及显式数量上限；临时工作区在宿主退出后删除。真实硬件、主题及 WSL/SSH 布局仍需人工核对，运行证据见[工程文件验证](../validation/project-files.zh-CN.md)。
+工程文件测试包括 `projectFileModel.test.ts`、`projectFileFollowModel.test.ts`、共享结果树浏览器用例及 `test/e2e/runProjectFilesTest.ts`、`suite/projectFiles.ts`、`suite/projectFilesFollowing.ts`。`npm run test:e2e:project-files` 创建独立临时多根工作区，验证排除、排序、活动文本/资源文件、文件事件、隐藏暂停、预览/打开、焦点与锁定及显式数量上限；临时工作区在宿主退出后删除。居中滚动计算由浏览器脚本测试覆盖，原生显示效果按[工程文件验证](../validation/project-files.zh-CN.md)中的人工清单检查。
 
 历史问题驱动的选择矩阵、分层命令及人工冒烟清单见[测试指南](../validation/regression-testing-guide.zh-CN.md)，实际问题及行为边界见[回归案例库](../validation/historical-issues.zh-CN.md)。以后每次收到实际问题反馈，都先复用或新增稳定编号，记录环境、复现、证据与未确认项；修复时补自动断言和人工空白，交付时引用编号及实际执行结果。不能把某个测试文件存在等同于 UI 全覆盖，也不能把历史测试通过写成本次重测成功。此维护约定同时写入根目录 `AGENTS.md` 和贡献指南，便于后续会话继续执行。
 
@@ -363,7 +363,7 @@ npm run check
 npm audit --audit-level=low
 ```
 
-`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接、当前版本发布说明契约、第三方声明漂移检查和生产构建，是每次提交前的最低门槛。`npm run release:notes:check` 可以单独验证 `docs/releases/v<version>.md` 是否与 `package.json` 一致、包含中英文及安装校验章节并且没有未完成占位符。`npm audit --audit-level=low` 需要访问 npm 公告服务，因此由开发者和 GitHub CI 独立执行。涉及性能或真实引擎时追加：
+`npm run check` 依次执行 lint、测试、本地化检查、ID 漂移检查、中英文命令参考、中文术语、正文换行、文档链接、当前版本发布说明契约、第三方声明漂移检查和生产构建，是每次提交前的最低门槛。`npm run release:notes:check` 单独验证 `docs/releases/v<version>.md` 的版本、中英文章节、版本比较链接和未完成占位符。`npm audit --audit-level=low` 需要访问 npm 公告服务，因此由开发者和 GitHub CI 独立执行。涉及性能或真实引擎时追加：
 
 ```bash
 npm run benchmark
@@ -386,7 +386,7 @@ npm run package
 
 新功能或修复先使用可区分的临时 VSIX 文件名供用户验收，不提前迭代正式版本、推送或发布。用户确认功能正确并授权发布后，再提升 `package.json` 与锁文件版本、更新当前文档和对应的中英双语发布说明，按下述流程发布；历史版本说明和带日期的实测数据保留原始含义。
 
-后续 GitHub Release 正文按维护者约定只写功能新增、功能修复及用户可感知的行为变化，不再列测试数量、验证/审计结果或保留边界、已知限制章节；这些内容仍维护在测试指导、案例库和专项文档中，实际检查和附件校验不省略。约定从后续 Release 开始生效，已有发布说明不追溯重写。当前发布说明契约仍保留历史安装校验章节要求，下一次准备新版本时应同步调整该旧要求，而不是为通过检查重新加入不需要的正文；版本、中英双语和未完成占位符检查继续保留。
+GitHub Release 正文只写功能新增、修复及用户可感知的行为变化；测试结果和已知限制归入测试指导、案例库及专项文档。发布说明契约检查版本、中英双语、比较链接和未完成占位符，不强制安装校验章节。实际发布仍需执行检查并核验附件；已有发布说明保持原文。
 
 公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
 

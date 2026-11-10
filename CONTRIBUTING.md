@@ -52,7 +52,7 @@ Bug fixes should add the smallest appropriate automated regression and retain a 
 
 ## Release workflow
 
-Every package version must have curated bilingual notes at `docs/releases/v<version>.md`. Start from the user-visible changes in `CHANGELOG.md`, include Chinese and English sections plus installation and verification guidance, and remove every `TODO` or `TBD` placeholder. `npm run release:notes:check` validates the file independently and is also part of `npm run check`.
+Every package version must have curated bilingual notes at `docs/releases/v<version>.md`. Describe functional additions, fixes, and user-visible behavior changes in Chinese and English, add the version comparison link, and remove every `TODO` or `TBD` placeholder. Keep test results and known limitations in validation documentation. `npm run release:notes:check` validates the file independently and is also part of `npm run check`.
 
 Push the release commit to `main` and wait for the ordinary CI workflow to succeed before creating an annotated `v<version>` tag. Pushing the tag starts the Release workflow, which revalidates the tag and notes, reruns the audit and package gate, creates `SHA256SUMS`, and publishes the curated notes with the VSIX and checksum attached. Do not commit generated VSIX or checksum files.
 

@@ -8,17 +8,11 @@ C Insight is a Source Insight-style C/C++ code-browsing extension for VS Code. I
 
 C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It is a navigation and visualization layer: it does not compile the project, replace the build system, or create `compile_commands.json` for you.
 
-Version `0.22.26` fixes clangd compiler-injected macro Callers: numeric, conditional and function-alias macros keep their exact uses, including `#if`, even with Context hidden. Expanded-function Callers remain an explicit action. This does not fix compiler-macro definition/Code Preview locations returned by the engine. See the [release notes](docs/releases/v0.22.26.md) and [scenario and known boundaries](docs/validation/command-line-macros.zh-CN.md). Optional fixed preview palettes remain available; see [default colors and settings.json examples](docs/user/user-guide.en.md#code-preview-colors).
+Version `0.22.27` adds **Project Files**: browse the workspace through a searchable, sortable file list, highlight the active file, and follow it near the center of the list. An independent Lock keeps the search and scroll position stable. See the [release notes](docs/releases/v0.22.27.md) and [user guide](docs/user/user-guide.en.md#project-files).
 
 ![C Insight workspace with Document Symbols, Context, Code Preview, Callers, and References visible together](.github/readme-assets/overview.png)
 
 ## Why C Insight?
-
-Development preview: the local source also includes **Project Files**, a flat workspace file list with active-file highlighting, sorting and a persistent live filter. Successful opens clear the query; focus-aware automatic reveal has its own Lock/Unlock controls while highlighting continues. It is not yet included in a formal release; see the [user guide](docs/user/user-guide.en.md#project-files-development-preview).
-
-Version `0.22.24` fixes an extra editor Back/Forward stop after opening source from Code Preview, Callers, and other navigation results: returning now skips the file's transient restored position. Existing history is preserved. See the [release notes](docs/releases/v0.22.24.md).
-
-Since `0.22.22`, result views use a shared Webview tree: single-click previews, double-click opens the editor without expanding or collapsing, and disclosure arrows control branches independently. The same interaction covers Callers, Callees, and the other result views. See the [release notes](docs/releases/v0.22.22.md) and [interaction and maintenance guide](docs/development/custom-result-trees.zh-CN.md).
 
 VS Code already provides commands such as Go to Definition and Find All References. C Insight turns those individual queries into a persistent browsing workspace: the editor remains available for the code you are reading while related definitions, exact call sites, references, and source snippets stay visible in dedicated views.
 
@@ -27,6 +21,7 @@ VS Code already provides commands such as Go to Definition and Find All Referenc
 | Inspect a symbol without losing the current editor position | A shared Code Preview with semantic coloring and definition preference |
 | Understand where and how a symbol is used | Classified, grouped, searchable, and pageable References |
 | Follow control flow | Occurrence-based Callers and Callees with exact call-site locations |
+| Find and switch files | A searchable Project Files inventory with sorting, active-file highlighting, and independent locking |
 | Explore structure | Document Symbols, workspace Symbol Search, Type Hierarchy, and Include Hierarchy |
 | See relationships beyond one tree | Call, type, and file Relationship Graphs |
 | Return to earlier investigations | Preview history, navigation history, bookmarks, pinning, and workspace-session restore |
@@ -66,6 +61,7 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 | Call Hierarchy | Exact incoming/outgoing call occurrences, lazy multi-level expansion, recursion handling, loaded-tree search, bounded path search, pinning, session restoration, and export |
 | Type and Include Hierarchy | C++ supertypes/subtypes plus forward Includes and reverse Included By, with lazy expansion, cycle handling, search, limits, and export |
 | Symbols and navigation | Document Symbols with editor-center highlighting, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
+| Project Files | Flat multi-root file list, live name/path filtering, name/path/type sorting, active-file highlighting, centered following, and independent locking |
 | Project awareness | Compilation-database detection and selection, active command breakdown, diagnostics, clangd lifecycle and recovery, indexing progress, runtime counters, and one reliability status |
 
 Detailed behavior, every command, and the complete configuration table are maintained in the [English user guide](docs/user/user-guide.en.md) and [Simplified Chinese user guide](docs/user/user-guide.zh-CN.md).
