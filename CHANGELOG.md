@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.22.28
 
 - Added a persistent Document Symbols name filter with a clear button, case-insensitive substring matching across loaded collapsed members, and ancestor context. Search branch controls preserve normal tree expansion, while editor-center updates retain the query and filtered scroll position.
 - Added independent Document Symbols follow locking and stable title-bar Lock/Unlock, Sort and Refresh controls. Source-position, natural-name and symbol-type sorting preserve hierarchy and use loaded symbols only; locking pauses automatic reveal while document data and center highlights remain live.

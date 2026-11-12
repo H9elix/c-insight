@@ -8,7 +8,7 @@ C Insight 是一款在 VS Code 中提供 Source Insight 风格 C/C++ 源码浏�
 
 C Insight 默认把语义分析委托给自身管理的 `clangd` 进程，也可以在明确选择后使用已安装的 Microsoft C/C++ language service (cpptools)。它是源码导航和可视化层，不负责代替编译器、构建系统，也不会替你生成 `compile_commands.json`。
 
-`0.22.27` 新增工程文件（Project Files）窗口：用可搜索、可排序的文件列表浏览工作区，高亮当前文件，并尽量居中跟随。独立锁定按钮可保持搜索文字和滚动位置。详见[发布说明](docs/releases/v0.22.27.md)和[用户手册](docs/user/user-guide.zh-CN.md#417-工程文件project-files)。
+`0.22.28` 为文档符号（Document Symbols）新增常驻搜索框、独立跟随锁定，以及源码位置/名称/类型排序。搜索包含折叠分支中已加载的成员，并保留父级上下文。详见[发布说明](docs/releases/v0.22.28.md)和[用户手册](docs/user/user-guide.zh-CN.md#411-文档符号document-symbols)。
 
 ![文档符号、上下文、代码预览、调用者和引用同时可见的 C Insight 工作区](.github/readme-assets/overview.png)
 

@@ -2,7 +2,7 @@
 
 `ResultTreeModel` owns only presentation expansion and discards obsolete asynchronous hydration. `WebviewResultTree` adapts the existing providers through a narrow reveal/visibility/expansion interface, validates row IDs and permitted menu commands, and schedules UI refresh only for visible views. The browser virtualizes the flat projection and requests `resolveVisible` descriptions only for rows in its rendered viewport; collapsed branches remain lazy. Codicons CSS and font assets are copied from the locked production dependency at build time. Source-derived labels use DOM text properties under a nonce-restricted CSP. [Interaction and maintenance details](custom-result-trees.zh-CN.md) describe the accepted UI and keyboard contract, native view-container ownership, and regression scope.
 
-This document describes the `0.22.27` architecture, including shared result trees and the engine-independent Project Files inventory.
+This document describes the `0.22.28` architecture, including shared result trees, cached Document Symbols search and sorting, and the engine-independent Project Files inventory.
 
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 

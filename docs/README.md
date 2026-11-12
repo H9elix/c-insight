@@ -1,10 +1,10 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.22.27`，按用途分为以下五类。项目介绍和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
+本文档集对应 C Insight `0.22.28`，按用途分为以下五类。项目介绍和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
 
 ## 用户文档 `user/`
 
-`0.22.27` 新增工程文件窗口：平铺文件清单、实时搜索、排序、活动文件高亮、居中跟随及独立锁定。见[使用说明](user/user-guide.zh-CN.md#417-工程文件project-files)及[专项验证](validation/project-files.zh-CN.md)。
+`0.22.28` 为文档符号窗口新增常驻名称搜索、独立跟随锁定和同层排序，搜索包含已加载的折叠成员。见[使用说明](user/user-guide.zh-CN.md#411-文档符号document-symbols)及[回归案例](validation/historical-issues.zh-CN.md#ci-reg-042)。工程文件窗口的搜索、锁定和居中跟随见[专项验证](validation/project-files.zh-CN.md)。
 
 - [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
 - [English user guide](user/user-guide.en.md)：英文使用说明。
@@ -38,7 +38,7 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.22.27 发布说明](releases/v0.22.27.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
+- [C Insight 0.22.28 发布说明](releases/v0.22.28.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门检查版本、中英双语、比较链接和未完成占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 

@@ -2,13 +2,13 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.27`. Project Files adds an engine-independent workspace inventory with name/path/type sorting, persistent name/path filtering, active-file highlighting, centered automatic follow, and an independent Lock. Successful opens clear the query; ordinary follow clears only a query that hides the active file. File events are coalesced, scans are serial and cancellable, and hidden views pause work. The maintainer accepted the centered-follow build. See the [user guide](../user/user-guide.en.md#project-files) and [regression checks](../validation/project-files.zh-CN.md).
+The maintained code and documentation baseline is `0.22.28`. Project Files provides an engine-independent workspace inventory with name/path/type sorting, persistent name/path filtering, active-file highlighting, centered automatic follow, and an independent Lock. Successful opens clear the query; ordinary follow clears only a query that hides the active file. File events are coalesced, scans are serial and cancellable, and hidden views pause work. See the [user guide](../user/user-guide.en.md#project-files) and [regression checks](../validation/project-files.zh-CN.md).
 
 The extension retains its dual-engine navigation, occurrence-based call trees, macro-aware Callers, fixed preview palettes, edit-aware query suppression, stable preview scrolling, and shared result-tree interaction. Deferred fourth-phase items remain in the memo below.
 
 The user guides define current behavior; validation reports record reproducible checks and their environments.
 
-The development preview adds a persistent Document Symbols name filter, reusing the Project Files input. It includes already-loaded collapsed members and ancestor context without semantic queries, adds independent follow locking and position/name/type sibling sorting, preserves ordinary expansion records, and keeps editor-center updates from clearing or scrolling active search results.
+Version `0.22.28` adds a persistent Document Symbols name filter, reusing the Project Files input. It includes already-loaded collapsed members and ancestor context without semantic queries, adds independent follow locking and position/name/type sibling sorting, preserves ordinary expansion records, and keeps editor-center updates from clearing or scrolling active search results. The maintainer accepted the combined search and controls preview and authorized publication.
 
 Version `0.22.26` includes the accepted compiler-macro Callers and hidden-Context refresh fixes (CI-REG-049). Shared lazy Hover evidence preserves macro identity without widening the default result to expanded functions; the compiler-macro suite is included in main-branch CI. Compiler-macro definition/automatic Code Preview placement and workspace-symbol indexing remain unresolved and are not implemented as part of this release. No deferred feature phase is activated.
 

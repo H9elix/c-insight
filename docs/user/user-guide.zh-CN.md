@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.22.27`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。工程文件（Project Files）的搜索、排序、锁定和跟随规则见 4.17 节。
+本文对应 C Insight `0.22.28`，说明安装要求、基本工作流程、各窗口的作用与更新逻辑、状态栏、常用命令、编译数据库，以及所有可配置参数。源码、Issue 和 Release 位于 [GitHub 仓库](https://github.com/H9elix/c-insight)；交叉编译和嵌入式工程另有[专项配置指南](cross-compilation.zh-CN.md)。文档符号（Document Symbols）的搜索、排序、锁定和中心跟随规则见 4.11 节；工程文件（Project Files）见 4.17 节。
 
 ### 界面语言
 

@@ -8,7 +8,7 @@ C Insight is a Source Insight-style C/C++ code-browsing extension for VS Code. I
 
 C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It is a navigation and visualization layer: it does not compile the project, replace the build system, or create `compile_commands.json` for you.
 
-Version `0.22.27` adds **Project Files**: browse the workspace through a searchable, sortable file list, highlight the active file, and follow it near the center of the list. An independent Lock keeps the search and scroll position stable. See the [release notes](docs/releases/v0.22.27.md) and [user guide](docs/user/user-guide.en.md#project-files).
+Version `0.22.28` adds a persistent **Document Symbols** search box, independent follow locking, and source-position/name/type sorting. Search includes loaded members inside collapsed branches and retains their ancestor context. See the [release notes](docs/releases/v0.22.28.md) and [user guide](docs/user/user-guide.en.md#configuration-and-commands).
 
 ![C Insight workspace with Document Symbols, Context, Code Preview, Callers, and References visible together](.github/readme-assets/overview.png)
 
