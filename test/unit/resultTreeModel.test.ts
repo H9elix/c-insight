@@ -4,18 +4,18 @@ import { ResultTreeModel, ResultTreeSource } from "../../src/views/resultTreeMod
 import { parseResultTreeMessage } from "../../src/views/resultTreeWebview";
 
 interface Node {
-  key: string; initial?: boolean; children?: Node[]; parent?: Node;
+  key: string; label?: string; initial?: boolean; children?: Node[]; parent?: Node;
   load?: () => Promise<Node[]>;
 }
 
-function fixture(initialRoots: Node[]) {
+function fixture(initialRoots: Node[], filterLoadedChildren = false) {
   let roots = initialRoots;
   let loads = 0;
   const pending = new WeakMap<Node, Promise<Node[]>>();
   const source: ResultTreeSource<Node> = {
     roots: () => roots,
     describe: (node) => ({
-      key: node.key, label: node.key, expandable: !!(node.children || node.load),
+      key: node.key, label: node.label ?? node.key, expandable: !!(node.children || node.load),
       initiallyExpanded: !!node.initial, navigable: true, actionable: false,
     }),
     children: async (node) => {
@@ -28,12 +28,54 @@ function fixture(initialRoots: Node[]) {
       return node.children ?? [];
     },
     parent: (node) => node.parent,
+    loadedChildren: filterLoadedChildren ? node => node.children ?? [] : undefined,
   };
   const model = new ResultTreeModel(source);
   return { model, loads: () => loads, replace: (next: Node[]) => { roots = next; } };
 }
 
 describe("custom result tree model", () => {
+  it("indexes collapsed materialized symbols without loading lazy children or changing expansion", async () => {
+    const member: Node = { key: "read_frame" };
+    const group: Node = { key: "Codec", children: [member] }; member.parent = group;
+    const lazy: Node = { key: "unqueried", load: async () => { throw new Error("Must not load"); } };
+    const f = fixture([group, lazy], true);
+    await f.model.refresh();
+    assert.deepEqual(f.model.snapshot().map(row => row.label), ["Codec", "unqueried"]);
+    assert.deepEqual(f.model.filterSnapshot()?.map(row => row.label), ["Codec", "read_frame", "unqueried"]);
+    assert.equal(f.loads(), 0);
+    const hidden = f.model.filterSnapshot()!.find(row => row.node === member)!;
+    assert.equal(f.model.row(hidden.id)?.node, member, "Filtered descendants must remain valid activation targets");
+    member.label = "read_frame (highlighted)";
+    assert.equal(f.model.updateDescription(member)?.id, hidden.id);
+    assert.equal(f.model.filterSnapshot()!.find(row => row.id === hidden.id)?.label, member.label);
+    await f.model.setExpanded(f.model.snapshot()[0].id, true);
+    assert.equal(f.model.snapshot().find(row => row.node === member)?.id, hidden.id);
+    await f.model.collapseAll();
+    assert.equal(f.model.snapshot().length, 2);
+    assert.equal(f.model.filterSnapshot()?.length, 3);
+    assert.equal(f.loads(), 0);
+  });
+
+  it("keeps duplicate search identities distinct and drops obsolete materialized rows", async () => {
+    const root: Node = { key: "Codec", children: [{ key: "same" }, { key: "same" }] };
+    const f = fixture([root], true); await f.model.refresh();
+    const [parent, first, second] = f.model.filterSnapshot()!;
+    assert.equal(first.parent, parent.id); assert.notEqual(first.id, second.id);
+    f.replace([{ key: "next-file" }]); await f.model.refresh();
+    assert.equal(f.model.row(first.id), undefined);
+    assert.deepEqual(f.model.filterSnapshot()?.map(row => row.label), ["next-file"]);
+    f.model.dispose(); assert.equal(f.model.filterSnapshot(), undefined);
+  });
+
+  it("does not enable whole-tree indexing for ordinary lazy result views and bounds materialized cycles", async () => {
+    const root: Node = { key: "root" }; root.children = [root];
+    const ordinary = fixture([root]); await ordinary.model.refresh();
+    assert.equal(ordinary.model.filterSnapshot(), undefined);
+    const searchable = fixture([root], true); await searchable.model.refresh();
+    assert.equal(searchable.model.filterSnapshot()?.length, 1);
+  });
+
   it("updates presentation without loading branches or changing row identities", async () => {
     const root: Node = { key: "file", load: async () => [{ key: "child" }] };
     const f = fixture([root]);

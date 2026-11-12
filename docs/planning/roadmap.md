@@ -8,6 +8,8 @@ The extension retains its dual-engine navigation, occurrence-based call trees, m
 
 The user guides define current behavior; validation reports record reproducible checks and their environments.
 
+The development preview adds a persistent Document Symbols name filter, reusing the Project Files input. It includes already-loaded collapsed members and ancestor context without semantic queries, preserves ordinary expansion records, and keeps editor-center updates from clearing or scrolling active search results.
+
 Version `0.22.26` includes the accepted compiler-macro Callers and hidden-Context refresh fixes (CI-REG-049). Shared lazy Hover evidence preserves macro identity without widening the default result to expanded functions; the compiler-macro suite is included in main-branch CI. Compiler-macro definition/automatic Code Preview placement and workspace-symbol indexing remain unresolved and are not implemented as part of this release. No deferred feature phase is activated.
 
 Version `0.22.25` incorporates the accepted `experiment/code-preview-fixed-colors` feature: opt-in fixed dark/light Code Preview palettes and strictly validated per-category colors, with `theme` retained as default. Style-only updates preserve source, scroll, caches and lock state. Bilingual user guides include all preset defaults and copyable settings. It does not implement complete editor-theme synchronization, TextMate or Monaco embedding, or any deferred fourth-phase item. The maintainer accepted the temporary VSIX and authorized merge and publication. See [configuration and validation](../validation/code-preview-fixed-colors.zh-CN.md).

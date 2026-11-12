@@ -22,6 +22,9 @@ interface ResultTreeAction { command: string; label: string }
 export interface ResultTreeOptions {
   persistentFilter?: boolean;
   filterTitle?: string;
+  clearTitle?: string;
+  noMatchesTitle?: string;
+  filterLoadedChildren?: boolean;
   hideCollapseAll?: boolean;
   trackInteraction?: boolean;
   onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number) => Promise<void>;
@@ -65,13 +68,17 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       describe: (node) => this.describe(node),
       children: (node) => provider.getChildren(node),
       parent: (node) => provider.getParent(node),
+      loadedChildren: options.filterLoadedChildren ? node => node.children ?? [] : undefined,
     });
     this.disposables.push(
       this.model.onChange(() => this.publish()),
       this.model.onExpansion((node, expanded) => {
         (expanded ? this.expandEmitter : this.collapseEmitter).fire({ element: node });
       }),
-      provider.onDidChangeTreeData(() => this.scheduleRefresh()),
+      provider.onDidChangeTreeData(node => {
+        if (node && options.filterLoadedChildren && this.model.filterSnapshot()) this.refreshPresentations([node]);
+        else this.scheduleRefresh();
+      }),
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration("cInsight.navigation.doubleClickInterval")) this.publish();
       }),
@@ -96,8 +103,8 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       persistentFilter: this.options.persistentFilter,
       hideCollapseAll: this.options.hideCollapseAll,
       trackInteraction: this.options.trackInteraction,
-      clearTitle: vscode.l10n.t("Clear file filter"),
-      noMatchesTitle: vscode.l10n.t("No matching files"),
+      clearTitle: this.options.clearTitle ?? vscode.l10n.t("Clear file filter"),
+      noMatchesTitle: this.options.noMatchesTitle ?? vscode.l10n.t("No matching files"),
       expandTitle: vscode.l10n.t("Expand"),
       collapseNodeTitle: vscode.l10n.t("Collapse"),
     });
@@ -170,9 +177,9 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   }
 
   async interactionForTest(message?: unknown): Promise<unknown> {
-    if (message) await this.handleMessage(message);
+    if (message && message !== "filterSnapshot") await this.handleMessage(message);
     else await this.model.refresh();
-    return this.model.snapshot().map((row) => ({
+    return (message === "filterSnapshot" ? this.model.filterSnapshot() ?? [] : this.model.snapshot()).map((row) => ({
       id: row.id, label: row.label, parent: row.parent,
       expanded: row.expanded, expandable: row.expandable,
       uri: row.node.location?.uri.toString(), line: row.node.location?.range.start.line,
@@ -293,6 +300,9 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       type: "state", doubleClickInterval: readConfiguration().navigationDoubleClickInterval,
       status: this.status,
       rows: this.model.snapshot().map(({ node, ...row }) => ({
+        ...row, actions: this.actions(node),
+      })),
+      filterRows: this.model.filterSnapshot()?.map(({ node, ...row }) => ({
         ...row, actions: this.actions(node),
       })),
     });

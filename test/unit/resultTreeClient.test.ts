@@ -103,6 +103,78 @@ function harness(persistentFilter = false, trackInteraction = false) {
 }
 
 describe("custom result tree browser interaction", () => {
+  function symbolHierarchy(h: ReturnType<typeof harness>, highlight = false): void {
+    const root = { id: "scope", label: "Codec", depth: 0, expandable: true, expanded: false, navigable: true, icon: "symbol-class" };
+    const group = { id: "nested", parent: "scope", label: "Packet", depth: 1, expandable: true, expanded: false, navigable: true, icon: "symbol-struct" };
+    const read = { id: "read", parent: "nested", label: "read_frame", filterText: "read_frame", description: "Editor center", depth: 2, navigable: true,
+      icon: "symbol-function", highlights: highlight ? [[0, 10]] : undefined };
+    const write = { id: "write", parent: "nested", label: "write_frame", depth: 2, navigable: true, icon: "symbol-function" };
+    h.receive({ type: "state", rows: [root], filterRows: [root, group, read, write] });
+  }
+  const renderedIds = (h: ReturnType<typeof harness>) => h.elements.get("canvas")!.children.map(row => row.dataset.id);
+
+  it("filters nested symbols in collapsed branches and keeps their ancestor context without host expansion", () => {
+    const h = harness(true); symbolHierarchy(h);
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    h.input("READ_FRAME");
+    assert.deepEqual(renderedIds(h), ["scope", "nested", "read"]);
+    assert.equal(h.elements.get("canvas")!.children[0].attributes["aria-expanded"], "true");
+    assert.equal(h.messages.some(message => message.type === "expand"), false);
+    h.input("Editor center");
+    assert.deepEqual(renderedIds(h), []); assert.equal(h.elements.get("empty")!.hidden, false);
+    h.elements.get("filter-clear")!.listeners.get("click")!({});
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    assert.equal(h.elements.get("canvas")!.children[0].attributes["aria-expanded"], "false");
+  });
+
+  it("opens filtered descendants with the existing preview/double-click behavior", () => {
+    const h = harness(true); symbolHierarchy(h); h.input("read");
+    const label = h.elements.get("canvas")!.children[2].children[2];
+    h.dispatch("click", label); h.advance(100); h.dispatch("click", label, { detail: 2 });
+    assert.deepEqual(h.messages.filter(message => message.type === "activate").map(message => [message.id, message.intent]), [["read", "preview"], ["read", "open"]]);
+    assert.equal(h.messages.some(message => message.type === "expand"), false);
+  });
+
+  it("collapses search branches locally and restores the ordinary tree on clear", () => {
+    const h = harness(true); symbolHierarchy(h); h.input("frame");
+    h.dispatch("click", h.elements.get("canvas")!.children[0].children[0]);
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    symbolHierarchy(h, true); assert.deepEqual(renderedIds(h), ["scope"]);
+    h.dispatch("keydown", h.elements.get("tree")!, { key: "ArrowRight" });
+    assert.deepEqual(renderedIds(h), ["scope", "nested", "read", "write"]);
+    h.elements.get("collapse")!.listeners.get("click")!({});
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    h.input("read"); assert.deepEqual(renderedIds(h), ["scope", "nested", "read"]);
+    h.elements.get("filter")!.listeners.get("keydown")!({ key: "Escape" });
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    assert.equal(h.messages.some(message => message.type === "expand" || message.type === "collapseAll"), false);
+  });
+
+  it("preserves a symbol query and scroll through center reveals and metadata updates", () => {
+    const h = harness(true); symbolHierarchy(h); h.input("read");
+    const tree = h.elements.get("tree")!; tree.scrollTop = 24;
+    h.receive({ type: "reveal", id: "scope", focus: false, select: false });
+    assert.equal(tree.scrollTop, 24); assert.equal(h.elements.get("filter")!.value, "read");
+    symbolHierarchy(h, true);
+    assert.deepEqual(renderedIds(h), ["scope", "nested", "read"]);
+    assert(h.elements.get("canvas")!.children[2].children[2].children.some(child => child.className === "highlight"));
+    assert.equal(h.elements.get("filter")!.value, "read");
+  });
+
+  it("keeps a large materialized symbol index virtualized and filters it without requests", () => {
+    const h = harness(true);
+    const root = { id: "scope", label: "LargeType", depth: 0, expandable: true, expanded: false };
+    const members = Array.from({ length: 10000 }, (_, index) => ({
+      id: `member-${index}`, label: `field_${index}`, parent: "scope", depth: 1, navigable: true,
+    }));
+    h.receive({ type: "state", rows: [root], filterRows: [root, ...members] });
+    h.input("FIELD_9999"); assert.deepEqual(renderedIds(h), ["scope", "member-9999"]);
+    h.input("field_");
+    assert(h.elements.get("canvas")!.children.length < 50);
+    assert.equal(h.elements.get("canvas")!.style.height, "240024px");
+    assert.equal(h.messages.some(message => message.type !== "ready"), false);
+  });
+
   for (const expanded of [false, true]) {
     it(`opens on a second name click without ${expanded ? "collapsing" : "expanding"} the branch`, () => {
       const h = harness(); h.state(expanded);

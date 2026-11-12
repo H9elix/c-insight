@@ -154,6 +154,8 @@ AnalysisService（调度、计时、统一结果）
 
 Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点身份。所有源码内容进入 HTML 前必须转义。
 
+文档符号单独启用 `persistentFilter` 和 `filterLoadedChildren`，复用工程文件的常驻搜索框。`ResultTreeSource.loadedChildren` 只读取 `TreeNode.children`，生成包含折叠成员的 `filterSnapshot` 和稳定行索引，不调用懒加载回调；正常 `snapshot` 仍只投影展开节点。宿主只为该视图发送 `filterRows`，浏览器按名称匹配并保留父链，筛选内的展开/折叠状态独立于普通树。输入文字留在浏览器，不通过语义引擎筛选；隐藏成员的预览/打开仍用已登记节点校验位置和动作。中心标记变化走行描述补丁，不为其重发整个索引；有筛选时忽略不带焦点/选择意图的自动定位。调用者、引用及其他懒加载树不启用完整子项索引。
+
 ### 4.6 调用层次（Call Hierarchy） `src/callHierarchy`
 
 | 文件 | 管理的功能 |

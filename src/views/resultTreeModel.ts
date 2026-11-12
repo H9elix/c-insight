@@ -32,12 +32,16 @@ export interface ResultTreeSource<T> {
   describe(node: T): ResultTreeDescription;
   children(node: T): Promise<readonly T[]>;
   parent(node: T): T | undefined;
+  /** Optional, already-materialized children only; never hydrates lazy branches. */
+  loadedChildren?(node: T): readonly T[];
 }
 
 export class ResultTreeModel<T extends object> {
   private revision = 0;
   private rows: ResultTreeRow<T>[] = [];
   private byId = new Map<string, ResultTreeRow<T>>();
+  private filterRows?: ResultTreeRow<T>[];
+  private filterById = new Map<string, ResultTreeRow<T>>();
   private readonly expansion = new Map<string, { expanded: boolean; initial: boolean }>();
   private readonly listeners = new Set<() => void>();
   private readonly expansionListeners = new Set<(node: T, expanded: boolean) => void>();
@@ -55,17 +59,20 @@ export class ResultTreeModel<T extends object> {
   }
 
   snapshot(): readonly ResultTreeRow<T>[] { return this.rows; }
+  filterSnapshot(): readonly ResultTreeRow<T>[] | undefined { return this.filterRows; }
 
   row(id: string): ResultTreeRow<T> | undefined {
-    return this.byId.get(id);
+    return this.byId.get(id) ?? this.filterById.get(id);
   }
 
   updateDescription(node: T): ResultTreeRow<T> | undefined {
     const index = this.rows.findIndex(row => row.node === node);
-    if (index < 0) return undefined;
-    const row = { ...this.rows[index], ...this.source.describe(node) };
-    this.rows[index] = row;
-    this.byId.set(row.id, row);
+    const previous = this.rows[index] ?? this.filterRows?.find(row => row.node === node);
+    if (!previous) return undefined;
+    const row = { ...previous, ...this.source.describe(node) };
+    if (index >= 0) { this.rows[index] = row; this.byId.set(row.id, row); }
+    const filterIndex = this.filterRows?.findIndex(candidate => candidate.id === row.id) ?? -1;
+    if (filterIndex >= 0) { this.filterRows![filterIndex] = row; this.filterById.set(row.id, row); }
     return row;
   }
 
@@ -106,6 +113,7 @@ export class ResultTreeModel<T extends object> {
     if (revision !== this.revision) return;
     this.rows = next;
     this.byId = new Map(next.map((row) => [row.id, row]));
+    this.refreshFilterSnapshot();
     // Retain collapsed descendants for subsequent re-expansion, but discard old roots.
     const roots = new Set(next.filter((row) => !row.parent).map((row) => row.id));
     for (const id of this.expansion.keys()) {
@@ -172,9 +180,40 @@ export class ResultTreeModel<T extends object> {
     this.revision++;
     this.rows = [];
     this.byId.clear();
+    this.filterRows = undefined;
+    this.filterById.clear();
     this.expansion.clear();
     this.listeners.clear();
     this.expansionListeners.clear();
+  }
+
+  private refreshFilterSnapshot(): void {
+    if (!this.source.loadedChildren) return;
+    const rows: ResultTreeRow<T>[] = [];
+    const ancestors = new Set<T>();
+    const visit = (nodes: readonly T[], parent?: string, depth = 0): void => {
+      const occurrences = new Map<string, number>();
+      for (let index = 0; index < nodes.length; index++) {
+        const node = nodes[index];
+        if (ancestors.has(node)) continue;
+        const description = this.source.describe(node);
+        const ordinal = occurrences.get(description.key) ?? 0;
+        occurrences.set(description.key, ordinal + 1);
+        const id = `${parent ?? ""}/${encodeURIComponent(description.key)}:${ordinal}`;
+        rows.push(this.byId.get(id) ?? {
+          ...description, id, node, parent, depth,
+          position: index + 1, siblings: nodes.length, expanded: false,
+        });
+        if (depth < 100) {
+          ancestors.add(node);
+          visit(this.source.loadedChildren!(node), id, depth + 1);
+          ancestors.delete(node);
+        }
+      }
+    };
+    visit(this.source.roots());
+    this.filterRows = rows;
+    this.filterById = new Map(rows.map(row => [row.id, row]));
   }
 
   private async expandToDepth(id: string, depth: number): Promise<void> {

@@ -200,7 +200,13 @@ export class ViewRegistry implements vscode.Disposable {
       const tracksNavigation = new Set<ViewId>([
         VIEWS.CONTEXT, VIEWS.REFERENCES, VIEWS.CALLERS, VIEWS.CALLEES, VIEWS.SYMBOLS,
       ]).has(id);
-      const treeView = this.lifecycle.createTreeView(id, provider, tracksNavigation);
+      const treeView = this.lifecycle.createTreeView(id, provider, tracksNavigation,
+        id === VIEWS.SYMBOLS ? {
+          persistentFilter: true, filterLoadedChildren: true,
+          filterTitle: vscode.l10n.t("Filter symbols by name"),
+          clearTitle: vscode.l10n.t("Clear symbol filter"),
+          noMatchesTitle: vscode.l10n.t("No matching symbols"),
+        } : undefined);
       const callDirection =
         id === VIEWS.CALLERS
           ? "incoming"
@@ -2397,6 +2403,7 @@ export class ViewRegistry implements vscode.Disposable {
       const node: TreeNode = {
         id: documentSymbolId(location, info.kind, info.name, order.value++),
         label: info.name,
+        filterText: info.name,
         description: info.containerName,
         icon: new vscode.ThemeIcon(iconId),
         location,
@@ -2417,6 +2424,7 @@ export class ViewRegistry implements vscode.Disposable {
     const node: TreeNode = {
       id: documentSymbolId(location, document.kind, document.name, order.value++),
       label: document.name,
+      filterText: document.name,
       description: document.detail,
       icon: new vscode.ThemeIcon(iconId),
       location,

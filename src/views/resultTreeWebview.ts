@@ -125,6 +125,8 @@ export const resultTreeClientScript = String.raw`
   const empty = document.getElementById('empty');
   const status = document.getElementById('status');
   let rows = [], visibleRows = [], selected, pendingClick, interval = 500;
+  let filterRows;
+  const collapsedMatches = new Set();
   let rowHeight = 24, scheduled = false, menuRow;
   const resolved = new Set();
   const saved = vscode.getState() || {};
@@ -170,10 +172,40 @@ export const resultTreeClientScript = String.raw`
     }
     element.append(document.createTextNode(text.slice(position)));
   }
+  function matchingHierarchy(needle) {
+    const included = new Set(filterRows.filter(row => row.searchText.includes(needle)).map(row => row.id));
+    // Preorder data lets a reverse pass retain the full parent chain in O(n).
+    for (let i = filterRows.length - 1; i >= 0; i--) {
+      const row = filterRows[i];
+      if (included.has(row.id) && row.parent) included.add(row.parent);
+    }
+    const matching = filterRows.filter(row => included.has(row.id));
+    const parents = new Set(matching.map(row => row.parent));
+    const hidden = new Set(), counts = new Map(), positions = new Map();
+    const visible = [];
+    for (const row of matching) {
+      if (hidden.has(row.parent)) { hidden.add(row.id); continue; }
+      const expandable = parents.has(row.id);
+      if (expandable && collapsedMatches.has(row.id)) hidden.add(row.id);
+      counts.set(row.parent, (counts.get(row.parent) || 0) + 1);
+      visible.push({ ...row, expandable, expanded: expandable && !collapsedMatches.has(row.id) });
+    }
+    return visible.map(row => {
+      const position = (positions.get(row.parent) || 0) + 1;
+      positions.set(row.parent, position);
+      return { ...row, position, siblings: counts.get(row.parent) };
+    });
+  }
+  function toggleExpansion(row, expanded) {
+    if (filterRows && filter.value) {
+      if (expanded) collapsedMatches.delete(row.id); else collapsedMatches.add(row.id);
+      draw();
+    } else post({ type: 'expand', id: row.id, expanded });
+  }
   function draw() {
     scheduled = false;
     const needle = filter.value.toLocaleLowerCase();
-    visibleRows = rows.filter(row => !needle || row.searchText.includes(needle));
+    visibleRows = needle && filterRows ? matchingHierarchy(needle) : rows.filter(row => !needle || row.searchText.includes(needle));
     if (clearFilter) clearFilter.hidden = !persistentFilter || !filter.value;
     if (empty) empty.hidden = !persistentFilter || !filter.value || visibleRows.length > 0;
     canvas.style.height = (visibleRows.length * rowHeight) + 'px';
@@ -230,7 +262,7 @@ export const resultTreeClientScript = String.raw`
   }
   function rowForEvent(event) {
     const element = event.target instanceof Element ? event.target.closest('.row') : undefined;
-    return element && rows.find(row => row.id === element.dataset.id);
+    return element && visibleRows.find(row => row.id === element.dataset.id);
   }
   tree.addEventListener('click', event => {
     const row = rowForEvent(event); if (!row) return;
@@ -238,7 +270,7 @@ export const resultTreeClientScript = String.raw`
     if (event.target.closest('.twistie')) {
       pendingClick = undefined;
       selected = row.id; tree.focus({ preventScroll: true }); persist();
-      if (event.detail <= 1) post({ type: 'expand', id: row.id, expanded: !row.expanded });
+      if (event.detail <= 1) toggleExpansion(row, !row.expanded);
       event.stopPropagation(); return;
     }
     // Selection does not alter expansion, including on the second click.
@@ -267,11 +299,11 @@ export const resultTreeClientScript = String.raw`
       focusRow(visibleRows[index], true);
     } else if (event.key === 'ArrowRight' && row) {
       event.preventDefault(); pendingClick = undefined;
-      if (row.expandable && !row.expanded) post({ type: 'expand', id: row.id, expanded: true });
+      if (row.expandable && !row.expanded) toggleExpansion(row, true);
       else if (visibleRows[index + 1]?.parent === row.id) focusRow(visibleRows[index + 1], true);
     } else if (event.key === 'ArrowLeft' && row) {
       event.preventDefault(); pendingClick = undefined;
-      if (row.expanded) post({ type: 'expand', id: row.id, expanded: false });
+      if (row.expanded) toggleExpansion(row, false);
       else focusRow(visibleRows.find(candidate => candidate.id === row.parent), true);
     } else if ((event.key === 'Enter' || event.key === ' ') && row) {
       event.preventDefault(); pendingClick = undefined;
@@ -313,16 +345,21 @@ export const resultTreeClientScript = String.raw`
     }
   });
   document.addEventListener('pointerdown', event => { if (!menu.contains(event.target)) hideMenu(); });
-  document.getElementById('collapse').addEventListener('click', () => { pendingClick = undefined; post({ type: 'collapseAll' }); });
+  document.getElementById('collapse').addEventListener('click', () => {
+    pendingClick = undefined;
+    if (filterRows && filter.value) { for (const row of filterRows) collapsedMatches.add(row.id); draw(); }
+    else post({ type: 'collapseAll' });
+  });
   document.getElementById('filter-toggle').addEventListener('click', () => { pendingClick = undefined; filter.hidden = !filter.hidden; if (!filter.hidden) filter.focus(); else { filter.value = ''; draw(); } });
   function resetFilter() {
     inputRevision++;
+    collapsedMatches.clear();
     filter.value = ''; tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; draw();
     if (persistentFilter) filter.focus();
     if (trackInteraction) interaction(true);
   }
   clearFilter?.addEventListener('click', resetFilter);
-  filter.addEventListener('input', () => { inputRevision++; if (trackInteraction) interaction(true); tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; if (persistentFilter) scheduleDraw(); else draw(); });
+  filter.addEventListener('input', () => { inputRevision++; collapsedMatches.clear(); if (trackInteraction) interaction(true); tree.scrollTop = 0; pendingClick = undefined; restoreScroll = 0; if (persistentFilter) scheduleDraw(); else draw(); });
   filter.addEventListener('keydown', event => {
     if (event.key === 'Escape') { if (persistentFilter) resetFilter(); else { filter.value = ''; filter.hidden = true; draw(); tree.focus(); } }
     else if ((event.ctrlKey || event.metaKey) && event.key === 'f') { event.preventDefault(); filter.focus(); }
@@ -332,13 +369,19 @@ export const resultTreeClientScript = String.raw`
     const message = event.data;
     if (message?.type === 'state') {
       rows = message.rows.map(row => ({ ...row, searchText: (row.filterText ?? (row.label + ' ' + (row.description || ''))).toLocaleLowerCase() })); interval = message.doubleClickInterval || 500;
+      filterRows = Array.isArray(message.filterRows) ? message.filterRows.map(row => ({ ...row, searchText: (row.filterText ?? row.label).toLocaleLowerCase() })) : undefined;
+      if (collapsedMatches.size) {
+        const validIds = new Set((filterRows || []).map(row => row.id));
+        for (const id of collapsedMatches) if (!validIds.has(id)) collapsedMatches.delete(id);
+      }
       if (status) { status.textContent = message.status || ''; status.hidden = !message.status; }
-      if (selected && !rows.some(row => row.id === selected)) { selected = undefined; pendingClick = undefined; }
+      if (selected && !rows.some(row => row.id === selected) && !filterRows?.some(row => row.id === selected)) { selected = undefined; pendingClick = undefined; }
       draw();
     } else if (message?.type === 'reveal') {
+      if (filterRows && filter.value && !message.focus && !message.select) return;
       if (!persistentFilter) filter.value = '';
       draw();
-      const row = rows.find(row => row.id === message.id);
+      const row = visibleRows.find(row => row.id === message.id);
       if (!row) return;
       const index = visibleRows.indexOf(row);
       if (index < 0) return;
@@ -381,6 +424,8 @@ export const resultTreeClientScript = String.raw`
       for (const patch of message.rows || []) {
         const index = rows.findIndex(row => row.id === patch.id);
         if (index >= 0) rows[index] = { ...patch, searchText: (patch.filterText ?? (patch.label + ' ' + (patch.description || ''))).toLocaleLowerCase() };
+        const filterIndex = filterRows?.findIndex(row => row.id === patch.id) ?? -1;
+        if (filterIndex >= 0) filterRows[filterIndex] = { ...patch, searchText: (patch.filterText ?? patch.label).toLocaleLowerCase() };
       }
       draw();
     } else if (message?.type === 'status' && status) {

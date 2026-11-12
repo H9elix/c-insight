@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { verifyMacroCallerRepositoryRegressions } from "./macroCallerRegressions";
 import { verifyEditorNavigationHistory } from "./editorNavigationRegressions";
 import { verifyPreviewColors } from "./previewColorRegressions";
+import { verifyDocumentSymbolSearch } from "./documentSymbolSearch";
 
 const extensionId = "H9elix.c-insight";
 
@@ -315,6 +316,7 @@ async function runClangdAcceptance(): Promise<void> {
   assert.ok(references.length >= 2);
   await verifyEditorNavigationHistory();
   await verifyPreviewColors();
+  await verifyDocumentSymbolSearch();
 }
 
 interface SymbolSearchProbe {

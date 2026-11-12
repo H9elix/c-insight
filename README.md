@@ -60,7 +60,7 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 | References Explorer | Definition/declaration/call/read/write/address classification, file/directory/function/type grouping, scope and evidence filters, lazy snippets, paging, pinning, and export |
 | Call Hierarchy | Exact incoming/outgoing call occurrences, lazy multi-level expansion, recursion handling, loaded-tree search, bounded path search, pinning, session restoration, and export |
 | Type and Include Hierarchy | C++ supertypes/subtypes plus forward Includes and reverse Included By, with lazy expansion, cycle handling, search, limits, and export |
-| Symbols and navigation | Document Symbols with editor-center highlighting, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
+| Symbols and navigation | Document Symbols with editor-center highlighting and persistent name filtering, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
 | Project Files | Flat multi-root file list, live name/path filtering, name/path/type sorting, active-file highlighting, centered following, and independent locking |
 | Project awareness | Compilation-database detection and selection, active command breakdown, diagnostics, clangd lifecycle and recovery, indexing progress, runtime counters, and one reliability status |
 

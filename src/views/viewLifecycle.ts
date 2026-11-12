@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { VIEWS, ViewId } from "../ids";
 import { MutableTreeProvider } from "./treeNode";
-import { ResultTreeView, WebviewResultTree } from "./resultTreeView";
+import { ResultTreeOptions, ResultTreeView, WebviewResultTree } from "./resultTreeView";
 
 export class ViewLifecycle implements vscode.Disposable {
   private readonly treeViews = new Map<ViewId, ResultTreeView>();
@@ -15,8 +15,9 @@ export class ViewLifecycle implements vscode.Disposable {
     id: ViewId,
     provider: MutableTreeProvider,
     notifyVisibility: boolean,
+    options?: ResultTreeOptions,
   ): ResultTreeView {
-    const view = new WebviewResultTree(id, provider, this.extensionUri);
+    const view = new WebviewResultTree(id, provider, this.extensionUri, options);
     this.track(vscode.window.registerWebviewViewProvider(id, view));
     this.treeViews.set(id, view);
     this.track(view);

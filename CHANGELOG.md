@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added a persistent Document Symbols name filter with a clear button, case-insensitive substring matching across loaded collapsed members, and ancestor context. Search branch controls preserve normal tree expansion, while editor-center updates retain the query and filtered scroll position.
+
 ## 0.22.27
 
 - Added a Project Files view with a flat multi-root file inventory, natural name/path/type sorting, active-file highlighting, a persistent live name/path filter and a contextual clear button.
