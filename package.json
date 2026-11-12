@@ -627,6 +627,21 @@
         "title": "%command.cInsight.includedBy.exportMermaid.title%"
       },
       {
+        "command": "cInsight.documentSymbols.sort",
+        "title": "%command.cInsight.documentSymbols.sort.title%",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "cInsight.documentSymbols.lock",
+        "title": "%command.cInsight.documentSymbols.lock.title%",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "cInsight.documentSymbols.unlock",
+        "title": "%command.cInsight.documentSymbols.unlock.title%",
+        "icon": "$(pinned)"
+      },
+      {
         "command": "cInsight.projectFiles.refresh",
         "title": "%command.cInsight.projectFiles.refresh.title%",
         "icon": "$(refresh)"
@@ -719,6 +734,21 @@
       ],
       "view/title": [
         {
+          "command": "cInsight.documentSymbols.lock",
+          "when": "view == cInsight.symbols && !cInsight.documentSymbolsLocked",
+          "group": "navigation@0"
+        },
+        {
+          "command": "cInsight.documentSymbols.unlock",
+          "when": "view == cInsight.symbols && cInsight.documentSymbolsLocked",
+          "group": "navigation@0"
+        },
+        {
+          "command": "cInsight.documentSymbols.sort",
+          "when": "view == cInsight.symbols",
+          "group": "navigation@1"
+        },
+        {
           "command": "cInsight.projectFiles.lock",
           "when": "view == cInsight.projectFiles && !cInsight.projectFilesLocked",
           "group": "navigation@0"
@@ -790,8 +820,13 @@
         },
         {
           "command": "cInsight.refresh",
-          "when": "view =~ /cInsight\\.(context|preview|references|callers|callees|symbols)/",
+          "when": "view =~ /cInsight\\.(context|preview|references|callers|callees)/",
           "group": "navigation"
+        },
+        {
+          "command": "cInsight.refresh",
+          "when": "view == cInsight.symbols",
+          "group": "navigation@2"
         },
         {
           "command": "cInsight.diagnostics.refresh",
@@ -1387,6 +1422,12 @@
           "minimum": 200,
           "maximum": 5000,
           "description": "%configuration.cInsight.followCursorDetailsDelay.description%"
+        },
+        "cInsight.documentSymbols.sortBy": {
+          "type": "string",
+          "enum": ["position", "name", "type"],
+          "default": "position",
+          "description": "%configuration.cInsight.documentSymbols.sortBy.description%"
         },
         "cInsight.documentSymbols.followEditorCenter": {
           "type": "boolean",

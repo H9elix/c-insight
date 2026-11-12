@@ -181,6 +181,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     else await this.model.refresh();
     return (message === "filterSnapshot" ? this.model.filterSnapshot() ?? [] : this.model.snapshot()).map((row) => ({
       id: row.id, label: row.label, parent: row.parent,
+      description: row.description,
       expanded: row.expanded, expandable: row.expandable,
       uri: row.node.location?.uri.toString(), line: row.node.location?.range.start.line,
     }));

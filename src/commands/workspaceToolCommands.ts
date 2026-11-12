@@ -14,6 +14,7 @@ interface WorkspaceToolDependencies {
   workspaceSession: WorkspaceSessionManager;
   restoreWorkspaceSession: () => Promise<boolean>;
   projectFiles: ProjectFilesExplorer;
+  documentSymbols: { chooseSort(): Promise<void>; setLocked(locked: boolean): Promise<void> };
 }
 
 export function registerWorkspaceToolCommands(
@@ -21,6 +22,9 @@ export function registerWorkspaceToolCommands(
   dependencies: WorkspaceToolDependencies,
 ): void {
   const { history, bookmarks, symbolSearch, workspaceSession, restoreWorkspaceSession } = dependencies;
+  register(COMMANDS.DOCUMENT_SYMBOLS_SORT, () => dependencies.documentSymbols.chooseSort());
+  register(COMMANDS.DOCUMENT_SYMBOLS_LOCK, () => dependencies.documentSymbols.setLocked(true));
+  register(COMMANDS.DOCUMENT_SYMBOLS_UNLOCK, () => dependencies.documentSymbols.setLocked(false));
   register(COMMANDS.PROJECT_FILES_REFRESH, () => dependencies.projectFiles.refresh());
   register(COMMANDS.PROJECT_FILES_SORT, () => dependencies.projectFiles.chooseSort());
   register(COMMANDS.PROJECT_FILES_LOCK, () => dependencies.projectFiles.setLocked(true));

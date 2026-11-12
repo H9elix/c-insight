@@ -185,6 +185,10 @@ Primary view-title actions use compact VS Code Theme Icons. Hover an icon to see
 
 Document Symbols has a persistent top search input using the same surface as Project Files. It performs case-insensitive name-substring matching over all symbols already loaded for the active document, including members inside collapsed classes or structs. Results retain matching nodes and their ancestor context without querying an engine or loading other files. The × button and Escape clear the query without hiding the field; Ctrl+F/Cmd+F focuses it. Empty matches display a symbol-specific message. Search arrows, left/right keys and Collapse All affect only the matching projection, leaving ordinary expansion records intact. Single-click preview and double-click/Enter editor navigation remain unchanged.
 
+Its title bar contains Lock/Unlock, Sort and Refresh in stable slots. Lock pauses automatic scrolling and ancestor expansion only: the active document inventory and center highlight still update, and explicit filtering, clearing, expansion, sorting and navigation remain available. Unlock tries to reveal the current center symbol without overriding a nonempty filter. The independent lock defaults off, lasts only for the current Extension Host session, and does not change `followEditorCenter` or another view's pin state.
+
+`cInsight.documentSymbols.sortBy` defaults to `"position"`; accepted values are `"position"` (source location), `"name"` (case-insensitive natural names) and `"type"` (symbol kind, then name and location). Only siblings are sorted, preserving hierarchy, stable node IDs, expansion and filter text. Sorting uses loaded nodes without another engine request. The Sort menu saves to workspace settings when a workspace is open, otherwise to user settings.
+
 Document Symbols highlights and reveals the deepest loaded symbol containing the active editor viewport's center line. `cInsight.documentSymbols.followEditorCenter` defaults to `true`; disabling it immediately removes the marker. The debounced viewport update uses only loaded symbol ranges, does not issue another semantic-engine request, does no work while the view is hidden, and reveals without taking editor focus or changing the user's tree selection. While a query is nonempty, the marker still updates but automatic reveal does not scroll the filtered list or clear the input; ordinary refreshes and leaving the view also retain the query. A flat Provider result without full symbol ranges can be highlighted only where its reported range covers the center line.
 
 Continuous edits are coalesced before secondary UI work. Visible Document Symbols waits 800 ms after the last edit; Code Preview skips rerendering when a change is entirely below its rendered range and otherwise rerenders once after 200 ms; Include Hierarchy compares a 500 ms debounced `#include` fingerprint and ignores ordinary body edits. An unopened or unqueried Included By view never starts a reverse workspace scan because of typing. Relationship Graph publishes the same source-stale state only once, and diagnostic bursts are merged into a 500 ms Project Diagnostics refresh.
@@ -224,7 +228,7 @@ This section is generated from `package.json`. Every command is available from t
 | Unpin References | `cInsight.unpinReferences` | Command Palette; References title |
 | Pin Callers and Callees | `cInsight.pinCallHierarchy` | Command Palette; Callers title; Callees title |
 | Unpin Callers and Callees | `cInsight.unpinCallHierarchy` | Command Palette; Callers title; Callees title |
-| Refresh | `cInsight.refresh` | Command Palette; View title |
+| Refresh | `cInsight.refresh` | Command Palette; View title; Document Symbols title |
 | Restart clangd | `cInsight.restartClangd` | Command Palette |
 | Restore Provider Settings | `cInsight.restoreProviderSettings` | Command Palette |
 | Refresh Project Diagnostics | `cInsight.diagnostics.refresh` | Command Palette; Project Diagnostics title |
@@ -313,6 +317,9 @@ This section is generated from `package.json`. Every command is available from t
 | Export Included By as Text | `cInsight.includedBy.exportText` | Command Palette; Included By title |
 | Export Included By as JSON | `cInsight.includedBy.exportJson` | Command Palette; Included By title |
 | Export Included By as Mermaid | `cInsight.includedBy.exportMermaid` | Command Palette; Included By title |
+| Sort Document Symbols | `cInsight.documentSymbols.sort` | Command Palette; Document Symbols title |
+| Lock Document Symbols Following | `cInsight.documentSymbols.lock` | Command Palette; Document Symbols title |
+| Unlock Document Symbols Following | `cInsight.documentSymbols.unlock` | Command Palette; Document Symbols title |
 | Refresh Project Files | `cInsight.projectFiles.refresh` | Command Palette; Project Files title |
 | Sort Project Files | `cInsight.projectFiles.sort` | Command Palette; Project Files title |
 | Lock Project Files Following | `cInsight.projectFiles.lock` | Command Palette; Project Files title |

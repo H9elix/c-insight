@@ -436,6 +436,10 @@ export async function activate(
         id === VIEWS.PROJECT_FILES ? projectFiles.view.interactionForTest(message) : views.resultTreeInteractionForTest(id, message),
       ),
       vscode.commands.registerCommand("cInsight.test.projectFilesState", () => projectFiles.stateForTest()),
+      vscode.commands.registerCommand("cInsight.test.documentSymbolsLocked", () => views.isDocumentSymbolsLocked),
+      vscode.commands.registerCommand("cInsight.test.documentSymbolViewport", (uri: string, line: number) =>
+        views.updateDocumentSymbolViewport(vscode.Uri.parse(uri), [new vscode.Range(line, 0, line, 0)], true),
+      ),
       vscode.commands.registerCommand("cInsight.test.projectFilesController", () => projectFiles),
       vscode.commands.registerCommand("cInsight.test.previewState", () =>
         views.preview.sessionState(),
@@ -801,6 +805,7 @@ export async function activate(
           readConfiguration().documentSymbolsFollowEditorCenter;
         scheduleDocumentSymbolViewport(vscode.window.activeTextEditor, 0);
       }
+      if (event.affectsConfiguration("cInsight.documentSymbols.sortBy")) views.documentSymbolSortChanged();
       if (
         event.affectsConfiguration(
           "cInsight.references.autoExpandGroups",

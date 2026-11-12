@@ -677,7 +677,11 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 筛选中的箭头、左右方向键和全部折叠只调整当前匹配结果，清空后恢复正常树的展开记录。单击预览、双击或 Enter 打开的规则保持不变。筛选文字在普通结果更新、编辑器中心跟随和离开窗口时不主动清空；有筛选文字时，中心标记继续更新，但不自动滚动匹配列表。
 
-默认启用的 `cInsight.documentSymbols.followEditorCenter` 会观察活动编辑器的可见区域，并在文档符号中高亮包含可见区域中心行的最深层符号。命中节点追加“编辑器中心”说明，树会在不抢占编辑器焦点、不改变用户选择的情况下显示该节点；嵌套节点的祖先会按需展开。滚动事件经过短防抖后只匹配已经加载的符号范围，不会重复请求 clangd 或 Microsoft C/C++ language service (cpptools)，文档符号窗口隐藏时也不执行该匹配。关闭配置会立即移除标记并停止跟随。若提供程序只返回不带完整范围的平铺符号信息，只有其报告范围覆盖中心行时才能命中。
+标题栏从左到右提供锁定/解锁、排序和刷新图标。锁定只暂停本窗口的自动滚动和祖先展开定位，不冻结活动文件的符号数据，也不停止中心高亮；切换文件仍按可见性规则更新。手动搜索、清空、展开、排序和单/双击均可继续使用。解锁后会尝试定位当前中心符号；有筛选文字时仍保留匹配列表的位置。默认未锁定，锁定状态只在当前扩展宿主运行期保留，与工程文件、上下文、引用和调用树的锁定/固定相互独立，不改写中心跟随配置。
+
+排序菜单提供源码位置（默认）、符号名称和符号类型，对应 `cInsight.documentSymbols.sortBy` 的 `"position"`、`"name"`、`"type"`。只在同一父节点下升序排列，保留类、结构体及成员层级；名称采用不区分大小写的自然排序，例如 `item2` 位于 `item10` 前，类型相同时再按名称和位置排列。排序复用已加载节点，保留稳定标识、展开记录和筛选文字，不重新查询分析引擎。菜单选择写入当前工作区设置；没有工作区时写入用户设置。
+
+默认启用的 `cInsight.documentSymbols.followEditorCenter` 会观察活动编辑器的可见区域，并在文档符号中高亮包含可见区域中心行的最深层符号。命中节点追加“编辑器中心”说明；未锁定且未筛选时，树会在不抢占编辑器焦点、不改变用户选择的情况下显示该节点；嵌套节点的祖先会按需展开。滚动事件经过短防抖后只匹配已经加载的符号范围，不会重复请求 clangd 或 Microsoft C/C++ language service (cpptools)，文档符号窗口隐藏时也不执行该匹配。关闭配置会立即移除标记并停止跟随。若提供程序只返回不带完整范围的平铺符号信息，只有其报告范围覆盖中心行时才能命中。
 
 命令 **Search 工作区符号（Workspace Symbols）** 会打开符号搜索（Symbol Search）的实时搜索选择器。
 
@@ -1128,6 +1132,7 @@ C/C++ 编辑器右键菜单还提供：
 | `cInsight.followCursorDelay` | number | `200` | 50–2000 ms | 光标停稳后开始基础查询的延迟 |
 | `cInsight.followCursorDetailsDelay` | number | `600` | 200–5000 ms | 基础查询完成后，加载引用（References）和第一层调用数量前的额外空闲延迟 |
 | `cInsight.documentSymbols.followEditorCenter` | boolean | `true` | `true` / `false` | 是否高亮并显示包含活动编辑器可见区域中心行的最深层文档符号；只使用已加载符号，不增加语义查询 |
+| `cInsight.documentSymbols.sortBy` | string | `"position"` | `"position"`、`"name"`、`"type"` | 按源码位置、名称或符号类型升序排列同层符号，保留层级；切换只重排已加载结果 |
 | `cInsight.navigation.doubleClickInterval` | number | `500` | 150–2000 ms | 同一源码位置树结果连续两次激活时，被识别为双击并在编辑器中打开的最大间隔 |
 
 大型工程可适当提高两个延迟，减少快速切换不同符号时的无效 clangd 请求。源码编辑以及同一标识符范围内的光标移动已由独立门控过滤，不需要通过增大这两个参数来避免查询。
@@ -1446,7 +1451,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 导航历史（Navigation History） | 所有显式/预览导航事件 | 导航时写入 | — | 来源过滤 | — | — | 单击恢复预览；双击打开 |
 | 书签（Bookmarks） | 用户保存的位置与标识符 | 文档修改后尝试重定位 | — | 支持 | 分组 | JSON 导入/导出 | 单击预览；双击打开 |
 | 符号搜索（Symbol Search） | 当前分析引擎的工作区符号（Workspace Symbols） | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击预览；双击打开 |
-| 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | — | 常驻名称子串筛选，包含折叠子项 | 提供程序（Provider）层级 | — | 单击预览；双击打开 |
+| 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | 独立锁定自动定位，数据和高亮仍更新 | 常驻名称子串筛选，包含折叠子项 | 保留层级，支持同层位置/名称/类型排序 | — | 单击预览；双击打开 |
 | 工程文件（Project Files） | 工作区文件枚举 | 可见时同步文件事件；离焦跟随活动文件 | 独立锁定自动清空与滚动 | 常驻名称/路径子串筛选 | 平铺；三种排序 | — | 单击文本预览；双击打开 |
 | 工程诊断（Project Diagnostics） | 引擎/提供程序状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | 源码诊断单击预览；双击打开 |
 | 父类型（Supertypes）/子类型（Subtypes） | clangd 类型层次（Type Hierarchy）与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击预览；双击打开 |
@@ -1516,7 +1521,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 取消固定引用 | `cInsight.unpinReferences` | 命令面板；引用标题栏 |
 | 固定调用者和被调用者 | `cInsight.pinCallHierarchy` | 命令面板；调用者标题栏；被调用者标题栏 |
 | 取消固定调用者和被调用者 | `cInsight.unpinCallHierarchy` | 命令面板；调用者标题栏；被调用者标题栏 |
-| 刷新 | `cInsight.refresh` | 命令面板；窗口标题栏 |
+| 刷新 | `cInsight.refresh` | 命令面板；窗口标题栏；文档符号标题栏 |
 | 重启 clangd | `cInsight.restartClangd` | 命令面板 |
 | 恢复提供程序设置 | `cInsight.restoreProviderSettings` | 命令面板 |
 | 刷新工程诊断 | `cInsight.diagnostics.refresh` | 命令面板；工程诊断标题栏 |
@@ -1605,6 +1610,9 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 将被包含关系导出为文本 | `cInsight.includedBy.exportText` | 命令面板；被包含关系标题栏 |
 | 将被包含关系导出为 JSON | `cInsight.includedBy.exportJson` | 命令面板；被包含关系标题栏 |
 | 将被包含关系导出为 Mermaid | `cInsight.includedBy.exportMermaid` | 命令面板；被包含关系标题栏 |
+| 文档符号排序 | `cInsight.documentSymbols.sort` | 命令面板；文档符号标题栏 |
+| 锁定文档符号自动定位 | `cInsight.documentSymbols.lock` | 命令面板；文档符号标题栏 |
+| 解锁文档符号自动定位 | `cInsight.documentSymbols.unlock` | 命令面板；文档符号标题栏 |
 | 刷新工程文件 | `cInsight.projectFiles.refresh` | 命令面板；工程文件标题栏 |
 | 工程文件排序 | `cInsight.projectFiles.sort` | 命令面板；工程文件标题栏 |
 | 锁定工程文件自动定位 | `cInsight.projectFiles.lock` | 命令面板；工程文件标题栏 |

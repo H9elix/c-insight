@@ -156,6 +156,8 @@ Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证
 
 文档符号单独启用 `persistentFilter` 和 `filterLoadedChildren`，复用工程文件的常驻搜索框。`ResultTreeSource.loadedChildren` 只读取 `TreeNode.children`，生成包含折叠成员的 `filterSnapshot` 和稳定行索引，不调用懒加载回调；正常 `snapshot` 仍只投影展开节点。宿主只为该视图发送 `filterRows`，浏览器按名称匹配并保留父链，筛选内的展开/折叠状态独立于普通树。输入文字留在浏览器，不通过语义引擎筛选；隐藏成员的预览/打开仍用已登记节点校验位置和动作。中心标记变化走行描述补丁，不为其重发整个索引；有筛选时忽略不带焦点/选择意图的自动定位。调用者、引用及其他懒加载树不启用完整子项索引。
 
+文档符号的独立运行期锁定位于 `ViewRegistry`，通过 `cInsight.documentSymbolsLocked` 控制同一标题栏槽位的锁定/解锁图标；它使排队的中心定位代次失效，仍允许当前文件数据和中心标记更新。`documentSymbolSortModel.ts` 提供纯比较规则，协调层按同一父节点递归重排，节点 ID、父链及原始提供程序顺序元数据不变。`sortBy` 设置变化只重排内存，不进入引擎重启/重新查询路径；菜单按工作区优先写配置。工作区工具命令组只接收排序/锁定两个动作，不持有文档符号内部状态。锁定不写入会话快照。
+
 ### 4.6 调用层次（Call Hierarchy） `src/callHierarchy`
 
 | 文件 | 管理的功能 |
@@ -223,6 +225,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `symbols/symbolSearchWebview.ts` | 顶部常驻搜索框、独立滚动结果区、严格 CSP、HTML 属性转义及入站消息白名单；动态符号文字仅通过 DOM `textContent` 写入。 |
 | `symbols/symbolPresentation.ts` | 文档/工作区符号（Document/Workspace Symbols）的“大纲”（Outline）风格 ThemeIcon 映射。 |
 | `symbols/documentSymbolFocusModel.ts` | 文档符号视口中心行计算，以及按层级、范围宽度和提供程序顺序选择包含符号的纯算法。 |
+| `symbols/documentSymbolSortModel.ts` | 文档符号排序值归一化与同层位置、自然名称、类型比较；不依赖 VS Code，不改变节点身份或子树。 |
 
 ### 4.10.1 工程文件 `src/projectFiles`
 

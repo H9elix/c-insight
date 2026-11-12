@@ -13,6 +13,7 @@ export async function initializeContextKeys(): Promise<void> {
     vscode.commands.executeCommand("setContext", CONTEXT_KEYS.REFERENCES_PINNED, false),
     vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CALL_HIERARCHY_PINNED, false),
     vscode.commands.executeCommand("setContext", CONTEXT_KEYS.PROJECT_FILES_LOCKED, false),
+    vscode.commands.executeCommand("setContext", CONTEXT_KEYS.DOCUMENT_SYMBOLS_LOCKED, false),
   ]);
 }
 

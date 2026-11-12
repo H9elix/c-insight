@@ -57,6 +57,10 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
     workspaceSession: d.workspaceSession,
     restoreWorkspaceSession: d.restoreWorkspaceSession,
     projectFiles: d.projectFiles,
+    documentSymbols: {
+      chooseSort: () => d.views.chooseDocumentSymbolSort(),
+      setLocked: locked => d.views.setDocumentSymbolsLocked(locked),
+    },
   });
   registerHierarchyCommands(register, d.typeHierarchy, d.includeHierarchy, activePosition);
 }

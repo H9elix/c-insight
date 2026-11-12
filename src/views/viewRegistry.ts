@@ -68,6 +68,7 @@ import { ViewLifecycle } from "./viewLifecycle";
 import { WebviewResultTree } from "./resultTreeView";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
+import { documentSymbolSort, sortDocumentSymbolSiblings } from "../symbols/documentSymbolSortModel";
 import {
   DocumentSymbolFocusCandidate,
   documentSymbolAtLine,
@@ -120,10 +121,13 @@ export class ViewRegistry implements vscode.Disposable {
   > = [];
   private documentSymbolPresentation = new Map<
     TreeNode,
-    { description?: string; iconId: string }
+    { description?: string; iconId: string; kind: number; order: number }
   >();
   private focusedDocumentSymbol?: TreeNode;
   private documentSymbolFocusGeneration = 0;
+  private documentSymbolsLocked = false;
+
+  get isDocumentSymbolsLocked(): boolean { return this.documentSymbolsLocked; }
 
   get navigationVisible(): boolean {
     return Object.values(this.navigationVisibility).some(Boolean);
@@ -588,9 +592,46 @@ export class ViewRegistry implements vscode.Disposable {
     this.documentSymbolCandidates = [];
     this.documentSymbolPresentation = new Map();
     const order = { value: 0 };
-    this.symbols.setRoots(
-      symbols.map((symbol) => this.symbolNode(uri, symbol, 0, order)),
-    );
+    const roots = symbols.map(symbol => this.symbolNode(uri, symbol, 0, order));
+    this.symbols.setRoots(this.sortedDocumentSymbols(roots));
+  }
+
+  documentSymbolSortChanged(): void {
+    this.symbols.setRoots(this.sortedDocumentSymbols(this.symbols.getRoots()));
+  }
+
+  async chooseDocumentSymbolSort(): Promise<void> {
+    const configuration = vscode.workspace.getConfiguration("cInsight.documentSymbols");
+    const current = documentSymbolSort(configuration.get("sortBy"));
+    const choices = [
+      { label: vscode.l10n.t("Source position"), value: "position" },
+      { label: vscode.l10n.t("Symbol name"), value: "name" },
+      { label: vscode.l10n.t("Symbol type"), value: "type" },
+    ].map(choice => ({ ...choice, description: choice.value === current ? vscode.l10n.t("Current") : undefined }));
+    const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Document Symbols") });
+    if (selected) await configuration.update("sortBy", selected.value,
+      vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+    if (this.isViewVisible(VIEWS.SYMBOLS)) await vscode.commands.executeCommand(`${VIEWS.SYMBOLS}.focus`);
+  }
+
+  async setDocumentSymbolsLocked(locked: boolean): Promise<void> {
+    this.documentSymbolsLocked = locked;
+    this.documentSymbolFocusGeneration++;
+    await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.DOCUMENT_SYMBOLS_LOCKED, locked);
+    if (!this.documentSymbolsLocked) this.revealFocusedDocumentSymbol();
+  }
+
+  private sortedDocumentSymbols(roots: readonly TreeNode[]): TreeNode[] {
+    const mode = documentSymbolSort(vscode.workspace.getConfiguration("cInsight.documentSymbols").get("sortBy"));
+    const visit = (nodes: readonly TreeNode[]): TreeNode[] => {
+      for (const node of nodes) if (node.children) node.children = visit(node.children);
+      return sortDocumentSymbolSiblings(nodes, mode, node => {
+        const metadata = this.documentSymbolPresentation.get(node);
+        return { name: node.label, kind: metadata?.kind ?? 0, order: metadata?.order ?? 0,
+          line: node.location?.range.start.line ?? 0, character: node.location?.range.start.character ?? 0 };
+      });
+    };
+    return visit(roots);
   }
 
   clearSymbols(): void {
@@ -639,11 +680,19 @@ export class ViewRegistry implements vscode.Disposable {
     );
     this.symbols.refresh(next);
 
+    this.revealFocusedDocumentSymbol();
+  }
+
+  private revealFocusedDocumentSymbol(): void {
+    const next = this.focusedDocumentSymbol;
+    if (!next || this.documentSymbolsLocked) return;
+
     const generation = ++this.documentSymbolFocusGeneration;
     void Promise.resolve().then(async () => {
       if (
         generation !== this.documentSymbolFocusGeneration ||
         this.focusedDocumentSymbol !== next ||
+        this.documentSymbolsLocked ||
         !this.isViewVisible(VIEWS.SYMBOLS)
       ) {
         return;
@@ -2412,7 +2461,7 @@ export class ViewRegistry implements vscode.Disposable {
         contextValue: "documentSymbolLocation",
         parent,
       };
-      this.trackDocumentSymbol(node, location.range, depth, iconId, order.value);
+      this.trackDocumentSymbol(node, location.range, depth, iconId, order.value, info.kind);
       return node;
     }
     const document = symbol as DocumentSymbol;
@@ -2439,6 +2488,7 @@ export class ViewRegistry implements vscode.Disposable {
       depth,
       iconId,
       order.value,
+      document.kind,
     );
     node.children = document.children?.map((child) =>
       this.symbolNode(uri, child, depth + 1, order, node));
@@ -2451,6 +2501,7 @@ export class ViewRegistry implements vscode.Disposable {
     depth: number,
     iconId: string,
     order: number,
+    kind: number,
   ): void {
     this.documentSymbolCandidates.push({
       value: node,
@@ -2464,6 +2515,8 @@ export class ViewRegistry implements vscode.Disposable {
     this.documentSymbolPresentation.set(node, {
       description: node.description,
       iconId,
+      kind,
+      order,
     });
   }
 

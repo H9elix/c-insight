@@ -46,6 +46,7 @@ export const CONTEXT_KEYS = {
   CONTEXT_PINNED: "cInsight.pinned",
   PREVIEW_LOCKED: "cInsight.previewLocked",
   PROJECT_FILES_LOCKED: "cInsight.projectFilesLocked",
+  DOCUMENT_SYMBOLS_LOCKED: "cInsight.documentSymbolsLocked",
   REFERENCES_PINNED: "cInsight.referencesPinned",
   CALL_HIERARCHY_PINNED: "cInsight.callHierarchyPinned",
   CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE: "cInsight.callersExpandedMacroTargetAvailable",
