@@ -400,12 +400,12 @@ export const resultTreeClientScript = String.raw`
       }
       if (rejectedOpenTarget === message.id) return;
       if (rejectedOpenTarget && rejectedOpenTarget !== message.id) rejectedOpenTarget = undefined;
-      const row = rows.find(candidate => candidate.id === message.id);
+      const row = rows.find(candidate => candidate.id === message.id) ?? filterRows?.find(candidate => candidate.id === message.id);
       if (!row) return;
       draw();
-      const clearQuery = message.clear === 'always' || (!!filter.value && !visibleRows.includes(row));
+      const clearQuery = message.clear === 'always' || (!!filter.value && !visibleRows.some(candidate => candidate.id === row.id));
       if (clearQuery) {
-        filter.value = ''; pendingClick = undefined; restoreScroll = 0;
+        filter.value = ''; collapsedMatches.clear(); pendingClick = undefined; restoreScroll = 0;
         draw();
       }
       if (message.reveal) {

@@ -63,9 +63,10 @@ import { ReferenceExplorer } from "./referenceExplorer";
 import { SourceLineCache } from "./sourceLineCache";
 import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
-import { CONTEXT_KEYS, VIEWS, type ViewId } from "../ids";
+import { COMMANDS, CONTEXT_KEYS, INTERNAL_COMMANDS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
 import { WebviewResultTree } from "./resultTreeView";
+import { ResultTreeFollowController } from "./resultTreeFollowController";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
 import { symbolKindIconId } from "../symbols/symbolPresentation";
 import { documentSymbolSort, sortDocumentSymbolSiblings } from "../symbols/documentSymbolSortModel";
@@ -124,10 +125,11 @@ export class ViewRegistry implements vscode.Disposable {
     { description?: string; iconId: string; kind: number; order: number }
   >();
   private focusedDocumentSymbol?: TreeNode;
-  private documentSymbolFocusGeneration = 0;
-  private documentSymbolsLocked = false;
+  private documentSymbolFollow?: ResultTreeFollowController;
 
-  get isDocumentSymbolsLocked(): boolean { return this.documentSymbolsLocked; }
+  get isDocumentSymbolsLocked(): boolean { return this.documentSymbolFollow?.isLocked ?? false; }
+
+  documentSymbolFollowStateForTest() { return this.documentSymbolFollow?.stateForTest(); }
 
   get navigationVisible(): boolean {
     return Object.values(this.navigationVisibility).some(Boolean);
@@ -206,11 +208,20 @@ export class ViewRegistry implements vscode.Disposable {
       ]).has(id);
       const treeView = this.lifecycle.createTreeView(id, provider, tracksNavigation,
         id === VIEWS.SYMBOLS ? {
-          persistentFilter: true, filterLoadedChildren: true,
+          persistentFilter: true, filterLoadedChildren: true, trackInteraction: true,
+          onActivate: (node, intent, revision, contextAction) => this.activateDocumentSymbol(node, intent, revision, contextAction),
           filterTitle: vscode.l10n.t("Filter symbols by name"),
           clearTitle: vscode.l10n.t("Clear symbol filter"),
           noMatchesTitle: vscode.l10n.t("No matching symbols"),
         } : undefined);
+      if (id === VIEWS.SYMBOLS && treeView instanceof WebviewResultTree) {
+        this.documentSymbolFollow = new ResultTreeFollowController(treeView, {
+          target: opened => this.documentSymbolFollowTarget(opened),
+          key: node => node.id!,
+          enabled: () => vscode.workspace.getConfiguration("cInsight.documentSymbols").get<boolean>("followEditorCenter", true),
+        }, vscode.window);
+        this.lifecycle.track(this.documentSymbolFollow);
+      }
       const callDirection =
         id === VIEWS.CALLERS
           ? "incoming"
@@ -594,6 +605,7 @@ export class ViewRegistry implements vscode.Disposable {
     const order = { value: 0 };
     const roots = symbols.map(symbol => this.symbolNode(uri, symbol, 0, order));
     this.symbols.setRoots(this.sortedDocumentSymbols(roots));
+    this.documentSymbolFollow?.schedule();
   }
 
   documentSymbolSortChanged(): void {
@@ -608,17 +620,17 @@ export class ViewRegistry implements vscode.Disposable {
       { label: vscode.l10n.t("Symbol name"), value: "name" },
       { label: vscode.l10n.t("Symbol type"), value: "type" },
     ].map(choice => ({ ...choice, description: choice.value === current ? vscode.l10n.t("Current") : undefined }));
-    const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Document Symbols") });
-    if (selected) await configuration.update("sortBy", selected.value,
-      vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
-    if (this.isViewVisible(VIEWS.SYMBOLS)) await vscode.commands.executeCommand(`${VIEWS.SYMBOLS}.focus`);
+    await this.documentSymbolFollow?.interact(async () => {
+      const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Document Symbols") });
+      if (selected) await configuration.update("sortBy", selected.value,
+        vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+      if (this.isViewVisible(VIEWS.SYMBOLS)) await vscode.commands.executeCommand(`${VIEWS.SYMBOLS}.focus`);
+    });
   }
 
   async setDocumentSymbolsLocked(locked: boolean): Promise<void> {
-    this.documentSymbolsLocked = locked;
-    this.documentSymbolFocusGeneration++;
+    this.documentSymbolFollow?.setLocked(locked);
     await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.DOCUMENT_SYMBOLS_LOCKED, locked);
-    if (!this.documentSymbolsLocked) this.revealFocusedDocumentSymbol();
   }
 
   private sortedDocumentSymbols(roots: readonly TreeNode[]): TreeNode[] {
@@ -663,6 +675,7 @@ export class ViewRegistry implements vscode.Disposable {
 
     this.clearDocumentSymbolFocus(true);
     if (!next) {
+      this.documentSymbolFollow?.schedule();
       return;
     }
     const presentation = this.documentSymbolPresentation.get(next);
@@ -684,28 +697,28 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   private revealFocusedDocumentSymbol(): void {
-    const next = this.focusedDocumentSymbol;
-    if (!next || this.documentSymbolsLocked) return;
+    this.documentSymbolFollow?.schedule();
+  }
 
-    const generation = ++this.documentSymbolFocusGeneration;
-    void Promise.resolve().then(async () => {
-      if (
-        generation !== this.documentSymbolFocusGeneration ||
-        this.focusedDocumentSymbol !== next ||
-        this.documentSymbolsLocked ||
-        !this.isViewVisible(VIEWS.SYMBOLS)
-      ) {
-        return;
-      }
-      try {
-        await this.lifecycle.get(VIEWS.SYMBOLS)?.reveal(next, {
-          select: false,
-          focus: false,
-          expand: false,
-        });
-      } catch {
-        // A simultaneous symbol refresh can invalidate the node before reveal.
-      }
+  private documentSymbolFollowTarget(opened?: TreeNode): TreeNode | undefined {
+    const editor = vscode.window.activeTextEditor;
+    if (editor?.document.uri.toString() !== this.documentSymbolUri) return undefined;
+    if (opened?.location && editor?.selection.active.isEqual(opened.location.range.start)) {
+      // A refresh may replace objects; IDs survive sorting and unchanged-document reloads.
+      return this.documentSymbolPresentation.has(opened) ? opened
+        : [...this.documentSymbolPresentation.keys()].find(node => node.id === opened.id);
+    }
+    return this.focusedDocumentSymbol;
+  }
+
+  private async activateDocumentSymbol(node: TreeNode, intent: "preview" | "open", inputRevision = 0, contextAction = false): Promise<void> {
+    if (!node.location || !this.documentSymbolPresentation.has(node)) return;
+    await this.documentSymbolFollow?.activate(node, intent, inputRevision, async current => {
+      if (!current()) return false;
+      // Keep explicit Open Location's existing history and cursor-follow behavior.
+      if (contextAction) await vscode.commands.executeCommand(COMMANDS.OPEN_LOCATION, node);
+      else await vscode.commands.executeCommand(INTERNAL_COMMANDS.ACTIVATE_TREE_LOCATION, node, VIEWS.SYMBOLS, intent);
+      return true;
     });
   }
 
@@ -2521,7 +2534,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   private clearDocumentSymbolFocus(refresh: boolean): void {
-    this.documentSymbolFocusGeneration += 1;
+    this.documentSymbolFollow?.cancel();
     const previous = this.focusedDocumentSymbol;
     this.focusedDocumentSymbol = undefined;
     if (!previous) {

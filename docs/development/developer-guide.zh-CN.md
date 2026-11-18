@@ -134,6 +134,7 @@ AnalysisService（调度、计时、统一结果）
 | `resultTreeModel.ts` | 自绘树的纯状态模型：稳定节点标识、展开、懒加载投影、定位、全部折叠与异步结果代次。 |
 | `resultTreeView.ts` | 现有树数据与 Webview 的宿主适配，校验导航、展开、可见节点描述和右键动作，保留层次展开事件与定位接口。 |
 | `resultTreeWebview.ts` | 共享树的虚拟滚动、名称单/双击、独立箭头、键盘、ARIA、右键菜单、本地筛选与消息解析。 |
+| `resultTreeFollowController.ts` / `resultTreeFollowModel.ts` | 文档符号和工程文件共用的焦点、锁定、菜单交互、成功打开清空、条件跟随、输入修订号与异步动作所有权；不拥有符号查询或文件扫描。 |
 | `viewRegistry.ts` | 上下文（Context）、文档符号（Document Symbols）、调用者（Callers）/被调用者（Callees）的协调与展示；连接各独立 Explorer。它不是引用（References）固定（Pin）或 VS Code 资源的所有者。 |
 | `treeNode.ts` | 通用树节点结构、状态节点和 `MutableTreeProvider`；为带源码位置的普通节点绑定统一激活命令和窗口作用域。 |
 | `codePreviewProvider.ts` | 代码预览 Webview、CSP、源码加载、语义着色、可点击符号、单/双击导航、历史、增量滚动、相同目标元数据更新、锁定（Lock）、滚动/指针交互与上下文代次的写入仲裁、编辑范围感知与 200 ms 重绘合并，以及源码 `<code>` 元素的宿主预格式样式重置。 |
@@ -148,15 +149,15 @@ AnalysisService（调度、计时、统一结果）
 | `referenceModel.ts` | 定义（Definition）/声明（Declaration）/Call/Read/Write/Read-Write/Address/Macro 等分类及证据、置信度和语法推断。 |
 | `callHierarchyViewState.ts` | 调用者/被调用者共享固定、固定符号和已过期状态；方向树及缓存仍保持独立。 |
 
-文档符号的视口中心跟随由 `extension.ts` 监听活动编辑器可见范围并进行 75 ms 防抖，`documentSymbolFocusModel.ts` 以纯函数计算中心行和最深层包含符号，`ViewRegistry` 保存当前树的范围索引、恢复节点原始展示并调用 `TreeView.reveal`。该路径只能使用已加载的文档符号，不得从滚动事件调用 `AnalysisService`；窗口隐藏时必须停止调度。新增或修改跟随规则时，应同时补充 `documentSymbolFocusModel.test.ts` 的范围边界测试和 `documentSymbolFocusWiring.test.ts` 的配置、监听及非抢焦点契约。
+文档符号的视口中心跟随由 `extension.ts` 监听活动编辑器可见范围并进行 75 ms 防抖，`documentSymbolFocusModel.ts` 以纯函数计算中心行和最深层包含符号，`ViewRegistry` 保存当前树的范围索引、恢复节点原始展示，再交由共享跟随控制器按焦点及锁定状态调度 `autoFollow`。该路径只能使用已加载的文档符号，不得从滚动事件调用 `AnalysisService`；窗口隐藏时必须停止调度。新增或修改规则时，应补充范围模型、共享控制器、浏览器及宿主焦点回归。
 
 固定配色已在临时包验收后纳入 `0.22.25`。`CodePreviewProvider.configurationChanged` 将内容配置与配色配置分开：内容项仍调用 `refresh()`，配色项与主题变化仅发送 `previewColors`。浏览器只修改独立样式元素的 `textContent`；`previewReady` 同步页面创建期间的最新配色，隐藏窗口跳过消息。新增内容配置必须同步 `PREVIEW_CONTENT_SETTINGS`，由单测核对清单。`previewColors.test.ts` 覆盖纯模型、接线和实际消息分支；`test/e2e/suite/previewColorRegressions.ts` 在两个真实扩展宿主中以受控 Webview 验证不重复渲染、查询或清缓存。物理滚轮与实际颜色对比仍需[人工验收](../validation/code-preview-fixed-colors.zh-CN.md)。用户验收记录与后续回归重点见同一文档。
 
 Webview 消息必须使用可判别动作类型，并在扩展宿主重新验证 URI、行号、字符和节点身份。所有源码内容进入 HTML 前必须转义。
 
-文档符号单独启用 `persistentFilter` 和 `filterLoadedChildren`，复用工程文件的常驻搜索框。`ResultTreeSource.loadedChildren` 只读取 `TreeNode.children`，生成包含折叠成员的 `filterSnapshot` 和稳定行索引，不调用懒加载回调；正常 `snapshot` 仍只投影展开节点。宿主只为该视图发送 `filterRows`，浏览器按名称匹配并保留父链，筛选内的展开/折叠状态独立于普通树。输入文字留在浏览器，不通过语义引擎筛选；隐藏成员的预览/打开仍用已登记节点校验位置和动作。中心标记变化走行描述补丁，不为其重发整个索引；有筛选时忽略不带焦点/选择意图的自动定位。调用者、引用及其他懒加载树不启用完整子项索引。
+文档符号单独启用 `filterLoadedChildren`，与工程文件共同使用 `persistentFilter`、`trackInteraction` 及隐藏时保留 Webview 上下文。`ResultTreeSource.loadedChildren` 只读取 `TreeNode.children`，生成包含折叠成员的 `filterSnapshot` 和稳定行索引，不调用懒加载回调；正常 `snapshot` 仍只投影展开节点。宿主只为文档符号发送 `filterRows`，浏览器按名称匹配并保留父链，筛选内的展开/折叠状态独立于普通树。输入文字留在浏览器，宿主只接收修订号；隐藏成员仍用登记节点校验导航和书签动作。中心标记变化走行描述补丁；自动定位按稳定 ID 判断目标是否仍在匹配投影中，而非比较行对象引用。关闭中心跟随时，成功打开清空可直接使用完整索引取得目标 ID，不为清空而展开祖先。调用者、引用及其他懒加载树不启用完整子项索引。
 
-文档符号的独立运行期锁定位于 `ViewRegistry`，通过 `cInsight.documentSymbolsLocked` 控制同一标题栏槽位的锁定/解锁图标；它使排队的中心定位代次失效，仍允许当前文件数据和中心标记更新。`documentSymbolSortModel.ts` 提供纯比较规则，协调层按同一父节点递归重排，节点 ID、父链及原始提供程序顺序元数据不变。`sortBy` 设置变化只重排内存，不进入引擎重启/重新查询路径；菜单按工作区优先写配置。工作区工具命令组只接收排序/锁定两个动作，不持有文档符号内部状态。锁定不写入会话快照。
+文档符号的独立运行期锁定由共享跟随控制器持有，`ViewRegistry` 通过 `cInsight.documentSymbolsLocked` 控制同一标题栏槽位的锁定/解锁图标；锁定撤销排队的自动动作，仍允许当前文件数据和中心标记更新。`documentSymbolSortModel.ts` 提供纯比较规则，协调层按同一父节点递归重排，节点 ID、父链及原始提供程序顺序元数据不变。`sortBy` 设置变化只重排内存，不进入引擎重启/重新查询路径；菜单按工作区优先写配置，并暂停菜单期间的跟随。工作区工具命令组只接收排序/锁定两个动作，不持有文档符号内部状态。锁定不写入会话快照。
 
 ### 4.6 调用层次（Call Hierarchy） `src/callHierarchy`
 
@@ -231,7 +232,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 `src/projectFiles/` 独立管理工程文件：`projectFileModel.ts` 管理稳定自然排序、文件数量上限、Git 元数据排除与常见二进制判断；`projectFilesExplorer.ts` 管理无语义引擎依赖的工作区文件枚举、可见性、串行可取消扫描、500 ms 文件事件合并、活动编辑器标记、排序及文本/资源文件激活。该视图复用共享结果树的可选常驻搜索模式；筛选只在 Webview 的已加载清单上执行，活动标记通过行元数据补丁更新，不为切换编辑器重传整份清单。URI 由宿主中已有节点解析，不接受 Webview 自报路径；资源文件右键打开沿用与双击相同的宿主入口。
 
-`projectFileFollowModel.ts` 单独决定焦点、应用可见性、打开过程、菜单交互、跟随配置与独立锁定下允许的自动动作。高亮不受锁定影响；焦点离开后的动作经过 100 ms 合并，执行前复核目标与操作代次。共享 Webview 只对工程文件启用完整视图焦点和用户输入修订号，不传输筛选文字；自动清空不复用会聚焦输入框的手动清空入口。成功打开（含同一文件）和普通活动文件跟随分开处理；浏览器拒绝迟到操作清空新查询。锁定命令只更新运行期状态及独立上下文键，不能借用持久化跟随配置或影响其他窗口。
+`projectFileFollowModel.ts` 保留共享纯策略的兼容导出；实际焦点、应用可见性、打开过程、菜单交互、跟随配置与独立锁定由 `ResultTreeFollowController` 统一管理，并与文档符号复用。高亮仍由各功能模块更新，不受锁定影响；焦点离开后的动作经过 100 ms 合并，执行前复核目标与操作代次。共享 Webview 不传输筛选文字；自动清空不复用会聚焦输入框的手动清空入口。成功打开（含同一目标）和普通跟随分开处理；浏览器拒绝迟到操作清空新查询。锁定命令只更新运行期状态及独立上下文键，不能借用持久化跟随配置或影响其他窗口。
 
 工程文件的 `autoFollow` 浏览器消息按筛选后的行序号和列表实际高度计算居中滚动，并限制在合法范围内，不增加首尾空白。同一目标仍可见时，重复消息不覆盖手动滚动；完整视图重新获得焦点或自动跟随重新启用时重置去重状态，明确打开与筛选清空也允许重新定位。其他结果树的通用 `reveal` 消息不因此改变。
 

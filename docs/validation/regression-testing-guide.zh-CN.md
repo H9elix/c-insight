@@ -47,8 +47,8 @@
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
 | 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
-| 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、排序和独立定位锁定；关闭/重开工程与切换引擎 |
-| 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
+| 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
+| 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。案例库按条说明覆盖层级；同名测试文件存在不表示某个 UI 动作已有端到端覆盖。
@@ -128,7 +128,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 14. 配置与交付：在对应 WSL/SSH 或多根环境核对配置写入位置；确认临时包、版本、提交和日志来自同一构建。发布按先主干 CI、后版本 Tag 的顺序执行，并下载正式附件验校验和。
 15. 引用分组展开：所有非平铺分组都遵守 `cInsight.references.autoExpandGroups`，默认关闭；运行时切换不额外查询，平铺与手动全部展开/折叠不回归。
 16. 工程文件：搜索常驻；未锁定成功打开后清空，离焦时只在筛选隐藏当前文件时清空并定位，视图内搜索/菜单交互不跳动；锁定后保留输入及滚动但高亮继续更新。筛选后打开及切换编辑器标签页时尽量将高亮文件居中，首尾自然限位，同一可见文件的重复更新不反复拉回。自动动作不抢焦点，失败或迟到打开不覆盖新查询。隐藏不扫描、文本编辑不重扫，文件变化合并刷新；另核对多根同名文件、二进制打开、数量提示及稳定锁定按钮。
-17. 文档符号搜索：顶部输入常驻，大小写不敏感名称子串命中折叠类/结构体成员并保留父链；“×”和 Escape 清空不隐藏，正常展开记录不被筛选操作覆盖。锁定只阻止自动定位，不冻结数据或高亮，切换文件和显式操作仍可用；锁定/解锁按钮同槽位，不影响工程文件等窗口。位置/名称/类型排序只重排同层节点，保留筛选、标记、稳定 ID 和展开状态，不增加语义查询。真实图标、排序菜单、焦点和滚动仍需人工验收。
+17. 文档符号搜索：顶部输入常驻，大小写不敏感名称子串命中折叠类/结构体成员并保留父链；“×”和 Escape 清空不隐藏，正常展开记录不被筛选操作覆盖。未锁定时双击、Enter、右键打开成功后清空，重复打开同一符号也适用；单击预览、打开失败和后来输入的新词保持不变。窗口内搜索/列表/菜单交互不跳动，离焦跟随只清空隐藏中心符号的查询，仍命中则保留；按稳定 ID 而不是投影对象判断可见性。锁定暂停自动清空/滚动，但不冻结数据或高亮；解锁按焦点规则恢复，按钮槽位和其他窗口状态不变。关闭中心跟随时，显式打开仍可清空但不展开祖先或滚动。隐藏重显保留搜索状态，位置/名称/类型排序只重排同层且不增加语义查询。真实图标、搜索输入、隐藏重显、排序菜单和滚动仍需人工验收。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

@@ -437,6 +437,7 @@ export async function activate(
       ),
       vscode.commands.registerCommand("cInsight.test.projectFilesState", () => projectFiles.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.documentSymbolsLocked", () => views.isDocumentSymbolsLocked),
+      vscode.commands.registerCommand("cInsight.test.documentSymbolsFollowState", () => views.documentSymbolFollowStateForTest()),
       vscode.commands.registerCommand("cInsight.test.documentSymbolViewport", (uri: string, line: number) =>
         views.updateDocumentSymbolViewport(vscode.Uri.parse(uri), [new vscode.Range(line, 0, line, 0)], true),
       ),

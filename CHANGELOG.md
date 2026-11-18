@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Aligned Document Symbols with Project Files: successful unlocked editor opens clear the filter, while preview, focused search, locked views, sort interaction, failed opens and newer input remain protected. Ordinary unfocused follow clears only a hiding filter and centers its target; hidden views retain search state.
+- Shared persistent-tree follow ownership across both views, preserved symbol hierarchy/bookmark actions, and corrected stable-ID visibility checks for filtered symbol projections. Disabling center follow still permits successful-open clearing without scrolling or expanding ancestors.
+
 ## 0.22.28
 
 - Added a persistent Document Symbols name filter with a clear button, case-insensitive substring matching across loaded collapsed members, and ancestor context. Search branch controls preserve normal tree expansion, while editor-center updates retain the query and filtered scroll position.

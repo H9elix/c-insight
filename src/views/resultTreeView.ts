@@ -27,7 +27,8 @@ export interface ResultTreeOptions {
   filterLoadedChildren?: boolean;
   hideCollapseAll?: boolean;
   trackInteraction?: boolean;
-  onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number) => Promise<void>;
+  hideBookmarkAction?: boolean;
+  onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number, contextAction?: boolean) => Promise<void>;
 }
 
 export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProvider {
@@ -120,7 +121,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
         if (view.visible) this.scheduleRefresh();
       }),
       view.onDidDispose(() => {
-        if (this.view === view) { this.view = undefined; this.ready = false; }
+        if (this.view === view) { this.view = undefined; this.ready = false; this.focused = false; }
         this.visibilityEmitter.fire({ visible: false });
       }),
     );
@@ -158,12 +159,12 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "autoFollowPolicy", blocked });
   }
 
-  async followFile(node: TreeNode, action: { clear: "always" | "ifHidden"; reveal: boolean; inputRevision: number }, current: () => boolean): Promise<boolean> {
+  async followTarget(node: TreeNode, action: { clear: "always" | "ifHidden"; reveal: boolean; inputRevision: number }, current: () => boolean): Promise<boolean> {
     if (!current() || !this.ready || !this.visible || this.automaticFollowBlocked) return false;
-    const id = this.model.snapshot().find(row => row.node === node)?.id ?? await this.model.reveal(node);
+    const id = this.model.snapshot().find(row => row.node === node)?.id ?? (action.reveal
+      ? await this.model.reveal(node) : this.model.filterSnapshot()?.find(row => row.node === node)?.id);
     if (!id || !current() || this.automaticFollowBlocked || !this.ready || !this.visible) return false;
-    await this.view?.webview.postMessage({ type: "autoFollow", id, ...action });
-    return true;
+    return !!await this.view?.webview.postMessage({ type: "autoFollow", id, ...action });
   }
 
   refreshPresentations(nodes: TreeNode[]): void {
@@ -288,7 +289,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     } else if (message.type === "action" &&
       this.actions(row.node).some((action) => action.command === message.command)) {
       if (this.options.onActivate && message.command === COMMANDS.OPEN_LOCATION) {
-        await this.options.onActivate(row.node, "open", message.inputRevision ?? this.revision);
+        await this.options.onActivate(row.node, "open", message.inputRevision ?? this.revision, true);
       } else {
         await vscode.commands.executeCommand(message.command, row.node);
       }
@@ -321,7 +322,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     const actions: ResultTreeAction[] = [];
     if (node.location) {
       actions.push({ command: COMMANDS.OPEN_LOCATION, label: vscode.l10n.t("Open Location") });
-      if (node.contextValue !== "bookmarkLocation" && !this.options.onActivate) {
+      if (node.contextValue !== "bookmarkLocation" && !this.options.hideBookmarkAction) {
         actions.push({ command: COMMANDS.BOOKMARKS_ADD, label: vscode.l10n.t("Add Bookmark") });
       }
     }

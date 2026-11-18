@@ -103,13 +103,13 @@ function harness(persistentFilter = false, trackInteraction = false) {
 }
 
 describe("custom result tree browser interaction", () => {
-  function symbolHierarchy(h: ReturnType<typeof harness>, highlight = false): void {
+  function symbolHierarchy(h: ReturnType<typeof harness>, highlight = false, expanded = false): void {
     const root = { id: "scope", label: "Codec", depth: 0, expandable: true, expanded: false, navigable: true, icon: "symbol-class" };
     const group = { id: "nested", parent: "scope", label: "Packet", depth: 1, expandable: true, expanded: false, navigable: true, icon: "symbol-struct" };
     const read = { id: "read", parent: "nested", label: "read_frame", filterText: "read_frame", description: "Editor center", depth: 2, navigable: true,
       icon: "symbol-function", highlights: highlight ? [[0, 10]] : undefined };
     const write = { id: "write", parent: "nested", label: "write_frame", depth: 2, navigable: true, icon: "symbol-function" };
-    h.receive({ type: "state", rows: [root], filterRows: [root, group, read, write] });
+    h.receive({ type: "state", rows: expanded ? [root, group, read, write] : [root], filterRows: [root, group, read, write] });
   }
   const renderedIds = (h: ReturnType<typeof harness>) => h.elements.get("canvas")!.children.map(row => row.dataset.id);
 
@@ -159,6 +159,49 @@ describe("custom result tree browser interaction", () => {
     assert.deepEqual(renderedIds(h), ["scope", "nested", "read"]);
     assert(h.elements.get("canvas")!.children[2].children[2].children.some(child => child.className === "highlight"));
     assert.equal(h.elements.get("filter")!.value, "read");
+  });
+
+  it("retains a matching symbol query during unfocused follow by stable row identity", () => {
+    const h = harness(true, true); symbolHierarchy(h, false, true);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("read"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "read", clear: "ifHidden", reveal: true, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "read", "Search projections contain row copies, not the host row object");
+    assert.deepEqual(renderedIds(h), ["scope", "nested", "read"]);
+  });
+
+  it("clears a symbol query only after a successful open leaves the view, unless locked", () => {
+    const h = harness(true, true); symbolHierarchy(h, false, true);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("read");
+    const action = { type: "autoFollow", id: "read", clear: "always", reveal: true, inputRevision: revision };
+    h.receive(action); assert.equal(h.elements.get("filter")!.value, "read");
+    h.focus(false); h.receive({ type: "autoFollowPolicy", blocked: true });
+    h.receive(action); assert.equal(h.elements.get("filter")!.value, "read");
+    h.receive({ type: "autoFollowPolicy", blocked: false }); h.receive(action);
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.elements.get("filter")!.focused, false);
+  });
+
+  it("clears an opened collapsed symbol without expanding ancestors when reveal is disabled", () => {
+    const h = harness(true, true); symbolHierarchy(h);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("read"); h.focus(false);
+    h.receive({ type: "autoFollow", id: "read", clear: "always", reveal: false, inputRevision: revision });
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.deepEqual(renderedIds(h), ["scope"]);
+    assert.equal(h.messages.some(message => message.type === "expand"), false);
+  });
+
+  it("defers symbol follow while searching and clears a hiding query only after blur", () => {
+    const h = harness(true, true); symbolHierarchy(h, false, true);
+    h.receive({ type: "autoFollowPolicy", blocked: false });
+    const revision = h.input("write");
+    const action = { type: "autoFollow", id: "read", clear: "ifHidden", reveal: true, inputRevision: revision };
+    h.receive(action); assert.equal(h.elements.get("filter")!.value, "write");
+    h.focus(false); h.receive(action);
+    assert.equal(h.elements.get("filter")!.value, "");
+    assert.equal(h.messages.some(message => message.type === "activate" || message.type === "expand"), false);
   });
 
   it("keeps a large materialized symbol index virtualized and filters it without requests", () => {

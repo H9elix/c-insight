@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
+import { verifyDocumentSymbolFollowing } from "./documentSymbolFollowing";
 
 interface Row { id: string; label: string; parent?: string; uri: string; line: number; expanded: boolean; description?: string }
 const snapshot = (filter = false) => vscode.commands.executeCommand<Row[]>("cInsight.test.resultTreeInteraction", "cInsight.symbols", filter ? "filterSnapshot" : undefined);
@@ -37,6 +38,7 @@ export async function verifyDocumentSymbolSearch(): Promise<void> {
     await vscode.commands.executeCommand("cInsight.test.resultTreeInteraction", "cInsight.symbols", { type: "activate", id: member.id, intent: "open" });
     assert.equal(vscode.window.activeTextEditor?.document.uri.toString(), member.uri);
     assert.equal(vscode.window.activeTextEditor?.selection.active.line, member.line);
+    await verifyDocumentSymbolFollowing(configuration, member, searchable);
     await verifyControls(configuration, uri, searchable, member);
     console.log("DOCUMENT_SYMBOLS: materialized collapsed members, stable identities/expansion, preview and editor activation passed.");
   } finally {
@@ -56,6 +58,8 @@ async function waitRows(filter: boolean, accept: (rows: Row[]) => boolean, messa
 }
 
 async function verifyControls(configuration: vscode.WorkspaceConfiguration, uri: vscode.Uri, original: Row[], member: Row): Promise<void> {
+  await configuration.update("followEditorCenter", true, vscode.ConfigurationTarget.Global);
+  await new Promise(resolve => setTimeout(resolve, 250));
   const filesBefore = await vscode.commands.executeCommand<{ locked: boolean }>("cInsight.test.projectFilesState");
   await vscode.commands.executeCommand("cInsight.documentSymbols.lock");
   assert.equal(await vscode.commands.executeCommand("cInsight.test.documentSymbolsLocked"), true);
