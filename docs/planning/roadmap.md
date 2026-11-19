@@ -2,9 +2,9 @@
 
 ## Current status
 
-The released baseline is `0.22.28`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, and workspace file and symbol browsing. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
+The maintained baseline is `0.22.29`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, and workspace file and symbol browsing. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
 
-Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. The local filter-parity fix shares focus and follow ownership: successful unlocked opens clear the query, ordinary unfocused follow clears only a hiding query, and focused interaction retains input and scrolling. That temporary build is awaiting user acceptance under [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
+Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. Shared focus and follow ownership clears queries after successful unlocked opens, clears only a hiding query during ordinary unfocused follow, and preserves input and scrolling during focused interaction. The maintainer authorized inclusion in `0.22.29`; see [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
 
 Compiler-macro definition locations, automatic Code Preview placement and workspace-symbol indexing remain unresolved under [CI-REG-049](../validation/historical-issues.zh-CN.md#ci-reg-049). Deferred fourth-phase work is listed below.
 

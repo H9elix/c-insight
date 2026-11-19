@@ -29,7 +29,7 @@
 
 ## GitHub Release writing preference
 
-- For future GitHub Releases, keep the curated bilingual body focused on functional additions, fixes, and user-visible behavior changes only. Omit validation results, test counts, audit results, and remaining-boundary/known-limitation sections from the Release body.
+- For future GitHub Releases, keep the curated bilingual body focused on functional additions, fixes, and user-visible behavior changes only. Omit documentation-only changes, validation results, test counts, audit results, and remaining-boundary/known-limitation sections from the Release body.
 - Continue performing all required validation and asset/checksum verification. Keep evidence, limitations, and regression status in the relevant project documentation; omitting them from Release notes does not waive maintenance or delivery requirements.
 - Apply this preference prospectively. Do not rewrite existing published Releases or historical notes unless explicitly requested.
 - Release notes checks require version consistency, bilingual notes, a version comparison link, and no unfinished placeholders; an installation/verification section is not required.
