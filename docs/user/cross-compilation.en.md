@@ -1,6 +1,6 @@
 # C Insight Cross-compilation and Embedded Projects
 
-This guide applies to C Insight `0.22.25`. C Insight provides source navigation; it never configures or runs CMake, Make, compilation, linking, deployment, or flashing.
+This guide explains how to configure clangd or Microsoft C/C++ language service (cpptools) for bare-metal and embedded Linux projects. Your build system generates compilation databases and derived files; C Insight uses that information for source navigation.
 
 ## Required project evidence
 

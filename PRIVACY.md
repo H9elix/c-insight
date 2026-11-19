@@ -2,7 +2,7 @@
 
 C Insight is developed by `H9elix` and does not implement telemetry, analytics, advertising, account tracking, or automatic source-code upload.
 
-Semantic analysis is performed by the `clangd` process running in the same local, SSH, WSL, or container extension environment as C Insight. The extension passes document content and language requests to that process through LSP. C Insight itself does not send those requests to an external C Insight service.
+In clangd mode, semantic analysis runs in the same local, SSH, WSL, or container extension environment as C Insight; document content and language requests reach that process through LSP. In Microsoft mode, C Insight queries the installed Microsoft C/C++ language service through public VS Code Provider commands. C Insight has no external analysis service.
 
 Project Diagnostics reports may contain filesystem paths, compile commands, include paths, macro definitions, diagnostics, software versions, and aggregate runtime counters. Before copying or exporting a report, configure `cInsight.diagnostics.reportRedaction` as needed and inspect the result.
 

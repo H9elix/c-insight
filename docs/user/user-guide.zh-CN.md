@@ -16,7 +16,7 @@ C Insight 使用 VS Code 官方本地化机制，界面语言自动跟随 VS Cod
 
 - VS Code 1.95 或更高版本。
 - 使用默认引擎时需要 `clangd` 20 或更高版本；使用微软引擎时需要在相同的 Local/Remote 扩展宿主中安装 Microsoft C/C++（`ms-vscode.cpptools`）。
-- 当前主要支持本地 C/C++ 工程和单个工作区根目录。
+- 支持本地文件夹、多根工作区、WSL、Remote SSH 和容器；扩展与分析引擎应安装在源码所在的扩展宿主中。
 - 实际工程强烈建议提供 `compile_commands.json`。
 
 开发者与维护者为 `H9elix`，许可证为 MIT。公开源码和 Issue 位于 `https://github.com/H9elix/c-insight`；安全漏洞应通过仓库 Security 页面私密报告，不得创建公开 Issue。C Insight 不包含遥测，也不会把源码上传到 C Insight 服务；完整边界见随扩展提供的 `PRIVACY.md` 与 `SECURITY.md`。
@@ -229,7 +229,7 @@ C Insight 有两类查询。
 - 双击同一源码位置节点：在主编辑器中打开代码预览所显示的同一位置并居中。文档符号（Document Symbols）也遵循此规则；具有子项的节点仍通过左侧展开箭头展开。双击本身不会让上下文、代码预览、引用、调用者或被调用者跟随新编辑器光标刷新；使用鼠标或键盘将编辑器光标移动到其他位置后，才恢复现有的随光标刷新。文档符号和工程诊断仍会立即跟随活动文件。
 - 在位置节点的右键菜单中选择打开位置（Open Location）：在主编辑器中打开。
 
-从 `0.22.24` 起，从代码预览、源码结果树、转到定义或关系图打开源码时，C Insight 在同一次打开操作中传入目标光标位置，不先恢复文件上次关闭时的位置再移动光标。鼠标侧键若绑定 VS Code 默认的后退/前进，或使用原生后退/前进命令，应直接在跳转前的位置与目标位置之间切换，不再停留于这次打开产生的临时恢复位置。同文件跳转及已经打开的目标文件也使用同一路径；原有合法历史不会被清空，旧版本已经产生的冗余记录不会被追溯删除。此修复不改变双击后的延迟跟随、固定/锁定、居中显示或标签页策略；代码预览自己的前进/后退历史仍独立管理。
+从代码预览、源码结果树、转到定义或关系图打开源码后，可用 VS Code 原生后退/前进命令或绑定它们的鼠标侧键，在原位置与目标位置之间切换。代码预览自己的前进/后退历史独立管理。
 
 单击树节点、导航历史、关系图节点或代码预览内符号后，该显式选择会暂时取得代码预览的更新权。在代码预览内滚动或按下鼠标/触控指针也会取得相同所有权，避免正在阅读的源码被迟到的详情或定义升级重置。完全相同 URI 和目标范围的重复结果只更新标题元数据，不重建 Webview。此前光标符号尚未完成的引用详情、调用数量或定义升级重试仍可更新各自窗口，但不能再把代码预览切回旧符号的定义。随后用鼠标或方向键主动移动编辑器光标，或者执行显式刷新/查询时，新上下文会重新取得代码预览更新权。仅仅展开或显示另一个 C Insight 窗口不会夺走当前显式预览；锁定（Lock）仍具有更高优先级。
 
@@ -258,9 +258,9 @@ C Insight 有两类查询。
 
 代码预览（Code Preview）默认通过 VS Code Document 语义令牌（Semantic Tokens）命令复用当前 C/C++ 文档已注册的语义令牌提供器。使用 C Insight 自带 clangd 时，函数、方法、变量、参数、类型、命名空间和宏等分类来自同一 clangd；关键字、字符串、数字和注释等未被语义令牌覆盖的区间继续使用轻量词法高亮。语义请求暂不可用时会自动退回纯词法高亮，不影响预览和导航。语义令牌提供器超过 `cInsight.codePreview.semanticTokenTimeout` 仍未返回时也会执行相同回退，避免大型跨文件目标的着色请求阻塞定义预览。
 
-Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成后的全部 `semanticTokenColors`。默认的主题配色（Theme）使用公开的 VS Code 颜色变量映射语义类别，不保证与编辑器逐字符同色；分类来自提供程序，词法回退也不等于完整的编辑器语法分析。
+默认的主题配色（Theme）使用公开的 VS Code 颜色变量映射语义类别，因此可能与编辑器最终配色不同。
 
-从 `0.22.25` 起，代码预览提供固定深色（Fixed Dark）和固定浅色（Fixed Light）预设，已通过临时包用户验收并合入主干。通过 `cInsight.codePreview.colorScheme` 选择 `"theme"`（默认）、`"fixed-dark"` 或 `"fixed-light"`。固定模式同时设定源码背景、普通文字、行号、目标行和目标符号颜色，不随 VS Code 明暗主题改变；预览标题及工具栏仍跟随 VS Code 主题。它只改变已有语义类别及词法回退的显示颜色，不增加查询，不补出提供程序未返回的分类，也不改变现有的参数/只读斜体与弃用删除线。
+通过 `cInsight.codePreview.colorScheme` 选择主题配色 `"theme"`（默认）、固定深色（Fixed Dark）`"fixed-dark"` 或固定浅色（Fixed Light）`"fixed-light"`。固定模式同时设定源码背景、普通文字、行号、目标行和目标符号颜色，不随 VS Code 明暗主题改变；预览标题及工具栏仍跟随 VS Code 主题。配色设置作用于已有语义类别和词法回退，保留参数/只读斜体与弃用删除线。
 
 `cInsight.codePreview.tokenColors` 可在任意模式下覆盖指定类别，其余类别沿用所选模式。每个键独立生效，例如 `function` 不会同时修改 `method`，`type` 不会同时修改 `class` 或 `struct`。仅接受不含透明度的六位十六进制颜色 `#RRGGBB`；无效值回退到预设并给出一次去重提示，不会作为 CSS 执行。下面示例只覆盖部分颜色，其余沿用固定深色；完整默认表和配置说明见下方，验收边界见[固定配色使用与验证](../validation/code-preview-fixed-colors.zh-CN.md)。
 
@@ -352,7 +352,7 @@ Webview 不能直接复用编辑器渲染器，也不能读取主题最终合成
 - Other 引用（Reference）
 - Macro 相关引用
 
-分类优先使用当前分析引擎提供的 Document Highlight，再结合保守的源码语法判断。对于指针副作用、模板、重载运算符、宏展开等复杂情况，分类可能显示推断置信度，而不会假装结果绝对准确。
+分类优先使用当前分析引擎提供的 Document Highlight，再结合保守的源码语法判断。指针副作用、模板、重载运算符、宏展开等复杂情况会附带相应的推断置信度。
 
 每条已解析的引用都带有可追溯的分类证据。将鼠标悬停在引用节点上可查看：
 
@@ -449,15 +449,15 @@ Change 引用（Reference） Scope 提供：
 
 例如 `report` 在 `add` 中调用两次、在 `main` 中调用三次时，展开 `report` 会先显示 `report` 的独立声明（若存在），再直接得到两个 `add` 和三个 `main` 调用点。不会再为 `add` 和 `main` 追加不可展开的定义叶节点。继续展开规范 `add` 调用点时，才会在这一层最前面显示 `add` 自身的独立声明，然后查询调用 `add` 的函数。声明和调用点均遵循单击预览、双击打开。
 
-当所选宏可关联到可读取源码中的同名 `#define` 时，调用者默认进入宏使用模式。例如 `MY_PRINTF_2` 展开为 `printf` 时，根节点仍显示 `MY_PRINTF_2`，首层通过该宏自身的引用（References）生成，只显示源码中拼写为 `MY_PRINTF_2` 的准确使用位置；宏定义名本身会被排除，不会混入 `MY_PRINTF` 或直接 `printf` 的调用。光标位于实际宏使用处、`#define` 中的宏定义名或其他宏的替换文本中时，都可以按所选宏查询。从 `0.22.23` 起，还覆盖数值宏、表达式宏以及分析提供程序没有返回函数调用层次根的使用位置。例如，在 `#define MY_PRINTF_2 MY_PRINTF` 的右侧查询 `MY_PRINTF`，会显示该行对它的直接引用，而不是间接拼写为 `MY_PRINTF_2` 的使用位置或所有 `printf` 调用。
+当所选宏可关联到可读取源码中的同名 `#define` 时，调用者默认进入宏使用模式。例如 `MY_PRINTF_2` 展开为 `printf` 时，根节点仍显示 `MY_PRINTF_2`，首层通过该宏自身的引用（References）生成，只显示源码中拼写为 `MY_PRINTF_2` 的准确使用位置；宏定义名本身会被排除，不会混入 `MY_PRINTF` 或直接 `printf` 的调用。光标位于实际宏使用处、`#define` 中的宏定义名或其他宏的替换文本中时，都可以按所选宏查询，也支持数值宏、表达式宏和没有函数调用层次根的宏。例如，在 `#define MY_PRINTF_2 MY_PRINTF` 的右侧查询 `MY_PRINTF`，会显示该行对它的直接引用，而不是间接拼写为 `MY_PRINTF_2` 的使用位置或所有 `printf` 调用。
 
 已取得可调用文档符号的宏使用位置会显示其外层函数；同一函数中的多个使用点分别显示，规范节点可继续展开该函数的调用者。其他位置保留为可导航的“宏引用”：它可能处于函数之外、来源文件尚未打开，或者提供程序未能解析所属函数，因此不会一律误称为“可调用符号之外”。clangd 模式不会仅为了这些标签而批量打开引用文件、构建 AST；打开相应源码并刷新后，如果提供程序能够返回函数符号，该位置可以显示为所属函数。单个文件的符号查询失败不会再使整个宏查询报错，原始准确引用仍然保留；取消操作仍会正常取消。宏识别复用光标查询已有的定义请求，避免对每个非函数符号重复查询定义。结果范围仍受活动编译配置、索引和提供程序引用覆盖范围限制；未激活的条件预处理分支或确实未使用的宏可能合理地没有结果。
 
-从 `0.22.26` 起，还支持 clangd 已在悬停信息中明确识别、仅通过编译参数 `-D` 注入的宏：调用者保留宏自身名称并列出该宏引用，包括条件指令 `#if` 中的使用；函数别名宏不会默认扩大为函数的全部调用。没有可读取的源码定义时，调用者根锚定当前使用位置，不伪造 `#define`，该使用位置仍会正常出现在子结果中。上下文折叠或隐藏不会再让条件宏被误判成无符号；宏身份与上下文按需共享至多一次悬停请求，普通同名函数保留快速路径，所有导航窗口隐藏时不查询。此项不扩展 Microsoft 模式的宏识别能力；也不修复 clangd 返回空或不可靠定义位置、或工作区符号搜索不收录编译宏的边界。构造方法、基线记录与验收步骤见[编译参数宏验证](../validation/command-line-macros.zh-CN.md)。
+clangd 模式也支持悬停信息明确识别、仅通过编译参数 `-D` 注入的宏：调用者保留宏自身名称并列出准确引用，包括条件指令 `#if` 中的使用。没有可读取的源码定义时，根锚定当前使用位置，该位置仍包含在子结果中。上下文折叠或隐藏时也能自动跟随；宏识别与上下文共享至多一次按需悬停请求。编译宏的定义位置与工作区符号索引可能缺失或不准确，详见[编译参数宏验证](../validation/command-line-macros.zh-CN.md)。
 
 宏使用根出现时，调用者标题栏和宏根节点右键菜单会显示**查询宏展开后函数的调用者（Show Expanded Function Callers）**。已有可调用目标时，会复用分析提供程序（Provider）原始调用层次根（Call Hierarchy Root，例如 `printf`）；否则 C Insight 只在用户执行该命令时按源码顺序检查最多 16 个实际使用位置，并按需同步这些候选文档，以解析一个可调用目标。执行后只替换调用者树；被调用者、关系图和当前宏定义/引用结果不随之改变。刷新（Refresh）或重新执行显示传入调用（Show Incoming Calls）会恢复默认的宏使用结果。数值宏等没有可解析函数目标时，原宏使用结果保持不变并显示提示；只供宏引用展示的合成根不会进入被调用者查询。
 
-默认情况下，字段（Field）或属性（Property）的调用者直接显示分析提供程序（Provider）返回的完整原始结果，不区分变量实例。该路径与 `0.22.12` 的查询范围和性能路径一致：clangd 完成调用层次准备后直接查询传入调用，C Insight 不解析成员访问链、不查询根变量引用、不读取候选源码，也不执行逐候选定义回退。
+默认情况下，字段（Field）或属性（Property）的调用者直接显示分析提供程序（Provider）返回的完整原始结果，不区分变量实例。clangd 完成调用层次准备后直接查询传入调用，省去成员访问链解析、根变量引用和候选源码分类开销。
 
 将 `cInsight.callHierarchy.classifyMemberCallers` 设为 `true` 后，当光标位于 `st->codecpar`、`st->codecpar->sample_rate`、`(st)->codecpar` 或 `object.member` 这类以简单变量为根的访问链时，调用者会追踪根变量的声明并保留完整成员路径。提供程序返回的全部语义访问仍继续显示：根变量和完整路径均匹配的结果位于“当前变量（Selected variable）”分组；能够确认来自其他变量或其他成员路径的结果位于“其他变量或成员路径（Other variables or member paths）”分组；函数返回值、数组基表达式、强制转换、别名和其他无法可靠判断的表达式位于最后的“无法确定变量实例（Variable instance could not be determined）”分组。三个分组之间有明确的状态分隔行。
 
@@ -472,7 +472,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 - 引用查询没有返回调用证据时显示 `No callers found by Microsoft 引用 query — results may be incomplete`。
 - 引用已返回位置，但无法映射到外层函数时显示找到的引用数量以及 `enclosing caller functions could not be identified`。这通常表示提供程序的文档符号缺失、范围或类型不兼容，而不表示没有调用者。
 
-上述证据会按已经查询过的调用者节点累计显示在 **工程诊断（Project Diagnostics） → Microsoft C/C++ language service (cpptools) → 调用者 evidence (loaded nodes)** 中，包括 Queried nodes、引用、Mapped references、Unmapped references 和调用者（Caller） functions。复制或导出的工程诊断文本/JSON 也包含同一组数据。刷新或修改调用层次（Call Hierarchy）配置导致查询缓存失效时，这些计数会从零重新累计；它不是整个工作区的静态索引总量。0.18.8 还兼容 cpptools 将 C 函数以扁平 `Interface` 类型返回的情况：仅当符号名具有函数参数列表且其完整源码范围包含引用位置时，才将其识别为外层调用函数，避免误把真正的接口或类型符号当作调用者。
+上述证据会按已经查询过的调用者节点累计显示在 **工程诊断（Project Diagnostics） → Microsoft C/C++ language service (cpptools) → 调用者 evidence (loaded nodes)** 中，包括 Queried nodes、引用、Mapped references、Unmapped references 和调用者（Caller） functions。复制或导出的工程诊断文本/JSON 也包含同一组数据。刷新或修改调用层次（Call Hierarchy）配置导致查询缓存失效时，这些计数会从零重新累计；计数仅覆盖已查询节点。cpptools 将 C 函数以扁平 `Interface` 类型返回时，仅当符号名具有函数参数列表且其完整源码范围包含引用位置时，才将其识别为外层调用函数，避免误把真正的接口或类型符号当作调用者。
 
 可能出现的标签：
 
@@ -492,11 +492,11 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 - `Callee functions`：成功查询返回的被调用者数量总和。
 - `Average duration`、`Maximum duration`：这些节点查询的平均和最长耗时。
 
-同一证据也写入工程诊断文本/JSON 报告；调用层次（Call Hierarchy）缓存失效时清零。这里统计的是当前缓存周期内已加载节点，不代表整个工作区的全部被调用者。
+同一证据也写入工程诊断文本/JSON 报告；调用层次（Call Hierarchy）缓存失效时清零。统计范围为当前缓存周期内已加载的节点。
 
 ### 4.6 Microsoft 调用层次（Microsoft Call Hierarchy）交互一致性
 
-调用者（Callers）与被调用者（Callees）继续共用固定（Pin）状态：固定后光标移动不会替换两棵树，但显式执行显示传入/传出调用（Show Incoming/Outgoing Calls）或刷新（Refresh）仍允许更新到当前符号。0.18.14 的真实 FFmpeg Extension Host 回归覆盖了固定、自动更新阻止、固定状态下手动刷新和取消固定（Unpin）。“Microsoft 调用者：基于引用（Microsoft Callers: References-based）”是调用者的模式状态行，不是查询数据。0.18.15 为它增加独立身份；每次固定/取消固定重建临时状态行前都会移除旧实例，因此连续切换不会产生多行 Microsoft 调用者，也不会把原来的 Pinned 行错误转换成它。
+调用者（Callers）与被调用者（Callees）共用固定（Pin）状态：固定后光标移动不会替换两棵树，但显式执行显示传入/传出调用（Show Incoming/Outgoing Calls）或刷新（Refresh）仍允许更新到当前符号。“Microsoft 调用者：基于引用（Microsoft Callers: References-based）”是独立的模式状态行，固定/取消固定不会重复添加它。
 
 展开到指定深度（Expand to Depth）对两个方向分别查询和缓存；incoming/outgoing 缓存彼此独立。已加载深度和精确展开路径继续写入工作区会话（Workspace Session）。分析配置或调用层次（Call Hierarchy）配置变化会立即停止展开并清空两个方向的请求缓存及 Microsoft 查询证据。源码编辑只停止当前展开、保留树并标记结果过期；缓存等到下一次实际调用层次请求才统一清理，因此连续输入只形成一次待失效状态。若展开期间恰好发生树根刷新，已经成功加载的数据和精确展开路径仍会保留；界面节点的 `reveal` 属于尽力展示，不会再反向导致语义查询失败。
 
@@ -508,7 +508,7 @@ Microsoft 引用回退结果会显示“基于引用（References-based）”提
 
 每个实际展开的调用者语义节点还会并行请求一次定义（Definition）和声明（Declaration），并按 `cInsight.callHierarchy.cacheSize` 使用同一容量上限的独立 LRU 缓存。根节点复用光标上下文已经取得的位置，避免重复请求；隐藏、未展开、重复且不可展开或达到最大深度的节点不会查询声明。声明请求失败不会隐藏已经取得的调用者；调用者查询失败时，已经成功取得的声明仍可导航。达到调用点节点预算后，声明不计入预算，手动展开已有规范节点仍可看到声明和限制提示。cpptools 的浏览数据库尚未就绪时可能暂时返回空字段引用；C Insight 不缓存这种 Microsoft 成员字段空结果。显式执行显示传入调用（Show Incoming Calls）或刷新（Refresh）也会先使现有调用层次缓存失效，再发起新的提供程序（Provider）查询。
 
-光标跟随继续分为 `followCursorDelay` 基础防抖和 `followCursorDetailsDelay` 详情延迟。0.18.16 的真实 FFmpeg 回归会在所有导航窗口可见时连续移动光标 20 次，要求最终最多产生一个有界语义查询周期、引用最多一次、定义（Definition）最多两次（基础定义加引用排除定义的后处理），并且调度队列最终无 active/queued 任务。多窗口峰值并发、取消、按方法耗时和调用层次缓存命中仍可在工程诊断（Project Diagnostics）的 Runtime performance 中查看。
+光标跟随分为 `followCursorDelay` 基础防抖和 `followCursorDetailsDelay` 详情延迟。可在工程诊断（Project Diagnostics）的 Runtime performance 中查看多窗口峰值并发、取消、按方法耗时和调用层次缓存命中。
 
 被调用者（Callees）对应 clangd 传出调用（Outgoing Calls），回答“当前函数调用了哪些函数”。
 
@@ -642,7 +642,7 @@ Import 书签校验 JSON 格式后提供两种方式：
 - 找到后更新位置并清除已过期。
 - 找不到、文件无法读取或书签没有有效标识符时，保留原位置和已过期。
 
-这种重定位是保守的文本级恢复，并不等同于永久符号 ID。文件中存在多个同名符号时，会选择距离旧位置最近的一个。
+书签按保存的标识符进行文本重定位；存在多个同名符号时，选择距离旧位置最近的一个。
 
 ### 4.10 符号搜索（Symbol Search）
 
@@ -715,7 +715,7 @@ Import 书签校验 JSON 格式后提供两种方式：
 
 命令面板还可执行 **Export 工程诊断 as Text**。复制和导出报告包含引擎状态；clangd 状态/版本或 Microsoft C/C++ language service (cpptools) 证据；索引状态、编译数据库、当前文件命令拆解、回退配置以及当前文件 diagnostics。JSON 使用带 `schemaVersion` 的结构化格式，适合脚本处理或提交问题；文本格式适合直接粘贴。
 
-对于源文件，`compile_commands.json` 中路径完全匹配的条目标记为 `direct`。头文件通常没有独立条目，clangd 会根据其内部 HeaderIncluderCache 等信息推断命令；C Insight 会优先查找同目录同名源文件，再选择同目录源文件作为 `inferred-candidate`。这个候选项用于诊断 Include 路径和宏，不代表 C Insight 能够确认 clangd 最终选择了它。没有直接条目或候选条目时标记为 `fallback`；clangd 模式显示 `cInsight.fallbackFlags`，Microsoft 模式说明当前文件使用 `C_Cpp.default.*` 或 `c_cpp_properties.json` 基础配置。
+对于源文件，`compile_commands.json` 中路径完全匹配的条目标记为 `direct`。头文件通常没有独立条目，clangd 会根据其内部 HeaderIncluderCache 等信息推断命令；C Insight 会优先查找同目录同名源文件，再选择同目录源文件作为 `inferred-candidate`。候选项用于诊断 Include 路径和宏；clangd 实际选择的头文件命令未通过 LSP 暴露。没有直接条目或候选条目时标记为 `fallback`；clangd 模式显示 `cInsight.fallbackFlags`，Microsoft 模式说明当前文件使用 `C_Cpp.default.*` 或 `c_cpp_properties.json` 基础配置。
 
 Microsoft 模式要求 `C_Cpp.intelliSenseEngine` 的当前资源有效值为 `default`。值为 `disabled` 或 `Tag Parser` 时拒绝进入 ready；发现已激活的 LLVM clangd 等已知竞争提供程序时标记为 `ambiguous` 并拒绝语义查询。`verified` 只表示未发现已知冲突，因为 VS Code 公共命令仍不返回每条结果的提供程序身份。
 
@@ -1399,9 +1399,9 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 
 同时运行官方 clangd 扩展或微软 C/C++ 扩展，可能产生重复语言提供者和重复索引。C Insight 会过滤会产生全局命令冲突的 clangd execute-command 功能，但仍建议只保留实际需要的语义引擎。
 
-## 13. 第二阶段语义增强与兼容性
+## 13. 语义证据与数据格式兼容性
 
-0.14.0–0.16.3 完成了第二阶段：
+各关系视图提供以下语义证据：
 
 - 引用（References）：分类结论、置信度、稳定规则和来源证据；指针/引用参数副作用、重载运算符、模板和宏来源；证据过滤、分组及版本化导出。
 - 调用层次（Call Hierarchy）：调用者（Callers）/被调用者（Callees）精确分支恢复；显式函数指针和成员函数指针调用的语法证据与未解析节点。
@@ -1412,11 +1412,11 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 - 工作区会话（Workspace Session）格式仍为版本 `1`。0.15.0 以前没有逐节点路径的调用层次快照继续按最大已加载深度恢复。
 - 通用 Hierarchy JSON 仍为 `schemaVersion: 1`。新增的 `summary`、`kind`、`relationship` 和 `evidence` 均为附加字段；旧的必要字段和边方向未改变。
 - 引用 JSON 使用独立的 `c-insight.references` 版本 `1` 格式。
-- 类型/包含层次（Type/Include Hierarchy）仍不写入工作区会话，符合此前备忘录决定。
+- 类型/包含层次（Type/Include Hierarchy）不写入工作区会话。
 
 ## 14. 当前限制
 
-第四阶段候选功能目前整体暂缓，仅保留在备忘录中，不属于当前实施计划，包括代码预览（Code Preview）完整语义右键菜单、包含文件（Include）条件预处理与 query-driver 内建路径增强、类型/包含会话恢复（Type/Include Session Restore）以及跨过程数据流。Microsoft C/C++ 引擎已经是显式可选的生产适配器，具备配置/冲突验证、引擎诊断、按查询类型划分的性能证据、串行且按窗口需求触发的调用层次（Call Hierarchy）、基于引用（References-based）的安全调用者（Callers）和原生被调用者（Callees）。由于 cpptools 是独立的原生进程，C Insight 可以降低并发压力和避免复用失效对象，但无法捕获或修复其内部 SIGSEGV；若仍发生，应将 cpptools 输出的调用栈提交到 Microsoft vscode-cpptools 问题跟踪器。类型层次（Type Hierarchy）、索引进度和 clangd 专用协议证据仍受公开提供程序 API 边界限制，详见 Microsoft 验收文档。
+Microsoft 模式的类型层次（Type Hierarchy）、索引进度和 clangd 专用协议证据受公开提供程序 API 限制。若 cpptools 发生 `SIGSEGV`，请将其输出调用栈提交到 Microsoft vscode-cpptools 问题跟踪器；可先使用默认的基于引用（References-based）的调用者（Callers）模式避开已知原生传入调用崩溃路径。
 
 - 支持 Local、WSL、Remote SSH 和直接打开文件夹，但部分相对配置和自动数据库选择以第一个工作区根目录为基准；多根工程应显式选择数据库并核对作用域。
 - 代码预览复用编辑器的语义令牌分类，但 Webview 的主题颜色映射可能与编辑器最终合成颜色存在细微差异。
@@ -1424,6 +1424,8 @@ C Insight 的传出调用层次（Outgoing Call Hierarchy）要求 clangd 20 或
 - 引用（References）对跨过程指针目标、完整模板实例化链和编译器宏展开栈保持保守；推断结果会显示证据和置信度。
 - clangd 标准索引进度只提供已完成/总数和百分比，不提供当前索引文件名。
 - 包含层次（Include Hierarchy）不执行编译器或预处理器；clangd 从 query driver 内部取得但未写入数据库的系统路径、宏生成的 include 和条件编译的真实启用状态可能无法完整还原。
+
+延期功能见[路线图与备忘录](../planning/roadmap.md#deferred-fourth-phase)。
 
 ### 大型工程性能基线
 
@@ -1460,7 +1462,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 包含文件（Includes）/被包含关系（Included By） | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击/双击关系行；右键打开目标 |
 | 关系图（Relationship Graph） | Call、Type、Include 与定义关系仓库 | 只在显式扩展时查询 | 面板生命周期 | 已加载图搜索 | 多关系、有界扩展 | Text、JSON、Mermaid | 单击预览；双击打开 |
 
-`—` 表示该能力不适用于对应窗口，而不是功能异常。
+`—` 表示该能力不适用于对应窗口。
 
 ## 16. 状态持久化与配置生效矩阵
 

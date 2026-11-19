@@ -6,9 +6,7 @@ C Insight is a Source Insight-style C/C++ code-browsing extension for VS Code. I
 
 **[阅读简体中文 README](README.zh-CN.md)** · [English user guide](docs/user/user-guide.en.md) · [中文用户手册](docs/user/user-guide.zh-CN.md) · [Latest release](https://github.com/H9elix/c-insight/releases/latest)
 
-C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It is a navigation and visualization layer: it does not compile the project, replace the build system, or create `compile_commands.json` for you.
-
-Version `0.22.28` adds a persistent **Document Symbols** search box, independent follow locking, and source-position/name/type sorting. Search includes loaded members inside collapsed branches and retains their ancestor context. See the [release notes](docs/releases/v0.22.28.md) and [user guide](docs/user/user-guide.en.md#configuration-and-commands).
+C Insight delegates semantic analysis to a managed `clangd` process by default, or to the installed Microsoft C/C++ language service (cpptools) when explicitly selected. It presents those results as a connected browsing workspace, using your project's compilation settings.
 
 ![C Insight workspace with Document Symbols, Context, Code Preview, Callers, and References visible together](.github/readme-assets/overview.png)
 
@@ -32,7 +30,7 @@ VS Code already provides commands such as Go to Definition and Find All Referenc
 
 Move the editor cursor deliberately onto a C/C++ symbol. Context and Code Preview update automatically, while expensive References and first-level call details are staged until the cursor remains stable. Moving within the same identifier, typing, or landing on a symbol-free position does not repeatedly discard or rerun the current investigation.
 
-Single-click any ordinary source result to show its exact location in Code Preview. Activate the same result again within the configured double-activation interval to open it in the editor. Code Preview buffers source on both sides before reveal and prefetches near loaded edges for immediate scrolling. An explicit result selection, wheel gesture, or pointer interaction remains stable through delayed context details and definition upgrades until you deliberately move the editor cursor or run an explicit refresh.
+Single-click a source result to show its exact location in Code Preview; double-click it to open that location in the editor. Buffered context supports scrolling above and below the target. The preview keeps the location you selected or scrolled to until you deliberately move the editor cursor or run an explicit refresh.
 
 ![Move from an editor symbol to its definition, references, and exact source locations through Code Preview](.github/readme-assets/core-navigation.gif)
 
@@ -42,7 +40,7 @@ Callers and Callees show every returned call site directly beneath its semantic 
 
 When the selected spelling is a macro that expands to a function, Callers keeps the macro identity and lists only uses of that exact macro instead of silently switching to every caller of the expanded function. This works both on a macro use and on its `#define` name. The Callers title bar and macro-root context menu then offer **Show Expanded Function Callers** when you deliberately want the Provider's expanded target instead; from a definition, that target is resolved lazily through an actual use.
 
-Version `0.22.23` also handles numeric/expression macros and references in another macro's replacement text when no callable root exists. Macro references in unopened files remain exact navigable positions without bulk AST loading; a failed per-file symbol lookup no longer aborts the whole macro query. See the [release notes](docs/releases/v0.22.23.md).
+Callers also lists direct uses of numeric and expression macros, including references in another macro's replacement text. Each result opens the exact source location.
 
 ![Select different caller occurrences and preview each exact call site](.github/readme-assets/call-hierarchy.gif)
 
@@ -60,7 +58,7 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 | References Explorer | Definition/declaration/call/read/write/address classification, file/directory/function/type grouping, scope and evidence filters, lazy snippets, paging, pinning, and export |
 | Call Hierarchy | Exact incoming/outgoing call occurrences, lazy multi-level expansion, recursion handling, loaded-tree search, bounded path search, pinning, session restoration, and export |
 | Type and Include Hierarchy | C++ supertypes/subtypes plus forward Includes and reverse Included By, with lazy expansion, cycle handling, search, limits, and export |
-| Symbols and navigation | Document Symbols with editor-center highlighting, persistent name filtering, sibling sorting and independent follow locking, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
+| Symbols and navigation | Document Symbols with editor-center highlighting, persistent name filtering including collapsed members, sibling sorting and independent follow locking, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
 | Project Files | Flat multi-root file list, live name/path filtering, name/path/type sorting, active-file highlighting, centered following, and independent locking |
 | Project awareness | Compilation-database detection and selection, active command breakdown, diagnostics, clangd lifecycle and recovery, indexing progress, runtime counters, and one reliability status |
 
@@ -130,7 +128,7 @@ See [PRIVACY.md](PRIVACY.md) for data boundaries and [SECURITY.md](SECURITY.md) 
 - VS Code 1.95 or newer.
 - clangd 20 or newer on `PATH`, configured through `cInsight.clangd.path`, or an explicitly selected Microsoft C/C++ language service.
 - A correct compilation database or equivalent fallback flags for reliable real-project results.
-- The current release supports one local workspace root.
+- Local folders, multi-root workspaces, WSL, SSH, and containers are supported; install C Insight and its analysis engine in the environment hosting the source files.
 - Static analysis cannot fully resolve every function pointer, runtime dispatch target, macro expansion, generated source, template instantiation, or inactive conditional-compilation branch.
 - Reference read/write and member-instance classification remain conservative when the selected Provider does not expose enough semantic evidence.
 

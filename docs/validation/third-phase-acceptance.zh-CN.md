@@ -1,6 +1,6 @@
 # C Insight 第三阶段验收报告
 
-> 文档性质：历史阶段验收证据。本文记录 `0.17.x` 与 `0.20.0`–`0.20.5` 的环境和结果；当前 `0.22.25` 继续运行相同质量门，但后续功能行为应以当前用户手册、源码和最新测试为准。历史机器上的工作副本路径已泛化为 `/path/to/FFmpeg`，不改变验收内容。
+> 本文记录 `0.17.x` 与 `0.20.0`–`0.20.5` 的环境和结果。当前操作见[用户手册](../user/user-guide.zh-CN.md)；工作副本路径使用 `/path/to/FFmpeg`。
 
 ## 0.20.5 最终结论
 
@@ -47,7 +47,7 @@
 - 代表文件：`libavcodec/bsf/noise.c`
 - 编译命令验证：`clangd-20 --check` 成功，无错误退出
 
-这些路径是本次验收环境记录，不是插件运行要求。可通过环境变量在其他机器指定：
+在其他环境复验时，通过环境变量指定工程与 clangd：
 
 ```bash
 C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg \
@@ -71,7 +71,7 @@ npm run acceptance:ffmpeg -- /tmp/c-insight-ffmpeg-acceptance.json
 | Outgoing Calls | 请求成功、返回合法数组；本文件为 0 个静态目标 | 0.39 ms |
 | Hover | 内容可用 | 0.61 ms |
 
-Outgoing Calls 返回空数组表示 clangd 对该 C 文件的静态调用图保持保守；请求成功且没有 `-32601 method not found`，因此协议和 clangd 20 兼容性验收通过。此数量不能推断整个 FFmpeg 工程没有调用关系。
+本次 Outgoing Calls 成功返回空数组，未出现 `-32601 method not found`，clangd 20 协议兼容性验收通过。
 
 ## 4. 自动回归门槛
 

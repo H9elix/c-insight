@@ -4,8 +4,6 @@
 
 ## 用户文档 `user/`
 
-`0.22.28` 为文档符号窗口新增常驻名称搜索、独立跟随锁定和同层排序，搜索包含已加载的折叠成员。见[使用说明](user/user-guide.zh-CN.md#411-文档符号document-symbols)及[回归案例](validation/historical-issues.zh-CN.md#ci-reg-042)。工程文件窗口的搜索、锁定和居中跟随见[专项验证](validation/project-files.zh-CN.md)。
-
 - [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
 - [English user guide](user/user-guide.en.md)：英文使用说明。
 - [交叉编译与嵌入式工程配置](user/cross-compilation.zh-CN.md)：中文的交叉工具链、编译数据库、sysroot 和双引擎配置说明。
@@ -15,7 +13,7 @@
 
 - [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、测试与发布流程。
 - [架构说明](development/architecture.md)：核心架构、数据流、信任边界和架构守卫。
-- [自绘结果树交互与维护](development/custom-result-trees.zh-CN.md)：改造范围、操作规则、视图分组、维护边界与重点回归项目；已纳入 `0.22.22`。
+- [自绘结果树交互与维护](development/custom-result-trees.zh-CN.md)：视图范围、操作规则、视图分组、模块职责与重点回归项目。
 
 ## 规划设计 `planning/`
 
@@ -25,9 +23,9 @@
 ## 测试验收 `validation/`
 
 - [历史问题驱动测试指南](validation/regression-testing-guide.zh-CN.md)：按修改范围选择测试、自动与人工边界、高频冒烟清单，以及以后收到问题时的持续登记流程。
-- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：当前 49 条稳定编号场景，首批 48 条后新增编译参数宏 049；包含历史现象、已确认与未确认的原因、复现预期及实际测试入口，新反馈在此增补。
+- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：49 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及测试入口，新反馈在此增补。
 - [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
-- [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：已纳入 `0.22.25` 的深浅预设、完整默认颜色、自定义配置、校验边界和验收记录。
+- [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：深浅预设、完整默认颜色、自定义配置、输入校验和验收记录。
 - [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，含宏值 `1`、`0` 的生效分支函数调用者与函数式编译宏展开对照；区分已验收的识别、引用及宏调用者与未修复的定义/自动预览边界，关联 `CI-REG-049`。
 - [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。
 - [性能基准](validation/performance-baseline.zh-CN.md)：当前基准场景、执行方法和带日期的实测快照。
@@ -42,4 +40,4 @@
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门检查版本、中英双语、比较链接和未完成占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 
-用户行为和配置以用户手册为准；源码维护以开发者手册及实际代码为准；带日期或版本的验收数字只代表记录中的环境；规划文档中的延期项目不表示已经实现。
+用户手册说明当前操作与配置，开发者手册说明模块职责，验收文档记录执行环境和结果，规划文档区分已完成与延期项目。

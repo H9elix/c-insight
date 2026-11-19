@@ -42,6 +42,7 @@ The acceptance command is read-only with respect to the FFmpeg checkout.
 - Run `npm run ids:generate` after adding, removing, or renaming contributed commands or views. `npm run check` rejects a stale `src/ids.ts` registry.
 - Run `npm run l10n:export` after adding or changing `vscode.l10n.t()` calls; `npm run check` verifies that both runtime catalogs remain synchronized.
 - Keep local Markdown links valid; `npm run check` verifies their target files.
+- Keep both READMEs focused on current capabilities, workflows, and setup. Put version-by-version changes in `CHANGELOG.md` and release notes. Prefer direct explanations and actionable limitations over defensive commentary or task transcripts.
 - Keep repository, issue, security, privacy, and release links pointed at `https://github.com/H9elix/c-insight`.
 
 ## Bug reports and persistent regression knowledge

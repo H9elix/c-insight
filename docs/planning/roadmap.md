@@ -2,35 +2,11 @@
 
 ## Current status
 
-The maintained code and documentation baseline is `0.22.28`. Project Files provides an engine-independent workspace inventory with name/path/type sorting, persistent name/path filtering, active-file highlighting, centered automatic follow, and an independent Lock. Successful opens clear the query; ordinary follow clears only a query that hides the active file. File events are coalesced, scans are serial and cancellable, and hidden views pause work. See the [user guide](../user/user-guide.en.md#project-files) and [regression checks](../validation/project-files.zh-CN.md).
+The released baseline is `0.22.28`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, and workspace file and symbol browsing. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
 
-The extension retains its dual-engine navigation, occurrence-based call trees, macro-aware Callers, fixed preview palettes, edit-aware query suppression, stable preview scrolling, and shared result-tree interaction. Deferred fourth-phase items remain in the memo below.
+Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. The local filter-parity fix shares focus and follow ownership: successful unlocked opens clear the query, ordinary unfocused follow clears only a hiding query, and focused interaction retains input and scrolling. That temporary build is awaiting user acceptance under [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
 
-The user guides define current behavior; validation reports record reproducible checks and their environments.
-
-Version `0.22.28` adds a persistent Document Symbols name filter, reusing the Project Files input. It includes already-loaded collapsed members and ancestor context without semantic queries, adds independent follow locking and position/name/type sibling sorting, preserves ordinary expansion records, and keeps editor-center updates from clearing or scrolling active search results. The maintainer accepted the combined search and controls preview and authorized publication.
-
-The development fix aligns Document Symbols filter interaction with Project Files through a shared follow controller: successful unlocked editor opens clear the query, while ordinary unfocused follow clears only a hiding filter. Focused interaction, locks, sort pickers, failed opens and newer input remain protected. Symbol-name hierarchy search stays distinct from file-name/path search; neither filtering nor following adds an engine query.
-
-Version `0.22.26` includes the accepted compiler-macro Callers and hidden-Context refresh fixes (CI-REG-049). Shared lazy Hover evidence preserves macro identity without widening the default result to expanded functions; the compiler-macro suite is included in main-branch CI. Compiler-macro definition/automatic Code Preview placement and workspace-symbol indexing remain unresolved and are not implemented as part of this release. No deferred feature phase is activated.
-
-Version `0.22.25` incorporates the accepted `experiment/code-preview-fixed-colors` feature: opt-in fixed dark/light Code Preview palettes and strictly validated per-category colors, with `theme` retained as default. Style-only updates preserve source, scroll, caches and lock state. Bilingual user guides include all preset defaults and copyable settings. It does not implement complete editor-theme synchronization, TextMate or Monaco embedding, or any deferred fourth-phase item. The maintainer accepted the temporary VSIX and authorized merge and publication. See [configuration and validation](../validation/code-preview-fixed-colors.zh-CN.md).
-
-Version `0.22.24` includes the user-accepted editor-history fix: editor navigation supplies the destination caret in the initial `showTextDocument` request, eliminating the transient restored-file position from new native Back/Forward history. Shared result commands, Code Preview, and Relationship Graph retain existing tab and cursor-follow policies. Both analysis engines have real Extension Host regressions for closed/open target files, same-file jumps, and repeated native Back/Forward. The temporary VSIX completed user acceptance before formal versioning and release authorization. See [reproduction and verification](../validation/editor-navigation-history.zh-CN.md).
-
-Version `0.22.23` extends macro-identity Callers to numeric/expression macros and replacement-list references without requiring a native callable root. It shares cursor Definition work, preserves exact cross-file references without bulk-opening clangd ASTs, and isolates per-file mapping failures while retaining cancellation. The default remains exact direct macro uses; querying the expanded function still requires the explicit action. The user accepted the temporary preview before formal versioning and publication.
-
-The shared Webview renderer introduced on `experiment/custom-result-trees` was accepted by the user and incorporated into `main` on `2026-10-17`, and is included in `0.22.22`. It separates name activation from branch expansion, retains the analysis and repository layers, adds virtual scrolling and viewport-only source-description resolution, and adapts depth expansion, search, sessions, and node menus. View IDs and the native VS Code container remain unchanged. See [the interaction and maintenance guide](../development/custom-result-trees.zh-CN.md).
-
-Version `0.22.17` suppresses edit-induced cursor queries across both rapid and slowly spaced input, associates multiple or slightly displaced VS Code selection events with their originating edit, deduplicates lexical cursor targets, lazily invalidates Call and Type Hierarchy caches, and coalesces edit-driven Document Symbols, Code Preview, Include Hierarchy, Relationship Graph, and Project Diagnostics work. Deliberate navigation and explicit commands still resume queries immediately.
-
-Version `0.22.18` gives explicit Code Preview selections generation-bound ownership. Delayed cursor details and preferred-definition retries can finish without replacing a selected call site; deliberate cursor navigation or explicit refresh reclaims the preview, while a visibility-only refresh does not.
-
-Version `0.22.19` preserves the exact selected macro in Callers, derives every direct source use from References at either the macro use or its `#define` name, and resolves the expanded callable target only when explicitly requested. It also introduces the synchronized bilingual, demonstration-led repository and Marketplace landing pages.
-
-Version `0.22.20` adds the official Marketplace and Extension Manager product icon, matching gallery metadata, and a package contract that retains only runtime image assets in the VSIX.
-
-Version `0.22.21` makes Code Preview scrolling stable from the first gesture: a fresh target is buffered on both sides and positioned before reveal, later ranges are prefetched within one viewport, repeated detail publications cannot rebuild the same source target, and wheel/pointer interaction prevents delayed definition upgrades from resetting the source being read.
+Compiler-macro definition locations, automatic Code Preview placement and workspace-symbol indexing remain unresolved under [CI-REG-049](../validation/historical-issues.zh-CN.md#ci-reg-049). Deferred fourth-phase work is listed below.
 
 ## Completed phases
 
@@ -112,13 +88,9 @@ Do not implement these items until the user explicitly reactivates them:
 - Cross-procedural pointer/data-flow analysis, complete template-instantiation chains, and compiler macro-expansion stacks.
 - Additional Microsoft C/C++ parity only where a stable public API exists; do not depend on private cpptools commands to imitate clangd-only features.
 
-Replanning, maintenance, or completion of another phase does not implicitly authorize these features.
+## Other implemented capabilities
 
-## Implemented items removed from the memo
-
-The following are no longer deferred and must not be reintroduced as future work:
-
-- Code Preview semantic-token coloring with bounded timeout, lexical fallback, and count/byte-bounded cache.
+- Code Preview semantic-token coloring, fixed dark/light palettes, category overrides, bounded timeout, lexical fallback, and count/byte-bounded cache.
 - Incremental upward/downward preview loading, an always-accessible horizontal scrollbar, and bounded per-target scroll/range restoration for the current Extension Host session.
 - Relationship Graph static workspace-session restoration when the panel was still open at shutdown; explicitly closed panels are intentionally not restored.
 - Exact Call Hierarchy semantic-branch restoration using stable paths and re-query rather than serialized opaque Provider data.

@@ -1,6 +1,6 @@
 # Microsoft C/C++ Provider 可行性探测
 
-> 文档性质：`0.18.0` 的隔离探测设计及原始结论。当前 `0.22.25` 已根据这份证据提供可选 Microsoft 生产适配器；下文“只探测、不加入开关”描述的是 `0.18.0` 当时的范围。原始 JSON 不随文档版本改写，只有重新运行探针时才生成新的证据。
+> 本文保存 `0.18.0` 的隔离探测设计及原始结论。生产适配器自 `0.18.1` 提供，当前操作见[用户手册](../user/user-guide.zh-CN.md)。
 
 ## 目的和结论边界
 
@@ -49,7 +49,7 @@ Definition 和 References 是最低通过条件；References 会等待微软后�
 | Semantic Tokens | 是 | 14 个 token、23 种 token type |
 | 公共 Type Hierarchy 命令 | 否 | 只有 \`editor.*\` UI 内部命令，没有 \`vscode.*\` Provider 命令 |
 
-这些数字只用于证明公共 Provider 通路可工作，不是性能承诺；首次 Definition 包含微软引擎启动成本，约 1.4 秒，后续小样例查询多为数毫秒，References 和 Incoming Calls 约 0.4 秒。
+本次首次 Definition 包含微软引擎启动成本，约 1.4 秒，后续小样例查询多为数毫秒，References 和 Incoming Calls 约 0.4 秒。
 
 ## 已确认的 API 约束
 
@@ -63,4 +63,4 @@ Definition 和 References 是最低通过条件；References 会等待微软后�
 
 0.18.1 已按探测边界加入显式选择的 `microsoft` 适配器，覆盖 Definition、Declaration、References、Hover、Signature Help、Highlights、Symbols 和 Call Hierarchy。Type Hierarchy 显示为不支持；clangd 状态、索引和进程操作不会被伪装成微软能力。默认引擎仍为 clangd，配置变更后提示 Reload Window。
 
-本探测不是微软扩展兼容性承诺。每次提高最低支持版本或微软扩展改变 Provider 行为时，都应重新运行探测并保留报告。
+提高最低支持版本或微软扩展改变 Provider 行为时，重新运行探测并保留报告。

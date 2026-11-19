@@ -1,6 +1,6 @@
 # C Insight Microsoft C/C++ 引擎阶段验收报告
 
-> 文档性质：历史验收证据。本文记录 `0.18.x` 接入及 `0.20.4` 复验环境，不表示当前每台机器都具有相同版本、耗时或结果数量。当前 `0.22.25` 仍保持相同公开 Provider 边界；后续的统一单击/双击导航、调用点平铺、实现优先根位置、调用者声明行和可选成员变量实例分组属于 C Insight 展示层增强，不改变 cpptools API 能力。历史工作副本路径已泛化。
+> 本文记录 `0.18.x` Microsoft 引擎接入、`0.20.4` 复验及后续成员分类回归。当前操作见[用户手册](../user/user-guide.zh-CN.md)；工作副本路径使用 `/path/to/FFmpeg`。
 
 ## 1. 验收范围
 
@@ -17,7 +17,7 @@
 - 代表文件：`tools/decode_simple.c`
 - Callers 模式：`references`（避免已确认的 cpptools 原生 Incoming Calls 崩溃路径）
 
-这些版本和路径只是本次验收记录，不是插件的固定运行要求。可通过 `C_INSIGHT_VSCODE_EXECUTABLE_PATH`、`C_INSIGHT_CPPTOOLS_EXTENSION_PATH` 和 `C_INSIGHT_FFMPEG_WORKSPACE` 指定其他环境。
+复验时可通过 `C_INSIGHT_VSCODE_EXECUTABLE_PATH`、`C_INSIGHT_CPPTOOLS_EXTENSION_PATH` 和 `C_INSIGHT_FFMPEG_WORKSPACE` 指定环境。
 
 ## 3. 自动验收命令
 
@@ -52,7 +52,7 @@ Microsoft Extension Host 测试需要能够启动 Electron；受限容器中可�
 ## 5. 已确认边界
 
 - Type Hierarchy 暂不可用：VS Code 没有公开可执行的稳定 Provider 命令。
-- Callers 默认使用 References-based 近似结果。它可能漏掉 Provider 未返回的引用；“No callers found”不能证明程序中绝对没有调用者。
+- Callers 默认使用 References-based 近似结果，完整性取决于 Provider 返回的引用及函数映射。
 - Callees 使用公开 Call Hierarchy Outgoing Calls；其完整性由 cpptools 决定。
 - VS Code Provider 命令不能指定唯一提供者。Microsoft 模式下应避免同时启用其他 C/C++ 语义 Provider。
 - 已派发给 Provider 的任务不能通过公开 API 强制中止；C Insight 会取消排队任务并丢弃过期结果。
@@ -60,7 +60,7 @@ Microsoft Extension Host 测试需要能够启动 Electron；受限容器中可�
 
 ## 6. 结论
 
-Microsoft C/C++ 引擎已达到可选生产模式的阶段验收条件：核心导航、预览、安全 Callers、原生 Callees、状态交互、诊断和资源控制均有自动化及真实 FFmpeg 证据。它不承诺与 clangd 结果或性能完全一致，也不替代 clangd 默认模式。
+Microsoft C/C++ 引擎已达到可选生产模式的阶段验收条件：核心导航、预览、安全 Callers、原生 Callees、状态交互、诊断和资源控制均有自动化及真实 FFmpeg 证据。
 
 后续 Microsoft 功能扩展仍遵守公开 API 边界；在没有稳定公开接口时，不使用私有 cpptools 命令模拟 clangd 专属能力。
 
@@ -72,7 +72,7 @@ VS Code 1.130.0 与 Microsoft C/C++ 1.32.2 环境重新执行 Provider 探针、
 
 ## 8. 2026-09-30 成员变量调用者回归（0.22.13）
 
-隔离 Microsoft Extension Host 固件增加一个结构体字段：所选变量直接访问两次、另一个同类型变量访问一次、复杂函数返回值访问一次。cpptools 没有为该字段返回公共调用层次（Call Hierarchy）根时，C Insight 通过定义（Definition）建立基于引用的成员根。最终树保留两个当前变量访问和一个无法归属的复杂访问，排除另一个变量的访问；分组顺序、原始查询位置和会话证据均通过断言。该回归仍不声称具备别名或指针指向分析能力。
+隔离 Microsoft Extension Host 固件增加一个结构体字段：所选变量直接访问两次、另一个同类型变量访问一次、复杂函数返回值访问一次。cpptools 没有为该字段返回公共调用层次（Call Hierarchy）根时，C Insight 通过定义（Definition）建立基于引用的成员根。最终树保留两个当前变量访问和一个无法归属的复杂访问，排除另一个变量的访问；分组顺序、原始查询位置和会话证据均通过断言。
 
 ## 9. 2026-10-01 完整成员结果与轻量分类（0.22.14）
 
