@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { verifyPreviewPresentationOwnership } from "./previewPresentationOwnership";
+import { verifyCombinedTheme } from "./combinedTheme";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
 interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
@@ -32,6 +33,7 @@ export async function run(): Promise<void> {
     assert(extension.isActive,"A persisted combined view must activate without first opening a C/C++ document");
   }
   await extension.activate();
+  await verifyCombinedTheme();
   const layout = {enabled: true, title: "Browser", direction: "horizontal", views: ["symbols", "callers", "callees", "references", "preview"], ratios: [1, 1, 1, 1, 1]};
   try {
     if (!process.env.C_INSIGHT_COMBINED_SEEDED) {

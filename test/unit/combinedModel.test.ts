@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
 import { embeddedDocument, renderCombinedWebview } from "../../src/combined/combinedWebview";
+import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 
 describe("combined layouts", () => {
   it("defaults to four optional, empty horizontal slots", () => {
@@ -40,6 +41,16 @@ describe("combined layouts", () => {
       const html=embeddedDocument(`<html><head>${link}</head></html>`,"outer",1);
       assert.match(html,/<!--cInsightIcons-->/);assert.doesNotMatch(html,/<link/);
     }
+  });
+  it("supplies low-priority native-style theme defaults before renderer styles", () => {
+    const html=embeddedDocument('<html><head><style id="renderer">code{background:transparent}</style></head></html>',"outer",1);
+    assert(html.indexOf('id="c-insight-embedded-theme"')<html.indexOf('id="renderer"'));
+    assert.match(EMBEDDED_THEME_CSS,/@layer c-insight-embedded-default/);
+    for(const state of ["background","hoverBackground","activeBackground"])assert(EMBEDDED_THEME_CSS.includes(`--vscode-scrollbarSlider-${state}`));
+    assert.match(EMBEDDED_THEME_CSS,/::-webkit-scrollbar-corner/);
+    assert.match(EMBEDDED_THEME_CSS,/font-weight: var\(--vscode-font-weight\)/);
+    assert.match(EMBEDDED_THEME_CSS,/vscode-high-contrast-light/);
+    assert.doesNotMatch(EMBEDDED_THEME_CSS,/textPreformat|#[0-9a-f]{3,8}\b/i,"Baseline styles must not introduce hard-coded colors or source-line boxes");
   });
   it("selects only whitelisted role commands and current pin states without evaluating code", () => {
     assert(matchesPaneCondition("view == cInsight.callers && !cInsight.callHierarchyPinned", "cInsight.callers", {"cInsight.callHierarchyPinned":false}));

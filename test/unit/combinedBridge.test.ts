@@ -4,11 +4,17 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { FRAME_BRIDGE } from "../../src/combined/combinedWebview";
 
+function themeBody(initial: string[]) {
+  const classes = new Set(initial), attributes = new Map<string,string>();
+  return {classes,attributes,classList:{contains:(name:string)=>classes.has(name),toggle:(name:string,value:boolean)=>value?classes.add(name):classes.delete(name)},
+    getAttribute:(name:string)=>attributes.get(name)??null,setAttribute:(name:string,value:string)=>attributes.set(name,value),removeAttribute:(name:string)=>attributes.delete(name)};
+}
+
 describe("embedded presentation bridge", () => {
   it("keeps API state local and accepts host messages only from its owning window", () => {
     const messages: any[] = [], delivered: any[] = [];
     const listeners = new Map<string,(event:any)=>void>();
-    const body = {className:"vscode-dark",getAttribute:()=>null,setAttribute:()=>undefined};
+    const body = themeBody(["vscode-dark"]);
     const applied = new Map<string,string>();
     const parent = {document:{body,documentElement:{style:{0:"--vscode-foreground",length:1,getPropertyValue:()=>"#aabbcc"}}},getComputedStyle:()=>({length:0}),postMessage:(value:unknown)=>messages.push(value)};
     const window: any = {addEventListener:(name:string,callback:(event:any)=>void)=>listeners.set(name,callback),
@@ -35,6 +41,28 @@ describe("embedded presentation bridge", () => {
     listeners.get("keydown")!({key:"c",ctrlKey:true});
     listeners.get("keydown")!({key:"f",ctrlKey:true,defaultPrevented:true});
     assert.equal(messages.length,count,"Clipboard and locally handled shortcuts must not be replayed twice");
+  });
+
+  it("updates theme-owned state without retaining removed colors or replacing local state", () => {
+    const host=themeBody(["vscode-dark"]),child=themeBody(["ci-local-class"]);
+    host.attributes.set("data-vscode-theme-name","Dark");
+    const declared = new Map([["--vscode-foreground","#111111"],["--vscode-removed-color","#aabbcc"]]);
+    const computed = new Map([["--vscode-foreground","#222222"]]);
+    const style = (values:Map<string,string>)=>({...Object.fromEntries([...values.keys()].map((name,index)=>[index,name])),length:values.size,getPropertyValue:(name:string)=>values.get(name)});
+    const applied=new Map([["--ci-local-color","#123456"]]);
+    const listeners=new Map<string,(event:unknown)=>void>();
+    const parent={document:{body:host,documentElement:{get style(){return style(declared);}}},getComputedStyle:()=>style(computed),postMessage:()=>undefined};
+    runInNewContext(`(${FRAME_BRIDGE})(1,{})`,{parent,window:{addEventListener:(name:string,listener:(event:unknown)=>void)=>listeners.set(name,listener)},
+      document:{body:child,documentElement:{style:{setProperty:(name:string,value:string)=>applied.set(name,value),removeProperty:(name:string)=>applied.delete(name)}},addEventListener:()=>undefined}});
+    assert.equal(applied.get("--vscode-foreground"),"#222222","Computed body overrides must win over root declarations");
+    assert(child.classes.has("vscode-dark"));assert(child.classes.has("ci-local-class"));
+    host.classes.clear();host.classes.add("vscode-high-contrast-light");host.classes.add("vscode-high-contrast");host.classes.add("vscode-reduce-motion");
+    host.attributes.delete("data-vscode-theme-name");declared.delete("--vscode-removed-color");
+    listeners.get("message")!({source:parent,data:{bridge:"cInsight.theme"}});
+    assert(!applied.has("--vscode-removed-color"));assert.equal(applied.get("--ci-local-color"),"#123456");
+    assert(!child.classes.has("vscode-dark"));assert(child.classes.has("vscode-high-contrast-light"));
+    assert(child.classes.has("vscode-reduce-motion"));assert(child.classes.has("ci-local-class"));
+    assert(!child.attributes.has("data-vscode-theme-name"));
   });
 
   it("registers optional slots with persisted startup and runtime context visibility", () => {

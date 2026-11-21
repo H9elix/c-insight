@@ -1159,6 +1159,8 @@ function htmlDocument(
       color: var(--vscode-editor-foreground);
       background: var(--vscode-sideBar-background);
       font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      font-weight: var(--vscode-font-weight);
     }
     .header { flex: none; padding: 6px 0; }
     .heading { display: flex; align-items: center; gap: 4px; }
@@ -1168,10 +1170,12 @@ function htmlDocument(
     }
     .controls { display: flex; gap: 2px; }
     button {
+      font: inherit;
       border: 0; padding: 2px 5px; color: var(--vscode-foreground);
       background: transparent; border-radius: 3px; cursor: pointer;
     }
     button:hover { background: var(--vscode-toolbar-hoverBackground); }
+    button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     button:disabled { opacity: .35; cursor: default; }
     button.locked { color: var(--vscode-charts-yellow); }
     .location {
@@ -1202,6 +1206,7 @@ function htmlDocument(
     }
     .code .line > code {
       flex: none; width: max-content; margin: 0; padding: 0;
+      font: inherit;
       color: var(--ci-preview-foreground); background: transparent;
       border: 0; border-radius: 0; box-shadow: none; outline: none;
     }

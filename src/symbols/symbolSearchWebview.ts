@@ -55,11 +55,13 @@ export function renderSymbolSearchWebview(
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body { margin: 0; display: flex; flex-direction: column; color: var(--vscode-foreground); background: var(--vscode-sideBar-background); font: var(--vscode-font-size) var(--vscode-font-family); }
+    input, button { font: inherit; }
     .search-bar { flex: 0 0 auto; position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; padding: 6px 8px; background: var(--vscode-sideBar-background); border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, transparent); }
     #query { min-width: 0; flex: 1; height: 24px; padding: 2px 6px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); outline: none; }
     #query:focus { border-color: var(--vscode-focusBorder); }
     #clear { flex: 0 0 24px; height: 24px; padding: 0; color: var(--vscode-icon-foreground); background: transparent; border: 0; cursor: pointer; font-size: 17px; }
     #clear:hover { background: var(--vscode-toolbar-hoverBackground); }
+    #clear:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     #status { flex: 0 0 auto; min-height: 24px; padding: 5px 9px; color: var(--vscode-descriptionForeground); }
     #results { flex: 1 1 auto; min-height: 0; overflow: auto; padding-bottom: 8px; }
     details > summary { cursor: pointer; padding: 3px 8px; color: var(--vscode-sideBarSectionHeader-foreground); user-select: none; }

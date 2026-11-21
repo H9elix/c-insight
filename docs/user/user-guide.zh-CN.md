@@ -988,6 +988,8 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 同一功能有任一显示位置可见就保留该功能的可见需求；隐藏整个组合、折叠或移除窗格会撤销对应显示位置的需求。重复加入不会建立第二个分析引擎或第二份语义查询控制器；引擎自己的后台索引不受窗格悬停控制。
 
+组合窗格的横纵滚动条、界面字体、输入框和焦点样式随 VS Code 主题更新，支持深色、浅色及高对比度主题。代码字体和字号使用 `editor.fontFamily`、`editor.fontSize`；预览固定配色仍按 `cInsight.codePreview.colorScheme` 和 `tokenColors` 显示。主题与字体更新直接作用于样式，保留当前筛选、展开及滚动位置。
+
 名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。全部默认值见[9.16 节](#916-组合视图combined-view)。
 
 布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。

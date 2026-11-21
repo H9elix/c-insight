@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed combined-pane scrollbars and preview typography to follow VS Code theme and font settings; live theme changes retain pane state and fixed preview palettes, with themed focus controls and high-contrast pane boundaries.
 - Fixed combined-view creation failing when VS Code supplies localized command titles as objects; pane and toolbar names now use the translated text with safe fallbacks.
 
 - Added up to four customizable combined browsing views containing existing C Insight panes, with horizontal/vertical layouts, draggable splitters, pane ordering, renaming and user-wide layout preferences.

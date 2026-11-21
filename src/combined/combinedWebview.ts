@@ -1,4 +1,5 @@
 import { combinedPaneSizes } from "./combinedModel";
+import { EMBEDDED_THEME_CSS } from "./embeddedTheme";
 import { escapeHtml } from "../views/sourceHighlight";
 
 export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri: string, labels: Record<string, string>, testMode = false,
@@ -11,7 +12,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   button{color:inherit;background:transparent;border:0;border-radius:3px;padding:3px;cursor:pointer;flex:none}button:hover{background:var(--vscode-toolbar-hoverBackground)}button:focus-visible{outline:1px solid var(--vscode-focusBorder)}button[aria-pressed=true]{background:var(--vscode-toolbar-activeBackground);color:var(--vscode-list-highlightForeground)}
   #bar{display:flex;align-items:center;gap:4px;min-height:27px;padding:2px 5px;border-bottom:1px solid var(--vscode-panel-border)}#name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #viewport{flex:1;min-height:0;overflow:auto}#panes{display:flex;height:100%;min-width:100%;min-height:100%;align-items:stretch}#panes:empty{display:none}#panes.vertical{flex-direction:column}
-  .pane{display:flex;flex-direction:column;flex:none;overflow:hidden;transition:flex-basis 200ms ease;min-width:0;min-height:0}.pane header{display:flex;align-items:center;gap:2px;min-height:27px;padding:2px 3px;background:var(--vscode-sideBarSectionHeader-background);border-bottom:1px solid var(--vscode-panel-border)}.title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.actions{display:flex;overflow-x:auto;flex-shrink:1}.pane iframe{border:0;width:100%;flex:1;min-height:0;background:var(--vscode-sideBar-background)}.pane.collapsed iframe{visibility:hidden;pointer-events:none}
+  .pane{display:flex;flex-direction:column;flex:none;overflow:hidden;transition:flex-basis 200ms ease;min-width:0;min-height:0;outline:1px solid var(--vscode-contrastBorder,transparent);outline-offset:-1px}.pane header{display:flex;align-items:center;gap:2px;min-height:27px;padding:2px 3px;color:var(--vscode-sideBarSectionHeader-foreground,var(--vscode-foreground));background:var(--vscode-sideBarSectionHeader-background);border-bottom:1px solid var(--vscode-panel-border)}.title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.actions{display:flex;overflow-x:auto;flex-shrink:1}.pane iframe{border:0;width:100%;flex:1;min-height:0;background:var(--vscode-sideBar-background)}.pane.collapsed iframe{visibility:hidden;pointer-events:none}
   .splitter{flex:0 0 5px;cursor:col-resize;background:var(--vscode-panel-border)}.vertical>.splitter{cursor:row-resize}.splitter:hover,.splitter:focus{background:var(--vscode-focusBorder)}#panes.dragging .pane{transition:none}#panes.dragging iframe{pointer-events:none}#empty{margin:14px;line-height:1.6}#empty[hidden]{display:none}
   .pane.collapsed iframe{display:none}#panes:not(.vertical)>.pane.collapsed header{height:100%;flex-direction:column}#panes:not(.vertical)>.pane.collapsed .title{writing-mode:vertical-rl}#panes:not(.vertical)>.pane.collapsed .actions{display:none}
   .vscode-reduce-motion .pane{transition:none}
@@ -23,9 +24,10 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
 /** Only trusted, escaped renderer output enters srcdoc. All executable code uses the outer nonce. */
 export function embeddedDocument(html: string, nonce: string, generation: number): string {
   const bridge = `<script nonce="${nonce}">(${FRAME_BRIDGE})(${generation},null/*cInsightFrameState*/);</script>`;
+  const defaults = `<style nonce="${nonce}" id="c-insight-embedded-theme">${EMBEDDED_THEME_CSS}</style>`;
   return html.replace(/<meta\s+http-equiv="Content-Security-Policy"[^>]*>/gi, "")
     .replace(/<link\b(?=[^>]*\brel="stylesheet")(?=[^>]*\bhref="[^"]*codicon\.css")[^>]*>/gi, "<!--cInsightIcons-->")
-    .replace(/nonce="[^"]*"/g, `nonce="${nonce}"`).replace(/<head([^>]*)>/i, `<head$1>${bridge}`);
+    .replace(/nonce="[^"]*"/g, `nonce="${nonce}"`).replace(/<head([^>]*)>/i, `<head$1>${defaults}${bridge}`);
 }
 
 function scriptJson(value: unknown): string { return JSON.stringify(value).replace(/</g, "\\u003c"); }
@@ -36,13 +38,23 @@ export const FRAME_BRIDGE = String.raw`function(generation, initialState) {
   const api = {postMessage:payload => send('message',payload), getState:()=>state,
     setState:value => {state=value;send('state',value);return value;}};
   window.acquireVsCodeApi = () => api;
+  let themeProperties=new Set();
+  const themeClasses=['vscode-light','vscode-dark','vscode-high-contrast','vscode-high-contrast-light','vscode-reduce-motion','vscode-using-screen-reader'];
   function theme(){
     const computed=parent.getComputedStyle(parent.document.body);
-    for(let i=0;i<computed.length;i++){const name=computed[i];if(name.startsWith('--vscode-'))document.documentElement.style.setProperty(name,computed.getPropertyValue(name));}
+    const values=new Map();
+    for(let i=0;i<computed.length;i++){const name=computed[i];if(name.startsWith('--vscode-'))values.set(name,computed.getPropertyValue(name));}
     // Older Chromium does not enumerate custom properties in computed styles.
     const declared=parent.document.documentElement?.style;
-    for(let i=0;i<(declared?.length||0);i++){const name=declared[i];if(name.startsWith('--vscode-'))document.documentElement.style.setProperty(name,declared.getPropertyValue(name));}
-    if(document.body){document.body.className=parent.document.body.className;for(const name of ['data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']){const value=parent.document.body.getAttribute(name);if(value!==null)document.body.setAttribute(name,value);}}
+    for(let i=0;i<(declared?.length||0);i++){const name=declared[i];if(name.startsWith('--vscode-')&&!values.has(name))values.set(name,declared.getPropertyValue(name));}
+    for(const name of themeProperties)if(!values.has(name))document.documentElement.style.removeProperty(name);
+    values.forEach((value,name)=>document.documentElement.style.setProperty(name,value));themeProperties=new Set(values.keys());
+    if(document.body){
+      for(const name of themeClasses)document.body.classList.toggle(name,parent.document.body.classList.contains(name));
+      for(const name of ['data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']){
+        const value=parent.document.body.getAttribute(name);if(value!==null)document.body.setAttribute(name,value);else document.body.removeAttribute(name);
+      }
+    }
   }
   theme();document.addEventListener('DOMContentLoaded',theme);
   window.addEventListener('message', event => {
