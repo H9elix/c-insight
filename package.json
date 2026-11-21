@@ -145,6 +145,16 @@
   "contributes": {
     "commands": [
       {
+        "command": "cInsight.combinedViews.create",
+        "title": "%command.cInsight.combinedViews.create.title%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "cInsight.combinedViews.manage",
+        "title": "%command.cInsight.combinedViews.manage.title%",
+        "icon": "$(gear)"
+      },
+      {
         "command": "cInsight.about",
         "title": "%command.cInsight.about.title%"
       },
@@ -734,6 +744,11 @@
       ],
       "view/title": [
         {
+          "command": "cInsight.combinedViews.manage",
+          "when": "view =~ /cInsight\\.combined[1-4]/",
+          "group": "navigation@0"
+        },
+        {
           "command": "cInsight.documentSymbols.lock",
           "when": "view == cInsight.symbols && !cInsight.documentSymbolsLocked",
           "group": "navigation@0"
@@ -1223,6 +1238,10 @@
     },
     "views": {
       "cInsight": [
+        {"id":"cInsight.combined1","name":"%view.cInsight.combined1.name%","type":"webview","when":"config.cInsight.combinedViews.slot1.enabled"},
+        {"id":"cInsight.combined2","name":"%view.cInsight.combined2.name%","type":"webview","when":"config.cInsight.combinedViews.slot2.enabled"},
+        {"id":"cInsight.combined3","name":"%view.cInsight.combined3.name%","type":"webview","when":"config.cInsight.combinedViews.slot3.enabled"},
+        {"id":"cInsight.combined4","name":"%view.cInsight.combined4.name%","type":"webview","when":"config.cInsight.combinedViews.slot4.enabled"},
         {
           "id": "cInsight.context",
           "name": "%view.cInsight.context.name%",
@@ -1328,6 +1347,284 @@
     "configuration": {
       "title": "C Insight",
       "properties": {
+        "cInsight.combinedViews.slot1": {
+          "type": "object",
+          "scope": "application",
+          "default": {
+            "enabled": false,
+            "title": "",
+            "direction": "horizontal",
+            "views": [],
+            "ratios": []
+          },
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 80,
+              "default": ""
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "context",
+                  "preview",
+                  "references",
+                  "callers",
+                  "callees",
+                  "supertypes",
+                  "subtypes",
+                  "includes",
+                  "includedBy",
+                  "history",
+                  "bookmarks",
+                  "workspaceSymbols",
+                  "symbols",
+                  "projectFiles",
+                  "status"
+                ]
+              },
+              "uniqueItems": true,
+              "maxItems": 15,
+              "default": []
+            },
+            "ratios": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 1000
+              },
+              "maxItems": 15,
+              "default": []
+            }
+          },
+          "markdownDescription": "%configuration.cInsight.combinedViews.slot1.description%"
+        },
+        "cInsight.combinedViews.slot2": {
+          "type": "object",
+          "scope": "application",
+          "default": {
+            "enabled": false,
+            "title": "",
+            "direction": "horizontal",
+            "views": [],
+            "ratios": []
+          },
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 80,
+              "default": ""
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "context",
+                  "preview",
+                  "references",
+                  "callers",
+                  "callees",
+                  "supertypes",
+                  "subtypes",
+                  "includes",
+                  "includedBy",
+                  "history",
+                  "bookmarks",
+                  "workspaceSymbols",
+                  "symbols",
+                  "projectFiles",
+                  "status"
+                ]
+              },
+              "uniqueItems": true,
+              "maxItems": 15,
+              "default": []
+            },
+            "ratios": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 1000
+              },
+              "maxItems": 15,
+              "default": []
+            }
+          },
+          "markdownDescription": "%configuration.cInsight.combinedViews.slot2.description%"
+        },
+        "cInsight.combinedViews.slot3": {
+          "type": "object",
+          "scope": "application",
+          "default": {
+            "enabled": false,
+            "title": "",
+            "direction": "horizontal",
+            "views": [],
+            "ratios": []
+          },
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 80,
+              "default": ""
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "context",
+                  "preview",
+                  "references",
+                  "callers",
+                  "callees",
+                  "supertypes",
+                  "subtypes",
+                  "includes",
+                  "includedBy",
+                  "history",
+                  "bookmarks",
+                  "workspaceSymbols",
+                  "symbols",
+                  "projectFiles",
+                  "status"
+                ]
+              },
+              "uniqueItems": true,
+              "maxItems": 15,
+              "default": []
+            },
+            "ratios": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 1000
+              },
+              "maxItems": 15,
+              "default": []
+            }
+          },
+          "markdownDescription": "%configuration.cInsight.combinedViews.slot3.description%"
+        },
+        "cInsight.combinedViews.slot4": {
+          "type": "object",
+          "scope": "application",
+          "default": {
+            "enabled": false,
+            "title": "",
+            "direction": "horizontal",
+            "views": [],
+            "ratios": []
+          },
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 80,
+              "default": ""
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "context",
+                  "preview",
+                  "references",
+                  "callers",
+                  "callees",
+                  "supertypes",
+                  "subtypes",
+                  "includes",
+                  "includedBy",
+                  "history",
+                  "bookmarks",
+                  "workspaceSymbols",
+                  "symbols",
+                  "projectFiles",
+                  "status"
+                ]
+              },
+              "uniqueItems": true,
+              "maxItems": 15,
+              "default": []
+            },
+            "ratios": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 1000
+              },
+              "maxItems": 15,
+              "default": []
+            }
+          },
+          "markdownDescription": "%configuration.cInsight.combinedViews.slot4.description%"
+        },
+        "cInsight.combinedViews.hoverExpand": {
+          "type": "boolean",
+          "scope": "application",
+          "default": true,
+          "description": "%configuration.cInsight.combinedViews.hoverExpand.description%"
+        },
         "cInsight.engine": {
           "type": "string",
           "enum": [

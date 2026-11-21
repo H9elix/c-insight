@@ -26,6 +26,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   private status = "";
   private readonly follow: ResultTreeFollowController;
   private readonly follows = new Map<WebviewResultTree, ResultTreeFollowController>();
+  get isLocked(): boolean { return this.follow.isLocked; }
 
   constructor(extensionUri: vscode.Uri) {
     this.provider.setInteractionScope(VIEWS.PROJECT_FILES);
@@ -93,14 +94,15 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       { label: vscode.l10n.t("Relative path"), value: "path" },
       { label: vscode.l10n.t("File type"), value: "type" },
     ];
-    await this.follow.interact(async () => {
+    const follow = this.follows.get(this.view.activePresentation) ?? this.follow;
+    await follow.interact(async () => {
       const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Project Files") });
       if (selected) {
         await vscode.workspace.getConfiguration("cInsight.projectFiles").update(
           "sortBy", selected.value, vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global,
         );
       }
-      if (this.view.effectiveVisible) this.view.show();
+      if (this.view.effectiveVisible) await this.view.focus();
     });
   }
 

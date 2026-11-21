@@ -104,6 +104,16 @@ export class ViewRegistry implements vscode.Disposable {
   private callRootDisplaySignature = "";
   private callExpansion?: vscode.CancellationTokenSource;
   private readonly callViewState = new CallHierarchyViewState();
+  private expandedMacroTargetAvailable = false;
+
+  presentationFlags(): Readonly<Record<string, boolean>> {
+    return {
+      [CONTEXT_KEYS.DOCUMENT_SYMBOLS_LOCKED]: this.isDocumentSymbolsLocked,
+      [CONTEXT_KEYS.REFERENCES_PINNED]: this.referenceExplorer.isPinned,
+      [CONTEXT_KEYS.CALL_HIERARCHY_PINNED]: this.callViewState.pinned,
+      [CONTEXT_KEYS.CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE]: this.expandedMacroTargetAvailable,
+    };
+  }
   private currentSymbolName?: string;
   private currentPreferredLocation?: PreferredFunctionLocation<LocationResult>;
   private reliability: AnalysisReliability = {
@@ -159,6 +169,12 @@ export class ViewRegistry implements vscode.Disposable {
 
   isViewVisible(id: ViewId): boolean {
     return this.lifecycle.isVisible(id);
+  }
+
+  async focusView(id: ViewId): Promise<void> {
+    const tree = this.lifecycle.get(id);
+    if (tree?.focus) await tree.focus();
+    else await vscode.commands.executeCommand(`${id}.focus`);
   }
 
   async resultTreeInteractionForTest(id: ViewId, message?: unknown): Promise<unknown> {
@@ -642,12 +658,15 @@ export class ViewRegistry implements vscode.Disposable {
       { label: vscode.l10n.t("Symbol name"), value: "name" },
       { label: vscode.l10n.t("Symbol type"), value: "type" },
     ].map(choice => ({ ...choice, description: choice.value === current ? vscode.l10n.t("Current") : undefined }));
-    await this.documentSymbolFollow?.interact(async () => {
+    const presentation = this.lifecycle.get(VIEWS.SYMBOLS);
+    const follow = presentation instanceof WebviewResultTree
+      ? this.documentSymbolFollows.get(presentation.activePresentation) : this.documentSymbolFollow;
+    await follow?.interact(async () => {
       const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Document Symbols") });
       if (selected) await configuration.update("sortBy", selected.value,
         vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
       const tree = this.lifecycle.get(VIEWS.SYMBOLS);
-      if (tree instanceof WebviewResultTree) tree.show();
+      if (tree instanceof WebviewResultTree) await tree.focus();
     });
   }
 
@@ -1639,6 +1658,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   private setExpandedMacroTargetAvailable(available: boolean): void {
+    this.expandedMacroTargetAvailable = available;
     void vscode.commands.executeCommand(
       "setContext",
       CONTEXT_KEYS.CALLERS_EXPANDED_MACRO_TARGET_AVAILABLE,
@@ -2560,7 +2580,7 @@ export class ViewRegistry implements vscode.Disposable {
   }
 
   private clearDocumentSymbolFocus(refresh: boolean): void {
-    this.documentSymbolFollow?.cancel();
+    this.documentSymbolFollows.forEach(follow => follow.cancel());
     const previous = this.focusedDocumentSymbol;
     this.focusedDocumentSymbol = undefined;
     if (!previous) {

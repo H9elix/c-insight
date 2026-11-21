@@ -49,7 +49,7 @@ export class SymbolSearchExplorer
   private error?: string;
   private timer?: NodeJS.Timeout;
   private view?: vscode.WebviewView;
-  private readonly viewDisposables: vscode.Disposable[] = [];
+  private readonly viewDisposables = new Map<vscode.WebviewView, vscode.Disposable[]>();
   private readonly presentations = new Set<vscode.WebviewView>();
 
   constructor(private readonly analysis: AnalysisService) {}
@@ -65,7 +65,9 @@ export class SymbolSearchExplorer
       clearTitle: vscode.l10n.t("Clear Workspace Symbol Search"),
       resultsLabel: vscode.l10n.t("Workspace Symbol Results"),
     });
-    this.viewDisposables.push(
+    const listeners: vscode.Disposable[] = [];
+    this.viewDisposables.set(webviewView, listeners);
+    listeners.push(
       webviewView.webview.onDidReceiveMessage((value: unknown) => {
         this.view = webviewView;
         const message = parseSymbolSearchWebviewMessage(value);
@@ -94,6 +96,8 @@ export class SymbolSearchExplorer
         if (this.view === webviewView) {
           this.view = [...this.presentations].find(view => view.visible);
         }
+        this.viewDisposables.delete(webviewView);
+        listeners.forEach(listener => listener.dispose());
       }),
     );
     this.publish();
@@ -424,9 +428,8 @@ export class SymbolSearchExplorer
   }
 
   private disposeViewListeners(): void {
-    while (this.viewDisposables.length > 0) {
-      this.viewDisposables.pop()?.dispose();
-    }
+    this.viewDisposables.forEach(listeners => listeners.forEach(listener => listener.dispose()));
+    this.viewDisposables.clear();
   }
 }
 

@@ -90,6 +90,7 @@ export class CodePreviewProvider
   private set definitionCancellation(value: vscode.CancellationTokenSource | undefined) { this.shared.definitionCancellation = value; }
   private documentChangeTimer?: NodeJS.Timeout;
   private renderGeneration = 0;
+  private disposed = false;
   private loadingMore = false;
   private colorWarning?: string;
   private readonly semanticTokens: Map<
@@ -99,6 +100,11 @@ export class CodePreviewProvider
   private readonly scrollStates = new Map<string, PreviewScrollState>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
+  private lastVisible = false;
+  private emitVisibility(): void {
+    const visible = this.visible;
+    if (visible !== this.lastVisible) { this.lastVisible = visible; this.visibilityEmitter.fire(); }
+  }
   private readonly clearGuard: PreviewClearGuard;
   private readonly ownership: PreviewOwnership;
   private readonly presentations = new Set<CodePreviewProvider>();
@@ -131,9 +137,9 @@ export class CodePreviewProvider
   createPresentation(view: vscode.WebviewView): void {
     const presentation = new CodePreviewProvider(this.analysis, this.navigationHistory, this);
     this.presentations.add(presentation);
-    presentation.onDidChangeVisibility(() => this.visibilityEmitter.fire());
+    presentation.onDidChangeVisibility(() => this.emitVisibility());
     view.onDidDispose(() => {
-      this.presentations.delete(presentation); presentation.dispose(); this.visibilityEmitter.fire();
+      this.presentations.delete(presentation); presentation.dispose(); this.emitVisibility();
     });
     presentation.resolveWebviewView(view);
   }
@@ -156,16 +162,16 @@ export class CodePreviewProvider
         if (this.view === view) {
           this.view = undefined;
           this.rendered = undefined;
-          this.visibilityEmitter.fire();
+          this.emitVisibility();
         }
       }),
       view.onDidChangeVisibility(() => {
         if (view.visible && (!this.rendered || !this.state || !sameDefinitionLocation(this.rendered.target, this.state.location))) void this.render();
         this.refreshColors();
-        this.visibilityEmitter.fire();
+        this.emitVisibility();
       }),
     );
-    this.visibilityEmitter.fire();
+    this.emitVisibility();
     void this.render();
   }
 
@@ -396,6 +402,8 @@ export class CodePreviewProvider
   }
 
   dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
     this.renderGeneration += 1;
     if (!this.owner) this.cancelDefinition();
     this.presentations.forEach(view => view.dispose()); this.presentations.clear();

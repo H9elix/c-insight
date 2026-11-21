@@ -9,10 +9,10 @@ export function registerDiagnosticCommands(
   register: RegisterCommand,
   manager: ClangdManager,
   diagnostics: ProjectDiagnostics,
+  focusStatus = () => vscode.commands.executeCommand(INTERNAL_COMMANDS.STATUS_FOCUS),
 ): void {
   register(COMMANDS.DIAGNOSTICS_REFRESH, () => diagnostics.refresh());
-  register(COMMANDS.OPEN_PROJECT_DIAGNOSTICS, () =>
-    vscode.commands.executeCommand(INTERNAL_COMMANDS.STATUS_FOCUS));
+  register(COMMANDS.OPEN_PROJECT_DIAGNOSTICS, () => focusStatus());
   register(COMMANDS.DIAGNOSTICS_SHOW_CLANGD_LOG, () => manager.showLog());
   register(COMMANDS.DIAGNOSTICS_COPY_REPORT, () => diagnostics.copyReport("text"));
   register(COMMANDS.DIAGNOSTICS_EXPORT_TEXT, () => diagnostics.exportReport("text"));

@@ -26,6 +26,8 @@ import { ReliabilityStatusBar } from "./diagnostics/reliabilityStatusBar";
 import { runtimeDiagnostics } from "./diagnostics/runtimeDiagnostics";
 import { NavigationHistoryExplorer } from "./history/navigationHistoryExplorer";
 import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
+import { CombinedViewManager } from "./combined/combinedViewManager";
+import type { CombinedRole, CombinedSlot } from "./combined/combinedModel";
 import { ProjectFilesExplorer } from "./projectFiles/projectFilesExplorer";
 import {
   WorkspaceSessionManager,
@@ -38,7 +40,7 @@ import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExp
 import { IncludeHierarchyRepository } from "./includeHierarchy/includeHierarchyRepository";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
-import { VIEWS } from "./ids";
+import { VIEWS, CONTEXT_KEYS, type ViewId } from "./ids";
 import { initializeContextKeys, startAnalysisEngine } from "./activation/runtimeInitialization";
 
 let manager: ClangdManager | undefined;
@@ -96,6 +98,24 @@ export async function activate(
     output,
   );
   const projectFiles = new ProjectFilesExplorer(context.extensionUri);
+  const combinedViews = new CombinedViewManager(context, {
+    create: (role, view) => {
+      if (role === "preview") views.preview.createPresentation(view);
+      else if (role === "workspaceSymbols") symbolSearch.resolveWebviewView(view);
+      else if (role === "projectFiles") return projectFiles.view.createPresentation(view);
+      else return views.createPresentation(`cInsight.${role}` as ViewId, view);
+      return undefined;
+    },
+    prefer: (role, tree) => {
+      if (!tree) return;
+      if (role === "projectFiles") projectFiles.view.prefer(tree);
+      else views.preferPresentation(`cInsight.${role}` as ViewId, tree);
+    },
+    flags: () => ({...views.presentationFlags(), [CONTEXT_KEYS.CONTEXT_PINNED]: controller.isPinned,
+      [CONTEXT_KEYS.PROJECT_FILES_LOCKED]: projectFiles.isLocked}),
+  });
+  context.subscriptions.push(combinedViews);
+  context.subscriptions.push(views.callers.onDidChangeTreeData(() => combinedViews.refreshActions()));
   const projectDiagnostics = new ProjectDiagnostics(
     manager,
     analysis,
@@ -428,10 +448,14 @@ export async function activate(
       engine,
       restoreWorkspaceSession: () => restoreWithProgress(),
       projectFiles,
+      combinedViews,
     },
   );
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(
+      vscode.commands.registerCommand("cInsight.test.combinedState", () => combinedViews.stateForTest()),
+      vscode.commands.registerCommand("cInsight.test.combinedTree", (slot: CombinedSlot, role: CombinedRole, message?: unknown) => combinedViews.interactionForTest(slot, role, message)),
+      vscode.commands.registerCommand("cInsight.test.combinedBrowser", (slot: CombinedSlot, action?: unknown) => combinedViews.browserForTest(slot, action)),
       vscode.commands.registerCommand("cInsight.test.resultTreeInteraction", (id, message) =>
         id === VIEWS.PROJECT_FILES ? projectFiles.view.interactionForTest(message) : views.resultTreeInteractionForTest(id, message),
       ),

@@ -151,6 +151,8 @@ export class ContextController implements vscode.Disposable {
     void vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, true);
   }
 
+  get isPinned(): boolean { return this.pinned; }
+
   unpin(): void {
     this.pinned = false;
     void vscode.commands.executeCommand("setContext", CONTEXT_KEYS.CONTEXT_PINNED, false);

@@ -96,7 +96,9 @@ export class IncludeHierarchyExplorer implements vscode.Disposable {
     this.provider(direction).setRoots([
       this.fileNode(uri, direction, [], 0, undefined),
     ]);
-    await vscode.commands.executeCommand(
+    const view = this.views.get(direction);
+    if (view?.focus) await view.focus();
+    else await vscode.commands.executeCommand(
       direction === "includes"
         ? "cInsight.includes.focus"
         : "cInsight.includedBy.focus",

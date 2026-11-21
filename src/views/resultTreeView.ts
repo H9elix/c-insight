@@ -15,6 +15,7 @@ export interface ResultTreeView extends vscode.Disposable {
     expand?: boolean | number; focus?: boolean; select?: boolean;
   }): Promise<void>;
   collapseAll(): Promise<void>;
+  focus?(): Promise<void>;
 }
 
 interface ResultTreeAction { command: string; label: string }
@@ -57,6 +58,11 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   readonly onDidCreatePresentation = this.presentationEmitter.event;
   private preferredPresentation?: WebviewResultTree;
   private readonly effectiveVisibilityEmitter = new vscode.EventEmitter<{ visible: boolean }>();
+  private lastEffectiveVisible = false;
+  private emitEffectiveVisibility(): void {
+    const visible = this.effectiveVisible;
+    if (visible !== this.lastEffectiveVisible) { this.lastEffectiveVisible = visible; this.effectiveVisibilityEmitter.fire({visible}); }
+  }
   readonly onDidChangeEffectiveVisibility = this.effectiveVisibilityEmitter.event;
   get effectiveVisible(): boolean { return this.visible || [...this.presentations].some(view => view.visible); }
   readonly onDidChangeInteraction = this.interactionEmitter.event;
@@ -102,7 +108,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     this.presentations.add(presentation);
     presentation.setStatus(this.status);
     const listeners = [
-      presentation.onDidChangeVisibility(() => this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible })),
+      presentation.onDidChangeVisibility(() => this.emitEffectiveVisibility()),
       presentation.onDidChangeInteraction(({ focused }) => { if (focused) this.preferredPresentation = presentation; }),
       presentation.onDidExpandElement(event => this.expandEmitter.fire(event)),
       presentation.onDidCollapseElement(event => this.collapseEmitter.fire(event)),
@@ -114,9 +120,9 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       if (this.preferredPresentation === presentation) this.preferredPresentation = undefined;
       presentation.dispose();
       listeners.forEach(listener => listener.dispose());
-      this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+      this.emitEffectiveVisibility();
     });
-    this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+    this.emitEffectiveVisibility();
     return presentation;
   }
 
@@ -132,6 +138,12 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   }
 
   show(preserveFocus = true): void { this.activePresentation.view?.show(preserveFocus); }
+
+  async focus(): Promise<void> {
+    const presentation = this.activePresentation;
+    if (presentation !== this && presentation.view?.visible) presentation.view.show(false);
+    else await vscode.commands.executeCommand(`${this.id}.focus`);
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.viewListeners.splice(0).forEach((item) => item.dispose());
@@ -163,17 +175,17 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       view.onDidChangeVisibility(() => {
         if (!view.visible) this.focused = false;
         this.visibilityEmitter.fire({ visible: view.visible });
-        this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+        this.emitEffectiveVisibility();
         if (view.visible) this.scheduleRefresh();
       }),
       view.onDidDispose(() => {
         if (this.view === view) { this.view = undefined; this.ready = false; this.focused = false; }
         this.visibilityEmitter.fire({ visible: false });
-        this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+        this.emitEffectiveVisibility();
       }),
     );
     this.visibilityEmitter.fire({ visible: view.visible });
-    this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+    this.emitEffectiveVisibility();
   }
 
   async reveal(node: TreeNode, options: {
@@ -312,6 +324,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (message.type === "interaction") {
       if (this.options.trackInteraction) {
         this.focused = message.focused;
+        if (message.focused) this.preferredPresentation = this;
         this.revision = message.inputRevision;
         this.interactionEmitter.fire(message);
       }

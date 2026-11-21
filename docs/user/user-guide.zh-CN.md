@@ -974,6 +974,47 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 默认最多加载 50000 个文件。触及上限时，状态行提示列表和搜索可能不完整；提高上限后重新加载。清单和搜索文字只在当前视图运行期使用，不加入工作区会话快照。没有打开文件夹时显示引导提示。
 
+### 4.18 组合视图（Combined View）
+
+执行 **C Insight: 创建组合视图**，选择要放在一起的功能窗格。最多可以同时使用**组合视图 1、组合视图 2、组合视图 3、组合视图 4**，每个组合都是一个原生 VS Code 视图，可独立移动到下方、左侧或右侧；原来的独立栏目继续保留。
+
+组合内可加入上下文、代码预览、引用、调用者、被调用者、父类型、子类型、包含文件、被包含关系、导航历史、书签、符号搜索、文档符号、工程文件和工程诊断。同一个功能可出现在不同组合中，在同一组合中只能加入一次；关系图继续在编辑器面板中打开。
+
+组合上方提供添加窗格、切换水平/垂直排列、切换悬停扩展及管理按钮。管理菜单支持重命名、等分尺寸和删除；每个窗格的“…”菜单包含其功能操作、前移、后移和移除。窗格自己的箭头用于折叠/展开；拖动窗格之间的分隔条调整基础比例，选中分隔条后也可使用方向键调整。排列方向不取决于组合停靠的位置。
+
+开启悬停扩展时，鼠标在一个窗格内停留 200 毫秒，该窗格按两倍基础权重分配空间，相邻窗格相应缩小，动画持续 200 毫秒。移出组合后等待 250 毫秒恢复基础比例。水平排列的展开窗格至少 160 像素宽，垂直排列至少 80 像素高；空间不足时组合内部滚动。只有一个展开窗格时不扩展。拖动分隔条、选中文本、按住鼠标或打开菜单时暂停自动调整；系统启用减少动态效果时不播放过渡动画。悬停不会抢焦点或触发语义查询，也不会改变外部原生窗口的尺寸。
+
+同一功能在多个位置显示时共享查询结果、业务筛选和固定/锁定状态：调用者与被调用者仍共用固定状态，引用独立固定，代码预览共用目标及锁定。树的局部过滤、展开、选择和滚动位置属于各自窗格；文档符号与工程文件共享功能锁，但过滤词和自动定位按各显示实例处理。工具栏操作优先作用于发起操作的显示位置，编辑器命令优先使用最近操作且可见的相应位置，没有可见位置时打开原栏目。
+
+同一功能有任一显示位置可见就保留该功能的可见需求；隐藏整个组合、折叠或移除窗格会撤销对应显示位置的需求。重复加入不会建立第二个分析引擎或第二份语义查询控制器；引擎自己的后台索引不受窗格悬停控制。
+
+名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。配置值如下：
+
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| `cInsight.combinedViews.slot1` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第一个组合布局。 |
+| `cInsight.combinedViews.slot2` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第二个组合布局。 |
+| `cInsight.combinedViews.slot3` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第三个组合布局。 |
+| `cInsight.combinedViews.slot4` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第四个组合布局。 |
+| `cInsight.combinedViews.hoverExpand` | `true` | 所有组合视图的悬停扩展开关，与功能固定/锁定无关。 |
+
+布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
+
+例如，在用户设置中配置下方横向阅读组合，再使用 VS Code 的“移动视图”将其放到面板：
+
+```json
+{
+  "cInsight.combinedViews.slot1": {
+    "enabled": true,
+    "title": "代码阅读",
+    "direction": "horizontal",
+    "views": ["preview", "callers", "references"],
+    "ratios": [2, 1, 1]
+  },
+  "cInsight.combinedViews.hoverExpand": true
+}
+```
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -1508,6 +1549,8 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 | 命令 | Command ID | 入口 |
 | --- | --- | --- |
+| 创建组合视图 | `cInsight.combinedViews.create` | 命令面板 |
+| 管理组合视图 | `cInsight.combinedViews.manage` | 命令面板；窗口标题栏 |
 | 关于 | `cInsight.about` | 命令面板 |
 | 显示关系图 | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
 | 显示文件关系图 | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
