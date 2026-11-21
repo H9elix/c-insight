@@ -50,7 +50,7 @@ describe("document symbol persistent search wiring", () => {
   it("gates only viewport reveal and keeps sorting on loaded nodes", () => {
     const registry = readFileSync("src/views/viewRegistry.ts", "utf8");
     const reveal = registry.slice(registry.indexOf("private revealFocusedDocumentSymbol()"), registry.indexOf("updateReliability("));
-    assert.match(reveal, /this\.documentSymbolFollow\?\.schedule\(\)/);
+    assert.match(reveal, /this\.documentSymbolFollows\.forEach\(follow => follow\.schedule\(\)\)/);
     assert.match(reveal, /INTERNAL_COMMANDS\.ACTIVATE_TREE_LOCATION, node, VIEWS\.SYMBOLS, intent/);
     assert.match(reveal, /if \(contextAction\) await vscode\.commands\.executeCommand\(COMMANDS\.OPEN_LOCATION, node\)/);
     assert.match(reveal, /editor\?\.selection\.active\.isEqual\(opened\.location\.range\.start\)/);
@@ -70,6 +70,6 @@ describe("document symbol persistent search wiring", () => {
     assert.match(adapter, /action\.reveal[\s\S]*this\.model\.filterSnapshot/);
     const registry = readFileSync("src/views/viewRegistry.ts", "utf8");
     const update = registry.slice(registry.indexOf("  updateSymbols("), registry.indexOf("  documentSymbolSortChanged("));
-    assert.match(update, /this\.symbols\.setRoots[\s\S]*this\.documentSymbolFollow\?\.schedule\(\)/);
+    assert.match(update, /this\.symbols\.setRoots[\s\S]*this\.scheduleDocumentSymbolFollow\(\)/);
   });
 });

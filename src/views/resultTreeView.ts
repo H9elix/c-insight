@@ -28,7 +28,7 @@ export interface ResultTreeOptions {
   hideCollapseAll?: boolean;
   trackInteraction?: boolean;
   hideBookmarkAction?: boolean;
-  onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number, contextAction?: boolean) => Promise<void>;
+  onActivate?: (node: TreeNode, intent: "preview" | "open", inputRevision?: number, contextAction?: boolean, presentation?: WebviewResultTree) => Promise<void>;
 }
 
 export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProvider {
@@ -50,6 +50,15 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   private revision = 0;
   private automaticFollowBlocked = true;
   private readonly interactionEmitter = new vscode.EventEmitter<{ focused: boolean; inputRevision: number }>();
+  private readonly presentations = new Set<WebviewResultTree>();
+  private readonly presentationEmitter = new vscode.EventEmitter<WebviewResultTree>();
+  private readonly disposeEmitter = new vscode.EventEmitter<void>();
+  readonly onDidDispose = this.disposeEmitter.event;
+  readonly onDidCreatePresentation = this.presentationEmitter.event;
+  private preferredPresentation?: WebviewResultTree;
+  private readonly effectiveVisibilityEmitter = new vscode.EventEmitter<{ visible: boolean }>();
+  readonly onDidChangeEffectiveVisibility = this.effectiveVisibilityEmitter.event;
+  get effectiveVisible(): boolean { return this.visible || [...this.presentations].some(view => view.visible); }
   readonly onDidChangeInteraction = this.interactionEmitter.event;
   get hasFocus(): boolean { return this.focused; }
   get inputRevision(): number { return this.revision; }
@@ -88,6 +97,42 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
 
   get visible(): boolean { return this.view?.visible ?? false; }
 
+  createPresentation(view: vscode.WebviewView): WebviewResultTree {
+    const presentation = new WebviewResultTree(this.id, this.provider, this.extensionUri, this.options);
+    this.presentations.add(presentation);
+    presentation.setStatus(this.status);
+    const listeners = [
+      presentation.onDidChangeVisibility(() => this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible })),
+      presentation.onDidChangeInteraction(({ focused }) => { if (focused) this.preferredPresentation = presentation; }),
+      presentation.onDidExpandElement(event => this.expandEmitter.fire(event)),
+      presentation.onDidCollapseElement(event => this.collapseEmitter.fire(event)),
+    ];
+    this.presentationEmitter.fire(presentation);
+    presentation.resolveWebviewView(view);
+    view.onDidDispose(() => {
+      this.presentations.delete(presentation);
+      if (this.preferredPresentation === presentation) this.preferredPresentation = undefined;
+      presentation.dispose();
+      listeners.forEach(listener => listener.dispose());
+      this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+    });
+    this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
+    return presentation;
+  }
+
+  get activePresentation(): WebviewResultTree {
+    return this.preferredPresentation?.visible ? this.preferredPresentation
+      : this.visible ? this : [...this.presentations].find(view => view.visible) ?? this;
+  }
+
+  allPresentations(): readonly WebviewResultTree[] { return [this, ...this.presentations]; }
+
+  prefer(presentation: WebviewResultTree): void {
+    if (presentation === this || this.presentations.has(presentation)) this.preferredPresentation = presentation;
+  }
+
+  show(preserveFocus = true): void { this.activePresentation.view?.show(preserveFocus); }
+
   resolveWebviewView(view: vscode.WebviewView): void {
     this.viewListeners.splice(0).forEach((item) => item.dispose());
     this.view = view;
@@ -118,19 +163,23 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       view.onDidChangeVisibility(() => {
         if (!view.visible) this.focused = false;
         this.visibilityEmitter.fire({ visible: view.visible });
+        this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
         if (view.visible) this.scheduleRefresh();
       }),
       view.onDidDispose(() => {
         if (this.view === view) { this.view = undefined; this.ready = false; this.focused = false; }
         this.visibilityEmitter.fire({ visible: false });
+        this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
       }),
     );
     this.visibilityEmitter.fire({ visible: view.visible });
+    this.effectiveVisibilityEmitter.fire({ visible: this.effectiveVisible });
   }
 
   async reveal(node: TreeNode, options: {
     expand?: boolean | number; focus?: boolean; select?: boolean;
   } = {}): Promise<void> {
+    if (this.activePresentation !== this) return this.activePresentation.reveal(node, options);
     if (options.focus || options.select !== false) {
       if (!this.view) await vscode.commands.executeCommand(`${this.id}.focus`);
       this.view?.show(!options.focus);
@@ -147,10 +196,11 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     }
   }
 
-  async collapseAll(): Promise<void> { await this.model.collapseAll(); }
+  async collapseAll(): Promise<void> { await this.activePresentation.model.collapseAll(); }
 
   setStatus(status: string): void {
     this.status = status;
+    this.presentations.forEach(view => view.setStatus(status));
     if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "status", status });
   }
 
@@ -168,6 +218,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   }
 
   refreshPresentations(nodes: TreeNode[]): void {
+    this.presentations.forEach(view => view.refreshPresentations(nodes));
     const rows = nodes.map(node => this.model.updateDescription(node));
     if (rows.some(row => !row)) { this.scheduleRefresh(); return; }
     if (!this.ready || !this.visible) return;
@@ -189,13 +240,18 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   }
 
   dispose(): void {
+    if (this.disposed) return;
     this.disposed = true;
+    this.disposeEmitter.fire(); this.disposeEmitter.dispose();
     clearTimeout(this.refreshTimer);
     this.viewListeners.splice(0).forEach((item) => item.dispose());
     this.disposables.splice(0).forEach((item) => item.dispose());
     this.model.dispose();
     this.visibilityEmitter.dispose(); this.expandEmitter.dispose(); this.collapseEmitter.dispose();
     this.interactionEmitter.dispose();
+    this.presentations.forEach(view => view.dispose()); this.presentations.clear();
+    this.effectiveVisibilityEmitter.dispose();
+    this.presentationEmitter.dispose();
   }
 
   private scheduleRefresh(): void {
@@ -261,7 +317,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       }
       return;
     }
-    if (message.type === "focus") return;
+    if (message.type === "focus") { this.preferredPresentation = this; this.interactionEmitter.fire({ focused: true, inputRevision: this.revision }); return; }
     if (message.type === "collapseAll") { await this.collapseAll(); return; }
     if (message.type === "resolve") {
       for (const id of message.ids) {
@@ -277,7 +333,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
       await this.model.setExpanded(row.id, message.expanded);
     } else if (message.type === "activate") {
       if (this.options.onActivate && row.node.location) {
-        await this.options.onActivate(row.node, message.intent, message.inputRevision ?? this.revision);
+        await this.options.onActivate(row.node, message.intent, message.inputRevision ?? this.revision, false, this);
       } else if (row.node.command) {
         const command = row.node.command;
         await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []));
@@ -289,7 +345,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     } else if (message.type === "action" &&
       this.actions(row.node).some((action) => action.command === message.command)) {
       if (this.options.onActivate && message.command === COMMANDS.OPEN_LOCATION) {
-        await this.options.onActivate(row.node, "open", message.inputRevision ?? this.revision, true);
+        await this.options.onActivate(row.node, "open", message.inputRevision ?? this.revision, true, this);
       } else {
         await vscode.commands.executeCommand(message.command, row.node);
       }

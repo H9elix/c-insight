@@ -78,28 +78,34 @@ export class CodePreviewProvider
   implements vscode.WebviewViewProvider, vscode.Disposable
 {
   private view?: vscode.WebviewView;
-  private state?: PreviewState;
+  private readonly shared: { state?: PreviewState; locked: boolean; definitionGeneration: number; definitionCancellation?: vscode.CancellationTokenSource };
+  private get state(): PreviewState | undefined { return this.shared.state; }
+  private set state(value: PreviewState | undefined) { this.shared.state = value; }
   private rendered?: RenderedDocument;
-  private locked = false;
-  private definitionGeneration = 0;
-  private definitionCancellation?: vscode.CancellationTokenSource;
+  private get locked(): boolean { return this.shared.locked; }
+  private set locked(value: boolean) { this.shared.locked = value; }
+  private get definitionGeneration(): number { return this.shared.definitionGeneration; }
+  private set definitionGeneration(value: number) { this.shared.definitionGeneration = value; }
+  private get definitionCancellation(): vscode.CancellationTokenSource | undefined { return this.shared.definitionCancellation; }
+  private set definitionCancellation(value: vscode.CancellationTokenSource | undefined) { this.shared.definitionCancellation = value; }
   private documentChangeTimer?: NodeJS.Timeout;
   private renderGeneration = 0;
   private loadingMore = false;
   private colorWarning?: string;
-  private readonly semanticTokens = new Map<
+  private readonly semanticTokens: Map<
     string,
     SemanticTokenCacheEntry
-  >();
+  >;
   private readonly scrollStates = new Map<string, PreviewScrollState>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly visibilityEmitter = new vscode.EventEmitter<void>();
-  private readonly clearGuard = new PreviewClearGuard();
-  private readonly ownership = new PreviewOwnership();
+  private readonly clearGuard: PreviewClearGuard;
+  private readonly ownership: PreviewOwnership;
+  private readonly presentations = new Set<CodePreviewProvider>();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
 
   get visible(): boolean {
-    return this.view?.visible ?? false;
+    return !!this.view?.visible || [...this.presentations].some(view => view.visible);
   }
 
   get isLocked(): boolean {
@@ -109,13 +115,31 @@ export class CodePreviewProvider
   constructor(
     private readonly analysis: AnalysisService,
     private readonly navigationHistory: NavigationHistoryExplorer,
+    private readonly owner?: CodePreviewProvider,
   ) {
-    this.disposables.push(
+    this.shared = owner?.shared ?? { locked: false, definitionGeneration: 0 };
+    this.clearGuard = owner?.clearGuard ?? new PreviewClearGuard();
+    this.ownership = owner?.ownership ?? new PreviewOwnership();
+    this.semanticTokens = owner?.semanticTokens ?? new Map();
+    if (!owner) this.disposables.push(
       vscode.window.onDidChangeActiveColorTheme(() => {
         this.refreshColors();
       }),
     );
   }
+
+  createPresentation(view: vscode.WebviewView): void {
+    const presentation = new CodePreviewProvider(this.analysis, this.navigationHistory, this);
+    this.presentations.add(presentation);
+    presentation.onDidChangeVisibility(() => this.visibilityEmitter.fire());
+    view.onDidDispose(() => {
+      this.presentations.delete(presentation); presentation.dispose(); this.visibilityEmitter.fire();
+    });
+    presentation.resolveWebviewView(view);
+  }
+
+  private allPresentations(): CodePreviewProvider[] { return [this, ...this.presentations]; }
+  private async renderAll(): Promise<void> { await Promise.all(this.allPresentations().map(view => view.render())); }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
@@ -136,6 +160,7 @@ export class CodePreviewProvider
         }
       }),
       view.onDidChangeVisibility(() => {
+        if (view.visible && (!this.rendered || !this.state || !sameDefinitionLocation(this.rendered.target, this.state.location))) void this.render();
         this.refreshColors();
         this.visibilityEmitter.fire();
       }),
@@ -150,6 +175,7 @@ export class CodePreviewProvider
     title?: string,
     source: ExplicitPreviewSource = "selection",
   ): Promise<void> {
+    if (this.owner) return this.owner.showLocation(location, mode, title, source);
     this.ownership.claimInteraction();
     await this.applyLocation(location, mode, title, source);
   }
@@ -191,14 +217,8 @@ export class CodePreviewProvider
       this.navigationHistory.record(location, mode, next.title, source);
     }
     this.state = next;
-    if (
-      this.rendered &&
-      sameDefinitionLocation(this.rendered.target, location)
-    ) {
-      await this.updateMetadata(next);
-      return;
-    }
-    await this.render();
+    await Promise.all(this.allPresentations().map(view => view.rendered &&
+      sameDefinitionLocation(view.rendered.target, location) ? view.updateMetadata(next) : view.render()));
   }
 
   private async updateMetadata(state: PreviewState): Promise<void> {
@@ -250,15 +270,15 @@ export class CodePreviewProvider
   private clearState(): void {
     this.cancelDefinition();
     this.state = undefined;
-    this.rendered = undefined;
-    if (this.view) {
-      this.view.webview.html = emptyHtml();
-    }
+    this.allPresentations().forEach(view => {
+      view.renderGeneration++; view.rendered = undefined;
+      if (view.view) view.view.webview.html = emptyHtml();
+    });
   }
 
   refresh(): void {
     this.semanticTokens.clear();
-    void this.render();
+    void this.renderAll();
   }
 
   configurationChanged(event: vscode.ConfigurationChangeEvent): void {
@@ -272,12 +292,14 @@ export class CodePreviewProvider
   }
 
   refreshColors(): void {
+    this.presentations.forEach(view => view.refreshColors());
     if (!this.visible || !this.view) return;
     void this.view.webview.postMessage({ type: "previewColors", css: this.colorStyle() })
       .then(undefined, () => undefined);
   }
 
   private colorStyle(): string {
+    if (this.owner) return this.owner.colorStyle();
     const config = vscode.workspace.getConfiguration("cInsight.codePreview", this.state?.location.uri);
     const result = previewColorStyle(config.get("colorScheme", "theme"), config.get("tokenColors", {}));
     const warning = result.invalidTokens.join(", ");
@@ -296,6 +318,7 @@ export class CodePreviewProvider
   }
 
   handleDocumentChange(event: vscode.TextDocumentChangeEvent): void {
+    this.presentations.forEach(view => view.handleDocumentChange(event));
     const document = event.document;
     const prefix = `${document.uri.toString()}\0`;
     for (const key of this.semanticTokens.keys()) {
@@ -369,12 +392,13 @@ export class CodePreviewProvider
       mode: state.mode,
       title: state.title,
     };
-    await this.render();
+    await this.renderAll();
   }
 
   dispose(): void {
     this.renderGeneration += 1;
-    this.cancelDefinition();
+    if (!this.owner) this.cancelDefinition();
+    this.presentations.forEach(view => view.dispose()); this.presentations.clear();
     if (this.documentChangeTimer) {
       clearTimeout(this.documentChangeTimer);
     }
@@ -406,10 +430,10 @@ export class CodePreviewProvider
         break;
       }
       case "back":
-        await this.moveHistory(-1);
+        await (this.owner ?? this).moveHistory(-1);
         break;
       case "forward":
-        await this.moveHistory(1);
+        await (this.owner ?? this).moveHistory(1);
         break;
       case "toggleLock":
         this.locked = !this.locked;
@@ -418,7 +442,7 @@ export class CodePreviewProvider
           CONTEXT_KEYS.PREVIEW_LOCKED,
           this.locked,
         );
-        await this.render();
+        await (this.owner ?? this).renderAll();
         break;
       case "openCurrent":
         if (this.state) {
@@ -547,7 +571,7 @@ export class CodePreviewProvider
       mode: entry.mode,
       title: entry.title,
     };
-    await this.render();
+    await this.renderAll();
   }
 
   private async copyCode(selection?: string): Promise<void> {
@@ -571,7 +595,7 @@ export class CodePreviewProvider
 
   private async render(): Promise<void> {
     const generation = ++this.renderGeneration;
-    if (!this.view) {
+    if (!this.view?.visible) {
       return;
     }
     if (!this.state) {

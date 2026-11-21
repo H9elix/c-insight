@@ -206,9 +206,9 @@ describe("code preview highlighting", () => {
     );
     assert.match(
       provider,
-      /sameDefinitionLocation\(this\.rendered\.target, location\)/,
+      /sameDefinitionLocation\(view\.rendered\.target, location\)/,
     );
-    assert.match(provider, /await this\.updateMetadata\(next\);\s+return;/);
+    assert.match(provider, /\? view\.updateMetadata\(next\) : view\.render\(\)/);
     assert.match(provider, /message\.type === 'previewMetadata'/);
     assert.match(provider, /title\.textContent = message\.title/);
   });

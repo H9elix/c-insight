@@ -50,11 +50,12 @@ export class SymbolSearchExplorer
   private timer?: NodeJS.Timeout;
   private view?: vscode.WebviewView;
   private readonly viewDisposables: vscode.Disposable[] = [];
+  private readonly presentations = new Set<vscode.WebviewView>();
 
   constructor(private readonly analysis: AnalysisService) {}
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
-    this.disposeViewListeners();
+    this.presentations.add(webviewView);
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = renderSymbolSearchWebview({
@@ -66,6 +67,7 @@ export class SymbolSearchExplorer
     });
     this.viewDisposables.push(
       webviewView.webview.onDidReceiveMessage((value: unknown) => {
+        this.view = webviewView;
         const message = parseSymbolSearchWebviewMessage(value);
         if (!message) {
           return;
@@ -88,17 +90,18 @@ export class SymbolSearchExplorer
         }
       }),
       webviewView.onDidDispose(() => {
+        this.presentations.delete(webviewView);
         if (this.view === webviewView) {
-          this.view = undefined;
+          this.view = [...this.presentations].find(view => view.visible);
         }
-        this.disposeViewListeners();
       }),
     );
     this.publish();
   }
 
   async openSearch(): Promise<void> {
-    await vscode.commands.executeCommand(`${VIEWS.WORKSPACE_SYMBOLS}.focus`);
+    this.view = this.view?.visible ? this.view : [...this.presentations].find(view => view.visible);
+    if (!this.view) await vscode.commands.executeCommand(`${VIEWS.WORKSPACE_SYMBOLS}.focus`);
     this.view?.show(false);
     await this.view?.webview.postMessage({ type: "focus" });
   }
@@ -220,6 +223,7 @@ export class SymbolSearchExplorer
     this.generation += 1;
     this.disposeViewListeners();
     this.view = undefined;
+    this.presentations.clear();
   }
 
   private scheduleSearch(query: string): void {
@@ -321,7 +325,8 @@ export class SymbolSearchExplorer
   }
 
   private publish(): void {
-    void this.view?.webview.postMessage(this.viewState());
+    const state = this.viewState();
+    this.presentations.forEach(view => { if (view.visible) void view.webview.postMessage(state); });
   }
 
   private viewState(): SymbolSearchViewState {
