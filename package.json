@@ -1626,6 +1626,30 @@
           "default": true,
           "description": "%configuration.cInsight.combinedViews.hoverExpand.description%"
         },
+        "cInsight.combinedViews.hoverEnterDelay": {
+          "type": "integer",
+          "scope": "application",
+          "default": 200,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "%configuration.cInsight.combinedViews.hoverEnterDelay.description%"
+        },
+        "cInsight.combinedViews.hoverAnimationDuration": {
+          "type": "integer",
+          "scope": "application",
+          "default": 200,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "%configuration.cInsight.combinedViews.hoverAnimationDuration.description%"
+        },
+        "cInsight.combinedViews.hoverLeaveDelay": {
+          "type": "integer",
+          "scope": "application",
+          "default": 250,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "%configuration.cInsight.combinedViews.hoverLeaveDelay.description%"
+        },
         "cInsight.engine": {
           "type": "string",
           "enum": [

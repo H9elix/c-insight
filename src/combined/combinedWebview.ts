@@ -1,4 +1,4 @@
-import { combinedLayoutRevision, combinedPaneSizes, reorderCombinedPane } from "./combinedModel";
+import { combinedHoverTiming, combinedLayoutRevision, combinedPaneSizes, reorderCombinedPane } from "./combinedModel";
 import { PANE_REORDER_CLIENT } from "./combinedReorderClient";
 import { EMBEDDED_THEME_CSS } from "./embeddedTheme";
 import { escapeHtml } from "../views/sourceHighlight";
@@ -9,11 +9,15 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'self' ${cspSource}; script-src 'nonce-${nonce}'; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource} blob:; img-src ${cspSource} data:;">
   <link rel="stylesheet" href="${escapeHtml(iconsUri)}">
   <style>
-  *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{color:var(--vscode-foreground);background:var(--vscode-sideBar-background);font:var(--vscode-font-size) var(--vscode-font-family);display:flex;flex-direction:column}
+  *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{color:var(--vscode-foreground);background:var(--vscode-sideBar-background);font:var(--vscode-font-size) var(--vscode-font-family);display:flex;flex-direction:row}
   button{color:inherit;background:transparent;border:0;border-radius:3px;padding:3px;cursor:pointer;flex:none}button:hover{background:var(--vscode-toolbar-hoverBackground)}button:focus-visible{outline:1px solid var(--vscode-focusBorder)}button[aria-pressed=true]{background:var(--vscode-toolbar-activeBackground);color:var(--vscode-list-highlightForeground)}
-  #bar{display:flex;align-items:center;gap:4px;min-height:27px;padding:2px 5px;border-bottom:1px solid var(--vscode-panel-border)}#name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #viewport{flex:1;min-height:0;overflow:auto}#panes{display:flex;height:100%;min-width:100%;min-height:100%;align-items:stretch}#panes:empty{display:none}#panes.vertical{flex-direction:column}
-  .pane{display:flex;flex-direction:column;flex:none;overflow:hidden;transition:flex-basis 200ms ease;min-width:0;min-height:0;outline:1px solid var(--vscode-contrastBorder,transparent);outline-offset:-1px}.pane header{display:flex;align-items:center;gap:2px;min-height:27px;padding:2px 3px;color:var(--vscode-sideBarSectionHeader-foreground,var(--vscode-foreground));background:var(--vscode-sideBarSectionHeader-background);border-bottom:1px solid var(--vscode-panel-border)}.title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.actions{display:flex;overflow-x:auto;flex-shrink:1}.pane iframe{border:0;width:100%;flex:1;min-height:0;background:var(--vscode-sideBar-background)}.pane.collapsed iframe{visibility:hidden;pointer-events:none}
+  #bar{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 36px;width:36px;min-height:0;padding:3px 2px;overflow:hidden;border-right:1px solid var(--vscode-panel-border)}
+  #bar-actions{display:flex;flex-direction:column;gap:3px;flex:0 1 auto;width:100%;min-height:0;min-width:0;max-width:100%;overflow:auto;scrollbar-width:thin;order:0}#bar-actions::-webkit-scrollbar{width:6px;height:6px}
+  #name{flex:1;min-height:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;writing-mode:vertical-rl;text-orientation:mixed;text-align:end;order:1}
+  .combined-vertical body{flex-direction:column}.combined-vertical #bar{flex:0 0 auto;flex-direction:row;width:auto;min-height:27px;padding:2px 5px;border-right:0;border-bottom:1px solid var(--vscode-panel-border)}
+  .combined-vertical #name{writing-mode:horizontal-tb;text-align:start;order:0}.combined-vertical #bar-actions{flex-direction:row;width:auto;order:1}
+  #viewport{flex:1;min-width:0;min-height:0;overflow:auto}#panes{display:flex;height:100%;min-width:100%;min-height:100%;align-items:stretch}#panes:empty{display:none}#panes.vertical{flex-direction:column}
+  .pane{display:flex;flex-direction:column;flex:none;overflow:hidden;transition:flex-basis var(--ci-combined-animation-duration,200ms) ease;min-width:0;min-height:0;outline:1px solid var(--vscode-contrastBorder,transparent);outline-offset:-1px}.pane header{display:flex;align-items:center;gap:2px;min-height:27px;padding:2px 3px;color:var(--vscode-sideBarSectionHeader-foreground,var(--vscode-foreground));background:var(--vscode-sideBarSectionHeader-background);border-bottom:1px solid var(--vscode-panel-border)}.title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.actions{display:flex;overflow-x:auto;flex-shrink:1}.pane iframe{border:0;width:100%;flex:1;min-height:0;background:var(--vscode-sideBar-background)}.pane.collapsed iframe{visibility:hidden;pointer-events:none}
   .splitter{flex:0 0 5px;cursor:col-resize;background:var(--vscode-panel-border)}.vertical>.splitter{cursor:row-resize}.splitter:hover,.splitter:focus{background:var(--vscode-focusBorder)}#panes.dragging .pane{transition:none}#panes.dragging iframe{pointer-events:none}#empty{margin:14px;line-height:1.6}#empty[hidden]{display:none}
   .pane.collapsed iframe{display:none}#panes:not(.vertical)>.pane.collapsed header{height:100%;flex-direction:column}#panes:not(.vertical)>.pane.collapsed .title{writing-mode:vertical-rl}#panes:not(.vertical)>.pane.collapsed .actions{display:none}
   .vscode-reduce-motion .pane{transition:none}
@@ -23,8 +27,8 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .reorder-ghost{position:fixed;z-index:102;pointer-events:none;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 9px;background:var(--vscode-editorWidget-background);color:var(--vscode-editorWidget-foreground,var(--vscode-foreground));border:1px solid var(--vscode-focusBorder);box-shadow:0 2px 8px var(--vscode-widget-shadow)}
   .reorder-marker{position:fixed;z-index:101;pointer-events:none;background:var(--vscode-focusBorder)}
   @media(prefers-reduced-motion:reduce){.pane{transition:none}}
-  </style></head><body><div id="bar"><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
-  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
+  </style></head><body><div id="bar" role="toolbar" aria-label="${escapeHtml(labels.manage ?? "")}" aria-orientation="vertical"><div id="bar-actions"></div><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
+  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const timingFor=${combinedHoverTiming.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
 }
 
 /** Only trusted, escaped renderer output enters srcdoc. All executable code uses the outer nonce. */
@@ -98,20 +102,20 @@ const fontUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(icons.font),cha
 const iconStyle='<style nonce="'+paneNonce+'">'+icons.css.replace(/\.\/codicon\.ttf(?:\?[^"')\s]+)?/g,fontUrl)+'</style>';
 window.addEventListener('pagehide',()=>URL.revokeObjectURL(fontUrl));
 const saved=vscode.getState()||{}, frames=new Map(), paneState=saved.panes||{};
-let layout={views:[],ratios:[],direction:'horizontal'}, hoverEnabled=true, hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
+let layout={views:[],ratios:[],direction:'horizontal'}, hoverEnabled=true, hoverTiming=timingFor(), hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
 let nextReorder=0,reorderPending,testReorderPoint;
 const post=message=>vscode.postMessage(message);
 const persist=()=>vscode.setState({panes:paneState});
 const paneOrder=createPaneReorder({container,viewport,readLayout:()=>layout,keyFor:layoutKey,label:labels.reorder,
   canStart:()=>!dragging&&!suspended&&!reorderPending,
-  onStart:()=>{clearTimeout(enterTimer);clearTimeout(leaveTimer);hovered=-1;candidate=undefined;busy=true;},
+  onStart:()=>{clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;hovered=-1;candidate=undefined;busy=true;},
   onEnd:(event,started)=>{busy=false;if(started){candidate=undefined;hovered=-1;lastPoint=event?{x:event.screenX,y:event.screenY}:lastPoint;resize();}},
   onDrop:(role,target,side,revision)=>{
     if(reorderPane(layout,role,target,side)===layout)return;
     reorderPending=++nextReorder;post({type:'reorder',request:reorderPending,role,target,side,revision});
   }});
 function button(icon,title,action){const button=document.createElement('button');button.className='codicon codicon-'+icon;button.title=title;button.setAttribute('aria-label',title);button.addEventListener('click',action);return button;}
-document.getElementById('bar').append(
+document.getElementById('bar-actions').append(
   button('add',labels.add,()=>post({type:'manage',action:'add'})),
   button('layout',labels.direction,()=>post({type:'manage',action:'direction'})),
   button('expand-all',labels.hover,()=>post({type:'manage',action:'hover'})),
@@ -125,30 +129,49 @@ function resize(){
 }
 function consider(role,activity){
   busy=!!activity.busy;
-  if(busy||suspended||dragging||paneOrder.active||reorderPending||!activity.move)return;
+  if(busy||suspended||dragging||paneOrder.active||reorderPending||!hoverEnabled||!activity.move)return;
   if(lastPoint&&activity.x===lastPoint.x&&activity.y===lastPoint.y)return;
   lastPoint={x:activity.x,y:activity.y};
-  clearTimeout(leaveTimer);
+  clearTimeout(leaveTimer);leaveTimer=undefined;
   if(candidate===role)return;
-  candidate=role;clearTimeout(enterTimer);
-  enterTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){hovered=layout.views.indexOf(role);resize();}},200);
+  candidate=role;scheduleEnter();
+}
+function scheduleEnter(){
+  clearTimeout(enterTimer);const role=candidate;
+  enterTimer=setTimeout(()=>{enterTimer=undefined;if(role===candidate&&!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){hovered=layout.views.indexOf(role);resize();}},hoverTiming.enterDelay);
+}
+function scheduleLeave(){
+  clearTimeout(leaveTimer);
+  leaveTimer=setTimeout(()=>{leaveTimer=undefined;if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending){hovered=-1;resize();}},hoverTiming.leaveDelay);
+}
+function applyHoverTiming(value){
+  const next=timingFor(value),previous=hoverTiming;hoverTiming=next;
+  const style=container.style,duration=next.animationDuration+'ms';
+  if(style.getPropertyValue('--ci-combined-animation-duration')!==duration)style.setProperty('--ci-combined-animation-duration',duration);
+  if(next.enterDelay!==previous.enterDelay&&enterTimer!==undefined&&candidate)scheduleEnter();
+  if(next.leaveDelay!==previous.leaveDelay&&leaveTimer!==undefined)scheduleLeave();
 }
 document.body.addEventListener('pointermove',event=>{
   const pane=event.target.closest?.('.pane');
   if(pane)consider(pane.dataset.role,{move:true,x:event.screenX,y:event.screenY,busy:!!event.buttons});
 });
-document.addEventListener('pointerdown',()=>{busy=true;clearTimeout(enterTimer);});
+document.addEventListener('pointerdown',()=>{busy=true;clearTimeout(enterTimer);enterTimer=undefined;candidate=undefined;});
 document.addEventListener('pointerup',()=>{busy=false;});
 document.body.addEventListener('mouseleave',()=>{
-  clearTimeout(enterTimer);candidate=undefined;
-  clearTimeout(leaveTimer);leaveTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending){hovered=-1;resize();}},250);
+  clearTimeout(enterTimer);enterTimer=undefined;candidate=undefined;scheduleLeave();
 });
 function render(message){
   paneOrder.layoutChanged(message.layout);
+  const previouslyHovered=layout.views[hovered],wasHoverEnabled=hoverEnabled;
   const previousRoles=layout.views.join();layout=message.layout;hoverEnabled=message.hover;
-  if(candidate&&!layout.views.includes(candidate)){candidate=undefined;hovered=-1;}
-  hovered=candidate?layout.views.indexOf(candidate):-1;
+  if(candidate&&!layout.views.includes(candidate)){candidate=undefined;clearTimeout(enterTimer);enterTimer=undefined;}
+  hovered=previouslyHovered?layout.views.indexOf(previouslyHovered):-1;
+  if(wasHoverEnabled!==hoverEnabled){clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;candidate=undefined;hovered=-1;}
+  applyHoverTiming(message.hoverTiming);
   document.getElementById('name').textContent=message.title;
+  document.getElementById('name').title=message.title;
+  document.documentElement.classList.toggle('combined-vertical',layout.direction==='vertical');
+  document.getElementById('bar').setAttribute('aria-orientation',layout.direction==='vertical'?'horizontal':'vertical');
   const toggle=document.getElementById('bar').querySelector('.codicon-expand-all');toggle.setAttribute('aria-pressed',String(hoverEnabled));
   container.classList.toggle('vertical',layout.direction==='vertical');
   for(const [role,item] of frames)if(!layout.views.includes(role)){item.element.remove();frames.delete(role);delete paneState[role];}
@@ -211,7 +234,7 @@ function render(message){
 function startDrag(event,index,element){
   if(paneOrder.active||reorderPending)return;
   if(frames.get(layout.views[index]).element.classList.contains('collapsed')||frames.get(layout.views[index+1]).element.classList.contains('collapsed'))return;
-  if(event.button!==0)return;event.preventDefault();clearTimeout(enterTimer);clearTimeout(leaveTimer);
+  if(event.button!==0)return;event.preventDefault();clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;
   const vertical=layout.direction==='vertical',sizes=layout.views.map(role=>frames.get(role).element.getBoundingClientRect()[vertical?'height':'width']);
   dragging={index,element,start:vertical?event.clientY:event.clientX,sizes,original:[...layout.ratios],moved:false};
   hovered=-1;container.classList.add('dragging');layout.views.forEach((role,index)=>frames.get(role).element.style.flexBasis=sizes[index]+'px');
@@ -254,7 +277,7 @@ window.addEventListener('message',event=>{
     const item=frames.get(message.role);if(item&&item.generation===message.generation)item.iframe.contentWindow.postMessage({bridge:'cInsight.host',payload:message.message},'*');
   }else if(message?.type==='reorderResult'&&message.request===reorderPending){reorderPending=undefined;candidate=undefined;hovered=-1;resize();}
   else if(message?.type==='cancelInteractions'){paneOrder.cancel();}
-  else if(message?.type==='suspend'){suspended=message.value;if(suspended)paneOrder.cancel();clearTimeout(enterTimer);clearTimeout(leaveTimer);if(!suspended){candidate=undefined;busy=false;}}
+  else if(message?.type==='suspend'){suspended=message.value;if(suspended)paneOrder.cancel();clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;if(!suspended){candidate=undefined;busy=false;}}
   else if(testMode&&message?.type==='testInteraction'){
     const item=frames.get(message.role);
     if(message.action==='hover')consider(message.role,{move:true,x:message.x||100,y:120,busy:false});
@@ -264,6 +287,10 @@ window.addEventListener('message',event=>{
       const input=item?.iframe.contentDocument.getElementById('filter');if(input){input.value=message.value;input.dispatchEvent(new Event('input'));}
     }
     else if(message.action==='viewport'){viewport.style.width='1200px';viewport.style.height='500px';viewport.style.flex='none';resize();}
+    else if(message.action==='naturalViewport'){viewport.style.width='';viewport.style.height='';viewport.style.flex='';resize();}
+    else if(message.action==='surfaceSize'){document.body.style.width=message.width?message.width+'px':'';document.body.style.height=message.height?message.height+'px':'';resize();}
+    else if(message.action==='focusLastToolbarButton'){document.querySelector('#bar-actions button:first-child')?.focus();document.querySelector('#bar-actions button:last-child')?.focus();}
+    else if(message.action==='reducedMotion')document.body.classList.toggle('vscode-reduce-motion',!!message.value);
     else if(message.action==='reorderStart'){
       const title=item?.element.querySelector('.title'),rect=title?.getBoundingClientRect();
       if(rect){testReorderPoint={clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2};title.dispatchEvent(new PointerEvent('pointerdown',{...testReorderPoint,pointerId:901,button:0,buttons:1,bubbles:true,cancelable:true}));}
@@ -295,11 +322,17 @@ window.addEventListener('message',event=>{
         moveDrag({clientX:vertical?0:message.delta,clientY:vertical?message.delta:0});finishDrag({});}
     }
   }
-  else if(testMode&&message?.type==='inspect')post({type:'inspection',request:message.request,panes:[...frames].map(([role,item])=>{
+  else if(testMode&&message?.type==='inspect'){
+    const rectangle=element=>{const {left,top,right,bottom,width,height}=element.getBoundingClientRect();return {left,top,right,bottom,width,height};};
+    const bar=document.getElementById('bar'),actions=document.getElementById('bar-actions'),name=document.getElementById('name');
+    post({type:'inspection',request:message.request,panes:[...frames].map(([role,item])=>{
     const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon'),scroll=child?.querySelector('.code,#tree,#results');
     return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
-      marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft};
-  }),hovered,reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
+      marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
+    }),hovered,hoverTiming,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
+      lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop},
+      reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
+  }
 });
 new ResizeObserver(resize).observe(viewport);
 new MutationObserver(()=>frames.forEach(item=>item.iframe.contentWindow.postMessage({bridge:'cInsight.theme'},'*'))).observe(document.body,{attributes:true,attributeFilter:['class','style','data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']});

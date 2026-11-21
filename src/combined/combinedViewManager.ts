@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { COMMANDS, CONTEXT_KEYS } from "../ids";
 import { WebviewResultTree } from "../views/resultTreeView";
-import { combinedLayout, combinedLayoutRevision, reorderCombinedPane, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
+import { combinedLayout, combinedLayoutRevision, combinedHoverTiming, reorderCombinedPane, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
 import { EmbeddedView } from "./embeddedView";
 import { embeddedDocument, renderCombinedWebview } from "./combinedWebview";
 import { manifestLabel } from "./combinedManifest";
@@ -146,8 +146,10 @@ export class CombinedViewManager implements vscode.Disposable {
   }
   private publish(slot: CombinedSlot, surface: Surface): void {
     if (!surface.ready || !surface.view.visible || !this.layout(slot).enabled || this.surfaces.get(slot) !== surface) return;
+    const config = vscode.workspace.getConfiguration("cInsight.combinedViews");
     void surface.view.webview.postMessage({type: "layout", layout: this.layout(slot), title: this.title(slot),
-      hover: vscode.workspace.getConfiguration("cInsight.combinedViews").get("hoverExpand", true),
+      hover: config.get("hoverExpand", true),
+      hoverTiming: combinedHoverTiming({enterDelay: config.get("hoverEnterDelay"), animationDuration: config.get("hoverAnimationDuration"), leaveDelay: config.get("hoverLeaveDelay")}),
       panes: [...surface.panes].map(([role, pane]) => {
         const html = pane.sentGeneration === pane.generation ? undefined : embeddedDocument(pane.view.webview.html, surface.nonce, pane.generation);
         pane.sentGeneration = pane.generation;

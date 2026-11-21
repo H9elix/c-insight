@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
+import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedHoverTiming, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
+import { readFileSync } from "node:fs";
 import { embeddedDocument, renderCombinedWebview } from "../../src/combined/combinedWebview";
 import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 
@@ -14,6 +15,18 @@ describe("combined layouts", () => {
     assert.deepEqual(layout, {enabled: true, title: "Browser", direction: "horizontal", views: ["preview", "callers"], ratios: [2,1]});
     assert.equal(JSON.stringify(layout).includes("private"), false);
     assert.deepEqual(combinedLayout({views:["references"],ratios:[Infinity]}).ratios,[1]);
+  });
+  it("normalizes hover timing with zero, bounded integers and matching public defaults", () => {
+    assert.deepEqual(combinedHoverTiming(),{enterDelay:200,animationDuration:200,leaveDelay:250});
+    assert.deepEqual(combinedHoverTiming({enterDelay:0,animationDuration:0,leaveDelay:0}),{enterDelay:0,animationDuration:0,leaveDelay:0});
+    assert.deepEqual(combinedHoverTiming({enterDelay:-3,animationDuration:1.9,leaveDelay:20001}),{enterDelay:0,animationDuration:1,leaveDelay:10000});
+    assert.deepEqual(combinedHoverTiming({enterDelay:"12",animationDuration:NaN,leaveDelay:Infinity}),combinedHoverTiming());
+    const properties=JSON.parse(readFileSync("package.json","utf8")).contributes.configuration.properties;
+    for(const [name,value] of [["hoverEnterDelay",200],["hoverAnimationDuration",200],["hoverLeaveDelay",250]]){
+      const setting=properties[`cInsight.combinedViews.${name}`];
+      assert.equal(setting.type,"integer");assert.equal(setting.scope,"application");assert.equal(setting.default,value);
+      assert.equal(setting.minimum,0);assert.equal(setting.maximum,10000);
+    }
   });
   it("doubles hover weight by compressing neighbors, not growing the outer view", () => {
     assert.deepEqual(combinedPaneSizes(900,[1,1,1],160,-1),[300,300,300]);
@@ -87,7 +100,8 @@ describe("combined layouts", () => {
   it("escapes labels and keeps styles, resizing and motion inside the webview", () => {
     const html=renderCombinedWebview("nonce","vscode-resource:","icons.css",{empty:"<script>",manage:"Manage"});
     assert.match(html,/&lt;script&gt;/);assert.match(html,/prefers-reduced-motion:reduce/);
-    assert.match(html,/200ms ease/);assert.doesNotMatch(html,/unsafe-eval|https:\/\/|vscode-workbench/);
+    assert.match(html,/var\(--ci-combined-animation-duration,200ms\) ease/);assert.doesNotMatch(html,/unsafe-eval|https:\/\/|vscode-workbench/);
+    assert.match(html,/id="bar-actions"/);assert.match(html,/\.combined-vertical #name\{writing-mode:horizontal-tb/);
     assert.match(html,/item\.generation!==pane\.generation/);
     assert.match(html,/item\.iframe\.contentWindow===event\.source/);
   });

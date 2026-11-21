@@ -127,7 +127,7 @@ export async function verifyCombinedTheme(): Promise<void> {
       const native=panel(`Native ${role}`);natives.set(role,native);
       native.webview.onDidReceiveMessage(message=>receive(`native:${role}`,message));
       native.webview.html=html(document);
-      await wait(()=>ready.has(`native:${role}`),`Native ${role} test document did not load`);
+      await wait(()=>{native.reveal(undefined,true);return ready.has(`native:${role}`);},`Native ${role} test document did not load`);
     }
     await wait(()=>ready.has("outer"),"Outer combined theme test did not load");
     const roles=Object.keys(documents);

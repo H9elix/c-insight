@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { verifyPreviewPresentationOwnership } from "./previewPresentationOwnership";
 import { verifyCombinedTheme } from "./combinedTheme";
 import { verifyCombinedReorder } from "./combinedReorder";
+import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
 interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
@@ -123,6 +124,7 @@ export async function run(): Promise<void> {
     const resized=await browser(1);assert(resized.panes[0].width>restored.panes[0].width,"Dragging must change the base proportion");
     assert(resized.panes[1].width<restored.panes[1].width,"Dragging must compress the adjacent pane");
     assert.equal(await requestCount(),countBeforeHover,"Hovering must not submit semantic requests");
+    await verifyCombinedToolbarTiming(requestCount);
     await verifyCombinedReorder(requestCount);
     await browser(2, {action:"collapse",role:"projectFiles"});
     await wait(async()=>!(await state()).find(surface=>surface.slot===2)?.panes.find(pane=>pane.role==="projectFiles")?.visible?true:undefined,"Collapsed panes must withdraw demand");

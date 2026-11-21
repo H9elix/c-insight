@@ -49,7 +49,7 @@
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
-| 组合视图、多显示实例 | 022–028、037、042–043、050–051 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
+| 组合视图、多显示实例 | 022–028、037、042–043、050–051 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。各案例列出自动断言与人工检查项。
@@ -134,6 +134,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 18. 组合视图创建：通过命令创建并确认功能多选框，不能只写设置模拟；检查中文/英文按钮和窗格名称。运行时清单标题为 `{ value, original }` 时同样成立，不出现字符串方法异常或 `[object Object]`，非法字段有可读回退。
 19. 组合视图主题：对比独立栏目，检查横纵滚动条及其悬停/拖动、代码与界面字体、输入框、菜单、焦点和选中状态；切换深浅/高对比度主题及字体设置后即时生效，预览无灰色圆角覆盖，固定配色不被覆盖，筛选词、展开及滚动不重置。
 20. 组合标题排序：同一组合内拖动标题文字插入到目标前后，比例随窗格移动且顺序保存；横纵、折叠窗格及窄区域边缘滚动均适用。取消或外部改布局不写回旧顺序，原位放下不保存，失败恢复宿主布局。拖动不触发查询或重置浏览状态，不影响标题按钮、分隔条及菜单排序；结束后新鼠标移动才恢复悬停。硬件捕获、键盘菜单及重载人工检查。
+21. 总工具栏与时间配置：水平组合左侧竖排、垂直组合顶部横排，子窗格标题不变；长名称及短/窄区域仍能查看名称、访问全部按钮。检查触发/动画/恢复的默认值、`0`、热更新、等待中改值和减少动态效果；元数据更新不跳过等待，取消后不迟到扩展，配置不重建子文档或增加语义请求。宿主入口另见 `combinedToolbarTiming.ts`。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

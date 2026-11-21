@@ -12,6 +12,14 @@ export interface CombinedLayout {
   ratios: number[];
 }
 export const DEFAULT_COMBINED_LAYOUT: CombinedLayout = { enabled: false, title: "", direction: "horizontal", views: [], ratios: [] };
+export interface CombinedHoverTiming { enterDelay: number; animationDuration: number; leaveDelay: number }
+/** Also serialized into the browser, so defaults and runtime bounds stay identical. */
+export function combinedHoverTiming(value?: unknown): CombinedHoverTiming {
+  const data = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const milliseconds = (value: unknown, fallback: number) => typeof value === "number" && Number.isFinite(value)
+    ? Math.min(10000, Math.max(0, Math.trunc(value))) : fallback;
+  return {enterDelay: milliseconds(data.enterDelay, 200), animationDuration: milliseconds(data.animationDuration, 200), leaveDelay: milliseconds(data.leaveDelay, 250)};
+}
 export function isCombinedRole(value: unknown): value is CombinedRole {
   return typeof value === "string" && (COMBINED_ROLES as readonly string[]).includes(value);
 }
