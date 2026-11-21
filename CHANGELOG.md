@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Removed unused outer side gutters from combined views so the toolbar and content use the full available width while keeping their internal padding; focused toolbar buttons remain fully visible in cramped layouts.
 - Added configurable hover dwell, animation and restoration delays with live updates and zero-value controls; horizontal combinations place their global toolbar on the left, while vertical combinations keep it at the top.
 - Added title dragging to reorder panes within a combined view, with insertion markers, edge scrolling, cancellation and preserved pane proportions and browsing state.
 - Fixed combined-pane scrollbars and preview typography to follow VS Code theme and font settings; live theme changes retain pane state and fixed preview palettes, with themed focus controls and high-contrast pane boundaries.

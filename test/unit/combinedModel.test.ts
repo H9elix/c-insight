@@ -105,4 +105,10 @@ describe("combined layouts", () => {
     assert.match(html,/item\.generation!==pane\.generation/);
     assert.match(html,/item\.iframe\.contentWindow===event\.source/);
   });
+  it("removes native outer padding while retaining toolbar and child gutters (CI-REG-052)", () => {
+    const html=renderCombinedWebview("nonce","vscode-resource:","icons.css",{empty:"Empty"});
+    assert.match(html,/body\{padding:0;/,"The combined surface must override native Webview body padding");
+    assert.match(html,/#bar\{[^}]*padding:3px 2px/,"The toolbar keeps its own internal padding");
+    assert.match(EMBEDDED_THEME_CSS,/padding: 0 20px;/,"Child renderer defaults must not change with the outer surface");
+  });
 });

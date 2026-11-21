@@ -9,7 +9,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'self' ${cspSource}; script-src 'nonce-${nonce}'; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource} blob:; img-src ${cspSource} data:;">
   <link rel="stylesheet" href="${escapeHtml(iconsUri)}">
   <style>
-  *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{color:var(--vscode-foreground);background:var(--vscode-sideBar-background);font:var(--vscode-font-size) var(--vscode-font-family);display:flex;flex-direction:row}
+  *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{padding:0;color:var(--vscode-foreground);background:var(--vscode-sideBar-background);font:var(--vscode-font-size) var(--vscode-font-family);display:flex;flex-direction:row}
   button{color:inherit;background:transparent;border:0;border-radius:3px;padding:3px;cursor:pointer;flex:none}button:hover{background:var(--vscode-toolbar-hoverBackground)}button:focus-visible{outline:1px solid var(--vscode-focusBorder)}button[aria-pressed=true]{background:var(--vscode-toolbar-activeBackground);color:var(--vscode-list-highlightForeground)}
   #bar{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 36px;width:36px;min-height:0;padding:3px 2px;overflow:hidden;border-right:1px solid var(--vscode-panel-border)}
   #bar-actions{display:flex;flex-direction:column;gap:3px;flex:0 1 auto;width:100%;min-height:0;min-width:0;max-width:100%;overflow:auto;scrollbar-width:thin;order:0}#bar-actions::-webkit-scrollbar{width:6px;height:6px}
@@ -115,11 +115,23 @@ const paneOrder=createPaneReorder({container,viewport,readLayout:()=>layout,keyF
     reorderPending=++nextReorder;post({type:'reorder',request:reorderPending,role,target,side,revision});
   }});
 function button(icon,title,action){const button=document.createElement('button');button.className='codicon codicon-'+icon;button.title=title;button.setAttribute('aria-label',title);button.addEventListener('click',action);return button;}
-document.getElementById('bar-actions').append(
+const barActions=document.getElementById('bar-actions');
+barActions.append(
   button('add',labels.add,()=>post({type:'manage',action:'add'})),
   button('layout',labels.direction,()=>post({type:'manage',action:'direction'})),
   button('expand-all',labels.hover,()=>post({type:'manage',action:'hover'})),
   button('gear',labels.manage,()=>post({type:'manage',action:'menu'})));
+// Native focus may leave a partly visible icon clipped. Scroll this toolbar only.
+barActions.addEventListener('focusin',event=>{
+  const target=event.target.closest?.('button');if(!target)return;
+  const item=target.getBoundingClientRect(),box=barActions.getBoundingClientRect();
+  const left=box.left+barActions.clientLeft,top=box.top+barActions.clientTop;
+  const right=left+barActions.clientWidth,bottom=top+barActions.clientHeight;
+  if(item.left<left)barActions.scrollLeft+=item.left-left;
+  else if(item.right>right)barActions.scrollLeft+=item.right-right;
+  if(item.top<top)barActions.scrollTop+=item.top-top;
+  else if(item.bottom>bottom)barActions.scrollTop+=item.bottom-bottom;
+});
 function resize(){
   if(dragging||paneOrder.active||reorderPending)return;
   const vertical=layout.direction==='vertical', total=(vertical?viewport.clientHeight:viewport.clientWidth)-Math.max(0,layout.views.length-1)*5;
@@ -330,7 +342,7 @@ window.addEventListener('message',event=>{
     return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
       marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
     }),hovered,hoverTiming,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
-      lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop},
+      lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop,surfaceWidth:document.documentElement.clientWidth},
       reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
   }
 });
