@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { COMMANDS, CONTEXT_KEYS } from "../ids";
 import { WebviewResultTree } from "../views/resultTreeView";
-import { combinedLayout, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
+import { combinedLayout, combinedLayoutRevision, reorderCombinedPane, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
 import { EmbeddedView } from "./embeddedView";
 import { embeddedDocument, renderCombinedWebview } from "./combinedWebview";
 import { manifestLabel } from "./combinedManifest";
@@ -98,12 +98,14 @@ export class CombinedViewManager implements vscode.Disposable {
         direction: vscode.l10n.t("Switch Horizontal / Vertical"), hover: vscode.l10n.t("Toggle Hover Expansion"),
         manage: vscode.l10n.t("Manage Combined View"), collapse: vscode.l10n.t("Collapse / Expand Pane"),
         actions: vscode.l10n.t("Pane Actions and Layout"), splitter: vscode.l10n.t("Resize neighboring panes"),
+        reorder: vscode.l10n.t("Drag to reorder pane"),
       }, this.context.extensionMode === vscode.ExtensionMode.Test, icons);
     surface.listeners.push(
       view.webview.onDidReceiveMessage((message: unknown) => {
         void this.receive(slot, surface, message).catch(error => void vscode.window.showErrorMessage(`C Insight: ${String(error)}`));
       }),
       view.onDidChangeVisibility(() => {
+        if (!view.visible) void view.webview.postMessage({type: "cancelInteractions"});
         surface.panes.forEach(pane => pane.view.setVisible(view.visible && !pane.collapsed && this.layout(slot).enabled));
         if (view.visible) this.reconcile(slot, surface);
       }),
@@ -173,6 +175,24 @@ export class CombinedViewManager implements vscode.Disposable {
       if (ratios.length !== layout.views.length || !ratios.every(value => typeof value === "number" && Number.isFinite(value) && value > 0)) return;
       const max = Math.max(...ratios as number[]);
       await this.save(slot, {...layout, ratios: (ratios as number[]).map(value => value / max)}); return;
+    }
+    if (message.type === "reorder" && Number.isSafeInteger(message.request) && (message.request as number) > 0) {
+      let success = false;
+      try {
+        const layout = this.layout(slot);
+        if (surface.view.visible && layout.enabled && message.revision === combinedLayoutRevision(layout) &&
+          isCombinedRole(message.role) && layout.views.includes(message.role) && isCombinedRole(message.target) && layout.views.includes(message.target) &&
+          (message.side === "before" || message.side === "after")) {
+          const reordered = reorderCombinedPane(layout, message.role, message.target, message.side);
+          if (reordered !== layout) await this.save(slot, reordered);
+          success = true;
+        }
+      } finally {
+        // Always resynchronize, including stale requests and failed settings writes.
+        this.publish(slot, surface);
+        await surface.view.webview.postMessage({type: "reorderResult", request: message.request, success});
+      }
+      return;
     }
     if (!isCombinedRole(message.role)) return;
     const role = message.role, pane = surface.panes.get(role);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
+import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
 import { embeddedDocument, renderCombinedWebview } from "../../src/combined/combinedWebview";
 import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 
@@ -22,6 +22,30 @@ describe("combined layouts", () => {
     assert.deepEqual(combinedPaneSizes(480,[1,1,1],160,1),[160,160,160]);
     assert.deepEqual(combinedPaneSizes(300,[1,1,1],160,1),[160,160,160]);
     assert.deepEqual(combinedPaneSizes(320,[3,1],80,0),[240,80]);
+  });
+  it("inserts panes at either end while retaining each role's weight and input arrays", () => {
+    const layout=combinedLayout({enabled:true,title:"Browser",views:["preview","callers","references","symbols"],ratios:[3,2,1,4]});
+    const snapshot=JSON.stringify(layout);
+    const last=reorderCombinedPane(layout,"preview","symbols","after");
+    assert.deepEqual(last.views,["callers","references","symbols","preview"]);assert.deepEqual(last.ratios,[2,1,4,3]);
+    const first=reorderCombinedPane(layout,"symbols","preview","before");
+    assert.deepEqual(first.views,["symbols","preview","callers","references"]);assert.deepEqual(first.ratios,[4,3,2,1]);
+    const middle=reorderCombinedPane(layout,"preview","references","before");
+    assert.deepEqual(middle.views,["callers","preview","references","symbols"]);assert.deepEqual(middle.ratios,[2,3,1,4]);
+    assert.equal(JSON.stringify(layout),snapshot);assert.equal(last.title,layout.title);
+    assert.equal(reorderCombinedPane(layout,"callers","preview","after"),layout);
+    assert.equal(reorderCombinedPane(layout,"preview","callers","before"),layout);
+    assert.equal(reorderCombinedPane(layout,"preview","preview","after"),layout);
+    assert.equal(reorderCombinedPane(layout,"unknown","preview","after"),layout);
+    assert.equal(reorderCombinedPane(layout,"preview","unknown","after"),layout);
+    assert.equal(reorderCombinedPane(layout,"preview","callers","invalid" as "after"),layout);
+    const disabled={...layout,enabled:false};assert.equal(reorderCombinedPane(disabled,"symbols","preview","before"),disabled);
+  });
+  it("revisions track only enabled, orientation, order and weights", () => {
+    const layout=combinedLayout({enabled:true,views:["preview","callers"],ratios:[2,1]});
+    assert.equal(combinedLayoutRevision(layout),combinedLayoutRevision({...layout,title:"Renamed"}));
+    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
+      assert.notEqual(combinedLayoutRevision(layout),combinedLayoutRevision(changed));
   });
   it("honors lower bounds and conserves each available budget", () => {
     for (let count=1;count<=15;count++) for (const total of [100,480,1500,10000]) for (let hovered=-1;hovered<count;hovered++) {

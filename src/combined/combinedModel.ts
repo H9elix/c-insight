@@ -24,6 +24,23 @@ export function combinedLayout(value: unknown): CombinedLayout {
     direction: data.direction === "vertical" ? "vertical" : "horizontal", views, ratios };
 }
 
+/** Shared by the host and browser. Excludes titles and unrelated toolbar updates. */
+export function combinedLayoutRevision(layout: CombinedLayout): string {
+  return JSON.stringify([layout.enabled, layout.direction, layout.views, layout.ratios]);
+}
+
+/** Insert a pane without changing identities or detaching its base weight. */
+export function reorderCombinedPane(layout: CombinedLayout, source: string, target: string, side: "before" | "after"): CombinedLayout {
+  const from = layout.views.indexOf(source as CombinedRole);
+  if (!layout.enabled || from < 0 || source === target || !layout.views.includes(target as CombinedRole) || !["before", "after"].includes(side)) return layout;
+  const entries = layout.views.map((role, index) => ({role, ratio: layout.ratios[index] ?? 1}));
+  const [entry] = entries.splice(from, 1);
+  const to = entries.findIndex(entry => entry.role === target) + (side === "after" ? 1 : 0);
+  entries.splice(to, 0, entry);
+  if (entries.every((entry, index) => entry.role === layout.views[index])) return layout;
+  return {...layout, views: entries.map(entry => entry.role), ratios: entries.map(entry => entry.ratio)};
+}
+
 /** Pixel sizes with minimums. The caller scrolls the layout when total < count * minimum. */
 export function combinedPaneSizes(total: number, ratios: readonly number[], minimum: number, hovered: number): number[] {
   if (!ratios.length) return [];

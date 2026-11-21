@@ -1,4 +1,5 @@
-import { combinedPaneSizes } from "./combinedModel";
+import { combinedLayoutRevision, combinedPaneSizes, reorderCombinedPane } from "./combinedModel";
+import { PANE_REORDER_CLIENT } from "./combinedReorderClient";
 import { EMBEDDED_THEME_CSS } from "./embeddedTheme";
 import { escapeHtml } from "../views/sourceHighlight";
 
@@ -16,9 +17,14 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .splitter{flex:0 0 5px;cursor:col-resize;background:var(--vscode-panel-border)}.vertical>.splitter{cursor:row-resize}.splitter:hover,.splitter:focus{background:var(--vscode-focusBorder)}#panes.dragging .pane{transition:none}#panes.dragging iframe{pointer-events:none}#empty{margin:14px;line-height:1.6}#empty[hidden]{display:none}
   .pane.collapsed iframe{display:none}#panes:not(.vertical)>.pane.collapsed header{height:100%;flex-direction:column}#panes:not(.vertical)>.pane.collapsed .title{writing-mode:vertical-rl}#panes:not(.vertical)>.pane.collapsed .actions{display:none}
   .vscode-reduce-motion .pane{transition:none}
+  .title{cursor:grab;user-select:none;touch-action:none}#panes:has(>.pane:only-child) .title{cursor:default}
+  #panes.reordering .pane{transition:none}#panes.reordering iframe{pointer-events:none}
+  .reorder-overlay{position:fixed;inset:0;z-index:100;cursor:grabbing;touch-action:none}
+  .reorder-ghost{position:fixed;z-index:102;pointer-events:none;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 9px;background:var(--vscode-editorWidget-background);color:var(--vscode-editorWidget-foreground,var(--vscode-foreground));border:1px solid var(--vscode-focusBorder);box-shadow:0 2px 8px var(--vscode-widget-shadow)}
+  .reorder-marker{position:fixed;z-index:101;pointer-events:none;background:var(--vscode-focusBorder)}
   @media(prefers-reduced-motion:reduce){.pane{transition:none}}
   </style></head><body><div id="bar"><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
-  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};${COMBINED_CLIENT}</script></body></html>`;
+  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
 }
 
 /** Only trusted, escaped renderer output enters srcdoc. All executable code uses the outer nonce. */
@@ -93,8 +99,17 @@ const iconStyle='<style nonce="'+paneNonce+'">'+icons.css.replace(/\.\/codicon\.
 window.addEventListener('pagehide',()=>URL.revokeObjectURL(fontUrl));
 const saved=vscode.getState()||{}, frames=new Map(), paneState=saved.panes||{};
 let layout={views:[],ratios:[],direction:'horizontal'}, hoverEnabled=true, hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
+let nextReorder=0,reorderPending,testReorderPoint;
 const post=message=>vscode.postMessage(message);
 const persist=()=>vscode.setState({panes:paneState});
+const paneOrder=createPaneReorder({container,viewport,readLayout:()=>layout,keyFor:layoutKey,label:labels.reorder,
+  canStart:()=>!dragging&&!suspended&&!reorderPending,
+  onStart:()=>{clearTimeout(enterTimer);clearTimeout(leaveTimer);hovered=-1;candidate=undefined;busy=true;},
+  onEnd:(event,started)=>{busy=false;if(started){candidate=undefined;hovered=-1;lastPoint=event?{x:event.screenX,y:event.screenY}:lastPoint;resize();}},
+  onDrop:(role,target,side,revision)=>{
+    if(reorderPane(layout,role,target,side)===layout)return;
+    reorderPending=++nextReorder;post({type:'reorder',request:reorderPending,role,target,side,revision});
+  }});
 function button(icon,title,action){const button=document.createElement('button');button.className='codicon codicon-'+icon;button.title=title;button.setAttribute('aria-label',title);button.addEventListener('click',action);return button;}
 document.getElementById('bar').append(
   button('add',labels.add,()=>post({type:'manage',action:'add'})),
@@ -102,7 +117,7 @@ document.getElementById('bar').append(
   button('expand-all',labels.hover,()=>post({type:'manage',action:'hover'})),
   button('gear',labels.manage,()=>post({type:'manage',action:'menu'})));
 function resize(){
-  if(dragging)return;
+  if(dragging||paneOrder.active||reorderPending)return;
   const vertical=layout.direction==='vertical', total=(vertical?viewport.clientHeight:viewport.clientWidth)-Math.max(0,layout.views.length-1)*5;
   const expanded=layout.views.filter(role=>!frames.get(role)?.element.classList.contains('collapsed'));
   const sizes=sizesFor(total-(layout.views.length-expanded.length)*28,expanded.map(role=>layout.ratios[layout.views.indexOf(role)]),vertical?80:160,hoverEnabled?expanded.indexOf(layout.views[hovered]):-1);
@@ -110,13 +125,13 @@ function resize(){
 }
 function consider(role,activity){
   busy=!!activity.busy;
-  if(busy||suspended||dragging||!activity.move)return;
+  if(busy||suspended||dragging||paneOrder.active||reorderPending||!activity.move)return;
   if(lastPoint&&activity.x===lastPoint.x&&activity.y===lastPoint.y)return;
   lastPoint={x:activity.x,y:activity.y};
   clearTimeout(leaveTimer);
   if(candidate===role)return;
   candidate=role;clearTimeout(enterTimer);
-  enterTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging&&hoverEnabled){hovered=layout.views.indexOf(role);resize();}},200);
+  enterTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){hovered=layout.views.indexOf(role);resize();}},200);
 }
 document.body.addEventListener('pointermove',event=>{
   const pane=event.target.closest?.('.pane');
@@ -126,9 +141,10 @@ document.addEventListener('pointerdown',()=>{busy=true;clearTimeout(enterTimer);
 document.addEventListener('pointerup',()=>{busy=false;});
 document.body.addEventListener('mouseleave',()=>{
   clearTimeout(enterTimer);candidate=undefined;
-  clearTimeout(leaveTimer);leaveTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging){hovered=-1;resize();}},250);
+  clearTimeout(leaveTimer);leaveTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending){hovered=-1;resize();}},250);
 });
 function render(message){
+  paneOrder.layoutChanged(message.layout);
   const previousRoles=layout.views.join();layout=message.layout;hoverEnabled=message.hover;
   if(candidate&&!layout.views.includes(candidate)){candidate=undefined;hovered=-1;}
   hovered=candidate?layout.views.indexOf(candidate):-1;
@@ -141,6 +157,7 @@ function render(message){
     if(!item){
       const element=document.createElement('section');element.className='pane';element.dataset.role=pane.role;element.setAttribute('aria-label',pane.title);
       const header=document.createElement('header'), title=document.createElement('span');title.className='title';title.textContent=pane.title;
+      paneOrder.attach(title,pane.role);
       const iframe=document.createElement('iframe');iframe.title=pane.title;iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
       const actions=document.createElement('span');actions.className='actions';
       const collapse=button('chevron-down',labels.collapse,()=>{
@@ -176,6 +193,7 @@ function render(message){
         splitter.addEventListener('pointermove',moveDrag);
         splitter.addEventListener('pointerup',finishDrag);splitter.addEventListener('pointercancel',finishDrag);
         splitter.addEventListener('keydown',event=>{
+          if(paneOrder.active||reorderPending)return;
           if(frames.get(layout.views[index]).element.classList.contains('collapsed')||frames.get(layout.views[index+1]).element.classList.contains('collapsed'))return;
           if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
           event.preventDefault();hovered=-1;resize();
@@ -191,6 +209,7 @@ function render(message){
   document.getElementById('empty').hidden=layout.views.length>0;resize();
 }
 function startDrag(event,index,element){
+  if(paneOrder.active||reorderPending)return;
   if(frames.get(layout.views[index]).element.classList.contains('collapsed')||frames.get(layout.views[index+1]).element.classList.contains('collapsed'))return;
   if(event.button!==0)return;event.preventDefault();clearTimeout(enterTimer);clearTimeout(leaveTimer);
   const vertical=layout.direction==='vertical',sizes=layout.views.map(role=>frames.get(role).element.getBoundingClientRect()[vertical?'height':'width']);
@@ -233,7 +252,9 @@ window.addEventListener('message',event=>{
   if(message?.type==='layout')render(message);
   else if(message?.type==='panePost'){
     const item=frames.get(message.role);if(item&&item.generation===message.generation)item.iframe.contentWindow.postMessage({bridge:'cInsight.host',payload:message.message},'*');
-  }else if(message?.type==='suspend'){suspended=message.value;clearTimeout(enterTimer);clearTimeout(leaveTimer);if(!suspended){candidate=undefined;busy=false;}}
+  }else if(message?.type==='reorderResult'&&message.request===reorderPending){reorderPending=undefined;candidate=undefined;hovered=-1;resize();}
+  else if(message?.type==='cancelInteractions'){paneOrder.cancel();}
+  else if(message?.type==='suspend'){suspended=message.value;if(suspended)paneOrder.cancel();clearTimeout(enterTimer);clearTimeout(leaveTimer);if(!suspended){candidate=undefined;busy=false;}}
   else if(testMode&&message?.type==='testInteraction'){
     const item=frames.get(message.role);
     if(message.action==='hover')consider(message.role,{move:true,x:message.x||100,y:120,busy:false});
@@ -243,6 +264,31 @@ window.addEventListener('message',event=>{
       const input=item?.iframe.contentDocument.getElementById('filter');if(input){input.value=message.value;input.dispatchEvent(new Event('input'));}
     }
     else if(message.action==='viewport'){viewport.style.width='1200px';viewport.style.height='500px';viewport.style.flex='none';resize();}
+    else if(message.action==='reorderStart'){
+      const title=item?.element.querySelector('.title'),rect=title?.getBoundingClientRect();
+      if(rect){testReorderPoint={clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2};title.dispatchEvent(new PointerEvent('pointerdown',{...testReorderPoint,pointerId:901,button:0,buttons:1,bubbles:true,cancelable:true}));}
+    }
+    else if(message.action==='reorderMove'){
+      const rect=item?.element.getBoundingClientRect(),box=viewport.getBoundingClientRect(),vertical=layout.direction==='vertical';
+      if(rect){testReorderPoint={clientX:vertical?(box.left+box.right)/2:(message.side==='before'?rect.left+2:rect.right-2),clientY:vertical?(message.side==='before'?rect.top+2:rect.bottom-2):(box.top+box.bottom)/2};}
+      if(message.edge)testReorderPoint={clientX:vertical?(box.left+box.right)/2:message.edge==='start'?box.left+2:box.right-2,clientY:vertical?(message.edge==='start'?box.top+2:box.bottom-2):(box.top+box.bottom)/2};
+      if(testReorderPoint)window.dispatchEvent(new PointerEvent('pointermove',{...testReorderPoint,pointerId:901,buttons:1,bubbles:true,cancelable:true}));
+    }
+    else if(message.action==='reorderDrop'){
+      if(testReorderPoint){const point=message.outside?{clientX:viewport.getBoundingClientRect().right+20,clientY:viewport.getBoundingClientRect().bottom+20}:testReorderPoint;
+        window.dispatchEvent(new PointerEvent('pointerup',{...point,pointerId:901,buttons:0,bubbles:true,cancelable:true}));}
+    }
+    else if(message.action==='reorderCancel'){
+      if(message.mode==='escape')window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+      else if(message.mode==='blur')window.dispatchEvent(new Event('blur'));
+      else window.dispatchEvent(new PointerEvent('pointercancel',{pointerId:901,bubbles:true}));
+    }
+    else if(message.action==='markState'){
+      for(const [role,frame] of frames){const child=frame.iframe.contentDocument;if(!child?.body)continue;child.body.dataset.reorderMarker=role;
+        const row=child.querySelector('.row[data-id]');if(row)frame.iframe.contentWindow.postMessage({bridge:'cInsight.host',payload:{type:'reveal',id:row.dataset.id,select:true}},'*');
+        const scroll=child.querySelector('.code,#tree,#results');if(scroll){scroll.scrollTop=30;scroll.scrollLeft=40;}}
+    }
+    else if(message.action==='narrow'){viewport.style.width='420px';viewport.style.height='240px';viewport.style.flex='none';resize();}
     else if(message.action==='drag'){
       const splitter=container.querySelector('.splitter'),vertical=layout.direction==='vertical';
       if(splitter){startDrag({button:0,clientX:0,clientY:0,preventDefault:()=>{}},0,splitter);
@@ -250,9 +296,10 @@ window.addEventListener('message',event=>{
     }
   }
   else if(testMode&&message?.type==='inspect')post({type:'inspection',request:message.request,panes:[...frames].map(([role,item])=>{
-    const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon');
-    return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined};
-  }),hovered});
+    const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon'),scroll=child?.querySelector('.code,#tree,#results');
+    return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
+      marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft};
+  }),hovered,reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
 });
 new ResizeObserver(resize).observe(viewport);
 new MutationObserver(()=>frames.forEach(item=>item.iframe.contentWindow.postMessage({bridge:'cInsight.theme'},'*'))).observe(document.body,{attributes:true,attributeFilter:['class','style','data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']});

@@ -20,7 +20,7 @@ VS Code already provides commands such as Go to Definition and Find All Referenc
 | Understand where and how a symbol is used | Classified, grouped, searchable, and pageable References |
 | Follow control flow | Occurrence-based Callers and Callees with exact call-site locations |
 | Find and switch files | A searchable Project Files inventory with sorting, active-file highlighting, and independent locking |
-| Fit a browsing layout to your screen | Optional combined views with customizable panes, horizontal/vertical splitters, and smooth hover expansion |
+| Fit a browsing layout to your screen | Optional combined views with drag-to-reorder panes, horizontal/vertical splitters, and smooth hover expansion |
 | Explore structure | Document Symbols, workspace Symbol Search, Type Hierarchy, and Include Hierarchy |
 | See relationships beyond one tree | Call, type, and file Relationship Graphs |
 | Return to earlier investigations | Preview history, navigation history, bookmarks, pinning, and workspace-session restore |

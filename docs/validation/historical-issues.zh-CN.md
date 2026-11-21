@@ -446,6 +446,7 @@
 - 复现与预期：窄面板、固定/取消、多个结果视图、中文/英文及移动到已有底部 C Insight 容器；图标可见并有说明，按钮不因状态改变跳位，同一容器能容纳多个窗口。
 - 覆盖：[标题图标守卫](../../test/unit/viewTitleIcons.test.ts)、[自绘树脚本](../../test/unit/resultTreeClient.test.ts)；真实拖放、按钮常显与布局恢复必须人工检查。
 - 可选布局覆盖（`2026-11-21`）：组合视图只在自己的原生窗口内调整子窗格，原栏目及 VS Code 停靠逻辑保持不变。官方图标资源在组合内部复用，工具栏白名单沿用原栏目，业务固定状态共享、局部展开和滚动独立；[组合验证](combined-views.zh-CN.md)覆盖真实子文档、最低版本和双引擎，真实悬停动画及布局拖放待人工验收。
+- 标题排序扩展（`2026-11-22`）：同一组合内支持标题拖动插入，不改变外部停靠位置。角色与比例一同保存，复用子文档并保留局部状态；新增[指针控制器](../../test/unit/combinedReorderClient.test.ts)、[保存与失败确认](../../test/unit/combinedReorderHost.test.ts)和[真实组合排序](../../test/e2e/suite/combinedReorder.ts)检查，人工重点见[组合验证](combined-views.zh-CN.md)。此项为功能扩展，不另建缺陷编号。
 
 <a id="ci-reg-050"></a>
 
