@@ -14,6 +14,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .pane{display:flex;flex-direction:column;flex:none;overflow:hidden;transition:flex-basis 200ms ease;min-width:0;min-height:0}.pane header{display:flex;align-items:center;gap:2px;min-height:27px;padding:2px 3px;background:var(--vscode-sideBarSectionHeader-background);border-bottom:1px solid var(--vscode-panel-border)}.title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.actions{display:flex;overflow-x:auto;flex-shrink:1}.pane iframe{border:0;width:100%;flex:1;min-height:0;background:var(--vscode-sideBar-background)}.pane.collapsed iframe{visibility:hidden;pointer-events:none}
   .splitter{flex:0 0 5px;cursor:col-resize;background:var(--vscode-panel-border)}.vertical>.splitter{cursor:row-resize}.splitter:hover,.splitter:focus{background:var(--vscode-focusBorder)}#panes.dragging .pane{transition:none}#panes.dragging iframe{pointer-events:none}#empty{margin:14px;line-height:1.6}#empty[hidden]{display:none}
   .pane.collapsed iframe{display:none}#panes:not(.vertical)>.pane.collapsed header{height:100%;flex-direction:column}#panes:not(.vertical)>.pane.collapsed .title{writing-mode:vertical-rl}#panes:not(.vertical)>.pane.collapsed .actions{display:none}
+  .vscode-reduce-motion .pane{transition:none}
   @media(prefers-reduced-motion:reduce){.pane{transition:none}}
   </style></head><body><div id="bar"><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
   <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};${COMBINED_CLIENT}</script></body></html>`;
@@ -23,7 +24,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
 export function embeddedDocument(html: string, nonce: string, generation: number): string {
   const bridge = `<script nonce="${nonce}">(${FRAME_BRIDGE})(${generation},null/*cInsightFrameState*/);</script>`;
   return html.replace(/<meta\s+http-equiv="Content-Security-Policy"[^>]*>/gi, "")
-    .replace(/<link\s+rel="stylesheet"\s+href="[^"]*codicon\.css"[^>]*>/gi, "<!--cInsightIcons-->")
+    .replace(/<link\b(?=[^>]*\brel="stylesheet")(?=[^>]*\bhref="[^"]*codicon\.css")[^>]*>/gi, "<!--cInsightIcons-->")
     .replace(/nonce="[^"]*"/g, `nonce="${nonce}"`).replace(/<head([^>]*)>/i, `<head$1>${bridge}`);
 }
 
@@ -38,6 +39,9 @@ export const FRAME_BRIDGE = String.raw`function(generation, initialState) {
   function theme(){
     const computed=parent.getComputedStyle(parent.document.body);
     for(let i=0;i<computed.length;i++){const name=computed[i];if(name.startsWith('--vscode-'))document.documentElement.style.setProperty(name,computed.getPropertyValue(name));}
+    // Older Chromium does not enumerate custom properties in computed styles.
+    const declared=parent.document.documentElement?.style;
+    for(let i=0;i<(declared?.length||0);i++){const name=declared[i];if(name.startsWith('--vscode-'))document.documentElement.style.setProperty(name,declared.getPropertyValue(name));}
     if(document.body){document.body.className=parent.document.body.className;for(const name of ['data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']){const value=parent.document.body.getAttribute(name);if(value!==null)document.body.setAttribute(name,value);}}
   }
   theme();document.addEventListener('DOMContentLoaded',theme);
@@ -56,6 +60,17 @@ export const FRAME_BRIDGE = String.raw`function(generation, initialState) {
   document.addEventListener('pointerdown',activity,true);document.addEventListener('pointerup',activity,true);
   document.addEventListener('selectionchange',()=>send('activity',{busy:!!String(window.getSelection()||''),move:false}));
   document.addEventListener('focusin',()=>send('focus',{}),true);
+  const forwardedKeys=new Set();
+  window.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||(!(event.ctrlKey||event.metaKey)&&event.key!=='F1'))return;
+    if((event.ctrlKey||event.metaKey)&&!event.altKey&&['a','c','v','x','z','y'].includes(event.key.toLowerCase()))return;
+    event.preventDefault();forwardedKeys.add(event.code||event.key);
+    send('key',{type:'keydown',key:event.key,code:event.code,keyCode:event.keyCode,ctrlKey:event.ctrlKey,metaKey:event.metaKey,altKey:event.altKey,shiftKey:event.shiftKey,repeat:event.repeat});
+  });
+  window.addEventListener('keyup',event=>{
+    if(!forwardedKeys.delete(event.code||event.key))return;
+    send('key',{type:'keyup',key:event.key,code:event.code,keyCode:event.keyCode,ctrlKey:event.ctrlKey,metaKey:event.metaKey,altKey:event.altKey,shiftKey:event.shiftKey});
+  });
   send('ready',{});
 }`;
 
@@ -95,6 +110,8 @@ document.body.addEventListener('pointermove',event=>{
   const pane=event.target.closest?.('.pane');
   if(pane)consider(pane.dataset.role,{move:true,x:event.screenX,y:event.screenY,busy:!!event.buttons});
 });
+document.addEventListener('pointerdown',()=>{busy=true;clearTimeout(enterTimer);});
+document.addEventListener('pointerup',()=>{busy=false;});
 document.body.addEventListener('mouseleave',()=>{
   clearTimeout(enterTimer);candidate=undefined;
   clearTimeout(leaveTimer);leaveTimer=setTimeout(()=>{if(!busy&&!suspended&&!dragging){hovered=-1;resize();}},250);
@@ -110,7 +127,7 @@ function render(message){
   for(const pane of message.panes){
     let item=frames.get(pane.role);
     if(!item){
-      const element=document.createElement('section');element.className='pane';element.dataset.role=pane.role;
+      const element=document.createElement('section');element.className='pane';element.dataset.role=pane.role;element.setAttribute('aria-label',pane.title);
       const header=document.createElement('header'), title=document.createElement('span');title.className='title';title.textContent=pane.title;
       const iframe=document.createElement('iframe');iframe.title=pane.title;iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
       const actions=document.createElement('span');actions.className='actions';
@@ -119,9 +136,10 @@ function render(message){
         collapse.className='codicon codicon-chevron-'+(collapsed?'right':'down');collapse.setAttribute('aria-expanded',String(!collapsed));
         paneState[pane.role]={...paneState[pane.role],collapsed};persist();post({type:'collapse',role:pane.role,collapsed});resize();
       });
+      collapse.setAttribute('aria-expanded','true');
       header.append(collapse,title,actions,button('ellipsis',labels.actions,()=>post({type:'paneMenu',role:pane.role})));
       element.append(header,iframe);item={element,iframe,actions,generation:-1};frames.set(pane.role,item);
-      if(paneState[pane.role]?.collapsed){element.classList.add('collapsed');collapse.className='codicon codicon-chevron-right';post({type:'collapse',role:pane.role,collapsed:true});}
+      if(paneState[pane.role]?.collapsed){element.classList.add('collapsed');collapse.className='codicon codicon-chevron-right';collapse.setAttribute('aria-expanded','false');post({type:'collapse',role:pane.role,collapsed:true});}
     }
     item.actions.replaceChildren(...pane.actions.filter(action=>action.primary).map(action=>button(action.icon||'circle-outline',action.title,()=>post({type:'action',role:pane.role,command:action.command}))));
     if(item.generation!==pane.generation){
@@ -162,17 +180,21 @@ function render(message){
 }
 function startDrag(event,index,element){
   if(frames.get(layout.views[index]).element.classList.contains('collapsed')||frames.get(layout.views[index+1]).element.classList.contains('collapsed'))return;
-  if(event.button!==0)return;event.preventDefault();clearTimeout(enterTimer);clearTimeout(leaveTimer);hovered=-1;resize();
+  if(event.button!==0)return;event.preventDefault();clearTimeout(enterTimer);clearTimeout(leaveTimer);
   const vertical=layout.direction==='vertical',sizes=layout.views.map(role=>frames.get(role).element.getBoundingClientRect()[vertical?'height':'width']);
-  dragging={index,element,start:vertical?event.clientY:event.clientX,sizes};container.classList.add('dragging');element.setPointerCapture(event.pointerId);
+  dragging={index,element,start:vertical?event.clientY:event.clientX,sizes,original:[...layout.ratios],moved:false};
+  hovered=-1;container.classList.add('dragging');layout.views.forEach((role,index)=>frames.get(role).element.style.flexBasis=sizes[index]+'px');
+  if(typeof event.pointerId==='number')element.setPointerCapture(event.pointerId);
 }
 function moveDrag(event){if(!dragging)return;const {index,start,sizes}=dragging,vertical=layout.direction==='vertical',minimum=vertical?80:160;
   const delta=Math.max(minimum-sizes[index],Math.min(sizes[index+1]-minimum,(vertical?event.clientY:event.clientX)-start));
+  if(Math.abs(delta)<1&&!dragging.moved)return;dragging.moved=true;
   layout.ratios=[...sizes];layout.ratios[index]+=delta;layout.ratios[index+1]-=delta;
   layout.views.forEach((role,index)=>frames.get(role).element.style.flexBasis=layout.ratios[index]+'px');
 }
-function finishDrag(event){if(!dragging)return;const element=dragging.element;dragging=undefined;busy=false;candidate=undefined;container.classList.remove('dragging');
-  if(element.hasPointerCapture(event.pointerId))element.releasePointerCapture(event.pointerId);post({type:'ratios',ratios:layout.ratios});resize();}
+function finishDrag(event){if(!dragging)return;const {element,original,moved}=dragging;dragging=undefined;busy=false;candidate=undefined;container.classList.remove('dragging');
+  if(typeof event.pointerId==='number'&&element.hasPointerCapture(event.pointerId))element.releasePointerCapture(event.pointerId);
+  if(moved)post({type:'ratios',ratios:layout.ratios});else layout.ratios=original;resize();}
 window.addEventListener('message',event=>{
   const message=event.data;
   if(message?.bridge==='cInsight.pane'){
@@ -182,6 +204,13 @@ window.addEventListener('message',event=>{
     if(message.kind==='state'){paneState[role]={...paneState[role],value:message.payload};persist();}
     else if(message.kind==='activity')consider(role,message.payload||{});
     else if(message.kind==='focus')post({type:'focus',role});
+    else if(message.kind==='key'){
+      const key=message.payload;
+      if(key&&['keydown','keyup'].includes(key.type)&&typeof key.key==='string'&&key.key.length<100){
+        const event=new KeyboardEvent(key.type,{...key,bubbles:true,cancelable:true});
+        Object.defineProperty(event,'keyCode',{value:Number.isInteger(key.keyCode)?key.keyCode:0});window.dispatchEvent(event);
+      }
+    }
     else if(message.kind==='ready')post({type:'frameReady',role,generation:message.generation});
     else if(message.kind==='message')post({type:'paneMessage',role,generation:message.generation,message:message.payload});
     return;
@@ -192,7 +221,7 @@ window.addEventListener('message',event=>{
   if(message?.type==='layout')render(message);
   else if(message?.type==='panePost'){
     const item=frames.get(message.role);if(item&&item.generation===message.generation)item.iframe.contentWindow.postMessage({bridge:'cInsight.host',payload:message.message},'*');
-  }else if(message?.type==='suspend'){suspended=message.value;clearTimeout(enterTimer);if(suspended){hovered=-1;resize();}else{candidate=undefined;busy=false;}}
+  }else if(message?.type==='suspend'){suspended=message.value;clearTimeout(enterTimer);clearTimeout(leaveTimer);if(!suspended){candidate=undefined;busy=false;}}
   else if(testMode&&message?.type==='testInteraction'){
     const item=frames.get(message.role);
     if(message.action==='hover')consider(message.role,{move:true,x:message.x||100,y:120,busy:false});
@@ -202,6 +231,11 @@ window.addEventListener('message',event=>{
       const input=item?.iframe.contentDocument.getElementById('filter');if(input){input.value=message.value;input.dispatchEvent(new Event('input'));}
     }
     else if(message.action==='viewport'){viewport.style.width='1200px';viewport.style.height='500px';viewport.style.flex='none';resize();}
+    else if(message.action==='drag'){
+      const splitter=container.querySelector('.splitter'),vertical=layout.direction==='vertical';
+      if(splitter){startDrag({button:0,clientX:0,clientY:0,preventDefault:()=>{}},0,splitter);
+        moveDrag({clientX:vertical?0:message.delta,clientY:vertical?message.delta:0});finishDrag({});}
+    }
   }
   else if(testMode&&message?.type==='inspect')post({type:'inspection',request:message.request,panes:[...frames].map(([role,item])=>{
     const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon');
@@ -210,5 +244,6 @@ window.addEventListener('message',event=>{
 });
 new ResizeObserver(resize).observe(viewport);
 new MutationObserver(()=>frames.forEach(item=>item.iframe.contentWindow.postMessage({bridge:'cInsight.theme'},'*'))).observe(document.body,{attributes:true,attributeFilter:['class','style','data-vscode-theme-kind','data-vscode-theme-name','data-vscode-theme-id']});
+new MutationObserver(()=>frames.forEach(item=>item.iframe.contentWindow.postMessage({bridge:'cInsight.theme'},'*'))).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
 post({type:'ready',states:paneState});
 `;

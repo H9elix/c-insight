@@ -40,6 +40,7 @@ interface PreviewState {
 
 interface RenderedDocument {
   document: vscode.TextDocument;
+  version: number;
   startLine: number;
   endLine: number;
   target: LocationResult;
@@ -78,7 +79,7 @@ export class CodePreviewProvider
   implements vscode.WebviewViewProvider, vscode.Disposable
 {
   private view?: vscode.WebviewView;
-  private readonly shared: { state?: PreviewState; locked: boolean; definitionGeneration: number; definitionCancellation?: vscode.CancellationTokenSource };
+  private readonly shared: { state?: PreviewState; locked: boolean; definitionGeneration: number; definitionCancellation?: vscode.CancellationTokenSource; definitionOwner?: CodePreviewProvider };
   private get state(): PreviewState | undefined { return this.shared.state; }
   private set state(value: PreviewState | undefined) { this.shared.state = value; }
   private rendered?: RenderedDocument;
@@ -166,7 +167,7 @@ export class CodePreviewProvider
         }
       }),
       view.onDidChangeVisibility(() => {
-        if (view.visible && (!this.rendered || !this.state || !sameDefinitionLocation(this.rendered.target, this.state.location))) void this.render();
+        if (view.visible && (!this.rendered || this.rendered.version !== this.rendered.document.version || !this.state || !sameDefinitionLocation(this.rendered.target, this.state.location))) void this.render();
         this.refreshColors();
         this.emitVisibility();
       }),
@@ -182,6 +183,7 @@ export class CodePreviewProvider
     source: ExplicitPreviewSource = "selection",
   ): Promise<void> {
     if (this.owner) return this.owner.showLocation(location, mode, title, source);
+    this.cancelDefinition();
     this.ownership.claimInteraction();
     await this.applyLocation(location, mode, title, source);
   }
@@ -223,7 +225,7 @@ export class CodePreviewProvider
       this.navigationHistory.record(location, mode, next.title, source);
     }
     this.state = next;
-    await Promise.all(this.allPresentations().map(view => view.rendered &&
+    await Promise.all(this.allPresentations().map(view => view.rendered && view.rendered.version === view.rendered.document.version &&
       sameDefinitionLocation(view.rendered.target, location) ? view.updateMetadata(next) : view.render()));
   }
 
@@ -405,7 +407,7 @@ export class CodePreviewProvider
     if (this.disposed) return;
     this.disposed = true;
     this.renderGeneration += 1;
-    if (!this.owner) this.cancelDefinition();
+    if (!this.owner || this.shared.definitionOwner === this) this.cancelDefinition();
     this.presentations.forEach(view => view.dispose()); this.presentations.clear();
     if (this.documentChangeTimer) {
       clearTimeout(this.documentChangeTimer);
@@ -515,7 +517,7 @@ export class CodePreviewProvider
   }
 
   async followDefinition(position: vscode.Position): Promise<void> {
-    if (!this.rendered) {
+    if (this.disposed || !this.rendered) {
       return;
     }
     this.ownership.claimInteraction();
@@ -523,6 +525,7 @@ export class CodePreviewProvider
     const generation = ++this.definitionGeneration;
     const cancellation = new vscode.CancellationTokenSource();
     this.definitionCancellation = cancellation;
+    this.shared.definitionOwner = this;
     const sourceDocument = this.rendered.document;
     try {
       const definitions = await this.analysis.definition(
@@ -531,6 +534,7 @@ export class CodePreviewProvider
         cancellation.token,
       );
       if (
+        this.disposed ||
         generation !== this.definitionGeneration ||
         cancellation.token.isCancellationRequested ||
         definitions.length === 0
@@ -552,6 +556,7 @@ export class CodePreviewProvider
     } finally {
       if (this.definitionCancellation === cancellation) {
         this.definitionCancellation = undefined;
+        this.shared.definitionOwner = undefined;
       }
       cancellation.dispose();
     }
@@ -562,6 +567,7 @@ export class CodePreviewProvider
     this.definitionCancellation?.cancel();
     this.definitionCancellation?.dispose();
     this.definitionCancellation = undefined;
+    this.shared.definitionOwner = undefined;
   }
 
   private async moveHistory(delta: -1 | 1): Promise<void> {
@@ -670,7 +676,7 @@ export class CodePreviewProvider
       if (generation !== this.renderGeneration || !this.view) {
         return;
       }
-      this.rendered = { document, startLine, endLine, target: location };
+      this.rendered = { document, version: document.version, startLine, endLine, target: location };
       const lines = renderSourceLines(
         document,
         startLine,

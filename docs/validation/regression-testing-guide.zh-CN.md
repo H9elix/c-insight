@@ -49,6 +49,7 @@
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
+| 组合视图、多显示实例 | 022–028、037、042–043 | `combinedModel`、真实组合宿主 `runCombinedViewTest`；共享结果/固定、局部展开/筛选/滚动、有效可见性、无查询的悬停与尺寸变化，详见[专项验证](combined-views.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。各案例列出自动断言与人工检查项。

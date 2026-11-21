@@ -35,6 +35,12 @@ describe("combined layouts", () => {
     assert.match(html,/nonce="outer"/);assert(html.indexOf("window.acquireVsCodeApi")<html.lastIndexOf("acquireVsCodeApi()"));
     assert.match(html,/null\/\*cInsightFrameState\*\//);
   });
+  it("inlines the official icon stylesheet regardless of HTML attribute order", () => {
+    for (const link of ['<link href="https://local/codicon.css" rel="stylesheet">','<link rel="stylesheet" href="https://local/codicon.css">']) {
+      const html=embeddedDocument(`<html><head>${link}</head></html>`,"outer",1);
+      assert.match(html,/<!--cInsightIcons-->/);assert.doesNotMatch(html,/<link/);
+    }
+  });
   it("selects only whitelisted role commands and current pin states without evaluating code", () => {
     assert(matchesPaneCondition("view == cInsight.callers && !cInsight.callHierarchyPinned", "cInsight.callers", {"cInsight.callHierarchyPinned":false}));
     assert(!matchesPaneCondition("view == cInsight.callers && !cInsight.callHierarchyPinned", "cInsight.callers", {"cInsight.callHierarchyPinned":true}));

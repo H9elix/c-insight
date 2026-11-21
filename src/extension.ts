@@ -106,7 +106,8 @@ export async function activate(
       else return views.createPresentation(`cInsight.${role}` as ViewId, view);
       return undefined;
     },
-    prefer: (role, tree) => {
+    prefer: (role, tree, view) => {
+      if (role === "workspaceSymbols") symbolSearch.preferPresentation(view);
       if (!tree) return;
       if (role === "projectFiles") projectFiles.view.prefer(tree);
       else views.preferPresentation(`cInsight.${role}` as ViewId, tree);

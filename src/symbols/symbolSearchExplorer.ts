@@ -56,7 +56,7 @@ export class SymbolSearchExplorer
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.presentations.add(webviewView);
-    this.view = webviewView;
+    this.view ??= webviewView;
     webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = renderSymbolSearchWebview({
       cspSource: webviewView.webview.cspSource,
@@ -69,11 +69,12 @@ export class SymbolSearchExplorer
     this.viewDisposables.set(webviewView, listeners);
     listeners.push(
       webviewView.webview.onDidReceiveMessage((value: unknown) => {
-        this.view = webviewView;
         const message = parseSymbolSearchWebviewMessage(value);
         if (!message) {
           return;
         }
+        if (message.type !== "ready") this.view = webviewView;
+        if (message.type === "focus") return;
         if (message.type === "query") {
           this.scheduleSearch(message.query);
         } else if (message.type === "clear") {
@@ -109,6 +110,8 @@ export class SymbolSearchExplorer
     this.view?.show(false);
     await this.view?.webview.postMessage({ type: "focus" });
   }
+
+  preferPresentation(view: vscode.WebviewView): void { if (this.presentations.has(view)) this.view = view; }
 
   async refresh(): Promise<void> {
     if (this.query.trim()) {

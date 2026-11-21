@@ -11,6 +11,7 @@ export type SymbolSearchWebviewMessage =
   | { type: "activate"; id: string }
   | { type: "context"; id: string }
   | { type: "clear" }
+  | { type: "focus" }
   | { type: "ready" };
 
 export function parseSymbolSearchWebviewMessage(
@@ -20,7 +21,7 @@ export function parseSymbolSearchWebviewMessage(
     return undefined;
   }
   const candidate = value as Record<string, unknown>;
-  if (candidate.type === "clear" || candidate.type === "ready") {
+  if (candidate.type === "clear" || candidate.type === "ready" || candidate.type === "focus") {
     return { type: candidate.type };
   }
   if (
@@ -84,6 +85,7 @@ export function renderSymbolSearchWebview(
   <div id="results" role="tree" aria-label="${escapeAttribute(options.resultsLabel)}"></div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    document.addEventListener('focusin', () => vscode.postMessage({ type: 'focus' }));
     const query = document.getElementById('query');
     const clear = document.getElementById('clear');
     const status = document.getElementById('status');

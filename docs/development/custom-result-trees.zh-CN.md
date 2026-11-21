@@ -31,6 +31,10 @@
 
 ## 维护边界
 
+组合视图（Combined View）在一个原生 Webview 里复用受控 `srcdoc` 子窗格，不修改 VS Code 工作台 DOM 或布局数据库。`combined/combinedViewManager.ts` 管理四个静态槽位、全局配置、菜单白名单、代次校验及显示实例生命周期；`combinedModel.ts` 管理配置归一化、功能目录、菜单条件与最小尺寸分配；`embeddedView.ts` 将现有显示提供程序接入子窗格；`combinedWebview.ts` 管理消息桥、主题变量、局部 Webview 状态、悬停与分隔条。子窗格只接收本扩展生成的转义 HTML，使用父级 CSP nonce；父级按窗口来源和代次路由消息，不能从网页指定任意 VS Code 命令。官方 Codicons 资源由组合窗口读取一次，CSS 内联到子文档、字体经窗口级 Blob URL 复用，避开 VS Code 本地资源代理对子文档的限制；关闭组合文档时撤销 Blob URL。
+
+原有功能控制器继续拥有查询、结果和固定/锁定状态。多个树显示实例共享提供程序的子项加载合并，但有独立树模型及跟随控制器；有效可见性按所有实例取或，只在有效值变化时通知查询控制器。预览共享目标、所有权、取消代次和令牌缓存，独立保存加载范围及滚动状态。窗口比例、方向和悬停不销毁子文档；隐藏组合不发布 UI 更新，移除窗格会释放对应实例和监听器。
+
 - `resultTreeModel.ts`：不依赖 VS Code 的展开状态、稳定行 ID、懒加载投影、定位和过时代次丢弃。
 - `resultTreeView.ts`：将现有 `MutableTreeProvider` 接到 Webview，校验消息及节点菜单动作，桥接展开事件、可见性与源码导航。
 - `resultTreeWebview.ts`：独立点击处理、虚拟滚动、键盘导航、ARIA 树角色、上下文菜单及本地筛选；动态文本仅通过 DOM 文本属性输出。

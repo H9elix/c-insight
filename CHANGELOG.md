@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added up to four customizable combined browsing views containing existing C Insight panes, with horizontal/vertical layouts, draggable splitters, pane ordering, renaming and user-wide layout preferences.
+- Added smooth hover expansion inside combined views, with minimum sizes, neighbor compression, interaction pauses and reduced-motion support.
+- Shared feature results and pins across original and combined views while retaining independent local filtering, expansion and scrolling; hidden and collapsed presentations withdraw their query demand.
+
 ## 0.22.29
 
 - Aligned Document Symbols with Project Files: successful unlocked double-click, Enter and Open Location actions clear the filter, including repeated opens of the same symbol. Single-click previews, failed opens and newer input preserve the query.

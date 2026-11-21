@@ -988,15 +988,7 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 同一功能有任一显示位置可见就保留该功能的可见需求；隐藏整个组合、折叠或移除窗格会撤销对应显示位置的需求。重复加入不会建立第二个分析引擎或第二份语义查询控制器；引擎自己的后台索引不受窗格悬停控制。
 
-名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。配置值如下：
-
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `cInsight.combinedViews.slot1` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第一个组合布局。 |
-| `cInsight.combinedViews.slot2` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第二个组合布局。 |
-| `cInsight.combinedViews.slot3` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第三个组合布局。 |
-| `cInsight.combinedViews.slot4` | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 第四个组合布局。 |
-| `cInsight.combinedViews.hoverExpand` | `true` | 所有组合视图的悬停扩展开关，与功能固定/锁定无关。 |
+名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。全部默认值见[9.16 节](#916-组合视图combined-view)。
 
 布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
 
@@ -1337,6 +1329,18 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
 | `cInsight.projectFiles.followActiveEditor` | boolean | `true` | `true` / `false` | 高亮活动文件；视图未聚焦且未锁定时定位，必要时清空遮挡目标的筛选；关闭立即移除标记，不影响未锁定时显式打开后的清空 |
 | `cInsight.projectFiles.maximumFiles` | integer | `50000` | 1000–200000 | 文件清单加载上限；改变后在窗口可见时重新枚举，隐藏时等待再次显示 |
 
+### 9.16 组合视图（Combined View）
+
+以下设置均为用户级配置，跨工程共用；界面操作会写入全局用户设置。布局对象字段、完整功能后缀和示例见[4.18 节](#418-组合视图combined-view)。
+
+| 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`views`、`ratios` | 第一个组合布局 |
+| `cInsight.combinedViews.slot2` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第二个组合布局 |
+| `cInsight.combinedViews.slot3` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第三个组合布局 |
+| `cInsight.combinedViews.slot4` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第四个组合布局 |
+| `cInsight.combinedViews.hoverExpand` | boolean | `true` | `true` / `false` | 所有组合的悬停扩展，与功能固定/锁定无关 |
+
 ## 10. 配置示例
 
 ### 常规 CMake 工程
@@ -1498,6 +1502,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 符号搜索（Symbol Search） | 当前分析引擎的工作区符号（Workspace Symbols） | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击预览；双击打开 |
 | 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | 独立锁定自动定位，数据和高亮仍更新 | 常驻名称子串筛选，包含折叠子项 | 保留层级，支持同层位置/名称/类型排序 | — | 单击预览；双击打开 |
 | 工程文件（Project Files） | 工作区文件枚举 | 可见时同步文件事件；离焦跟随活动文件 | 独立锁定自动清空与滚动 | 常驻名称/路径子串筛选 | 平铺；三种排序 | — | 单击文本预览；双击打开 |
+| 组合视图（Combined View） | 复用现有功能结果 | 合并各实例的可见需求 | 沿用对应功能；悬停开关独立 | 沿用对应功能，树局部筛选独立 | 树局部展开独立 | 沿用对应功能 | 共用预览目标，各自保留滚动 |
 | 工程诊断（Project Diagnostics） | 引擎/提供程序状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | 源码诊断单击预览；双击打开 |
 | 父类型（Supertypes）/子类型（Subtypes） | clangd 类型层次（Type Hierarchy）与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击预览；双击打开 |
 | 包含文件（Includes）/被包含关系（Included By） | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击/双击关系行；右键打开目标 |
@@ -1511,6 +1516,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 | 状态 | 保存位置 | 作用域 | 重启后 |
 | --- | --- | --- | --- |
+| 组合名称、功能顺序、方向和比例 | 用户设置（application） | 跨工程 | 保留布局定义；外部停靠位置由 VS Code 保存 |
 | 引用（References）、符号搜索（Symbol Search）分组和书签排序 | VS Code Workspace Settings | 当前文件夹或 `.code-workspace` | 保留 |
 | 书签（Bookmarks）内容、标签和分组 | VS Code `workspaceState` | 当前工作区 | 保留 |
 | 导航历史（Navigation History）、代码预览（Code Preview）、引用搜索状态、调用层次（Call Hierarchy）、打开的关系图（Graph） | C Insight 工作区会话（Workspace Session）快照 | 当前工作区 | 按会话（Session）配置恢复 |

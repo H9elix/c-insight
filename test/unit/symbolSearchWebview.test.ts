@@ -41,6 +41,7 @@ describe("symbol search webview", () => {
     assert.deepEqual(parseSymbolSearchWebviewMessage({ type: "ready" }), {
       type: "ready",
     });
+    assert.deepEqual(parseSymbolSearchWebviewMessage({type:"focus"}),{type:"focus"});
     assert.equal(parseSymbolSearchWebviewMessage({ type: "query", query: 1 }), undefined);
     assert.equal(parseSymbolSearchWebviewMessage({ type: "open", id: "x" }), undefined);
     assert.equal(

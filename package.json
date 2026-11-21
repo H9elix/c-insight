@@ -110,6 +110,7 @@
     "test:e2e:ffmpeg:microsoft": "npm run build && xvfb-run -a node dist/test/e2e/runFfmpegMicrosoftTest.js",
     "test:e2e:command-line-macros": "npm run build && node test/fixtures/command-line-macros/build.mjs && xvfb-run -a node dist/test/e2e/runCommandLineMacroTest.js",
     "test:e2e:project-files": "npm run build && xvfb-run -a node dist/test/e2e/runProjectFilesTest.js",
+    "test:e2e:combined": "npm run build && xvfb-run -a node dist/test/e2e/runCombinedViewTest.js",
     "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:commands:check && npm run docs:terms:check && npm run docs:prose:check && npm run docs:links:check && npm run release:notes:check && npm run third-party:check && npm run build",
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },
@@ -1238,10 +1239,10 @@
     },
     "views": {
       "cInsight": [
-        {"id":"cInsight.combined1","name":"%view.cInsight.combined1.name%","type":"webview","when":"config.cInsight.combinedViews.slot1.enabled"},
-        {"id":"cInsight.combined2","name":"%view.cInsight.combined2.name%","type":"webview","when":"config.cInsight.combinedViews.slot2.enabled"},
-        {"id":"cInsight.combined3","name":"%view.cInsight.combined3.name%","type":"webview","when":"config.cInsight.combinedViews.slot3.enabled"},
-        {"id":"cInsight.combined4","name":"%view.cInsight.combined4.name%","type":"webview","when":"config.cInsight.combinedViews.slot4.enabled"},
+        {"id":"cInsight.combined1","name":"%view.cInsight.combined1.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined1Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot1.enabled"},
+        {"id":"cInsight.combined2","name":"%view.cInsight.combined2.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined2Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot2.enabled"},
+        {"id":"cInsight.combined3","name":"%view.cInsight.combined3.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined3Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot3.enabled"},
+        {"id":"cInsight.combined4","name":"%view.cInsight.combined4.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined4Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot4.enabled"},
         {
           "id": "cInsight.context",
           "name": "%view.cInsight.context.name%",

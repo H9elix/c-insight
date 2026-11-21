@@ -202,6 +202,7 @@ The `cInsight.documentSymbols.*` family controls Document Symbols presentation a
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
 - `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and `cInsight.relationshipGraph.*`
 - `cInsight.history.*`, `cInsight.bookmarks.*`, `cInsight.symbolSearch.*`, and `cInsight.session.*`
+- `cInsight.combinedViews.*` for user-wide combined layouts and hover expansion
 - `cInsight.includeDeclarationInReferences` and `cInsight.includeSystemReferences`
 
 All commands are available from the Command Palette under **C Insight**. Context menus and view title bars expose commands relevant to the current editor, view, or selected node.

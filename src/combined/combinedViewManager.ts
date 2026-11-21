@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { COMMANDS } from "../ids";
+import { COMMANDS, CONTEXT_KEYS } from "../ids";
 import { WebviewResultTree } from "../views/resultTreeView";
 import { combinedLayout, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
 import { EmbeddedView } from "./embeddedView";
@@ -13,7 +13,7 @@ interface Surface { view: vscode.WebviewView; nonce: string; ready: boolean; pan
 interface PaneAction { command: string; title: string; icon?: string; primary: boolean }
 interface PresentationFactory {
   create(role: CombinedRole, view: EmbeddedView): WebviewResultTree | undefined;
-  prefer(role: CombinedRole, tree: WebviewResultTree | undefined): void;
+  prefer(role: CombinedRole, tree: WebviewResultTree | undefined, view: EmbeddedView): void;
   flags(): Readonly<Record<string, boolean>>;
 }
 
@@ -26,6 +26,7 @@ export class CombinedViewManager implements vscode.Disposable {
   private readonly names = new Map<CombinedRole, string>();
   private readonly inspections = new Map<number, (value: unknown) => void>();
   private nextInspection = 0;
+  private nextDocumentGeneration = 0;
   private iconAssets?: Promise<{css: string; font: string}>;
   private disposed = false;
 
@@ -37,12 +38,21 @@ export class CombinedViewManager implements vscode.Disposable {
       if (isCombinedRole(role)) this.names.set(role, view.name);
     });
     COMBINED_SLOTS.forEach(slot => this.disposables.push(vscode.window.registerWebviewViewProvider(`cInsight.combined${slot}`, {
-      resolveWebviewView: view => this.resolve(slot, view),
+      resolveWebviewView: (view, _context, token) => this.resolve(slot, view, token),
     }, { webviewOptions: { retainContextWhenHidden: true } })));
     this.disposables.push(vscode.workspace.onDidChangeConfiguration(event => {
       if (!event.affectsConfiguration("cInsight.combinedViews")) return;
+      void this.synchronizeAvailability();
       this.surfaces.forEach((surface, slot) => this.reconcile(slot, surface));
     }));
+    void this.synchronizeAvailability();
+  }
+
+  private async synchronizeAvailability(): Promise<void> {
+    const keys = [CONTEXT_KEYS.COMBINED_1_ENABLED, CONTEXT_KEYS.COMBINED_2_ENABLED,
+      CONTEXT_KEYS.COMBINED_3_ENABLED, CONTEXT_KEYS.COMBINED_4_ENABLED];
+    await Promise.all(COMBINED_SLOTS.map((slot,index) => vscode.commands.executeCommand("setContext", keys[index], this.layout(slot).enabled)));
+    await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.COMBINED_READY, true);
   }
 
   private layout(slot: CombinedSlot): CombinedLayout {
@@ -56,6 +66,7 @@ export class CombinedViewManager implements vscode.Disposable {
     const slot = COMBINED_SLOTS.find(slot => !this.layout(slot).enabled);
     if (!slot) { void vscode.window.showInformationMessage(vscode.l10n.t("All four combined views are in use. Manage an existing view to change its panes.")); return; }
     await this.save(slot, {...combinedLayout(undefined), enabled: true});
+    await this.synchronizeAvailability();
     await vscode.commands.executeCommand(`cInsight.combined${slot}.focus`);
     await this.perform(slot, "add");
   }
@@ -70,12 +81,12 @@ export class CombinedViewManager implements vscode.Disposable {
   }
   refreshActions(): void { this.surfaces.forEach((surface, slot) => this.publish(slot, surface)); }
 
-  private async resolve(slot: CombinedSlot, view: vscode.WebviewView): Promise<void> {
+  private async resolve(slot: CombinedSlot, view: vscode.WebviewView, token: vscode.CancellationToken): Promise<void> {
     const assets = vscode.Uri.joinPath(this.context.extensionUri, "dist", "codicons");
     this.iconAssets ??= Promise.all([vscode.workspace.fs.readFile(vscode.Uri.joinPath(assets,"codicon.css")),
       vscode.workspace.fs.readFile(vscode.Uri.joinPath(assets,"codicon.ttf"))]).then(([css,font])=>({css:Buffer.from(css).toString("utf8"),font:Buffer.from(font).toString("base64")}));
     const icons = await this.iconAssets;
-    if (this.disposed) return;
+    if (this.disposed || token.isCancellationRequested) return;
     this.disposeSurface(slot);
     view.webview.options = { enableScripts: true, localResourceRoots: [assets] };
     const surface: Surface = {view, nonce: randomBytes(16).toString("hex"), ready: false, panes: new Map(), listeners: []};
@@ -102,15 +113,15 @@ export class CombinedViewManager implements vscode.Disposable {
 
   private reconcile(slot: CombinedSlot, surface: Surface): void {
     const layout = this.layout(slot);
-    surface.view.title = this.title(slot);
+    if (layout.enabled && surface.view.title !== this.title(slot)) surface.view.title = this.title(slot);
     const roles = layout.enabled ? layout.views : [];
     for (const [role, pane] of surface.panes) if (!roles.includes(role)) { pane.view.dispose(); surface.panes.delete(role); }
     for (const role of roles) if (surface.view.visible && !surface.panes.has(role)) {
       const view = new EmbeddedView(`cInsight.${role}`, surface.view, this.names.get(role) ?? role, () => {
-        pane.generation++; pane.acknowledged = undefined;
+        pane.generation = ++this.nextDocumentGeneration; pane.acknowledged = undefined;
         if (!surface.publishTimer) surface.publishTimer = setTimeout(() => { surface.publishTimer = undefined; this.publish(slot, surface); }, 0);
       }, message => surface.ready ? surface.view.webview.postMessage({type: "panePost", role, generation: pane.generation, message}) : Promise.resolve(false));
-      const pane: Pane = {view, generation: 0, collapsed: false}; surface.panes.set(role, pane);
+      const pane: Pane = {view, generation: ++this.nextDocumentGeneration, collapsed: false}; surface.panes.set(role, pane);
       view.setVisible(surface.view.visible);
       pane.tree = this.factory.create(role, view);
     }
@@ -129,7 +140,7 @@ export class CombinedViewManager implements vscode.Disposable {
     return result;
   }
   private publish(slot: CombinedSlot, surface: Surface): void {
-    if (!surface.ready || !surface.view.visible || this.surfaces.get(slot) !== surface) return;
+    if (!surface.ready || !surface.view.visible || !this.layout(slot).enabled || this.surfaces.get(slot) !== surface) return;
     void surface.view.webview.postMessage({type: "layout", layout: this.layout(slot), title: this.title(slot),
       hover: vscode.workspace.getConfiguration("cInsight.combinedViews").get("hoverExpand", true),
       panes: [...surface.panes].map(([role, pane]) => {
@@ -167,7 +178,7 @@ export class CombinedViewManager implements vscode.Disposable {
       pane.collapsed = message.collapsed; pane.view.setVisible(surface.view.visible && !pane.collapsed); return;
     }
     if (message.type === "frameReady" && message.generation === pane.generation) { pane.acknowledged = pane.generation; return; }
-    if (message.type === "focus" || message.type === "action" || message.type === "paneMenu") this.factory.prefer(role, pane.tree);
+    if (message.type === "focus" || message.type === "action" || message.type === "paneMenu") this.factory.prefer(role, pane.tree, pane.view);
     if (message.type === "paneMessage" && message.generation === pane.generation && pane.view.visible) {
       pane.view.webview.receiveMessage(message.message);
     } else if (message.type === "paneMenu") {
@@ -200,7 +211,9 @@ export class CombinedViewManager implements vscode.Disposable {
   private async interact(slot: CombinedSlot, operation: () => Promise<void>): Promise<void> {
     const surface = this.surfaces.get(slot);
     await surface?.view.webview.postMessage({type: "suspend", value: true});
-    try { await operation(); } finally { await surface?.view.webview.postMessage({type: "suspend", value: false}); }
+    try { await operation(); } finally {
+      if (surface && this.surfaces.get(slot) === surface) await surface.view.webview.postMessage({type: "suspend", value: false});
+    }
   }
   private async perform(slot: CombinedSlot, action: string): Promise<void> {
     const layout = this.layout(slot);
