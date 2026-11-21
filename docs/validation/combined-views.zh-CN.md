@@ -6,6 +6,7 @@
 
 - `test/unit/combinedModel.test.ts`：四槽默认值、15 功能目录、配置清理、比例预算、最小尺寸、菜单条件、HTML 转义与 CSP nonce。
 - `test/unit/combinedBridge.test.ts`：子窗格 API 状态隔离、消息来源、旧 Chromium 主题变量及启动/运行时槽位可见性。
+- `test/unit/combinedManifestRuntime.test.ts`：直接执行管理器，覆盖字符串和本地化对象命令标题、原文及非法字段回退、视图名称和非字符串图标；关联 CI-REG-050。宿主还通过真实创建命令及多选框确认检查入口，而非仅通过设置加入窗格。
 - `test/e2e/suite/combinedViews.ts`：真实子文档消息桥、全部功能角色的脚本初始化、重复显示不增加查询、共享调用查询、代码预览、工程文件扫描、树展开隔离、筛选保留、受控布局中的横纵悬停和分隔条、主题变量、请求计数、折叠释放以及隐藏期间移除重加的文档代次。测试使用独立 VS Code 用户目录，不操作日常窗口。
 - `test/e2e/suite/previewPresentationOwnership.ts`：受控迟到定义的显式覆盖、发起/非发起实例的销毁取消边界，以及隐藏期间修改文档后重新显示的版本恢复。
 - `test:e2e`、`test:e2e:project-files` 和 `test:e2e:microsoft`：原有栏目及共用导航、搜索和锁定路径。
@@ -40,3 +41,9 @@ C_INSIGHT_COMBINED_ENGINE=microsoft C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/co
 一次最低版本主宿主初跑触发 CI-REG-014 的调用点所有权时序断言；保留原生聚焦命令的等待路径后复验通过，未独立确认初跑的具体时序触发条件。多显示实例共用预览定义查询的取消代次，新的显式位置会撤销旧查询。
 
 临时包为 `c-insight-0.22.29-combined-browsing-preview.vsix`。尚待维护者验收；真实鼠标手感、实际布局拖放、辅助技术及 WSL/SSH 检查按上节执行。本次不提升正式版本、不推送或发布。
+
+## CI-REG-050 本地化标题兼容（2026-11-21）
+
+维护者报告创建组合时报 `command.title.replace is not function`。运行时清单的标题可以是 `{ value, original }`，组合管理器现统一提取字符串并提供回退；窗格名称和图标字段也经过类型检查。新增运行时管理器测试修复前 10 个案例有 9 个失败，修复后全部通过，完整质量门及 `1.130.0`/`1.95.0` 的真实命令创建和组合回归通过。
+
+修复临时包为 `c-insight-0.22.29-combined-localized-titles-preview.vsix`。本地宿主虽然尝试指定中文，但实际仍使用英文；中文标题对象已通过确定性案例验证，真实中文安装环境需人工检查创建、多选添加、工具栏及窗格标题。待维护者验收，不推送或发布。

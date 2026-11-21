@@ -5,8 +5,9 @@ import { WebviewResultTree } from "../views/resultTreeView";
 import { combinedLayout, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
 import { EmbeddedView } from "./embeddedView";
 import { embeddedDocument, renderCombinedWebview } from "./combinedWebview";
+import { manifestLabel } from "./combinedManifest";
 
-interface ManifestCommand { command: string; title: string; icon?: string }
+interface ManifestCommand { command: string; title: unknown; icon?: unknown }
 interface ManifestMenu { command: string; when?: string; group?: string }
 interface Pane { view: EmbeddedView; tree?: WebviewResultTree; generation: number; sentGeneration?: number; acknowledged?: number; collapsed: boolean }
 interface Surface { view: vscode.WebviewView; nonce: string; ready: boolean; panes: Map<CombinedRole, Pane>; listeners: vscode.Disposable[]; publishTimer?: NodeJS.Timeout }
@@ -31,11 +32,11 @@ export class CombinedViewManager implements vscode.Disposable {
   private disposed = false;
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly factory: PresentationFactory) {
-    const manifest = context.extension.packageJSON as { contributes: { commands: ManifestCommand[]; menus: Record<string, ManifestMenu[]>; views: Record<string, {id: string; name: string}[]> } };
+    const manifest = context.extension.packageJSON as { contributes: { commands: ManifestCommand[]; menus: Record<string, ManifestMenu[]>; views: Record<string, {id: string; name: unknown}[]> } };
     this.commands = manifest.contributes.commands; this.menus = manifest.contributes.menus["view/title"];
     Object.values(manifest.contributes.views).flat().forEach(view => {
       const role = view.id.replace(/^cInsight\./, "");
-      if (isCombinedRole(role)) this.names.set(role, view.name);
+      if (isCombinedRole(role)) this.names.set(role, manifestLabel(view.name, role));
     });
     COMBINED_SLOTS.forEach(slot => this.disposables.push(vscode.window.registerWebviewViewProvider(`cInsight.combined${slot}`, {
       resolveWebviewView: (view, _context, token) => this.resolve(slot, view, token),
@@ -135,7 +136,9 @@ export class CombinedViewManager implements vscode.Disposable {
       if (!matchesPaneCondition(menu.when ?? "", id, flags)) continue;
       const command = this.commands.find(command => command.command === menu.command);
       if (command && !result.some(action => action.command === command.command)) result.push({command: command.command,
-        title: command.title.replace(/^C Insight:\s*/, ""), icon: command.icon?.match(/^\$\(([^)]+)\)$/)?.[1], primary: !!menu.group?.startsWith("navigation")});
+        title: manifestLabel(command.title, command.command).replace(/^C Insight[:：]\s*/u, ""),
+        icon: typeof command.icon === "string" ? command.icon.match(/^\$\(([^)]+)\)$/)?.[1] : undefined,
+        primary: !!menu.group?.startsWith("navigation")});
     }
     return result;
   }

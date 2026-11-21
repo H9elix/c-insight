@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed combined-view creation failing when VS Code supplies localized command titles as objects; pane and toolbar names now use the translated text with safe fallbacks.
+
 - Added up to four customizable combined browsing views containing existing C Insight panes, with horizontal/vertical layouts, draggable splitters, pane ordering, renaming and user-wide layout preferences.
 - Added smooth hover expansion inside combined views, with minimum sizes, neighbor compression, interaction pauses and reduced-motion support.
 - Shared feature results and pins across original and combined views while retaining independent local filtering, expansion and scrolling; hidden and collapsed presentations withdraw their query demand.

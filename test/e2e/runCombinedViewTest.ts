@@ -22,6 +22,7 @@ async function main(): Promise<void> {
     extensionDevelopmentPath: process.env.C_INSIGHT_COMBINED_ENGINE === "microsoft" ? [project, resolveCpptoolsExtensionPath()] : project,
     extensionTestsPath: path.join(__dirname, "suite/combinedViews.js"),
     launchArgs: [...launchArgs,
+      ...(process.env.C_INSIGHT_TEST_LOCALE ? [`--locale=${process.env.C_INSIGHT_TEST_LOCALE}`] : []),
       ...(process.env.C_INSIGHT_TEST_DEBUG_PORT ? [`--remote-debugging-port=${process.env.C_INSIGHT_TEST_DEBUG_PORT}`] : [])],
   });
 }

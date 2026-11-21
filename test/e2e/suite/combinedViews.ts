@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { verifyPreviewPresentationOwnership } from "./previewPresentationOwnership";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
-interface Surface {slot: number; visible: boolean; panes: Pane[]}
+interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
 interface Row {id: string; label: string; expanded: boolean; expandable: boolean; uri?: string}
 interface Browser {hovered: number; panes: Array<{role: string; generation: number; width: number; height: number; filter?: string; theme?: string; iconFont?:string; collapsed: boolean}>}
 const browser = (slot: number, action?: unknown) => vscode.commands.executeCommand<Browser>("cInsight.test.combinedBrowser", slot, action) as Promise<Browser>;
@@ -24,6 +24,7 @@ export async function run(): Promise<void> {
   if (engine === "clangd") await config.update("clangd.path", "/usr/bin/clangd-20", vscode.ConfigurationTarget.Global);
   if (engine === "microsoft") await vscode.extensions.getExtension("ms-vscode.cpptools")?.activate();
   const extension = vscode.extensions.getExtension("H9elix.c-insight"); assert(extension);
+  console.log(`COMBINED_LOCALE: ${vscode.env.language}; first command title: ${JSON.stringify(extension.packageJSON.contributes.commands[0].title)}`);
   if (process.env.C_INSIGHT_COMBINED_SEEDED) {
     await vscode.commands.executeCommand("cInsight.combined1.focus");
     const until=Date.now()+15000;
@@ -33,6 +34,22 @@ export async function run(): Promise<void> {
   await extension.activate();
   const layout = {enabled: true, title: "Browser", direction: "horizontal", views: ["symbols", "callers", "callees", "references", "preview"], ratios: [1, 1, 1, 1, 1]};
   try {
+    if (!process.env.C_INSIGHT_COMBINED_SEEDED) {
+      let settled=false;
+      const creating=Promise.resolve(vscode.commands.executeCommand("cInsight.combinedViews.create")).finally(()=>{settled=true;});
+      try {
+        await wait(async()=>{const surface=(await state()).find(surface=>surface.slot===1);return surface?.ready?true:undefined;},"Create Combined View did not resolve its native surface");
+        await vscode.commands.executeCommand("workbench.action.quickOpenSelectNext");
+        await vscode.commands.executeCommand("workbench.action.quickPickManyToggle");
+        await vscode.commands.executeCommand("workbench.action.acceptSelectedQuickOpenItem");
+        await wait(async()=>settled?true:undefined,"Create Combined View did not finish after accepting its pane picker");
+        await creating;
+        assert(vscode.workspace.getConfiguration("cInsight.combinedViews").get<typeof layout>("slot1")?.views.length,"The create command must add the selected pane");
+      } finally {
+        if(!settled)await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
+        await creating;
+      }
+    }
     await combined.update("slot1", layout, vscode.ConfigurationTarget.Global);
     await wait(async()=>{
       await vscode.commands.executeCommand("cInsight.combined1.focus");
