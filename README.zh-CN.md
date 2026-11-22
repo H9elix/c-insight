@@ -52,17 +52,43 @@ VS Code 已经提供“转到定义”和“查找所有引用”等命令。C I
 
 ## 包含哪些功能？
 
-可使用**组合视图（Combined View）**将所需功能放在一起：最多四个独立组合，支持水平/垂直排列、拖动标题排序、拖动分隔条和悬停时扩展当前窗格，可为各组合选择单向／双向扩展，操作区暂停伸缩以保持按钮位置。组合共享业务结果与固定状态，各窗格保留自己的局部筛选、展开和滚动位置。具体操作见[使用手册](docs/user/user-guide.zh-CN.md#418-组合视图combined-view)。
+### 15 个独立视图
 
-| 功能区域 | 主要能力 |
-| --- | --- |
-| 上下文和代码预览 | 符号身份、签名、定义/声明证据、语义源码着色、缓冲式增量滚动、异步更新稳定性、前进/后退、锁定、复制和编辑器导航 |
-| 引用浏览器 | 定义/声明/调用/读取/写入/地址分类，文件/目录/函数/类型分组，范围和证据筛选，延迟源码片段、分页、固定和导出 |
-| 调用层次 | 准确传入/传出调用位置、懒加载多层展开、递归处理、已加载树搜索、有界路径搜索、固定、会话恢复和导出 |
-| 类型和包含层次 | C++ 父类型/子类型以及正向包含文件/反向被包含关系，并提供懒加载展开、循环处理、搜索、限制和导出 |
-| 符号和导航 | 带编辑器中心高亮、包含折叠成员的常驻名称筛选、同层排序与独立跟随锁定的文档符号、搜索框常驻的工作区符号搜索、导航历史、分组书签和失效位置重定位 |
-| 工程文件 | 多根目录平铺文件清单、实时名称/路径筛选、文件名/路径/类型排序、当前文件高亮、居中跟随和独立锁定 |
-| 工程感知 | 编译数据库检测和选择、活动编译命令拆分、诊断、clangd 生命周期和恢复、索引进度、运行时计数器和统一可靠性状态 |
+执行 **C Insight：打开视图…（Open View…）**，按名称或用途找到以下栏目。每个名称都链接到对应的使用说明。
+
+| 序号 | 视图 | 可以做什么 |
+| --- | --- | --- |
+| 1 | [上下文（Context）](docs/user/user-guide.zh-CN.md#view-context) | 查看当前符号、签名、定义／声明和已查询的关系数量 |
+| 2 | [代码预览（Code Preview）](docs/user/user-guide.zh-CN.md#view-preview) | 在不移动主编辑器的情况下阅读源码，继续浏览定义，滚动加载上下文并使用预览历史 |
+| 3 | [引用（References）](docs/user/user-guide.zh-CN.md#view-references) | 查看准确使用位置，按类型、文件、函数或证据分组，并搜索、筛选、分页和导出 |
+| 4 | [调用者（Callers）](docs/user/user-guide.zh-CN.md#view-callers) | 逐个查看调用当前符号的位置，向上展开调用链，查询宏自身使用及可选的成员实例分类 |
+| 5 | [被调用者（Callees）](docs/user/user-guide.zh-CN.md#view-callees) | 查看当前函数调用了哪些函数，预览每个调用点并向下展开 |
+| 6 | [父类型（Supertypes）](docs/user/user-guide.zh-CN.md#view-supertypes) | 使用 clangd 浏览 C++ 类或结构体的基类型与继承路径 |
+| 7 | [子类型（Subtypes）](docs/user/user-guide.zh-CN.md#view-subtypes) | 使用 clangd 浏览派生类型，按需展开和搜索已加载关系 |
+| 8 | [包含文件（Includes）](docs/user/user-guide.zh-CN.md#view-includes) | 查看源码或头文件包含的文件，并定位产生关系的 `#include` 行 |
+| 9 | [被包含关系（Included By）](docs/user/user-guide.zh-CN.md#view-included-by) | 反向查找工作区内哪些文件包含当前文件，按需建立索引 |
+| 10 | [导航历史（Navigation History）](docs/user/user-guide.zh-CN.md#view-history) | 返回之前显式浏览的位置，按来源筛选并恢复预览 |
+| 11 | [书签（Bookmarks）](docs/user/user-guide.zh-CN.md#view-bookmarks) | 保存和分组重要位置，搜索、排序、导入／导出，并在编辑后尝试重定位 |
+| 12 | [符号搜索（Symbol Search）](docs/user/user-guide.zh-CN.md#view-symbol-search) | 使用常驻输入框搜索工作区符号，按类型筛选和分组 |
+| 13 | [文档符号（Document Symbols）](docs/user/user-guide.zh-CN.md#view-document-symbols) | 浏览当前文档层次，筛选折叠成员、排序，并高亮编辑器中心对应符号 |
+| 14 | [工程文件（Project Files）](docs/user/user-guide.zh-CN.md#view-project-files) | 搜索和排序多根工作区文件，居中跟随活动文件，独立锁定筛选与滚动 |
+| 15 | [工程诊断（Project Diagnostics）](docs/user/user-guide.zh-CN.md#view-diagnostics) | 检查分析引擎、编译数据库、活动编译命令、诊断及运行时计数，复制或导出报告 |
+
+### 组合视图：把一套阅读布局放在一起
+
+**组合视图（Combined View）**把所需的 C Insight 功能放进一个原生视图，例如在底部横向排列“代码预览｜调用者｜引用”。最多可保存四个命名组合；每个组合支持水平／垂直排列、拖动标题排序、拖动分隔条调尺寸，以及折叠不常用的窗格。
+
+VS Code 本身已经支持移动、归组和手动调整视图尺寸。组合视图在这些[原生布局能力](https://code.visualstudio.com/docs/configure/custom-layout#_drag-and-drop-views-and-panels)之上，提供更适合持续阅读代码的内部布局：
+
+- **阅读空间随鼠标调整：**悬停时扩展当前内容区，移出后恢复比例，减少反复拖动边界；默认只向右／下扩展，保留文字起点，进入标题或按钮区时暂停伸缩。
+- **整套布局一起管理：**一个组合可整体移动到底部或侧栏，其名称、内部顺序、方向和比例保存在用户设置中，跨工程复用。
+- **同一功能可出现在多套组合中：**复用同一份业务结果和固定状态，树窗格分别保留局部筛选、展开和滚动，不为显示副本建立第二个分析引擎。
+
+原来的独立视图继续可用。组合只容纳上述 15 个 C Insight 功能；关系图仍在编辑器标签页打开。创建、管理和配置示例见[组合视图使用说明](docs/user/user-guide.zh-CN.md#combined-views)。
+
+### 其他浏览工具
+
+函数、类型和文件的关系图把多种关系放到一张画布中；统一可靠性状态栏帮助判断结果完整性，工作区会话恢复可接续上一次浏览。这些工具与 15 个独立视图配合使用。
 
 详细行为、全部命令以及完整配置表位于[中文用户手册](docs/user/user-guide.zh-CN.md)和 [English user guide](docs/user/user-guide.en.md)。
 

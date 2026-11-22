@@ -53,15 +53,43 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 
 ## What is included?
 
-| Area | Main capabilities |
-| --- | --- |
-| Context and Code Preview | Symbol identity, signature, definition/declaration evidence, semantic source coloring, buffered incremental scrolling, stable asynchronous updates, Back/Forward, locking, copy, and editor navigation |
-| References Explorer | Definition/declaration/call/read/write/address classification, file/directory/function/type grouping, scope and evidence filters, lazy snippets, paging, pinning, and export |
-| Call Hierarchy | Exact incoming/outgoing call occurrences, lazy multi-level expansion, recursion handling, loaded-tree search, bounded path search, pinning, session restoration, and export |
-| Type and Include Hierarchy | C++ supertypes/subtypes plus forward Includes and reverse Included By, with lazy expansion, cycle handling, search, limits, and export |
-| Symbols and navigation | Document Symbols with editor-center highlighting, persistent name filtering including collapsed members, sibling sorting and independent follow locking, persistent-input workspace Symbol Search, navigation history, grouped bookmarks, and stale relocation |
-| Project Files | Flat multi-root file list, live name/path filtering, name/path/type sorting, active-file highlighting, centered following, and independent locking |
-| Project awareness | Compilation-database detection and selection, active command breakdown, diagnostics, clangd lifecycle and recovery, indexing progress, runtime counters, and one reliability status |
+### Fifteen independent views
+
+Run **C Insight: Open View…** to find these views by name or purpose. Each name links to its usage instructions.
+
+| No. | View | What you can do |
+| --- | --- | --- |
+| 1 | [Context](docs/user/user-guide.en.md#view-context) | Inspect the current symbol, signature, definition/declaration links and queried relationship counts |
+| 2 | [Code Preview](docs/user/user-guide.en.md#view-preview) | Read source without moving the editor, follow definitions, scroll buffered context and revisit preview history |
+| 3 | [References](docs/user/user-guide.en.md#view-references) | Browse exact uses with classification, grouping, search, scope/evidence filters, paging and export |
+| 4 | [Callers](docs/user/user-guide.en.md#view-callers) | Inspect every incoming occurrence, follow caller chains, retain macro-use scope and optionally classify member instances |
+| 5 | [Callees](docs/user/user-guide.en.md#view-callees) | Inspect outgoing calls and their exact source locations, then expand deeper |
+| 6 | [Supertypes](docs/user/user-guide.en.md#view-supertypes) | Use clangd to follow C++ base types and inheritance paths |
+| 7 | [Subtypes](docs/user/user-guide.en.md#view-subtypes) | Use clangd to explore derived types and search loaded relationships |
+| 8 | [Includes](docs/user/user-guide.en.md#view-includes) | Follow included files and preview the #include lines establishing each relation |
+| 9 | [Included By](docs/user/user-guide.en.md#view-included-by) | Find workspace files including the selected file, with an on-demand reverse index |
+| 10 | [Navigation History](docs/user/user-guide.en.md#view-history) | Return to explicit browsing locations, filter by source and restore previews |
+| 11 | [Bookmarks](docs/user/user-guide.en.md#view-bookmarks) | Save and group important locations, search/sort, import/export and relocate after edits |
+| 12 | [Symbol Search](docs/user/user-guide.en.md#view-symbol-search) | Search workspace symbols from a persistent input with type filters and grouping |
+| 13 | [Document Symbols](docs/user/user-guide.en.md#view-document-symbols) | Browse the active hierarchy, filter collapsed members, sort siblings and highlight the editor-center symbol |
+| 14 | [Project Files](docs/user/user-guide.en.md#view-project-files) | Search/sort multi-root files, center the active file and independently lock automatic filter/scroll following |
+| 15 | [Project Diagnostics](docs/user/user-guide.en.md#view-diagnostics) | Inspect the engine, compilation database, active command, diagnostics and runtime counters; copy/export reports |
+
+### Combined views: a reusable browsing layout
+
+Combined views place the C Insight features you need inside one native view: for example, **Code Preview | Callers | References** across the bottom panel. Save up to four named combinations, arrange panes horizontally or vertically, drag titles to reorder, resize with splitters, and collapse unused panes.
+
+VS Code already supports moving, grouping and manually resizing views. Combined views build on those [native layout capabilities](https://code.visualstudio.com/docs/configure/custom-layout#_drag-and-drop-views-and-panels) with code-reading conveniences inside the combination:
+
+- **Reading space follows your pointer:** hover enlarges the current content pane and leaving restores proportions. Forward expansion preserves leading text edges; entering titles or controls pauses resizing.
+- **Manage a browsing setup together:** move the entire combination to a panel or side bar. User settings preserve its name, internal order, direction and proportions across projects.
+- **Reuse features across setups:** combinations share feature results and pins while tree panes retain local filters, expansion and scrolling. Presentation copies do not create another analysis engine.
+
+Independent views remain available. Combinations contain only the fifteen C Insight roles; Relationship Graph stays in an editor tab. See [combined-view usage and settings examples](docs/user/user-guide.en.md#combined-views).
+
+### Other browsing tools
+
+Relationship Graph connects calls, types and files on one canvas. A single reliability status helps assess completeness, and workspace-session restore resumes a previous investigation alongside the independent views.
 
 Detailed behavior, every command, and the complete configuration table are maintained in the [English user guide](docs/user/user-guide.en.md) and [Simplified Chinese user guide](docs/user/user-guide.zh-CN.md).
 

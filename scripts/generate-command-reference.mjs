@@ -13,7 +13,7 @@ const guides = [
     messagesPath: new URL("../package.nls.zh-cn.json", import.meta.url),
     heading: "## 17. 完整命令参考",
     introduction:
-      "本节由 `package.json` 自动生成。所有命令都可以通过命令面板调用；表中额外列出标题栏、编辑器右键菜单、树节点右键菜单和默认快捷键入口。窗口当前状态不满足 " +
+      "本节由 `package.json` 自动生成。所有命令都可以通过命令面板调用；表中额外列出标题栏、编辑器右键菜单、树节点右键菜单和默认快捷键入口。视图当前状态不满足 " +
       "`when` 条件时，相应菜单按钮可能隐藏。",
     columns: ["命令", "Command ID", "入口"],
     palette: "命令面板",
@@ -21,7 +21,7 @@ const guides = [
     separator: "；",
     menuLocations: new Map([
       ["editor/context", "编辑器右键菜单"],
-      ["view/title", "窗口标题栏"],
+      ["view/title", "视图标题栏"],
       ["view/item/context", "树节点右键菜单"],
     ]),
     viewMenu: (name, menu) =>
@@ -30,7 +30,7 @@ const guides = [
   {
     path: new URL("../docs/user/user-guide.en.md", import.meta.url),
     messagesPath: new URL("../package.nls.json", import.meta.url),
-    heading: "## Complete command reference",
+    heading: "## 9. Complete command reference",
     introduction:
       "This section is generated from `package.json`. Every command is available from the Command Palette; the table also lists view-title, editor-context, tree-item, and default-keybinding entry points. An entry can be hidden when its `when` condition " +
       "does not match the current UI state.",
@@ -96,6 +96,8 @@ function generateReference(options) {
     return `| ${escapeCell(title)} | \`${command.command}\` | ${escapeCell(locations)} |`;
   });
   const generated = `${startMarker}
+
+<a id="command-reference"></a>
 
 ${options.heading}
 

@@ -50,7 +50,7 @@
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
 | 组合视图、多显示实例 | 022–028、037、042–043、050–053 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
-| 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
+| 文档、本地化、构建、发布 | 044–047 | `documentationCompleteness` 检查连续编号、15 个独立视图、README 清单、配置／命令覆盖及手册锚点；另执行本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`。依赖覆盖需核对生产补丁，Release 附件与隐私人工复核 |
 | 打开视图、首次可见提示、编辑器菜单 | 037、043–044、050 | `viewCatalog`、`viewDiscovery`、`viewMenu`；组合宿主覆盖原生选择／取消、准确聚焦及请求计数，搜索键入、右键视觉和中文／Remote 按[专项验证](view-discovery.zh-CN.md)人工检查 |
 | WSL 中的 VSIX 安装与 CLI 启动 | 046、054–055 | 先区分 Windows 启动器、当前服务器 `remote-cli`、UNC 源文件读取与安装目标；核对外部 Windows 程序启动和 WSL 窗口 UI 安装，UNC 被拦截时用本地盘符副本验证，不关闭全部访问保护，不用插件 E2E 代替系统检查 |
 
@@ -139,6 +139,8 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 21. 总工具栏与时间配置：水平组合左侧竖排、垂直组合顶部横排，子窗格标题不变；总工具栏从 Webview 左缘开始，内容充满右侧宽度，没有外层空白，工具栏及子文档内部边距保留。长名称及短/窄区域仍能查看名称、访问全部按钮。检查触发/动画/恢复的默认值、`0`、热更新、等待中改值和减少动态效果；元数据更新不跳过等待，取消后不迟到扩展，配置不重建子文档或增加语义请求。宿主入口另见 `combinedToolbarTiming.ts`。
 
 22. 扩展方向与按钮稳定（CI-REG-053）：旧布局缺少 `hoverDirection` 时默认向右／下，每个组合独立保存；单向扩展只借后方余量，连续切换保持起点与前方尺寸，末尾／最小尺寸不反向扩展或增加滚动。移出组合统一恢复。动画中进入标题、预览控件、搜索／结果工具栏会冻结当前像素并取消等待，返回内容区的新移动才恢复；双向模式同样保护操作区。切换按钮不在鼠标下移动，不重置显示状态或增加查询；实际滚轮、硬件指针、重载及 WSL/SSH 复测见组合专项。
+
+23. 文档结构（CI-REG-044）：README 按名称列出 15 个独立视图并链接到对应说明；手册的功能视图章只包含这 15 个栏目，组合布局、关系图、会话及共性运行机制分别归类。除文档主标题外，所有章节标题按层级连续编号；更新逻辑位于功能介绍之后。重排后检查目录、README、相关维护文档的跳转，不能只验证目标文件存在；补图前不加入失效图片或占位说明。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

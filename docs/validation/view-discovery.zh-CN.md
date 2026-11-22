@@ -60,4 +60,4 @@ C_INSIGHT_COMBINED_SEEDED=1 C_INSIGHT_VSCODE_EXECUTABLE_PATH=<vscode-1.95>/code 
 
 维护者确认前移位置正确，补充要求在 Switch Between Source/Header 与 C Insight 之间显示分隔线。当前清单把七个入口放入紧随导航区域的独立组；修改前独立分组断言失败，修改后 `npm run check` 和 25 项定向检查通过。此轮仅改菜单声明，没有改动生产 TypeScript 或查询行为，没有复跑宿主；原生分隔线视觉由维护者安装后确认。
 
-临时包为 `c-insight-0.23.1-context-menu-separator-preview.vsix`。重点检查上方分隔线、原有位置及七项内部连续顺序；原位置验收不替代本包验收，版本、推送和发布仍等待授权。关联 CI-REG-043。
+临时包为 `c-insight-0.23.1-context-menu-separator-preview.vsix`。维护者随后确认位置和分隔线符合预期；没有提供其他原生菜单环境的逐项记录，后续回归仍按人工清单复测。正式版本、推送和发布仍等待授权。关联 CI-REG-043。

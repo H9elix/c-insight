@@ -1,6 +1,6 @@
 # 自绘结果树交互与维护
 
-本文说明共享 Webview 结果树的交互、布局和维护职责。安装与配置见[用户手册](../user/user-guide.zh-CN.md#1-运行要求)。
+本文说明共享 Webview 结果树的交互、布局和维护职责。安装与配置见[用户手册](../user/user-guide.zh-CN.md#prerequisites)。
 
 ## 范围与操作
 

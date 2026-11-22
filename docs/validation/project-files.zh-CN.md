@@ -1,6 +1,6 @@
 # 工程文件验证
 
-工程文件（Project Files）纳入 `0.22.27`，功能说明和全部配置见[用户手册 4.17 节](../user/user-guide.zh-CN.md#417-工程文件project-files)。维护者已验收 `c-insight-0.22.26-project-files-centered-follow-preview.vsix` 并授权正式发布。
+工程文件（Project Files）纳入 `0.22.27`，功能说明见[用户手册的工程文件视图](../user/user-guide.zh-CN.md#view-project-files)，完整配置见[配置参考](../user/user-guide.zh-CN.md#configuration)。维护者已验收 `c-insight-0.22.26-project-files-centered-follow-preview.vsix` 并授权正式发布。
 
 相关回归场景为 `CI-REG-022`（导航与展开）、024（原生导航历史）、037（可见性与后台工作）及 042（高亮与居中定位）。
 

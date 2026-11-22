@@ -4,8 +4,8 @@
 
 ## 用户文档 `user/`
 
-- [中文用户手册](user/user-guide.zh-CN.md)：完整中文使用手册、窗口逻辑、命令和配置参考。
-- [English user guide](user/user-guide.en.md)：英文使用说明。
+- [中文用户手册](user/user-guide.zh-CN.md)：15 个独立功能视图、组合布局、共性交互、更新与会话机制，以及完整命令和配置参考。
+- [English user guide](user/user-guide.en.md)：英文功能视图、组合布局、交互、更新和配置说明。
 - [交叉编译与嵌入式工程配置](user/cross-compilation.zh-CN.md)：中文的交叉工具链、编译数据库、sysroot 和双引擎配置说明。
 - [Cross-compilation and embedded projects](user/cross-compilation.en.md)：English cross-toolchain, compilation database, sysroot, and engine guidance.
 
