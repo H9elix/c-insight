@@ -557,6 +557,8 @@
 - 复现与预期：在发生问题的同一终端检查 `type -a code`，重试原安装命令；预期能启动有效的 VS Code CLI 并安装到源码所在的 WSL 扩展宿主，实际启动 Windows 程序就失败。
 - 已知证据：本地只读检查确认 `code` 解析到 Windows 安装目录，启动器在定位 WSL 扩展及最终执行命令时调用 `Code.exe`；该程序为 x86-64 Windows PE 可执行文件，不能当成普通 Linux ELF 执行。WSL 的 Windows 可执行文件解释器或互操作链路不可用是待验证方向，不能仅由智能体受限命名空间中看不到注册项就判定整个 WSL 已关闭互操作。
 - 补充定位：经批准在沙箱外执行只读测试，`cmd.exe /c ver` 同样返回 `Exec format error`。该环境中 `binfmt_misc` 总开关为 `enabled`，却没有 `WSLInterop` 或其他已注册解释器条目；`wsl.conf` 只有启用 systemd 的配置，没有显式关闭互操作。当前会话 Windows 程序启动不可用已复现，注册项为何缺失仍未确认；不能据此把 systemd 或 VS Code 更新认定为根因。
+- 修复请求后的检查（`2026-11-22`）：`/init` 和当前互操作套接字存在。`systemd-binfmt` 的发行版规则含 `ConditionVirtualization=!wsl`，服务实际因条件不满足而跳过；WSL 生成的保护规则使用 `:WSLInterop:M::MZ::/init:P`。没有证据证明该跳过规则造成注册项丢失，但它说明单纯重启此服务不会执行恢复。`sudo -n true` 返回需要密码，系统写入交由维护者执行，未更改服务、启动配置或注册项。
+- 建议的最小恢复：仅在 `/proc/sys/fs/binfmt_misc/WSLInterop` 缺失时，将上述本机生成规则写入内核的 `register` 入口；不删除其他解释器、不重启服务或 WSL，也不新增持久启动文件。随后检查该条目启用且指向 `/init`，验证 Windows 命令和 `code --version`。这是当前运行状态恢复，是否成功、是否重启后复发均待实测；首次丢失的根因仍待确认。
 - 排查与绕行：先使用已连接 WSL 的 VS Code 窗口执行“扩展：从 VSIX 安装…”，并核对安装到 WSL；或在该窗口新建集成终端，确认 `code` 使用当前服务器的 `remote-cli`。需独立验证普通 WSL 终端能否运行 Windows 程序；未获授权不改 `wsl.conf`、系统注册项、PATH 或重启 WSL。
 - 回归与人工检查：自动化只核查文档和链接，不把插件宿主测试计作 WSL CLI 修复。仍需维护者确认 UI 安装结果、同一终端的 CLI 路径及 Windows 程序启动结果；当前未修复系统环境、未验收或发布。
 - 本次执行：命令参考、中文术语、Markdown 自然段、本地链接、既有发布说明及 `git diff --check` 均通过；没有修改插件源码、重新打包或更改系统配置。
