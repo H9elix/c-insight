@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Added a searchable Open View picker for all fifteen independent panes, enabled combined views, and combination creation/management, plus a one-time tip when a C Insight pane first becomes visible.
-- Organized C/C++ editor context actions immediately after clangd's Switch Between Source/Header, with Open View and bookmarks first, retained includes and graphs at the top level, and grouped explicit definition, reference, call and type queries under Symbol Navigation.
+- Organized C/C++ editor context actions as a separate native group with a separator immediately after clangd's Switch Between Source/Header, with Open View and bookmarks first, retained includes and graphs at the top level, and grouped explicit definition, reference, call and type queries under Symbol Navigation.
 
 ## 0.23.1
 

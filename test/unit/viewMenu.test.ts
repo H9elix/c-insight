@@ -15,11 +15,15 @@ describe("view discovery menu contracts", () => {
     assert.equal(navigation[4].when, "resourceLangId == cpp || resourceLangId == objective-cpp");
     assert.match(manifest.contributes.submenus.find((menu: any) => menu.id === "cInsight.symbolNavigation").label, /^%.+%$/);
   });
-  it("places all seven entries directly after clangd's source/header navigation anchor", () => {
+  it("separates all seven entries into an early group after clangd's source/header navigation anchor", () => {
     // vscode-clangd 0.6.0 contributes Switch Between Source/Header at 0_navigation@5.
     // This is a declarative ordering contract; desktop menu rendering is checked manually.
     const items = manifest.contributes.menus["editor/context"];
-    assert.deepEqual(items.map((item: any) => item.group), Array.from({length: 7}, (_, index) => `0_navigation@${index + 6}`));
+    assert.deepEqual(items.map((item: any) => item.group), Array.from({length: 7}, (_, index) => `0_navigation_cInsight@${index + 1}`));
+    const group = items[0].group.split("@")[0];
+    assert.notEqual(group, "0_navigation", "A distinct group lets VS Code render a native separator");
+    assert("0_navigation".localeCompare(group) < 0, "C Insight must follow the source/header switch group");
+    assert(group.localeCompare("1_modification") < 0, "C Insight must stay in the early navigation area");
     assert(!items.some((item: any) => item.command?.startsWith("clangd.") || item.command?.startsWith("C_Cpp.")),
       "Positioning must not duplicate or replace another extension's command");
   });
