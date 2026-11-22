@@ -442,6 +442,7 @@
 ### CI-REG-043 工具栏文字过长、固定按钮跳位或底部窗口不能并列归组
 
 - 相邻功能回归：统一“打开视图”入口直接聚焦原生栏目，不改变组合归属或布局。编辑器右键归组只作用于该菜单，保留栏目工具栏、结果菜单及键盘入口；首次提示独立观察实际可见性，不借用查询需求事件。覆盖和人工清单见[视图入口与菜单验证](view-discovery.zh-CN.md)。
+- 菜单位置调整（`2026-11-22`）：维护者要求把 C Insight 入口前移到 clangd 的 Switch Between Source/Header 下方。本机及官方 clangd `0.6.0` 清单均为 `0_navigation@5`，C Insight 调整为同组 `6–12`；不改动 cpptools 或 clangd 的菜单、命令和能力。`viewMenu.test.ts` 增加声明位置断言，修改前因旧分组失败；桌面最终相邻位置待维护者验收。此项为位置调整，不新增缺陷编号。
 
 - 历史现象与约定：刷新显示整行文字、预览固定按钮脱离原工具栏、上下文固定后按钮位置变化；自绘树后拖放难以把调用者/被调用者放进同一底部容器。
 - 定位与现状：主要动作使用主题图标，预览内保留自己的按钮布局；自绘仅替换内容，原生容器仍负责移动。拖放困难可用 VS Code 移动视图命令，不为此重绘全部外层布局。
@@ -558,9 +559,10 @@
 - 已知证据：本地只读检查确认 `code` 解析到 Windows 安装目录，启动器在定位 WSL 扩展及最终执行命令时调用 `Code.exe`；该程序为 x86-64 Windows PE 可执行文件，不能当成普通 Linux ELF 执行。WSL 的 Windows 可执行文件解释器或互操作链路不可用是待验证方向，不能仅由智能体受限命名空间中看不到注册项就判定整个 WSL 已关闭互操作。
 - 补充定位：经批准在沙箱外执行只读测试，`cmd.exe /c ver` 同样返回 `Exec format error`。该环境中 `binfmt_misc` 总开关为 `enabled`，却没有 `WSLInterop` 或其他已注册解释器条目；`wsl.conf` 只有启用 systemd 的配置，没有显式关闭互操作。当前会话 Windows 程序启动不可用已复现，注册项为何缺失仍未确认；不能据此把 systemd 或 VS Code 更新认定为根因。
 - 修复请求后的检查（`2026-11-22`）：`/init` 和当前互操作套接字存在。`systemd-binfmt` 的发行版规则含 `ConditionVirtualization=!wsl`，服务实际因条件不满足而跳过；WSL 生成的保护规则使用 `:WSLInterop:M::MZ::/init:P`。没有证据证明该跳过规则造成注册项丢失，但它说明单纯重启此服务不会执行恢复。`sudo -n true` 返回需要密码，系统写入交由维护者执行，未更改服务、启动配置或注册项。
-- 建议的最小恢复：仅在 `/proc/sys/fs/binfmt_misc/WSLInterop` 缺失时，将上述本机生成规则写入内核的 `register` 入口；不删除其他解释器、不重启服务或 WSL，也不新增持久启动文件。随后检查该条目启用且指向 `/init`，验证 Windows 命令和 `code --version`。这是当前运行状态恢复，是否成功、是否重启后复发均待实测；首次丢失的根因仍待确认。
+- 建议的最小恢复：仅在 `/proc/sys/fs/binfmt_misc/WSLInterop` 缺失时，将上述本机生成规则写入内核的 `register` 入口；不删除其他解释器、不重启服务或 WSL，也不新增持久启动文件。随后检查该条目启用且指向 `/init`，验证 Windows 命令和 `code --version`。该方案只恢复当前运行状态，是否重启后复发仍待实测；首次丢失的根因仍待确认。
+- 维护者确认：随后回复“已修复”，当前会话恢复按用户确认记录；未提供逐项命令输出或重启复测结果，不能据此认定根因已查明或永久修复。此确认仅针对 WSL 命令执行问题，不视为 C Insight 新功能验收。
 - 排查与绕行：先使用已连接 WSL 的 VS Code 窗口执行“扩展：从 VSIX 安装…”，并核对安装到 WSL；或在该窗口新建集成终端，确认 `code` 使用当前服务器的 `remote-cli`。需独立验证普通 WSL 终端能否运行 Windows 程序；未获授权不改 `wsl.conf`、系统注册项、PATH 或重启 WSL。
-- 回归与人工检查：自动化只核查文档和链接，不把插件宿主测试计作 WSL CLI 修复。仍需维护者确认 UI 安装结果、同一终端的 CLI 路径及 Windows 程序启动结果；当前未修复系统环境、未验收或发布。
+- 回归与人工检查：自动化只核查文档和链接，不把插件宿主测试计作 WSL CLI 修复。当前会话恢复已获维护者确认，重启后的 CLI 与 UI 安装路径仍需按需复测；智能体未执行系统写入，此项没有插件版本发布。
 - 本次执行：命令参考、中文术语、Markdown 自然段、本地链接、既有发布说明及 `git diff --check` 均通过；没有修改插件源码、重新打包或更改系统配置。
 - 关联：CI-REG-046 的安装与构建一致性、[WSL 官方互操作说明](https://learn.microsoft.com/en-us/windows/wsl/interop)、[VS Code 远程 VSIX 安装](https://code.visualstudio.com/docs/remote/troubleshooting#_need-to-install-local-vsix-on-remote-endpoint)。
 

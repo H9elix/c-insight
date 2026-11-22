@@ -8,13 +8,20 @@ describe("view discovery menu contracts", () => {
     const items = manifest.contributes.menus["editor/context"];
     assert.deepEqual(items.map((item: any) => item.command ?? item.submenu), ["cInsight.openView", "cInsight.bookmarks.addCurrent",
       "cInsight.includeHierarchy.showIncludes", "cInsight.includeHierarchy.showIncludedBy", "cInsight.relationshipGraph.show", "cInsight.relationshipGraph.showFile", "cInsight.symbolNavigation"]);
-    assert.deepEqual(items.map((item: any) => item.group), Array.from({length: 7}, (_, index) => `2_cInsight@${index + 1}`));
     assert(items.every((item: any) => item.when === "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp"));
     const navigation = manifest.contributes.menus["cInsight.symbolNavigation"];
     assert.deepEqual(navigation.map((item: any) => item.command), ["cInsight.goToDefinition", "cInsight.findReferences", "cInsight.showIncomingCalls", "cInsight.showOutgoingCalls", "cInsight.typeHierarchy.showSupertypes", "cInsight.typeHierarchy.showSubtypes"]);
     assert.equal(navigation[2].when, "resourceLangId == c || resourceLangId == cpp");
     assert.equal(navigation[4].when, "resourceLangId == cpp || resourceLangId == objective-cpp");
     assert.match(manifest.contributes.submenus.find((menu: any) => menu.id === "cInsight.symbolNavigation").label, /^%.+%$/);
+  });
+  it("places all seven entries directly after clangd's source/header navigation anchor", () => {
+    // vscode-clangd 0.6.0 contributes Switch Between Source/Header at 0_navigation@5.
+    // This is a declarative ordering contract; desktop menu rendering is checked manually.
+    const items = manifest.contributes.menus["editor/context"];
+    assert.deepEqual(items.map((item: any) => item.group), Array.from({length: 7}, (_, index) => `0_navigation@${index + 6}`));
+    assert(!items.some((item: any) => item.command?.startsWith("clangd.") || item.command?.startsWith("C_Cpp.")),
+      "Positioning must not duplicate or replace another extension's command");
   });
   it("retains the Command Palette and definition/reference shortcuts", () => {
     assert.equal(manifest.contributes.menus.commandPalette, undefined);

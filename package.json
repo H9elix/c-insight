@@ -694,37 +694,37 @@
         {
           "command": "cInsight.openView",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@1"
+        "group": "0_navigation@6"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@2"
+        "group": "0_navigation@7"
         },
         {
           "command": "cInsight.includeHierarchy.showIncludes",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@3"
+        "group": "0_navigation@8"
         },
         {
           "command": "cInsight.includeHierarchy.showIncludedBy",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@4"
+        "group": "0_navigation@9"
         },
         {
           "command": "cInsight.relationshipGraph.show",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@5"
+        "group": "0_navigation@10"
         },
         {
           "command": "cInsight.relationshipGraph.showFile",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@6"
+        "group": "0_navigation@11"
         },
         {
           "submenu": "cInsight.symbolNavigation",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "2_cInsight@7"
+        "group": "0_navigation@12"
         }
       ],
       "cInsight.symbolNavigation": [
