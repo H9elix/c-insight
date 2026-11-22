@@ -66,6 +66,7 @@ describe("public repository contract", () => {
       "core-navigation.gif",
       "call-hierarchy.gif",
       "relationship-graph.gif",
+      "combined-views.gif",
     ];
     let totalBytes = 0;
     for (const asset of assets) {

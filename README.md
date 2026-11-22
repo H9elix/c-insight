@@ -85,6 +85,8 @@ VS Code already supports moving, grouping and manually resizing views. Combined 
 - **Manage a browsing setup together:** move the entire combination to a panel or side bar. User settings preserve its name, internal order, direction and proportions across projects.
 - **Reuse features across setups:** combinations share feature results and pins while tree panes retain local filters, expansion and scrolling. Presentation copies do not create another analysis engine.
 
+![Browse Code Preview, Callers, and References in one combined view, with panes expanding on hover and restoring their proportions when the pointer leaves](.github/readme-assets/combined-views.gif)
+
 Independent views remain available. Combinations contain only the fifteen C Insight roles; Relationship Graph stays in an editor tab. See [combined-view usage and settings examples](docs/user/user-guide.en.md#combined-views).
 
 ### Other browsing tools
