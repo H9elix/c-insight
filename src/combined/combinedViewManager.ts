@@ -99,6 +99,9 @@ export class CombinedViewManager implements vscode.Disposable {
         manage: vscode.l10n.t("Manage Combined View"), collapse: vscode.l10n.t("Collapse / Expand Pane"),
         actions: vscode.l10n.t("Pane Actions and Layout"), splitter: vscode.l10n.t("Resize neighboring panes"),
         reorder: vscode.l10n.t("Drag to reorder pane"),
+        hoverDirection: vscode.l10n.t("Expansion Direction"), both: vscode.l10n.t("Both Directions"),
+        forwardRight: vscode.l10n.t("Expand Right"), forwardDown: vscode.l10n.t("Expand Down"),
+        switchHoverDirection: vscode.l10n.t("Switch expansion direction"),
       }, this.context.extensionMode === vscode.ExtensionMode.Test, icons);
     surface.listeners.push(
       view.webview.onDidReceiveMessage((message: unknown) => {
@@ -169,7 +172,7 @@ export class CombinedViewManager implements vscode.Disposable {
       surface.panes.forEach((pane, role) => { pane.sentGeneration = undefined; pane.collapsed = states[role]?.collapsed === true; pane.view.setVisible(surface.view.visible && !pane.collapsed); });
       this.publish(slot, surface); return;
     }
-    if (message.type === "manage" && ["add", "direction", "hover", "menu"].includes(String(message.action))) {
+    if (message.type === "manage" && ["add", "direction", "hover", "toggleHoverDirection", "menu"].includes(String(message.action))) {
       await this.interact(slot, () => this.perform(slot, String(message.action))); return;
     }
     if (message.type === "ratios" && Array.isArray(message.ratios)) {
@@ -246,6 +249,7 @@ export class CombinedViewManager implements vscode.Disposable {
       const selected = await vscode.window.showQuickPick([
         {label: vscode.l10n.t("Add Panes"), action: "add"}, {label: vscode.l10n.t("Rename Combined View"), action: "rename"},
         {label: vscode.l10n.t("Switch Horizontal / Vertical"), action: "direction"},
+        {label: vscode.l10n.t("Expansion Direction"), action: "hoverDirection"},
         {label: vscode.l10n.t("Reset Equal Pane Sizes"), action: "equal"}, {label: vscode.l10n.t("Toggle Hover Expansion"), action: "hover"},
         {label: vscode.l10n.t("Delete Combined View"), action: "delete"},
       ], {title: this.title(slot)});
@@ -265,6 +269,13 @@ export class CombinedViewManager implements vscode.Disposable {
       const name = await vscode.window.showInputBox({title: vscode.l10n.t("Rename Combined View"), value: this.title(slot),
         validateInput: value => value.trim().length > 80 ? vscode.l10n.t("Use at most 80 characters.") : undefined});
       if (name === undefined) return; layout.title = name;
+    } else if (action === "toggleHoverDirection") layout.hoverDirection = layout.hoverDirection === "forward" ? "both" : "forward";
+    else if (action === "hoverDirection") {
+      const selected = await vscode.window.showQuickPick([
+        {label: layout.direction === "vertical" ? vscode.l10n.t("Expand Down") : vscode.l10n.t("Expand Right"), value: "forward" as const, picked: layout.hoverDirection === "forward"},
+        {label: vscode.l10n.t("Both Directions"), value: "both" as const, picked: layout.hoverDirection === "both"},
+      ], {title: vscode.l10n.t("Expansion Direction")});
+      if (!selected) return; layout.hoverDirection = selected.value;
     } else if (action === "direction") layout.direction = layout.direction === "horizontal" ? "vertical" : "horizontal";
     else if (action === "equal") layout.ratios = layout.views.map(() => 1);
     else if (action === "delete") {

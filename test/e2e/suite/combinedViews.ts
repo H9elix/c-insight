@@ -4,6 +4,7 @@ import { verifyPreviewPresentationOwnership } from "./previewPresentationOwnersh
 import { verifyCombinedTheme } from "./combinedTheme";
 import { verifyCombinedReorder } from "./combinedReorder";
 import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
+import { verifyCombinedHoverDirection } from "./combinedHoverDirection";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
 interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
@@ -126,17 +127,18 @@ export async function run(): Promise<void> {
     assert.equal(await requestCount(),countBeforeHover,"Hovering must not submit semantic requests");
     await verifyCombinedToolbarTiming(requestCount);
     await verifyCombinedReorder(requestCount);
+    await verifyCombinedHoverDirection(requestCount);
     await browser(2, {action:"collapse",role:"projectFiles"});
     await wait(async()=>!(await state()).find(surface=>surface.slot===2)?.panes.find(pane=>pane.role==="projectFiles")?.visible?true:undefined,"Collapsed panes must withdraw demand");
     const before = (await state()).find(surface => surface.slot === 1)!.panes.map(pane => [pane.role, pane.generation]);
-    await combined.update("slot1", {...layout, direction: "vertical", ratios: [2, 1, 1, 1, 1]}, vscode.ConfigurationTarget.Global);
+    await combined.update("slot1", {...layout, direction: "vertical", hoverDirection:"both", ratios: [2, 1, 1, 1, 1]}, vscode.ConfigurationTarget.Global);
     await new Promise(resolve => setTimeout(resolve, 200));
     assert.deepEqual((await state()).find(surface => surface.slot === 1)!.panes.map(pane => [pane.role, pane.generation]), before, "Layout must not reload inner documents");
     await new Promise(resolve=>setTimeout(resolve,200));
     const verticalBase=await browser(1);
     await browser(1,{action:"hover",role:"callers",x:200});await new Promise(resolve=>setTimeout(resolve,500));
     const verticalExpanded=await browser(1);
-    assert(verticalExpanded.panes[1].height>verticalBase.panes[1].height,"Vertical hover must enlarge height rather than width");
+    assert(verticalExpanded.panes[1].height>verticalBase.panes[1].height,"Both-direction vertical hover must borrow from leading neighbors when trailing panes are at minimum");
     await browser(1,{action:"leave"});await new Promise(resolve=>setTimeout(resolve,550));
     await combined.update("slot1",{...layout,direction:"vertical",views:[...layout.views].reverse(),ratios:[1,1,1,1,2]},vscode.ConfigurationTarget.Global);
     await new Promise(resolve=>setTimeout(resolve,250));

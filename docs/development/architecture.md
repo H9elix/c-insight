@@ -4,6 +4,8 @@
 
 This document describes the `0.23.0` architecture, including shared result owners, independent and combined presentations, cached Document Symbols search and sorting, and the engine-independent Project Files inventory.
 
+Combined hover geometry is presentation-local and separate from persisted base ratios. Each layout selects forward expansion (the default) or both-direction allocation. Forward expansion borrows trailing slack from the visible snapshot, retaining preceding pixels until a whole-combination leave restores the base. Explicit protected-control markers cross the frame bridge; entering controls freezes current pixels and cancels pending resizing, while fresh content movement resumes it. Layout changes rebase geometry without recreating renderers or querying an engine.
+
 The TypeScript extension is both the VS Code integration and the LSP client. `ClangdManager` owns one clangd process. Navigation queries go through `AnalysisService`, keeping tree UI code independent from the concrete backend.
 
 Source opening uses `utils/editorNavigation.ts`. The helper supplies a collapsed target range in `showTextDocument` options so workbench view-state restoration and navigation are one operation; a later `revealRange` changes only the viewport. Result-tree activation, explicit Open Location/Go to Definition, Code Preview editor actions, and Relationship Graph share this helper while retaining their tab, focus, centering, and cursor-follow policies. Native editor Back/Forward remains separate from C Insight's browsing history. Both clangd and Microsoft Extension Host regressions exercise closed and already-open target files, same-file navigation, and repeated Back/Forward through the actual command and Webview-host handlers.

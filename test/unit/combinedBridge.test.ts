@@ -11,6 +11,20 @@ function themeBody(initial: string[]) {
 }
 
 describe("embedded presentation bridge", () => {
+  it("reports protected toolbar activity separately from content and selection", () => {
+    const messages:any[]=[],listeners=new Map<string,(event:any)=>void>();
+    const body=themeBody([]);let now=100;
+    const parent={document:{body,documentElement:{style:{length:0}}},getComputedStyle:()=>({length:0}),postMessage:(value:unknown)=>messages.push(value)};
+    const window={addEventListener:()=>undefined,getSelection:()=>""};
+    runInNewContext(`(${FRAME_BRIDGE})(3,{})`,{parent,window,performance:{timeOrigin:1000,now:()=>now},
+      document:{body,documentElement:{style:{setProperty:()=>undefined}},getElementById:()=>undefined,addEventListener:(name:string,fn:(event:any)=>void)=>listeners.set(name,fn)}});
+    const event=(protectedArea:boolean,type="pointermove")=>({type,screenX:10,screenY:20,buttons:0,target:{closest:(selector:string)=>selector==="[data-ci-hover-pause]"&&protectedArea?{}:null}});
+    listeners.get("pointerover")!(event(true,"pointerover"));assert.equal(messages.at(-1).payload.protected,true);assert.equal(messages.at(-1).payload.move,false);
+    listeners.get("pointermove")!(event(true));assert.equal(messages.at(-1).payload.protected,true);assert.equal(messages.at(-1).payload.at,1100);
+    now+=80;listeners.get("pointermove")!(event(false));assert.equal(messages.at(-1).payload.protected,false);assert.equal(messages.at(-1).payload.move,true);
+    listeners.get("focusin")!(event(true,"focusin"));assert.equal(messages.at(-1).payload.protected,true);
+    listeners.get("selectionchange")!({});assert.equal(messages.at(-1).payload.protected,undefined,"Selection evidence must not clear pointer protection");
+  });
   it("keeps API state local and accepts host messages only from its owning window", () => {
     const messages: any[] = [], delivered: any[] = [];
     const listeners = new Map<string,(event:any)=>void>();

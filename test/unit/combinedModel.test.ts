@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedHoverTiming, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
+import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedHoverTiming, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, combinedForwardSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
 import { readFileSync } from "node:fs";
 import { embeddedDocument, renderCombinedWebview } from "../../src/combined/combinedWebview";
 import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
@@ -8,11 +8,11 @@ import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 describe("combined layouts", () => {
   it("defaults to four optional, empty horizontal slots", () => {
     assert.deepEqual(COMBINED_SLOTS, [1,2,3,4]); assert.equal(COMBINED_ROLES.length, 15);
-    assert.deepEqual(combinedLayout(undefined), {enabled: false, title: "", direction: "horizontal", views: [], ratios: []});
+    assert.deepEqual(combinedLayout(undefined), {enabled: false, title: "", direction: "horizontal", hoverDirection: "forward", views: [], ratios: []});
   });
   it("retains only supported unique roles and finite bounded ratios", () => {
     const layout = combinedLayout({enabled: true, title: "  Browser  ", views: ["preview", "callers", "preview", "relationshipGraph", "file:///private.c"], ratios: [2, NaN]});
-    assert.deepEqual(layout, {enabled: true, title: "Browser", direction: "horizontal", views: ["preview", "callers"], ratios: [2,1]});
+    assert.deepEqual(layout, {enabled: true, title: "Browser", direction: "horizontal", hoverDirection: "forward", views: ["preview", "callers"], ratios: [2,1]});
     assert.equal(JSON.stringify(layout).includes("private"), false);
     assert.deepEqual(combinedLayout({views:["references"],ratios:[Infinity]}).ratios,[1]);
   });
@@ -36,6 +36,36 @@ describe("combined layouts", () => {
     assert.deepEqual(combinedPaneSizes(300,[1,1,1],160,1),[160,160,160]);
     assert.deepEqual(combinedPaneSizes(320,[3,1],80,0),[240,80]);
   });
+  it("defaults legacy layouts to forward and exposes the same per-slot schema", () => {
+    const legacy={enabled:true,views:["preview","callers"],ratios:[2,1],direction:"vertical"};
+    for(const value of [undefined,"right",null,42])assert.equal(combinedLayout({...legacy,hoverDirection:value}).hoverDirection,"forward");
+    const layout=combinedLayout({...legacy,hoverDirection:"both"});assert.equal(layout.hoverDirection,"both");
+    assert.deepEqual(layout.views,legacy.views);assert.deepEqual(layout.ratios,legacy.ratios);
+    const properties=JSON.parse(readFileSync("package.json","utf8")).contributes.configuration.properties;
+    for(const slot of COMBINED_SLOTS){const setting=properties[`cInsight.combinedViews.slot${slot}`];
+      assert.equal(setting.default.hoverDirection,"forward");assert.equal(setting.properties.hoverDirection.default,"forward");
+      assert.deepEqual(setting.properties.hoverDirection.enum,["forward","both"]);}
+  });
+  it("keeps the current leading edge through consecutive forward expansions (CI-REG-053)", () => {
+    const base=[300,300,300],first=combinedForwardSizes(base,160,0,450),second=combinedForwardSizes(first,160,1,450);
+    assert.deepEqual(first,[450,225,225]);assert.deepEqual(second,[450,290,160]);assert.deepEqual(base,[300,300,300]);
+    assert.deepEqual(combinedForwardSizes(second,160,2,450),second,"The last pane must never borrow from its leading neighbors");
+    assert.deepEqual(combinedForwardSizes(second,160,0,400),second,"A new hover does not shrink an already enlarged pane");
+    assert.deepEqual(combinedForwardSizes([160,160,160],160,1,300),[160,160,160]);
+    assert.deepEqual(combinedForwardSizes([900],160,0,1000),[900]);
+    for(const index of [-1,9,NaN,0.5])assert.deepEqual(combinedForwardSizes(base,160,index,450),base);
+    assert.deepEqual(combinedForwardSizes(base,160,0,Infinity),base);
+  });
+  it("conserves forward budgets, minima and preceding pixels for either orientation", () => {
+    for(const minimum of [80,160])for(let count=1;count<=15;count++){
+      let sizes=combinedPaneSizes(count*minimum*3,Array.from({length:count},(_,i)=>i+1),minimum,-1);
+      for(let index=0;index<count;index++){
+        const before=[...sizes];sizes=combinedForwardSizes(sizes,minimum,index,count*minimum*2);
+        assert.deepEqual(sizes.slice(0,index),before.slice(0,index));assert(sizes.every(value=>value>=minimum-0.001));
+        assert(Math.abs(sizes.reduce((a,b)=>a+b,0)-before.reduce((a,b)=>a+b,0))<0.001);
+      }
+    }
+  });
   it("inserts panes at either end while retaining each role's weight and input arrays", () => {
     const layout=combinedLayout({enabled:true,title:"Browser",views:["preview","callers","references","symbols"],ratios:[3,2,1,4]});
     const snapshot=JSON.stringify(layout);
@@ -57,7 +87,7 @@ describe("combined layouts", () => {
   it("revisions track only enabled, orientation, order and weights", () => {
     const layout=combinedLayout({enabled:true,views:["preview","callers"],ratios:[2,1]});
     assert.equal(combinedLayoutRevision(layout),combinedLayoutRevision({...layout,title:"Renamed"}));
-    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
+    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,hoverDirection:"both" as const},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
       assert.notEqual(combinedLayoutRevision(layout),combinedLayoutRevision(changed));
   });
   it("honors lower bounds and conserves each available budget", () => {

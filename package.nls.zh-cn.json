@@ -1,4 +1,5 @@
 {
+  "configuration.cInsight.combinedViews.hoverDirection.description": "当前组合的悬停扩展方向：forward 水平向右、垂直向下，保持起始边界；both 双向重新分配空间。",
   "command.cInsight.combinedViews.create.title": "C Insight: 创建组合视图",
   "command.cInsight.combinedViews.manage.title": "C Insight: 管理组合视图",
   "configuration.cInsight.combinedViews.hoverExpand.description": "鼠标停留时扩展组合视图内的窗格，并压缩相邻窗格。只影响组合视图内部，不改变独立窗口的尺寸。",

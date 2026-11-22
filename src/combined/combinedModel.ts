@@ -4,14 +4,16 @@ export const COMBINED_ROLES = ["context", "preview", "references", "callers", "c
 export type CombinedRole = typeof COMBINED_ROLES[number];
 export const COMBINED_SLOTS = [1, 2, 3, 4] as const;
 export type CombinedSlot = typeof COMBINED_SLOTS[number];
+export type CombinedHoverDirection = "forward" | "both";
 export interface CombinedLayout {
   enabled: boolean;
   title: string;
   direction: "horizontal" | "vertical";
+  hoverDirection: CombinedHoverDirection;
   views: CombinedRole[];
   ratios: number[];
 }
-export const DEFAULT_COMBINED_LAYOUT: CombinedLayout = { enabled: false, title: "", direction: "horizontal", views: [], ratios: [] };
+export const DEFAULT_COMBINED_LAYOUT: CombinedLayout = { enabled: false, title: "", direction: "horizontal", hoverDirection: "forward", views: [], ratios: [] };
 export interface CombinedHoverTiming { enterDelay: number; animationDuration: number; leaveDelay: number }
 /** Also serialized into the browser, so defaults and runtime bounds stay identical. */
 export function combinedHoverTiming(value?: unknown): CombinedHoverTiming {
@@ -29,12 +31,12 @@ export function combinedLayout(value: unknown): CombinedLayout {
   const ratios = views.map((_, index) => Array.isArray(data.ratios) && typeof data.ratios[index] === "number" &&
     Number.isFinite(data.ratios[index]) && data.ratios[index] > 0 ? Math.min(1000, Math.max(0.001, data.ratios[index])) : 1);
   return { enabled: data.enabled === true, title: typeof data.title === "string" ? data.title.trim().slice(0, 80) : "",
-    direction: data.direction === "vertical" ? "vertical" : "horizontal", views, ratios };
+    direction: data.direction === "vertical" ? "vertical" : "horizontal", hoverDirection: data.hoverDirection === "both" ? "both" : "forward", views, ratios };
 }
 
 /** Shared by the host and browser. Excludes titles and unrelated toolbar updates. */
 export function combinedLayoutRevision(layout: CombinedLayout): string {
-  return JSON.stringify([layout.enabled, layout.direction, layout.views, layout.ratios]);
+  return JSON.stringify([layout.enabled, layout.direction, layout.hoverDirection ?? "forward", layout.views, layout.ratios]);
 }
 
 /** Insert a pane without changing identities or detaching its base weight. */
@@ -66,6 +68,19 @@ export function combinedPaneSizes(total: number, ratios: readonly number[], mini
     }
     constrained.forEach(index => { sizes[index] = minimum; budget -= minimum; remaining.delete(index); });
   }
+  return sizes;
+}
+
+/** Grow from the visible snapshot, borrowing only trailing slack. Never move the leading edge. */
+export function combinedForwardSizes(current: readonly number[], minimum: number, hovered: number, target: number): number[] {
+  const sizes = [...current];
+  if (!Number.isInteger(hovered) || hovered < 0 || hovered >= sizes.length || !Number.isFinite(target)) return sizes;
+  const slack = sizes.map((size, index) => index > hovered ? Math.max(0, size - minimum) : 0);
+  const available = slack.reduce((sum, value) => sum + value, 0);
+  const growth = Math.min(Math.max(0, target - sizes[hovered]), available);
+  if (!growth || !available) return sizes;
+  sizes[hovered] += growth;
+  slack.forEach((value, index) => { if (value) sizes[index] -= growth * value / available; });
   return sizes;
 }
 

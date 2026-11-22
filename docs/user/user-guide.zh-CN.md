@@ -980,11 +980,15 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 组合内可加入上下文、代码预览、引用、调用者、被调用者、父类型、子类型、包含文件、被包含关系、导航历史、书签、符号搜索、文档符号、工程文件和工程诊断。同一个功能可出现在不同组合中，在同一组合中只能加入一次；关系图继续在编辑器面板中打开。
 
-组合总工具栏提供添加窗格、切换水平/垂直排列、切换悬停扩展及管理按钮。水平组合将总工具栏放在左侧竖排，快捷按钮在上、名称在下；垂直组合将其放在顶部横排，名称在左、按钮在右。组合外层不保留左右空白，工具栏和内容使用完整宽度，各自的内部边距保持不变。位置跟随组合的排列方向，而非 VS Code 的停靠位置；子窗格标题和 VS Code 原生标题栏保持原布局。名称过长时省略，悬停可查看全名；空间不足时按钮区域可滚动。管理菜单支持重命名、等分尺寸和删除；每个窗格的“…”菜单包含其功能操作、前移、后移和移除。窗格自己的箭头用于折叠/展开；拖动窗格之间的分隔条调整基础比例，选中分隔条后也可使用方向键调整。
+组合总工具栏提供添加窗格、切换水平/垂直排列、切换悬停扩展、切换扩展方向（Expansion Direction）及管理按钮。水平组合将总工具栏放在左侧竖排，快捷按钮在上、名称在下；垂直组合将其放在顶部横排，名称在左、按钮在右。组合外层不保留左右空白，工具栏和内容使用完整宽度，各自的内部边距保持不变。位置跟随组合的排列方向，而非 VS Code 的停靠位置；子窗格标题和 VS Code 原生标题栏保持原布局。名称过长时省略，悬停可查看全名；空间不足时按钮区域可滚动。管理菜单支持重命名、扩展方向选择、等分尺寸和删除；每个窗格的“…”菜单包含其功能操作、前移、后移和移除。窗格自己的箭头用于折叠/展开；拖动窗格之间的分隔条调整基础比例，选中分隔条后也可使用方向键调整。
 
 按住窗格标题文字拖动，可在同一组合中调整顺序：水平排列时左右拖动，垂直排列时上下拖动，按插入线提示放到目标前后；靠近滚动区域边缘会自动滚动。基础比例随窗格移动，折叠窗格也能排序并保留折叠状态。拖动期间冻结尺寸并暂停悬停扩展，结束后恢复基础比例，继续移动鼠标才重新触发悬停。Escape、窗口失焦、指针取消或在组合区域外松开会取消；外部修改顺序、比例或方向时也会取消。标题按钮仍执行原功能，分隔条仍用于调尺寸；“前移/后移”菜单保留供键盘操作。排序保存到原有用户级布局，不新增设置项，不支持跨组合拖动。
 
-开启悬停扩展时，鼠标在一个窗格内停留后，该窗格按两倍基础权重分配空间，相邻窗格相应缩小。`cInsight.combinedViews.hoverEnterDelay` 控制触发等待，默认 `200` 毫秒；`hoverAnimationDuration` 控制扩展/恢复动画，默认 `200` 毫秒；`hoverLeaveDelay` 控制移出整个组合后的恢复等待，默认 `250` 毫秒。这三项均位于 `cInsight.combinedViews` 下，接受 `0`–`10000` 的整数，作用于所有组合，修改后无需重载；`0` 分别表示立即扩展、无动画和立即恢复。等待期间修改对应时长会按新值重新计时。水平排列的展开窗格至少 160 像素宽，垂直排列至少 80 像素高；空间不足时组合内部滚动。只有一个展开窗格时不扩展。拖动分隔条、选中文本、按住鼠标或打开菜单时暂停自动调整；系统启用减少动态效果时始终不播放过渡动画。悬停不会抢焦点或触发语义查询，也不会改变外部原生窗口的尺寸。
+开启悬停扩展时，目标窗格的期望尺寸按两倍基础权重计算，实际增长受可借空间和最小尺寸限制。每个组合的 `hoverDirection` 默认为 `forward`：水平向右、垂直向下扩展，只压缩目标后方的展开窗格，保持目标左侧／顶部边界及前方窗格的当前尺寸。连续切换不会立即缩回前方已扩展的窗格，因此后面的窗格可能只能少量扩展；末尾或后方已达最小尺寸时不扩展，不反向借空间或增加滚动范围。移出整个组合后统一恢复基础比例。设为 `both` 使用双向分配，目标两侧的窗格都可变化。组合工具栏的箭头按钮可在两档之间切换，仅修改当前组合；“管理组合视图 → 扩展方向”也可选择。已有布局缺少此字段时同样使用 `forward`。
+
+鼠标进入组合总工具栏、窗格标题工具栏、代码预览顶部操作区或搜索／结果工具栏时，会取消等待并将动画冻结在当前可见尺寸，按钮不会随动画继续移动。返回内容区并产生新的鼠标移动后重新等待触发；在操作区切换扩展模式只保存选择，离开后再应用尺寸变化。此暂停规则同时适用于双向模式。
+
+`cInsight.combinedViews.hoverEnterDelay` 控制触发等待，默认 `200` 毫秒；`hoverAnimationDuration` 控制扩展/恢复动画，默认 `200` 毫秒；`hoverLeaveDelay` 控制移出整个组合后的恢复等待，默认 `250` 毫秒。这三项均位于 `cInsight.combinedViews` 下，接受 `0`–`10000` 的整数，作用于所有组合，修改后无需重载；`0` 分别表示立即扩展、无动画和立即恢复。等待期间修改对应时长会按新值重新计时。水平排列的展开窗格至少 160 像素宽，垂直排列至少 80 像素高；空间不足时组合内部滚动。只有一个展开窗格时不扩展。拖动分隔条、选中文本、按住鼠标或打开菜单时暂停自动调整；系统启用减少动态效果时始终不播放过渡动画。悬停不会抢焦点或触发语义查询，也不会改变外部原生窗口的尺寸。
 
 同一功能在多个位置显示时共享查询结果、业务筛选和固定/锁定状态：调用者与被调用者仍共用固定状态，引用独立固定，代码预览共用目标及锁定。树的局部过滤、展开、选择和滚动位置属于各自窗格；文档符号与工程文件共享功能锁，但过滤词和自动定位按各显示实例处理。工具栏操作优先作用于发起操作的显示位置，编辑器命令优先使用最近操作且可见的相应位置，没有可见位置时打开原栏目。
 
@@ -994,7 +998,7 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。全部默认值见[9.16 节](#916-组合视图combined-view)。
 
-布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
+布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`hoverDirection` 可为 `forward`（默认向右／下）或 `both`（双向）；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
 
 例如，在用户设置中配置下方横向阅读组合，再使用 VS Code 的“移动视图”将其放到面板：
 
@@ -1004,6 +1008,7 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
     "enabled": true,
     "title": "代码阅读",
     "direction": "horizontal",
+    "hoverDirection": "forward",
     "views": ["preview", "callers", "references"],
     "ratios": [2, 1, 1]
   },
@@ -1342,10 +1347,10 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
 
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`views`、`ratios` | 第一个组合布局 |
-| `cInsight.combinedViews.slot2` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第二个组合布局 |
-| `cInsight.combinedViews.slot3` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第三个组合布局 |
-| `cInsight.combinedViews.slot4` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第四个组合布局 |
+| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`hoverDirection`、`views`、`ratios` | 第一个组合布局 |
+| `cInsight.combinedViews.slot2` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第二个组合布局 |
+| `cInsight.combinedViews.slot3` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第三个组合布局 |
+| `cInsight.combinedViews.slot4` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第四个组合布局 |
 | `cInsight.combinedViews.hoverExpand` | boolean | `true` | `true` / `false` | 所有组合的悬停扩展，与功能固定/锁定无关 |
 | `cInsight.combinedViews.hoverEnterDelay` | integer | `200` | 0–10000 ms | 悬停触发等待；`0` 立即扩展，热更新已有等待 |
 | `cInsight.combinedViews.hoverAnimationDuration` | integer | `200` | 0–10000 ms | 扩展/恢复动画时长；`0` 无动画，减少动态效果设置优先 |

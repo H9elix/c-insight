@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added per-combination forward/both hover expansion with a toolbar switch and management picker. Forward mode keeps leading edges fixed across consecutive hovers, borrows only trailing slack, and restores base proportions after leaving the combination.
+- Protected pane headers, preview controls and search/result toolbars from hover resizing by freezing animations at their visible geometry until fresh content movement resumes interaction.
+
 ## 0.23.0
 
 - Removed unused outer side gutters from combined views so the toolbar and content use the full available width while keeping their internal padding; focused toolbar buttons remain fully visible in cramped layouts.

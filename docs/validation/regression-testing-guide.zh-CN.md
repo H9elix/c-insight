@@ -1,6 +1,6 @@
 # C Insight 历史问题驱动测试指南
 
-本指南基于当前 `0.23.0` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `52` 条记录。
+本指南基于当前 `0.23.0` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `53` 条记录。
 
 本指南及案例库中的源码和测试链接面向 GitHub 或完整源码工作副本；从已安装扩展阅读时，请到项目仓库打开这些文件。
 
@@ -49,7 +49,7 @@
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
 | 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
-| 组合视图、多显示实例 | 022–028、037、042–043、050–052 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
+| 组合视图、多显示实例 | 022–028、037、042–043、050–053 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。各案例列出自动断言与人工检查项。
@@ -135,6 +135,8 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 19. 组合视图主题：对比独立栏目，检查横纵滚动条及其悬停/拖动、代码与界面字体、输入框、菜单、焦点和选中状态；切换深浅/高对比度主题及字体设置后即时生效，预览无灰色圆角覆盖，固定配色不被覆盖，筛选词、展开及滚动不重置。
 20. 组合标题排序：同一组合内拖动标题文字插入到目标前后，比例随窗格移动且顺序保存；横纵、折叠窗格及窄区域边缘滚动均适用。取消或外部改布局不写回旧顺序，原位放下不保存，失败恢复宿主布局。拖动不触发查询或重置浏览状态，不影响标题按钮、分隔条及菜单排序；结束后新鼠标移动才恢复悬停。硬件捕获、键盘菜单及重载人工检查。
 21. 总工具栏与时间配置：水平组合左侧竖排、垂直组合顶部横排，子窗格标题不变；总工具栏从 Webview 左缘开始，内容充满右侧宽度，没有外层空白，工具栏及子文档内部边距保留。长名称及短/窄区域仍能查看名称、访问全部按钮。检查触发/动画/恢复的默认值、`0`、热更新、等待中改值和减少动态效果；元数据更新不跳过等待，取消后不迟到扩展，配置不重建子文档或增加语义请求。宿主入口另见 `combinedToolbarTiming.ts`。
+
+22. 扩展方向与按钮稳定（CI-REG-053）：旧布局缺少 `hoverDirection` 时默认向右／下，每个组合独立保存；单向扩展只借后方余量，连续切换保持起点与前方尺寸，末尾／最小尺寸不反向扩展或增加滚动。移出组合统一恢复。动画中进入标题、预览控件、搜索／结果工具栏会冻结当前像素并取消等待，返回内容区的新移动才恢复；双向模式同样保护操作区。切换按钮不在鼠标下移动，不重置显示状态或增加查询；实际滚轮、硬件指针、重载及 WSL/SSH 复测见组合专项。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

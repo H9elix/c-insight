@@ -1,4 +1,4 @@
-import { combinedHoverTiming, combinedLayoutRevision, combinedPaneSizes, reorderCombinedPane } from "./combinedModel";
+import { combinedHoverTiming, combinedLayoutRevision, combinedPaneSizes, combinedForwardSizes, reorderCombinedPane } from "./combinedModel";
 import { PANE_REORDER_CLIENT } from "./combinedReorderClient";
 import { EMBEDDED_THEME_CSS } from "./embeddedTheme";
 import { escapeHtml } from "../views/sourceHighlight";
@@ -21,6 +21,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .splitter{flex:0 0 5px;cursor:col-resize;background:var(--vscode-panel-border)}.vertical>.splitter{cursor:row-resize}.splitter:hover,.splitter:focus{background:var(--vscode-focusBorder)}#panes.dragging .pane{transition:none}#panes.dragging iframe{pointer-events:none}#empty{margin:14px;line-height:1.6}#empty[hidden]{display:none}
   .pane.collapsed iframe{display:none}#panes:not(.vertical)>.pane.collapsed header{height:100%;flex-direction:column}#panes:not(.vertical)>.pane.collapsed .title{writing-mode:vertical-rl}#panes:not(.vertical)>.pane.collapsed .actions{display:none}
   .vscode-reduce-motion .pane{transition:none}
+  #panes.hover-freeze .pane{transition:none}
   .title{cursor:grab;user-select:none;touch-action:none}#panes:has(>.pane:only-child) .title{cursor:default}
   #panes.reordering .pane{transition:none}#panes.reordering iframe{pointer-events:none}
   .reorder-overlay{position:fixed;inset:0;z-index:100;cursor:grabbing;touch-action:none}
@@ -28,7 +29,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .reorder-marker{position:fixed;z-index:101;pointer-events:none;background:var(--vscode-focusBorder)}
   @media(prefers-reduced-motion:reduce){.pane{transition:none}}
   </style></head><body><div id="bar" role="toolbar" aria-label="${escapeHtml(labels.manage ?? "")}" aria-orientation="vertical"><div id="bar-actions"></div><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
-  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const timingFor=${combinedHoverTiming.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
+  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const forwardSizesFor=${combinedForwardSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const timingFor=${combinedHoverTiming.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
 }
 
 /** Only trusted, escaped renderer output enters srcdoc. All executable code uses the outer nonce. */
@@ -76,12 +77,15 @@ export const FRAME_BRIDGE = String.raw`function(generation, initialState) {
   function activity(event) {
     const menu=document.getElementById('menu');
     send('activity',{x:event.screenX,y:event.screenY,buttons:event.buttons||0,
-      busy:!!(event.buttons||String(window.getSelection()||'')||(menu&&!menu.hidden)),move:event.type==='pointermove'});
+      at:performance.timeOrigin+performance.now(),
+      busy:!!(event.buttons||String(window.getSelection()||'')||(menu&&!menu.hidden)),move:event.type==='pointermove',
+      protected:!!event.target?.closest?.('[data-ci-hover-pause]')});
   }
   document.addEventListener('pointermove',event=>{const now=performance.now();if(now-lastMove>40){lastMove=now;activity(event);}},true);
   document.addEventListener('pointerdown',activity,true);document.addEventListener('pointerup',activity,true);
+  document.addEventListener('pointerover',activity,true);
   document.addEventListener('selectionchange',()=>send('activity',{busy:!!String(window.getSelection()||''),move:false}));
-  document.addEventListener('focusin',()=>send('focus',{}),true);
+  document.addEventListener('focusin',event=>{send('focus',{});activity(event);},true);
   const forwardedKeys=new Set();
   window.addEventListener('keydown',event=>{
     if(event.defaultPrevented||(!(event.ctrlKey||event.metaKey)&&event.key!=='F1'))return;
@@ -102,14 +106,16 @@ const fontUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(icons.font),cha
 const iconStyle='<style nonce="'+paneNonce+'">'+icons.css.replace(/\.\/codicon\.ttf(?:\?[^"')\s]+)?/g,fontUrl)+'</style>';
 window.addEventListener('pagehide',()=>URL.revokeObjectURL(fontUrl));
 const saved=vscode.getState()||{}, frames=new Map(), paneState=saved.panes||{};
-let layout={views:[],ratios:[],direction:'horizontal'}, hoverEnabled=true, hoverTiming=timingFor(), hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
+let layout={views:[],ratios:[],direction:'horizontal',hoverDirection:'forward'}, hoverEnabled=true, hoverTiming=timingFor(), hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
+let hoverSizes,geometryKey,controlsPaused=false,pendingHoverReset=false;
+let lastActivityAt=-Infinity;
 let nextReorder=0,reorderPending,testReorderPoint;
 const post=message=>vscode.postMessage(message);
 const persist=()=>vscode.setState({panes:paneState});
 const paneOrder=createPaneReorder({container,viewport,readLayout:()=>layout,keyFor:layoutKey,label:labels.reorder,
   canStart:()=>!dragging&&!suspended&&!reorderPending,
   onStart:()=>{clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;hovered=-1;candidate=undefined;busy=true;},
-  onEnd:(event,started)=>{busy=false;if(started){candidate=undefined;hovered=-1;lastPoint=event?{x:event.screenX,y:event.screenY}:lastPoint;resize();}},
+  onEnd:(event,started)=>{busy=false;if(started){candidate=undefined;hovered=-1;hoverSizes=undefined;container.classList.remove('hover-freeze');lastPoint=event?{x:event.screenX,y:event.screenY}:lastPoint;resize();}},
   onDrop:(role,target,side,revision)=>{
     if(reorderPane(layout,role,target,side)===layout)return;
     reorderPending=++nextReorder;post({type:'reorder',request:reorderPending,role,target,side,revision});
@@ -120,7 +126,9 @@ barActions.append(
   button('add',labels.add,()=>post({type:'manage',action:'add'})),
   button('layout',labels.direction,()=>post({type:'manage',action:'direction'})),
   button('expand-all',labels.hover,()=>post({type:'manage',action:'hover'})),
+  button('arrow-right',labels.hoverDirection,()=>post({type:'manage',action:'toggleHoverDirection'})),
   button('gear',labels.manage,()=>post({type:'manage',action:'menu'})));
+const hoverDirectionButton=barActions.children[3];hoverDirectionButton.id='hover-direction';
 // Native focus may leave a partly visible icon clipped. Scroll this toolbar only.
 barActions.addEventListener('focusin',event=>{
   const target=event.target.closest?.('button');if(!target)return;
@@ -132,29 +140,68 @@ barActions.addEventListener('focusin',event=>{
   if(item.top<top)barActions.scrollTop+=item.top-top;
   else if(item.bottom>bottom)barActions.scrollTop+=item.bottom-bottom;
 });
+function metrics(){
+  const vertical=layout.direction==='vertical',expanded=layout.views.filter(role=>!frames.get(role)?.element.classList.contains('collapsed'));
+  return {vertical,expanded,minimum:vertical?80:160,ratios:expanded.map(role=>layout.ratios[layout.views.indexOf(role)]),
+    total:(vertical?viewport.clientHeight:viewport.clientWidth)-Math.max(0,layout.views.length-1)*5-(layout.views.length-expanded.length)*28};
+}
+function cancelHoverTimers(){clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;candidate=undefined;}
+function writeSizes(values){layout.views.forEach(role=>{const item=frames.get(role);if(item&&values.has(role))item.element.style.flexBasis=values.get(role)+'px';});}
+function freezeVisible(){
+  if(!layout.views.length)return;
+  const axis=layout.direction==='vertical'?'height':'width';
+  const measured=new Map(layout.views.map(role=>[role,frames.get(role)?.element.getBoundingClientRect()[axis]]));
+  if([...measured.values()].some(size=>!Number.isFinite(size)||size<=0))return;
+  hoverSizes=measured;container.classList.add('hover-freeze');writeSizes(measured);
+  // Commit the visible pixels before removing the transition guard for the next animation.
+  void container.offsetWidth;
+}
+function resumeAnimation(){void container.offsetWidth;container.classList.remove('hover-freeze');}
 function resize(){
   if(dragging||paneOrder.active||reorderPending)return;
-  const vertical=layout.direction==='vertical', total=(vertical?viewport.clientHeight:viewport.clientWidth)-Math.max(0,layout.views.length-1)*5;
-  const expanded=layout.views.filter(role=>!frames.get(role)?.element.classList.contains('collapsed'));
-  const sizes=sizesFor(total-(layout.views.length-expanded.length)*28,expanded.map(role=>layout.ratios[layout.views.indexOf(role)]),vertical?80:160,hoverEnabled?expanded.indexOf(layout.views[hovered]):-1);
-  layout.views.forEach(role=>{const item=frames.get(role);if(item)item.element.style.flexBasis=(expanded.includes(role)?sizes[expanded.indexOf(role)]:28)+'px';});
+  const m=metrics(),key=JSON.stringify([layout.direction,layout.views,layout.ratios,m.expanded,viewport.clientWidth,viewport.clientHeight]);
+  if(key!==geometryKey){geometryKey=key;hoverSizes=undefined;hovered=-1;pendingHoverReset=false;cancelHoverTimers();container.classList.remove('hover-freeze');}
+  const sizes=sizesFor(m.total,m.ratios,m.minimum,hoverEnabled&&layout.hoverDirection==='both'?m.expanded.indexOf(layout.views[hovered]):-1);
+  writeSizes(hoverSizes??new Map(layout.views.map(role=>[role,m.expanded.includes(role)?sizes[m.expanded.indexOf(role)]:28])));
+}
+function protectControls(value){
+  if(value===controlsPaused)return;
+  controlsPaused=value;
+  if(value){cancelHoverTimers();if(!dragging&&!paneOrder.active&&!reorderPending)freezeVisible();}
+  else if(pendingHoverReset){pendingHoverReset=false;hoverSizes=undefined;hovered=-1;resumeAnimation();resize();}
+}
+function acceptActivity(activity){
+  if(Number.isFinite(activity.at)){if(activity.at<lastActivityAt)return false;lastActivityAt=activity.at;}
+  return true;
 }
 function consider(role,activity){
+  if(!acceptActivity(activity))return;
+  if(activity.busy&&!busy&&!dragging&&!paneOrder.active&&!reorderPending){cancelHoverTimers();freezeVisible();}
   busy=!!activity.busy;
-  if(busy||suspended||dragging||paneOrder.active||reorderPending||!hoverEnabled||!activity.move)return;
+  if(typeof activity.protected==='boolean')protectControls(activity.protected);
+  if(busy||controlsPaused||suspended||dragging||paneOrder.active||reorderPending||!hoverEnabled||!activity.move)return;
   if(lastPoint&&activity.x===lastPoint.x&&activity.y===lastPoint.y)return;
   lastPoint={x:activity.x,y:activity.y};
   clearTimeout(leaveTimer);leaveTimer=undefined;
   if(candidate===role)return;
+  if(layout.hoverDirection==='forward')freezeVisible();
   candidate=role;scheduleEnter();
 }
 function scheduleEnter(){
   clearTimeout(enterTimer);const role=candidate;
-  enterTimer=setTimeout(()=>{enterTimer=undefined;if(role===candidate&&!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){hovered=layout.views.indexOf(role);resize();}},hoverTiming.enterDelay);
+  enterTimer=setTimeout(()=>{enterTimer=undefined;if(role===candidate&&!busy&&!controlsPaused&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){
+    hovered=layout.views.indexOf(role);
+    if(layout.hoverDirection==='forward'){
+      const m=metrics(),index=m.expanded.indexOf(role),desired=sizesFor(m.total,m.ratios,m.minimum,index);
+      if(index>=0){if(!hoverSizes)freezeVisible();const sizes=forwardSizesFor(m.expanded.map(role=>hoverSizes?.get(role)??0),m.minimum,index,desired[index]);
+        m.expanded.forEach((role,index)=>hoverSizes?.set(role,sizes[index]));}
+    }else hoverSizes=undefined;
+    resumeAnimation();resize();
+  }},hoverTiming.enterDelay);
 }
 function scheduleLeave(){
   clearTimeout(leaveTimer);
-  leaveTimer=setTimeout(()=>{leaveTimer=undefined;if(!busy&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending){hovered=-1;resize();}},hoverTiming.leaveDelay);
+  leaveTimer=setTimeout(()=>{leaveTimer=undefined;if(!busy&&!controlsPaused&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending){hovered=-1;hoverSizes=undefined;pendingHoverReset=false;resumeAnimation();resize();}},hoverTiming.leaveDelay);
 }
 function applyHoverTiming(value){
   const next=timingFor(value),previous=hoverTiming;hoverTiming=next;
@@ -163,28 +210,38 @@ function applyHoverTiming(value){
   if(next.enterDelay!==previous.enterDelay&&enterTimer!==undefined&&candidate)scheduleEnter();
   if(next.leaveDelay!==previous.leaveDelay&&leaveTimer!==undefined)scheduleLeave();
 }
-document.body.addEventListener('pointermove',event=>{
+function outerActivity(event){
+  const protectedArea=!!event.target.closest?.('#bar,.pane header,.splitter');
+  const activity={move:event.type==='pointermove',x:event.screenX,y:event.screenY,busy:!!event.buttons,protected:protectedArea,at:performance.timeOrigin+performance.now()};
   const pane=event.target.closest?.('.pane');
-  if(pane)consider(pane.dataset.role,{move:true,x:event.screenX,y:event.screenY,busy:!!event.buttons});
-});
-document.addEventListener('pointerdown',()=>{busy=true;clearTimeout(enterTimer);enterTimer=undefined;candidate=undefined;});
+  if(pane)consider(pane.dataset.role,activity);else if(acceptActivity(activity))protectControls(protectedArea);
+}
+document.body.addEventListener('pointermove',outerActivity);document.body.addEventListener('pointerover',outerActivity);
+document.body.addEventListener('focusin',event=>{if(event.target.closest?.('#bar,.pane header,.splitter')){acceptActivity({at:performance.timeOrigin+performance.now()});protectControls(true);}});
+document.addEventListener('pointerdown',()=>{busy=true;cancelHoverTimers();if(!dragging&&!paneOrder.active&&!reorderPending)freezeVisible();});
 document.addEventListener('pointerup',()=>{busy=false;});
 document.body.addEventListener('mouseleave',()=>{
-  clearTimeout(enterTimer);enterTimer=undefined;candidate=undefined;scheduleLeave();
+  acceptActivity({at:performance.timeOrigin+performance.now()});
+  controlsPaused=false;clearTimeout(enterTimer);enterTimer=undefined;candidate=undefined;scheduleLeave();
 });
 function render(message){
   paneOrder.layoutChanged(message.layout);
-  const previouslyHovered=layout.views[hovered],wasHoverEnabled=hoverEnabled;
-  const previousRoles=layout.views.join();layout=message.layout;hoverEnabled=message.hover;
+  const previouslyHovered=layout.views[hovered],wasHoverEnabled=hoverEnabled,previousHoverDirection=layout.hoverDirection;
+  const previousRoles=layout.views.join();layout={...message.layout,hoverDirection:message.layout.hoverDirection==='both'?'both':'forward'};hoverEnabled=message.hover;
   if(candidate&&!layout.views.includes(candidate)){candidate=undefined;clearTimeout(enterTimer);enterTimer=undefined;}
   hovered=previouslyHovered?layout.views.indexOf(previouslyHovered):-1;
-  if(wasHoverEnabled!==hoverEnabled){clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;candidate=undefined;hovered=-1;}
+  if(wasHoverEnabled!==hoverEnabled||previousHoverDirection!==layout.hoverDirection){cancelHoverTimers();hovered=-1;
+    if(controlsPaused)pendingHoverReset=true;else{hoverSizes=undefined;resumeAnimation();}}
   applyHoverTiming(message.hoverTiming);
   document.getElementById('name').textContent=message.title;
   document.getElementById('name').title=message.title;
   document.documentElement.classList.toggle('combined-vertical',layout.direction==='vertical');
   document.getElementById('bar').setAttribute('aria-orientation',layout.direction==='vertical'?'horizontal':'vertical');
   const toggle=document.getElementById('bar').querySelector('.codicon-expand-all');toggle.setAttribute('aria-pressed',String(hoverEnabled));
+  const directionName=layout.hoverDirection==='both'?labels.both:layout.direction==='vertical'?labels.forwardDown:labels.forwardRight;
+  hoverDirectionButton.className='codicon codicon-'+(layout.hoverDirection==='both'?'arrow-both':layout.direction==='vertical'?'arrow-down':'arrow-right');
+  hoverDirectionButton.title=labels.hoverDirection+': '+directionName+' — '+labels.switchHoverDirection;
+  hoverDirectionButton.setAttribute('aria-label',hoverDirectionButton.title);hoverDirectionButton.setAttribute('aria-pressed',String(layout.hoverDirection==='forward'));
   container.classList.toggle('vertical',layout.direction==='vertical');
   for(const [role,item] of frames)if(!layout.views.includes(role)){item.element.remove();frames.delete(role);delete paneState[role];}
   for(const pane of message.panes){
@@ -260,7 +317,7 @@ function moveDrag(event){if(!dragging)return;const {index,start,sizes}=dragging,
 }
 function finishDrag(event){if(!dragging)return;const {element,original,moved}=dragging;dragging=undefined;busy=false;candidate=undefined;container.classList.remove('dragging');
   if(typeof event.pointerId==='number'&&element.hasPointerCapture(event.pointerId))element.releasePointerCapture(event.pointerId);
-  if(moved)post({type:'ratios',ratios:layout.ratios});else layout.ratios=original;resize();}
+  if(moved)post({type:'ratios',ratios:layout.ratios});else layout.ratios=original;hoverSizes=undefined;resumeAnimation();resize();}
 window.addEventListener('message',event=>{
   const message=event.data;
   if(message?.bridge==='cInsight.pane'){
@@ -287,18 +344,26 @@ window.addEventListener('message',event=>{
   if(message?.type==='layout')render(message);
   else if(message?.type==='panePost'){
     const item=frames.get(message.role);if(item&&item.generation===message.generation)item.iframe.contentWindow.postMessage({bridge:'cInsight.host',payload:message.message},'*');
-  }else if(message?.type==='reorderResult'&&message.request===reorderPending){reorderPending=undefined;candidate=undefined;hovered=-1;resize();}
+  }else if(message?.type==='reorderResult'&&message.request===reorderPending){reorderPending=undefined;candidate=undefined;hovered=-1;hoverSizes=undefined;resumeAnimation();resize();}
   else if(message?.type==='cancelInteractions'){paneOrder.cancel();}
-  else if(message?.type==='suspend'){suspended=message.value;if(suspended)paneOrder.cancel();clearTimeout(enterTimer);clearTimeout(leaveTimer);enterTimer=leaveTimer=undefined;if(!suspended){candidate=undefined;busy=false;}}
+  else if(message?.type==='suspend'){suspended=message.value;if(suspended){paneOrder.cancel();freezeVisible();}cancelHoverTimers();if(!suspended)busy=false;}
   else if(testMode&&message?.type==='testInteraction'){
     const item=frames.get(message.role);
-    if(message.action==='hover')consider(message.role,{move:true,x:message.x||100,y:120,busy:false});
+    if(message.action==='hover')consider(message.role,{move:true,x:message.x||100,y:120,busy:false,protected:false,at:performance.timeOrigin+performance.now()});
+    else if(message.action==='staleContent')consider(message.role,{move:true,x:message.x||9999,y:120,busy:false,protected:false,at:lastActivityAt-10});
+    else if(message.action==='controlPointer'){
+      const child=item?.iframe.contentDocument;
+      const target=message.target==='bar'?hoverDirectionButton:message.target==='header'?item?.element.querySelector('header button:last-child'):
+        message.target==='content'?child?.querySelector('.code,#tree,#results'):child?.querySelector('[data-ci-hover-pause] '+(message.target==='input'?'input':'button'));
+      if(target)for(const type of ['pointerover','pointermove'])target.dispatchEvent(new PointerEvent(type,{bubbles:true,screenX:message.x||200,screenY:100,clientX:10,clientY:10}));
+    }
+    else if(message.action==='toggleHoverDirection')hoverDirectionButton.click();
     else if(message.action==='leave')document.body.dispatchEvent(new MouseEvent('mouseleave'));
     else if(message.action==='collapse')item?.element.querySelector('button').click();
     else if(message.action==='filter'){
       const input=item?.iframe.contentDocument.getElementById('filter');if(input){input.value=message.value;input.dispatchEvent(new Event('input'));}
     }
-    else if(message.action==='viewport'){viewport.style.width='1200px';viewport.style.height='500px';viewport.style.flex='none';resize();}
+    else if(message.action==='viewport'){viewport.style.width=(message.width||1200)+'px';viewport.style.height=(message.height||500)+'px';viewport.style.flex='none';resize();}
     else if(message.action==='naturalViewport'){viewport.style.width='';viewport.style.height='';viewport.style.flex='';resize();}
     else if(message.action==='surfaceSize'){document.body.style.width=message.width?message.width+'px':'';document.body.style.height=message.height?message.height+'px':'';resize();}
     else if(message.action==='focusLastToolbarButton'){document.querySelector('#bar-actions button:first-child')?.focus();document.querySelector('#bar-actions button:last-child')?.focus();}
@@ -339,9 +404,10 @@ window.addEventListener('message',event=>{
     const bar=document.getElementById('bar'),actions=document.getElementById('bar-actions'),name=document.getElementById('name');
     post({type:'inspection',request:message.request,panes:[...frames].map(([role,item])=>{
     const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon'),scroll=child?.querySelector('.code,#tree,#results');
-    return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
+    return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),left:item.element.getBoundingClientRect().left,top:item.element.getBoundingClientRect().top,width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
+      headerButton:rectangle(item.element.querySelector('header button:last-child')),embeddedButton:child?.querySelector('[data-ci-hover-pause] button')?rectangle(child.querySelector('[data-ci-hover-pause] button')):undefined,
       marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
-    }),hovered,hoverTiming,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
+    }),hovered,candidate,hoverTiming,hoverDirection:layout.hoverDirection,controlsPaused,pendingHoverReset,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,directionIcon:hoverDirectionButton.className,directionTitle:hoverDirectionButton.title,
       lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop,surfaceWidth:document.documentElement.clientWidth},
       reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
   }

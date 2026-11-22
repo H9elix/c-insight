@@ -9,10 +9,10 @@ import * as manifest from "../../src/combined/combinedManifest";
 
 function harness() {
   let layout=model.combinedLayout({enabled:true,views:["symbols","callers","preview"],ratios:[3,2,1]});
-  let fail=false,writes=0;
+  let fail=false,writes=0,choice:any;const picks:any[]=[];
   const posted:any[]=[];
   const dispose=()=>({dispose:()=>undefined});
-  const vscode={l10n:{t:(value:string)=>value},ConfigurationTarget:{Global:1},window:{registerWebviewViewProvider:dispose},commands:{executeCommand:async()=>undefined},
+  const vscode={l10n:{t:(value:string)=>value},ConfigurationTarget:{Global:1},window:{registerWebviewViewProvider:dispose,showQuickPick:async(items:any)=>{picks.push(items);return choice;}},commands:{executeCommand:async()=>undefined},
     workspace:{onDidChangeConfiguration:dispose,getConfiguration:()=>({get:()=>layout,update:async(_key:string,value:model.CombinedLayout,target:number)=>{
       assert.equal(target,1);writes++;if(fail)throw new Error("settings are read-only");layout=value;
     }})}};
@@ -28,10 +28,25 @@ function harness() {
   const surface={view:{visible:true,webview:{postMessage:async(message:unknown)=>{posted.push(message);return true;}}},ready:true,panes:new Map(),listeners:[]};
   manager.surfaces.set(1,surface);
   return {manager,surface,posted,get layout(){return layout;},set layout(value:model.CombinedLayout){layout=value;},get writes(){return writes;},
+    choose:(value:any)=>{choice=value;},picks,
     fail:()=>{fail=true;},send:(extra:Record<string,unknown>={})=>manager.receive(1,surface,{type:"reorder",request:1,role:"symbols",target:"preview",side:"after",revision:model.combinedLayoutRevision(layout),...extra})};
 }
 
 describe("combined pane reorder persistence",()=>{
+  it("persists direction through the toolbar and explicit menu without changing base layout",async()=>{
+    const h=harness();try{
+      const original=h.layout;
+      await h.manager.receive(1,h.surface,{type:"manage",action:"toggleHoverDirection"});
+      assert.equal(h.layout.hoverDirection,"both");assert.equal(h.writes,1);
+      assert.deepEqual(h.layout.views,original.views);assert.deepEqual(h.layout.ratios,original.ratios);
+      assert.deepEqual(h.posted.filter(message=>message.type==="suspend").map(message=>message.value),[true,false]);
+      h.choose({value:"forward"});await h.manager.perform(1,"hoverDirection");assert.equal(h.layout.hoverDirection,"forward");
+      assert.equal(h.picks.at(-1).find((item:any)=>item.value==="both").picked,true);
+      h.choose(undefined);await h.manager.perform(1,"hoverDirection");assert.equal(h.writes,2,"Cancelling the picker must not save");
+      h.fail();await assert.rejects(h.manager.receive(1,h.surface,{type:"manage",action:"toggleHoverDirection"}),/read-only/);
+      assert.equal(h.layout.hoverDirection,"forward");assert.equal(h.posted.at(-1).value,false,"A failed save must release suspended interaction");
+    }finally{h.manager.dispose();}
+  });
   it("saves one ordered layout and carries weights without touching feature owners",async()=>{
     const h=harness();try{
       await h.send();assert.equal(h.writes,1);

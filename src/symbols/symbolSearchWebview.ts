@@ -79,7 +79,7 @@ export function renderSymbolSearchWebview(
   </style>
 </head>
 <body>
-  <div class="search-bar">
+  <div class="search-bar" data-ci-hover-pause>
     <input id="query" type="search" spellcheck="false" autocomplete="off" placeholder="${escapeAttribute(options.placeholder)}" aria-label="${escapeAttribute(options.placeholder)}">
     <button id="clear" type="button" title="${escapeAttribute(options.clearTitle)}" aria-label="${escapeAttribute(options.clearTitle)}">×</button>
   </div>

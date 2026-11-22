@@ -1355,6 +1355,7 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
+            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1376,6 +1377,12 @@
                 "vertical"
               ],
               "default": "horizontal"
+            },
+            "hoverDirection": {
+              "type": "string",
+              "enum": ["forward", "both"],
+              "default": "forward",
+              "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "views": {
               "type": "array",
@@ -1423,6 +1430,7 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
+            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1444,6 +1452,12 @@
                 "vertical"
               ],
               "default": "horizontal"
+            },
+            "hoverDirection": {
+              "type": "string",
+              "enum": ["forward", "both"],
+              "default": "forward",
+              "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "views": {
               "type": "array",
@@ -1491,6 +1505,7 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
+            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1512,6 +1527,12 @@
                 "vertical"
               ],
               "default": "horizontal"
+            },
+            "hoverDirection": {
+              "type": "string",
+              "enum": ["forward", "both"],
+              "default": "forward",
+              "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "views": {
               "type": "array",
@@ -1559,6 +1580,7 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
+            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1580,6 +1602,12 @@
                 "vertical"
               ],
               "default": "horizontal"
+            },
+            "hoverDirection": {
+              "type": "string",
+              "enum": ["forward", "both"],
+              "default": "forward",
+              "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "views": {
               "type": "array",

@@ -1232,7 +1232,7 @@ function htmlDocument(
   <style id="preview-colors">${colorStyle}</style>
 </head>
 <body>
-  <div class="header">
+  <div class="header" data-ci-hover-pause>
     <div class="heading">
       <div class="title">${title}</div>
       <div class="controls">

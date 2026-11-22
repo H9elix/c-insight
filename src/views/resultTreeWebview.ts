@@ -95,7 +95,7 @@ export function renderResultTreeWebview(options: ResultTreeWebviewOptions): stri
     #menu button:hover, #menu button:focus { background: var(--vscode-menu-selectionBackground); color: var(--vscode-menu-selectionForeground); }
     @media (prefers-reduced-motion: reduce) { .codicon-modifier-spin { animation: none !important; } }
   </style></head><body>
-  <div id="toolbar" data-persistent-filter="${!!options.persistentFilter}" data-track-interaction="${!!options.trackInteraction}">
+  <div id="toolbar" data-ci-hover-pause data-persistent-filter="${!!options.persistentFilter}" data-track-interaction="${!!options.trackInteraction}">
     <div id="filter-box" class="${options.persistentFilter ? "persistent" : ""}">
       <input id="filter" ${options.persistentFilter ? "" : "hidden"} type="search" spellcheck="false" autocomplete="off" aria-label="${escape(options.filterTitle)}" placeholder="${escape(options.filterTitle)}">
       <button id="filter-clear" hidden type="button" title="${escape(options.clearTitle ?? "Clear")}" aria-label="${escape(options.clearTitle ?? "Clear")}">×</button>
