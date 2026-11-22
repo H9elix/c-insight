@@ -160,7 +160,7 @@ describe("Code Preview color configuration and Webview wiring", () => {
     const extension = readFileSync("src/extension.ts", "utf8");
     assert.match(extension, /views\.preview\.configurationChanged\(event\)/);
     assert.match(provider, /case "previewReady":\s*this\.refreshColors\(\)/);
-    assert.match(provider, /view\.onDidChangeVisibility\(\(\) => \{\s*this\.refreshColors\(\);\s*this\.visibilityEmitter\.fire\(\)/);
+    assert.match(provider, /view\.onDidChangeVisibility\(\(\) => \{[\s\S]*?this\.refreshColors\(\);\s*this\.emitVisibility\(\)/);
   });
 
   it("executes the style message without changing code DOM, scroll, or selection", () => {

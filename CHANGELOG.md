@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Removed unused outer side gutters from combined views so the toolbar and content use the full available width while keeping their internal padding; focused toolbar buttons remain fully visible in cramped layouts.
+- Added configurable hover dwell, animation and restoration delays with live updates and zero-value controls; horizontal combinations place their global toolbar on the left, while vertical combinations keep it at the top.
+- Added title dragging to reorder panes within a combined view, with insertion markers, edge scrolling, cancellation and preserved pane proportions and browsing state.
+- Fixed combined-pane scrollbars and preview typography to follow VS Code theme and font settings; live theme changes retain pane state and fixed preview palettes, with themed focus controls and high-contrast pane boundaries.
+- Fixed combined-view creation failing when VS Code supplies localized command titles as objects; pane and toolbar names now use the translated text with safe fallbacks.
+
+- Added up to four customizable combined browsing views containing existing C Insight panes, with horizontal/vertical layouts, draggable splitters, pane ordering, renaming and user-wide layout preferences.
+- Added smooth hover expansion inside combined views, with minimum sizes, neighbor compression, interaction pauses and reduced-motion support.
+- Shared feature results and pins across original and combined views while retaining independent local filtering, expansion and scrolling; hidden and collapsed presentations withdraw their query demand.
+
 ## 0.22.29
 
 - Aligned Document Symbols with Project Files: successful unlocked double-click, Enter and Open Location actions clear the filter, including repeated opens of the same symbol. Single-click previews, failed opens and newer input preserve the query.

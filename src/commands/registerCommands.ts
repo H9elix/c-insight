@@ -7,7 +7,7 @@ import { ContextController } from "../context/contextController";
 import { ProjectDiagnostics } from "../diagnostics/projectDiagnostics";
 import { NavigationHistoryExplorer } from "../history/navigationHistoryExplorer";
 import { IncludeHierarchyExplorer } from "../includeHierarchy/includeHierarchyExplorer";
-import type { CommandId } from "../ids";
+import { VIEWS, type CommandId } from "../ids";
 import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
@@ -20,6 +20,7 @@ import { registerHierarchyCommands } from "./hierarchyCommands";
 import { registerNavigationCommands } from "./navigationCommands";
 import { registerReferenceCommands } from "./referenceCommands";
 import { registerWorkspaceToolCommands } from "./workspaceToolCommands";
+import { CombinedViewManager, registerCombinedCommands } from "../combined/combinedViewManager";
 
 export interface CommandDependencies {
   manager: ClangdManager; analysis: AnalysisService; controller: ContextController;
@@ -29,17 +30,22 @@ export interface CommandDependencies {
   includeHierarchy: IncludeHierarchyExplorer; workspaceSession: WorkspaceSessionManager;
   engine: AnalysisEngine; restoreWorkspaceSession: () => Promise<boolean>;
   projectFiles: ProjectFilesExplorer;
+  combinedViews: CombinedViewManager;
 }
 
 export function registerCommands(context: vscode.ExtensionContext, dependencies: CommandDependencies): void {
   const register = (id: CommandId, callback: (...args: unknown[]) => unknown): void => {
-    context.subscriptions.push(vscode.commands.registerCommand(id, callback));
+    context.subscriptions.push(vscode.commands.registerCommand(id, async (...args: unknown[]) => {
+      try { return await callback(...args); }
+      finally { dependencies.combinedViews.refreshActions(); }
+    }));
   };
   const activePosition = (): { uri: vscode.Uri; position: vscode.Position } | undefined => {
     const editor = vscode.window.activeTextEditor;
     return editor ? { uri: editor.document.uri, position: editor.selection.active } : undefined;
   };
   const d = dependencies;
+  registerCombinedCommands(register, d.combinedViews);
   registerExtensionControlCommands(register, context, d.engine, d.manager, d.controller, d.views);
   registerNavigationCommands(
     register,
@@ -51,7 +57,7 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
   );
   registerReferenceCommands(register, d.analysis, d.views, activePosition);
   registerCallHierarchyCommands(register, d.controller, d.views, activePosition);
-  registerDiagnosticCommands(register, d.manager, d.projectDiagnostics);
+  registerDiagnosticCommands(register, d.manager, d.projectDiagnostics, () => d.views.focusView(VIEWS.STATUS));
   registerWorkspaceToolCommands(register, {
     history: d.navigationHistory, bookmarks: d.bookmarks, symbolSearch: d.symbolSearch,
     workspaceSession: d.workspaceSession,

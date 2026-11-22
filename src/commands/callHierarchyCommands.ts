@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { ContextController } from "../context/contextController";
-import { COMMANDS, INTERNAL_COMMANDS } from "../ids";
+import { COMMANDS, VIEWS } from "../ids";
 import { ViewRegistry } from "../views/viewRegistry";
 import { RegisterCommand } from "./commandRegistrar";
 
@@ -19,7 +19,7 @@ export function registerCallHierarchyCommands(
         manualCallHierarchy: true,
         manualCallDirection: "incoming",
       });
-      await vscode.commands.executeCommand(INTERNAL_COMMANDS.CALLERS_FOCUS);
+      await views.focusView(VIEWS.CALLERS);
     }
   });
   register("cInsight.showOutgoingCalls", async () => {
@@ -29,7 +29,7 @@ export function registerCallHierarchyCommands(
         manualCallHierarchy: true,
         manualCallDirection: "outgoing",
       });
-      await vscode.commands.executeCommand(INTERNAL_COMMANDS.CALLEES_FOCUS);
+      await views.focusView(VIEWS.CALLEES);
     }
   });
   register(COMMANDS.CALLERS_SHOW_EXPANDED_TARGET, () =>

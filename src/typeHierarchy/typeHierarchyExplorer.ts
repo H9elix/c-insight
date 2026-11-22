@@ -82,7 +82,9 @@ export class TypeHierarchyExplorer implements vscode.Disposable {
         return;
       }
       this.setRoots(roots);
-      await vscode.commands.executeCommand(
+      const view = this.views.get(direction);
+      if (view?.focus) await view.focus();
+      else await vscode.commands.executeCommand(
         direction === "supertypes"
           ? "cInsight.supertypes.focus"
           : "cInsight.subtypes.focus",

@@ -23,7 +23,7 @@ export class ViewLifecycle implements vscode.Disposable {
     this.treeViews.set(id, view);
     this.track(view);
     if (notifyVisibility) {
-      this.track(view.onDidChangeVisibility(() => this.visibilityEmitter.fire(id)));
+      this.track(view.onDidChangeEffectiveVisibility(() => this.visibilityEmitter.fire(id)));
     }
     return view;
   }
@@ -44,7 +44,8 @@ export class ViewLifecycle implements vscode.Disposable {
   }
 
   isVisible(id: ViewId): boolean {
-    return this.treeViews.get(id)?.visible ?? false;
+    const view = this.treeViews.get(id);
+    return view instanceof WebviewResultTree ? view.effectiveVisible : view?.visible ?? false;
   }
 
   track(...items: vscode.Disposable[]): void {

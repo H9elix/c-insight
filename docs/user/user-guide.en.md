@@ -166,6 +166,38 @@ Create/delete/rename events coalesce into a 500 ms relisting; ordinary text edit
 
 When the limit is reached, a persistent status warns that both the inventory and its local search can be incomplete. No open workspace shows a folder/workspace prompt.
 
+## Combined views
+
+Run **C Insight: Create Combined View** and select panes. Up to four native slots—**Combined View 1**, **Combined View 2**, **Combined View 3**, and **Combined View 4**—can be shown and moved independently to the bottom, left, or right. Existing independent views remain available. Each combination supports horizontal or vertical arrangement regardless of docking location.
+
+Choose from Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, Project Files, and Project Diagnostics. A role can appear once per combination and in multiple combinations; Relationship Graph remains an editor panel. The combination toolbar adds panes, changes orientation, toggles hover expansion and opens management. Horizontal combinations place it vertically on the left, with buttons above the name; vertical combinations place it horizontally at the top, with the name on the left and buttons on the right. The outer surface has no side gutters: toolbar and content use the available width while keeping their internal padding. This follows arrangement rather than docking location; individual pane headers and VS Code's native title bar keep their layout. Long names truncate with a full-name tooltip, and the button group scrolls when space is limited. Management supports renaming, equal sizing and deletion; each pane's “…” menu provides its feature actions, moving earlier/later and removal. The pane arrow collapses it. Drag splitters or focus a splitter and use arrow keys to adjust base proportions.
+
+Drag a pane's title text to reorder it within the same combination: move left/right horizontally or up/down vertically, then release at the insertion marker. Approaching the scroll area's edge scrolls that axis. Each pane retains its base weight and collapsed state; collapsed panes can also move. Sizes freeze and hover expansion pauses during dragging; afterward base proportions return, and subsequent mouse movement can trigger hover again. Escape, window blur, pointer cancellation, dropping outside, or an external order/weight/orientation change cancels the drag. Header buttons and splitters keep their original actions; Move Earlier/Later remains available for keyboard use. Reordering uses the existing user layout settings, with no new setting or cross-combination dragging.
+
+A hovered pane receives twice its base allocation weight while neighbors compress. `cInsight.combinedViews.hoverEnterDelay` controls dwell (default `200` ms), `cInsight.combinedViews.hoverAnimationDuration` controls expansion/restoration animation (default `200` ms), and `cInsight.combinedViews.hoverLeaveDelay` controls the wait after leaving the entire combination (default `250` ms). All three are user-wide integer settings from `0` to `10000` ms and update all combinations without reloading. Zero means immediate expansion, no animation, or immediate restoration respectively; changing an active wait restarts it with the new value. Expanded panes have a minimum width of 160 px horizontally or height of 80 px vertically; undersized combinations scroll internally. A single expanded pane does not enlarge. Dragging, text selection, held mouse buttons and menus pause automatic resizing, and reduced-motion preferences always disable animation. Hovering does not focus, query the engine, reload code, or resize VS Code's outer view boundaries.
+
+Results, business filters and feature pins/locks remain shared. Callers/Callees retain their shared pin; References has its own pin; Code Preview shares its target and lock. Each tree presentation keeps independent local filtering, expansion, selection and scrolling. Symbol/file lists share their feature lock but manage local filter clearing and following independently. Actions target the originating presentation; editor commands prefer the last-used visible matching presentation, then the original view. Query demand is the OR of all visible presentations; hiding a combination or collapsing/removing its pane withdraws that presentation's demand without creating a second engine or semantic controller.
+
+Combined panes follow VS Code's dark, light and high-contrast themes for horizontal/vertical scrollbars, interface typography, inputs and focus indicators. Source text uses `editor.fontFamily` and `editor.fontSize`; fixed preview colors still follow `cInsight.codePreview.colorScheme` and `tokenColors`. Theme and font updates apply to styles while retaining filters, expansion and scroll positions.
+
+`cInsight.combinedViews.slot1` through `slot4` are application/user settings shared across projects. Each defaults to `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}`. `enabled` shows the slot, `title` allows up to 80 characters (empty uses the default), `direction` accepts `horizontal` or `vertical`, `views` lists unique role suffixes, and `ratios` supplies matching positive weights from `0.001` to `1000` (missing entries use `1`). Role suffixes are `context`, `preview`, `references`, `callers`, `callees`, `supertypes`, `subtypes`, `includes`, `includedBy`, `history`, `bookmarks`, `workspaceSymbols`, `symbols`, `projectFiles`, `status`. Native docking positions remain VS Code-managed; layout settings contain no source paths or semantic results. `cInsight.combinedViews.hoverExpand` defaults to `true` and is independent of feature locks.
+
+```json
+{
+  "cInsight.combinedViews.slot1": {
+    "enabled": true,
+    "title": "Code browsing",
+    "direction": "horizontal",
+    "views": ["preview", "callers", "references"],
+    "ratios": [2, 1, 1]
+  },
+  "cInsight.combinedViews.hoverExpand": true,
+  "cInsight.combinedViews.hoverEnterDelay": 200,
+  "cInsight.combinedViews.hoverAnimationDuration": 200,
+  "cInsight.combinedViews.hoverLeaveDelay": 250
+}
+```
+
 ## Configuration and commands
 
 Open **Settings** and search for `C Insight` to see every setting, accepted value, range, and default in the active display language. Stable configuration IDs begin with `cInsight.`. Important groups include:
@@ -177,6 +209,7 @@ The `cInsight.documentSymbols.*` family controls Document Symbols presentation a
 - `cInsight.references.*`, `cInsight.callHierarchy.*`, and `cInsight.export.*`
 - `cInsight.typeHierarchy.*`, `cInsight.includeHierarchy.*`, and `cInsight.relationshipGraph.*`
 - `cInsight.history.*`, `cInsight.bookmarks.*`, `cInsight.symbolSearch.*`, and `cInsight.session.*`
+- `cInsight.combinedViews.*` for user-wide combined layouts and hover expansion
 - `cInsight.includeDeclarationInReferences` and `cInsight.includeSystemReferences`
 
 All commands are available from the Command Palette under **C Insight**. Context menus and view title bars expose commands relevant to the current editor, view, or selected node.
@@ -213,6 +246,8 @@ This section is generated from `package.json`. Every command is available from t
 
 | Command | Command ID | Entry points |
 | --- | --- | --- |
+| Create Combined View | `cInsight.combinedViews.create` | Command Palette |
+| Manage Combined View | `cInsight.combinedViews.manage` | Command Palette; View title |
 | About | `cInsight.about` | Command Palette |
 | Show Relationship Graph | `cInsight.relationshipGraph.show` | Command Palette; Editor context menu |
 | Show File Relationship Graph | `cInsight.relationshipGraph.showFile` | Command Palette; Editor context menu |

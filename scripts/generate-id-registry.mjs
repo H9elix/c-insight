@@ -42,6 +42,11 @@ export const INTERNAL_COMMANDS = {
 ${objectLiteral("VIEWS", viewIds)}
 
 export const CONTEXT_KEYS = {
+  COMBINED_READY: "cInsight.combinedReady",
+  COMBINED_1_ENABLED: "cInsight.combined1Enabled",
+  COMBINED_2_ENABLED: "cInsight.combined2Enabled",
+  COMBINED_3_ENABLED: "cInsight.combined3Enabled",
+  COMBINED_4_ENABLED: "cInsight.combined4Enabled",
   ACTIVE: "cInsight.active",
   CONTEXT_PINNED: "cInsight.pinned",
   PREVIEW_LOCKED: "cInsight.previewLocked",

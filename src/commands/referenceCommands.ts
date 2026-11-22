@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { AnalysisService } from "../analysis/analysisService";
 import { readConfiguration } from "../configuration/configuration";
 import { ViewRegistry } from "../views/viewRegistry";
-import { INTERNAL_COMMANDS } from "../ids";
+import { VIEWS } from "../ids";
 import { RegisterCommand } from "./commandRegistrar";
 
 export function registerReferenceCommands(
@@ -38,7 +38,7 @@ export function registerReferenceCommands(
         callRoots[0]?.raw.name,
         true,
       );
-      await vscode.commands.executeCommand(INTERNAL_COMMANDS.REFERENCES_FOCUS);
+      await views.focusView(VIEWS.REFERENCES);
     } catch (error) {
       views.referencesFailed(error, true);
     }

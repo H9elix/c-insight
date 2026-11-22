@@ -25,25 +25,38 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   private scans = 0;
   private status = "";
   private readonly follow: ResultTreeFollowController;
+  private readonly follows = new Map<WebviewResultTree, ResultTreeFollowController>();
+  get isLocked(): boolean { return this.follow.isLocked; }
 
   constructor(extensionUri: vscode.Uri) {
     this.provider.setInteractionScope(VIEWS.PROJECT_FILES);
     this.view = new WebviewResultTree(VIEWS.PROJECT_FILES, this.provider, extensionUri, {
       persistentFilter: true, hideCollapseAll: true, trackInteraction: true, hideBookmarkAction: true,
       filterTitle: vscode.l10n.t("Filter files by name or path"),
-      onActivate: (node, intent, revision) => this.activate(node, intent, revision),
+      onActivate: (node, intent, revision, _context, presentation) => this.activate(node, intent, revision, presentation),
     });
     this.follow = new ResultTreeFollowController(this.view, {
       target: () => { const uri = this.activeUri(); return uri ? this.nodes.get(uri.toString()) : undefined; },
       key: node => node.location!.uri.toString(),
       enabled: () => vscode.workspace.getConfiguration("cInsight.projectFiles").get<boolean>("followActiveEditor", true),
     }, vscode.window);
+    this.follows.set(this.view, this.follow);
     this.disposables.push(
       this.follow, this.provider, this.view,
       vscode.window.registerWebviewViewProvider(VIEWS.PROJECT_FILES, this.view, {
         webviewOptions: { retainContextWhenHidden: true },
       }),
-      this.view.onDidChangeVisibility(({ visible }) => {
+      this.view.onDidCreatePresentation(presentation => {
+        const follow = new ResultTreeFollowController(presentation, {
+          target: () => { const uri = this.activeUri(); return uri ? this.nodes.get(uri.toString()) : undefined; },
+          key: node => node.location!.uri.toString(),
+          enabled: () => vscode.workspace.getConfiguration("cInsight.projectFiles").get<boolean>("followActiveEditor", true),
+        }, vscode.window);
+        follow.setLocked(this.follow.isLocked);
+        this.follows.set(presentation, follow);
+        presentation.onDidDispose(() => { follow.dispose(); this.follows.delete(presentation); });
+      }),
+      this.view.onDidChangeEffectiveVisibility(({ visible }) => {
         this.stopWatching();
         this.invalidate();
         if (visible) this.startWatching();
@@ -65,13 +78,13 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   }
 
   refresh(): void {
-    this.follow.cancel();
+    this.follows.forEach(follow => follow.cancel());
     this.invalidate();
-    if (this.view.visible) void vscode.commands.executeCommand(`${VIEWS.PROJECT_FILES}.focus`);
+    if (this.view.effectiveVisible) this.view.show();
   }
 
   async setLocked(locked: boolean): Promise<void> {
-    this.follow.setLocked(locked);
+    this.follows.forEach(follow => follow.setLocked(locked));
     await vscode.commands.executeCommand("setContext", CONTEXT_KEYS.PROJECT_FILES_LOCKED, locked);
   }
 
@@ -81,14 +94,15 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       { label: vscode.l10n.t("Relative path"), value: "path" },
       { label: vscode.l10n.t("File type"), value: "type" },
     ];
-    await this.follow.interact(async () => {
+    const follow = this.follows.get(this.view.activePresentation) ?? this.follow;
+    await follow.interact(async () => {
       const selected = await vscode.window.showQuickPick(choices, { title: vscode.l10n.t("Sort Project Files") });
       if (selected) {
         await vscode.workspace.getConfiguration("cInsight.projectFiles").update(
           "sortBy", selected.value, vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global,
         );
       }
-      if (this.view.visible) await vscode.commands.executeCommand(`${VIEWS.PROJECT_FILES}.focus`);
+      if (this.view.effectiveVisible) await this.view.focus();
     });
   }
 
@@ -109,6 +123,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
     this.stopWatching();
     this.disposables.forEach(item => item.dispose());
     this.nodes.clear(); this.entries = [];
+    this.follows.forEach(follow => follow.dispose()); this.follows.clear();
   }
 
   private startWatching(): void {
@@ -125,7 +140,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
     this.revision++;
     this.cancellation?.cancel();
     clearTimeout(this.timer); this.timer = undefined;
-    if (!this.disposed && this.view.visible) this.queueScan(delay);
+    if (!this.disposed && this.view.effectiveVisible) this.queueScan(delay);
   }
 
   private queueScan(delay: number): void {
@@ -139,7 +154,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   private setStatus(status: string): void { this.status = status; this.view.setStatus(status); }
 
   private async scan(): Promise<void> {
-    if (this.scanning || !this.dirty || this.disposed || !this.view.visible) return;
+    if (this.scanning || !this.dirty || this.disposed || !this.view.effectiveVisible) return;
     this.dirty = false;
     const revision = this.revision;
     const cancellation = new vscode.CancellationTokenSource();
@@ -156,7 +171,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       this.scans++;
       // undefined preserves folder-specific files.exclude, not search.exclude or .gitignore.
       const discovered = await this.discoverFiles(maximum, cancellation.token);
-      if (this.disposed || cancellation.token.isCancellationRequested || revision !== this.revision || !this.view.visible) return;
+      if (this.disposed || cancellation.token.isCancellationRequested || revision !== this.revision || !this.view.effectiveVisible) return;
       const byUri = new Map<string, ProjectFileEntry>();
       for (const uri of discovered) {
         const folder = vscode.workspace.getWorkspaceFolder(uri);
@@ -179,7 +194,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       cancellation.dispose();
       if (this.cancellation === cancellation) this.cancellation = undefined;
       this.scanning = false;
-      if (this.dirty && this.view.visible && !this.disposed) this.queueScan(0);
+      if (this.dirty && this.view.effectiveVisible && !this.disposed) this.queueScan(0);
     }
   }
 
@@ -212,11 +227,11 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   }
 
   private updateActiveFile(): void {
-    if (this.disposed || !this.view.visible) return;
+    if (this.disposed || !this.view.effectiveVisible) return;
     const uri = this.activeUri();
     const enabled = vscode.workspace.getConfiguration("cInsight.projectFiles").get<boolean>("followActiveEditor", true);
     const next = enabled && uri ? this.nodes.get(uri.toString()) : undefined;
-    if (next === this.highlighted) { this.follow.schedule(); return; }
+    if (next === this.highlighted) { this.follows.forEach(follow => follow.schedule()); return; }
     const changed: TreeNode[] = [];
     if (this.highlighted) {
       this.highlighted.labelHighlights = undefined;
@@ -230,7 +245,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       changed.push(next);
     }
     this.view.refreshPresentations(changed);
-    this.follow.schedule();
+    this.follows.forEach(follow => follow.schedule());
   }
 
   private activeUri(): vscode.Uri | undefined {
@@ -239,10 +254,10 @@ export class ProjectFilesExplorer implements vscode.Disposable {
       ? input.uri : input instanceof vscode.TabInputTextDiff ? input.modified : undefined;
   }
 
-  private async activate(node: TreeNode, intent: "preview" | "open", inputRevision = this.view.inputRevision): Promise<void> {
+  private async activate(node: TreeNode, intent: "preview" | "open", inputRevision = this.view.inputRevision, presentation = this.view): Promise<void> {
     const uri = node.location?.uri;
     if (!uri || this.nodes.get(uri.toString()) !== node) return;
-    await this.follow.activate(node, intent, inputRevision, async current => {
+    await this.follows.get(presentation)?.activate(node, intent, inputRevision, async current => {
       try {
         const stat = await this.statFile(uri);
         if (!current()) return false;

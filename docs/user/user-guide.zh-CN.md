@@ -974,6 +974,46 @@ Include 边始终表示 Includer → Included，即“包含者 → 被包含文
 
 默认最多加载 50000 个文件。触及上限时，状态行提示列表和搜索可能不完整；提高上限后重新加载。清单和搜索文字只在当前视图运行期使用，不加入工作区会话快照。没有打开文件夹时显示引导提示。
 
+### 4.18 组合视图（Combined View）
+
+执行 **C Insight: 创建组合视图**，选择要放在一起的功能窗格。最多可以同时使用**组合视图 1、组合视图 2、组合视图 3、组合视图 4**，每个组合都是一个原生 VS Code 视图，可独立移动到下方、左侧或右侧；原来的独立栏目继续保留。
+
+组合内可加入上下文、代码预览、引用、调用者、被调用者、父类型、子类型、包含文件、被包含关系、导航历史、书签、符号搜索、文档符号、工程文件和工程诊断。同一个功能可出现在不同组合中，在同一组合中只能加入一次；关系图继续在编辑器面板中打开。
+
+组合总工具栏提供添加窗格、切换水平/垂直排列、切换悬停扩展及管理按钮。水平组合将总工具栏放在左侧竖排，快捷按钮在上、名称在下；垂直组合将其放在顶部横排，名称在左、按钮在右。组合外层不保留左右空白，工具栏和内容使用完整宽度，各自的内部边距保持不变。位置跟随组合的排列方向，而非 VS Code 的停靠位置；子窗格标题和 VS Code 原生标题栏保持原布局。名称过长时省略，悬停可查看全名；空间不足时按钮区域可滚动。管理菜单支持重命名、等分尺寸和删除；每个窗格的“…”菜单包含其功能操作、前移、后移和移除。窗格自己的箭头用于折叠/展开；拖动窗格之间的分隔条调整基础比例，选中分隔条后也可使用方向键调整。
+
+按住窗格标题文字拖动，可在同一组合中调整顺序：水平排列时左右拖动，垂直排列时上下拖动，按插入线提示放到目标前后；靠近滚动区域边缘会自动滚动。基础比例随窗格移动，折叠窗格也能排序并保留折叠状态。拖动期间冻结尺寸并暂停悬停扩展，结束后恢复基础比例，继续移动鼠标才重新触发悬停。Escape、窗口失焦、指针取消或在组合区域外松开会取消；外部修改顺序、比例或方向时也会取消。标题按钮仍执行原功能，分隔条仍用于调尺寸；“前移/后移”菜单保留供键盘操作。排序保存到原有用户级布局，不新增设置项，不支持跨组合拖动。
+
+开启悬停扩展时，鼠标在一个窗格内停留后，该窗格按两倍基础权重分配空间，相邻窗格相应缩小。`cInsight.combinedViews.hoverEnterDelay` 控制触发等待，默认 `200` 毫秒；`hoverAnimationDuration` 控制扩展/恢复动画，默认 `200` 毫秒；`hoverLeaveDelay` 控制移出整个组合后的恢复等待，默认 `250` 毫秒。这三项均位于 `cInsight.combinedViews` 下，接受 `0`–`10000` 的整数，作用于所有组合，修改后无需重载；`0` 分别表示立即扩展、无动画和立即恢复。等待期间修改对应时长会按新值重新计时。水平排列的展开窗格至少 160 像素宽，垂直排列至少 80 像素高；空间不足时组合内部滚动。只有一个展开窗格时不扩展。拖动分隔条、选中文本、按住鼠标或打开菜单时暂停自动调整；系统启用减少动态效果时始终不播放过渡动画。悬停不会抢焦点或触发语义查询，也不会改变外部原生窗口的尺寸。
+
+同一功能在多个位置显示时共享查询结果、业务筛选和固定/锁定状态：调用者与被调用者仍共用固定状态，引用独立固定，代码预览共用目标及锁定。树的局部过滤、展开、选择和滚动位置属于各自窗格；文档符号与工程文件共享功能锁，但过滤词和自动定位按各显示实例处理。工具栏操作优先作用于发起操作的显示位置，编辑器命令优先使用最近操作且可见的相应位置，没有可见位置时打开原栏目。
+
+同一功能有任一显示位置可见就保留该功能的可见需求；隐藏整个组合、折叠或移除窗格会撤销对应显示位置的需求。重复加入不会建立第二个分析引擎或第二份语义查询控制器；引擎自己的后台索引不受窗格悬停控制。
+
+组合窗格的横纵滚动条、界面字体、输入框和焦点样式随 VS Code 主题更新，支持深色、浅色及高对比度主题。代码字体和字号使用 `editor.fontFamily`、`editor.fontSize`；预览固定配色仍按 `cInsight.codePreview.colorScheme` 和 `tokenColors` 显示。主题与字体更新直接作用于样式，保留当前筛选、展开及滚动位置。
+
+名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。全部默认值见[9.16 节](#916-组合视图combined-view)。
+
+布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
+
+例如，在用户设置中配置下方横向阅读组合，再使用 VS Code 的“移动视图”将其放到面板：
+
+```json
+{
+  "cInsight.combinedViews.slot1": {
+    "enabled": true,
+    "title": "代码阅读",
+    "direction": "horizontal",
+    "views": ["preview", "callers", "references"],
+    "ratios": [2, 1, 1]
+  },
+  "cInsight.combinedViews.hoverExpand": true,
+  "cInsight.combinedViews.hoverEnterDelay": 200,
+  "cInsight.combinedViews.hoverAnimationDuration": 200,
+  "cInsight.combinedViews.hoverLeaveDelay": 250
+}
+```
+
 ## 5. 底部可靠性状态栏
 
 底部状态栏是全局可靠性警告的唯一显示位置：
@@ -1296,6 +1336,21 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
 | `cInsight.projectFiles.followActiveEditor` | boolean | `true` | `true` / `false` | 高亮活动文件；视图未聚焦且未锁定时定位，必要时清空遮挡目标的筛选；关闭立即移除标记，不影响未锁定时显式打开后的清空 |
 | `cInsight.projectFiles.maximumFiles` | integer | `50000` | 1000–200000 | 文件清单加载上限；改变后在窗口可见时重新枚举，隐藏时等待再次显示 |
 
+### 9.16 组合视图（Combined View）
+
+以下设置均为用户级配置，跨工程共用；界面操作会写入全局用户设置。布局对象字段、完整功能后缀和示例见[4.18 节](#418-组合视图combined-view)。
+
+| 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`views`、`ratios` | 第一个组合布局 |
+| `cInsight.combinedViews.slot2` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第二个组合布局 |
+| `cInsight.combinedViews.slot3` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第三个组合布局 |
+| `cInsight.combinedViews.slot4` | object | `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}` | 同上 | 第四个组合布局 |
+| `cInsight.combinedViews.hoverExpand` | boolean | `true` | `true` / `false` | 所有组合的悬停扩展，与功能固定/锁定无关 |
+| `cInsight.combinedViews.hoverEnterDelay` | integer | `200` | 0–10000 ms | 悬停触发等待；`0` 立即扩展，热更新已有等待 |
+| `cInsight.combinedViews.hoverAnimationDuration` | integer | `200` | 0–10000 ms | 扩展/恢复动画时长；`0` 无动画，减少动态效果设置优先 |
+| `cInsight.combinedViews.hoverLeaveDelay` | integer | `250` | 0–10000 ms | 鼠标移出组合后的恢复等待；`0` 立即恢复，热更新已有等待 |
+
 ## 10. 配置示例
 
 ### 常规 CMake 工程
@@ -1457,6 +1512,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 符号搜索（Symbol Search） | 当前分析引擎的工作区符号（Workspace Symbols） | 显式查询 | — | 查询文本与类型过滤 | 分组 | — | 单击预览；双击打开 |
 | 文档符号（Document Symbols） | 当前分析引擎的文档符号 | 窗口可见且活动文档变化时 | 独立锁定自动定位，数据和高亮仍更新 | 常驻名称子串筛选，包含折叠子项 | 保留层级，支持同层位置/名称/类型排序 | — | 单击预览；双击打开 |
 | 工程文件（Project Files） | 工作区文件枚举 | 可见时同步文件事件；离焦跟随活动文件 | 独立锁定自动清空与滚动 | 常驻名称/路径子串筛选 | 平铺；三种排序 | — | 单击文本预览；双击打开 |
+| 组合视图（Combined View） | 复用现有功能结果 | 合并各实例的可见需求 | 沿用对应功能；悬停开关独立 | 沿用对应功能，树局部筛选独立 | 树局部展开独立 | 沿用对应功能 | 共用预览目标，各自保留滚动 |
 | 工程诊断（Project Diagnostics） | 引擎/提供程序状态、索引、数据库、编译命令和 Language diagnostics | 状态或活动文件变化时 | — | — | 诊断分组 | Text、JSON、剪贴板 | 源码诊断单击预览；双击打开 |
 | 父类型（Supertypes）/子类型（Subtypes） | clangd 类型层次（Type Hierarchy）与关系证据 | 显式触发 | — | 按类型/关系过滤已加载节点，显示深度和路径 | 懒加载、按深度展开 | 含统计 Text/JSON/Mermaid | 单击预览；双击打开 |
 | 包含文件（Includes）/被包含关系（Included By） | 源码解析、编译命令 Include 路径、反向索引 | 显式触发；文件变化增量失效 | — | 已加载节点搜索 | 懒加载、按深度展开 | Text、JSON、Mermaid | 单击/双击关系行；右键打开目标 |
@@ -1470,6 +1526,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 | 状态 | 保存位置 | 作用域 | 重启后 |
 | --- | --- | --- | --- |
+| 组合名称、功能顺序、方向和比例 | 用户设置（application） | 跨工程 | 保留布局定义；外部停靠位置由 VS Code 保存 |
 | 引用（References）、符号搜索（Symbol Search）分组和书签排序 | VS Code Workspace Settings | 当前文件夹或 `.code-workspace` | 保留 |
 | 书签（Bookmarks）内容、标签和分组 | VS Code `workspaceState` | 当前工作区 | 保留 |
 | 导航历史（Navigation History）、代码预览（Code Preview）、引用搜索状态、调用层次（Call Hierarchy）、打开的关系图（Graph） | C Insight 工作区会话（Workspace Session）快照 | 当前工作区 | 按会话（Session）配置恢复 |
@@ -1508,6 +1565,8 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 | 命令 | Command ID | 入口 |
 | --- | --- | --- |
+| 创建组合视图 | `cInsight.combinedViews.create` | 命令面板 |
+| 管理组合视图 | `cInsight.combinedViews.manage` | 命令面板；窗口标题栏 |
 | 关于 | `cInsight.about` | 命令面板 |
 | 显示关系图 | `cInsight.relationshipGraph.show` | 命令面板；编辑器右键菜单 |
 | 显示文件关系图 | `cInsight.relationshipGraph.showFile` | 命令面板；编辑器右键菜单 |
