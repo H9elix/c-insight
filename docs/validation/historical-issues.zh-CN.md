@@ -1,6 +1,6 @@
 # C Insight 历史问题与回归案例库
 
-汇编日期：`2026-10-17`；当前行为基线：`0.23.1`。本库结合历次用户反馈、[更新日志](../../CHANGELOG.md)、Git 历史及现有测试建立，当前共 `53` 条记录。编号永久保留；后续报告按[测试指南](regression-testing-guide.zh-CN.md)继续登记。
+汇编日期：`2026-10-17`；当前行为基线：`0.23.1`。本库结合历次用户反馈、[更新日志](../../CHANGELOG.md)、Git 历史及现有测试建立，当前共 `54` 条记录。编号永久保留；后续报告按[测试指南](regression-testing-guide.zh-CN.md)继续登记。
 
 每条记录列出症状、定位、复现与测试入口；带日期的执行记录说明构建、环境和结果。未知版本、根因及未验证场景保留待确认状态。源码行号随修订变化，复现时应按符号定位。
 
@@ -548,6 +548,20 @@
 - 复现与预期：公开前复核安装包、演示图、作者、Tag/历史和旧附件；案例库仅保存脱敏证据。改写或删除历史需维护者明确授权。
 - 覆盖：[公开仓库契约](../../test/unit/publicRepositoryContract.test.ts)检查当前元数据与包白名单；Git 全历史、图片头像和旧 Release 附件另行审计。
 
+<a id="ci-reg-054"></a>
+
+### CI-REG-054 WSL 安装 VSIX 时 Windows Code.exe 报 Exec format error
+
+- 首次反馈（`2026-11-22`）：维护者在 WSL 终端执行 `code --install-extension c-insight-0.23.1-view-discovery-menu-preview.vsix`，Windows 侧 VS Code 的 `bin/code` 脚本调用 `Code.exe` 时提示 `Exec format error`，没有进入扩展安装阶段。源码基线为 `22e47af`；现场 VS Code 版本及终端来自独立 WSL 窗口还是 VS Code 集成终端待确认。
+- 性质与状态：外部启动／互操作环境问题，已确认失败环节，底层原因待定位；不是插件运行时异常，尚无证据指向 VSIX 内容。
+- 复现与预期：在发生问题的同一终端检查 `type -a code`，重试原安装命令；预期能启动有效的 VS Code CLI 并安装到源码所在的 WSL 扩展宿主，实际启动 Windows 程序就失败。
+- 已知证据：本地只读检查确认 `code` 解析到 Windows 安装目录，启动器在定位 WSL 扩展及最终执行命令时调用 `Code.exe`；该程序为 x86-64 Windows PE 可执行文件，不能当成普通 Linux ELF 执行。WSL 的 Windows 可执行文件解释器或互操作链路不可用是待验证方向，不能仅由智能体受限命名空间中看不到注册项就判定整个 WSL 已关闭互操作。
+- 补充定位：经批准在沙箱外执行只读测试，`cmd.exe /c ver` 同样返回 `Exec format error`。该环境中 `binfmt_misc` 总开关为 `enabled`，却没有 `WSLInterop` 或其他已注册解释器条目；`wsl.conf` 只有启用 systemd 的配置，没有显式关闭互操作。当前会话 Windows 程序启动不可用已复现，注册项为何缺失仍未确认；不能据此把 systemd 或 VS Code 更新认定为根因。
+- 排查与绕行：先使用已连接 WSL 的 VS Code 窗口执行“扩展：从 VSIX 安装…”，并核对安装到 WSL；或在该窗口新建集成终端，确认 `code` 使用当前服务器的 `remote-cli`。需独立验证普通 WSL 终端能否运行 Windows 程序；未获授权不改 `wsl.conf`、系统注册项、PATH 或重启 WSL。
+- 回归与人工检查：自动化只核查文档和链接，不把插件宿主测试计作 WSL CLI 修复。仍需维护者确认 UI 安装结果、同一终端的 CLI 路径及 Windows 程序启动结果；当前未修复系统环境、未验收或发布。
+- 本次执行：命令参考、中文术语、Markdown 自然段、本地链接、既有发布说明及 `git diff --check` 均通过；没有修改插件源码、重新打包或更改系统配置。
+- 关联：CI-REG-046 的安装与构建一致性、[WSL 官方互操作说明](https://learn.microsoft.com/en-us/windows/wsl/interop)、[VS Code 远程 VSIX 安装](https://code.visualstudio.com/docs/remote/troubleshooting#_need-to-install-local-vsix-on-remote-endpoint)。
+
 ## 后续记录
 
-新增实际报告从 `CI-REG-054` 开始，沿用[登记模板](regression-testing-guide.zh-CN.md#7-新问题登记模板与维护流程)。同一问题追加环境、证据、已证伪方向及验收记录，不为一次重试或一条附加日志随意新建编号。当前记录数和“下一个编号”也要随新增同步；保留被修复条目，防止以后回归时失去复现依据。编号 048 归在第三节引用展示，049 归在第四节编译参数宏，不因主题分类而重排其他编号。
+新增实际报告从 `CI-REG-055` 开始，沿用[登记模板](regression-testing-guide.zh-CN.md#7-新问题登记模板与维护流程)。同一问题追加环境、证据、已证伪方向及验收记录，不为一次重试或一条附加日志随意新建编号。当前记录数和“下一个编号”也要随新增同步；保留被修复条目，防止以后回归时失去复现依据。编号 048 归在第三节引用展示，049 归在第四节编译参数宏，不因主题分类而重排其他编号。

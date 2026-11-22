@@ -1,6 +1,6 @@
 # C Insight 历史问题驱动测试指南
 
-本指南基于当前 `0.23.1` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `53` 条记录。
+本指南基于当前 `0.23.1` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `54` 条记录。
 
 本指南及案例库中的源码和测试链接面向 GitHub 或完整源码工作副本；从已安装扩展阅读时，请到项目仓库打开这些文件。
 
@@ -52,6 +52,7 @@
 | 组合视图、多显示实例 | 022–028、037、042–043、050–053 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | 文档与本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`；依赖覆盖需检查实际解析版本及生产构建补丁，Release 附件与隐私人工复核 |
 | 打开视图、首次可见提示、编辑器菜单 | 037、043–044、050 | `viewCatalog`、`viewDiscovery`、`viewMenu`；组合宿主覆盖原生选择／取消、准确聚焦及请求计数，搜索键入、右键视觉和中文／Remote 按[专项验证](view-discovery.zh-CN.md)人工检查 |
+| WSL 中的 VSIX 安装与 CLI 启动 | 046、054 | 先区分 Windows 启动器、当前服务器 `remote-cli` 与安装目标；验证受限智能体外的 Windows 程序启动和 WSL 窗口 UI 安装，不用插件 E2E 代替系统互操作检查 |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。各案例列出自动断言与人工检查项。
 
