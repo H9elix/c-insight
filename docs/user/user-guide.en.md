@@ -4,6 +4,14 @@ This guide applies to C Insight `0.23.1`. C Insight is a Source Insight-style C/
 
 ## Getting started
 
+Run **C Insight: Open View…** from the Command Palette or a C/C++ editor's context menu. The searchable picker lists 15 independent views with short purposes, up to four enabled combined views with their custom names and slot numbers, and actions to create/manage combinations. Search matches names, English aliases and purposes. Highlighting or cancelling opens nothing; accepting an independent view opens its native pane, not a combined presentation of that feature. Selecting a combination opens that exact slot. With no combinations, Manage offers to create one; Create uses the existing four-slot limit.
+
+The independent views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, Project Files, and Project Diagnostics. Type Hierarchy requires clangd. The picker itself issues no analysis requests; making a pane visible follows that feature's usual query and visibility rules. Native VS Code view movement and saved layouts remain unchanged.
+
+A nonmodal one-time tip appears when any independent or enabled combined pane first becomes visible, including a restored pane or History/Bookmarks. Activating the extension, opening only a source file, or opening only the picker does not trigger it. Dismissal is remembered in the extension host/profile's global state, without per-version resets or synchronization; local, WSL and SSH hosts keep separate records. Existing installations receive the tip once too. Its **Open Views…** action opens the same picker without moving other panes.
+
+The C/C++ editor context menu puts **Open View…** first in C Insight's group, followed by Bookmark Current Symbol, Show Includes, Show Included By, Show Relationship Graph, Show File Relationship Graph, and **C Insight: Symbol Navigation**. That submenu contains Go to Definition, Find All References, Show Incoming Calls, Show Outgoing Calls, Show Supertypes, and Show Subtypes. Call commands appear for C/C++; type commands appear for C++/Objective-C++. The Command Palette, F12/Shift+F12, pane toolbars, result-item menus and native VS Code commands retain their existing entry points.
+
 Result trees use a shared Webview renderer. Clicking a source-location name previews it; double-clicking opens it in the editor without changing branch expansion. Only disclosure arrows or the left/right keys expand and collapse branches. The same rules apply to Callers, Callees, Context, References, Type/Include Hierarchy, Navigation History, Bookmarks, Document Symbols, and Project Diagnostics. Enter opens the selected result; Space previews it. Ordinary result views have Collapse All and a local filter for currently expanded rows; Ctrl+F/Cmd+F opens that filter and Escape clears it. Document Symbols and Project Files instead keep their search inputs visible; Escape clears without hiding them. Existing view-title commands and node context actions remain available. The renderer virtualizes rows and resolves source descriptions only for the displayed viewport.
 
 View headers, containers, and layout moves remain native VS Code features; the renderer replaces only result content. Callers and Callees can still share one C Insight tab in the bottom panel. If dragging does not reach the desired drop target, run **View: Move View**, select the view, and choose the existing destination container rather than a new panel. **View: Move Focused View** is also available; no full layout reset is required.
@@ -12,7 +20,7 @@ Open a C/C++ folder or multi-root workspace, provide a `compile_commands.json` w
 
 Cross-compiled bare-metal and embedded Linux projects should generate that database from the real target toolchain. Configure a narrow clangd `--query-driver` allowlist when the driver must supply target and system-header defaults; keep `--sysroot`, `--target`, CPU/ABI options, includes, and defines in compile commands or `.clangd`, not in clangd server arguments. Microsoft mode requires its own cpptools `compileCommands` and `compilerPath` configuration. See [Cross-compilation and embedded projects](cross-compilation.en.md) for complete examples and Remote-path constraints.
 
-The main views are Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, and Project Diagnostics. Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
+Queries are demand-driven: hidden relationship views do not issue their corresponding automatic detail requests.
 
 When an automatic cursor query returns no definition, declaration, Call Hierarchy root, hover, or symbol information, C Insight treats the position as symbol-free and preserves the existing Context, Code Preview, References, Callers, and Callees. It also skips delayed References and call-count details for that position. Explicit Refresh, Find All References, and Show Incoming/Outgoing Calls still query and publish the selected position, including an empty result; switching to a non-C/C++ editor retains the existing clear behavior.
 
@@ -251,6 +259,7 @@ This section is generated from `package.json`. Every command is available from t
 
 | Command | Command ID | Entry points |
 | --- | --- | --- |
+| Open View… | `cInsight.openView` | Command Palette; Editor context menu |
 | Create Combined View | `cInsight.combinedViews.create` | Command Palette |
 | Manage Combined View | `cInsight.combinedViews.manage` | Command Palette; View title |
 | About | `cInsight.about` | Command Palette |
@@ -259,11 +268,11 @@ This section is generated from `package.json`. Every command is available from t
 | Export Relationship Graph as Text | `cInsight.relationshipGraph.exportText` | Command Palette |
 | Export Relationship Graph as JSON | `cInsight.relationshipGraph.exportJson` | Command Palette |
 | Export Relationship Graph as Mermaid | `cInsight.relationshipGraph.exportMermaid` | Command Palette |
-| Go to Definition | `cInsight.goToDefinition` | Command Palette; Editor context menu; Keybinding `f12` |
-| Find All References | `cInsight.findReferences` | Command Palette; Editor context menu; Keybinding `shift+f12` |
-| Show Incoming Calls | `cInsight.showIncomingCalls` | Command Palette; Editor context menu; Callers title |
+| Go to Definition | `cInsight.goToDefinition` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Keybinding `f12` |
+| Find All References | `cInsight.findReferences` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Keybinding `shift+f12` |
+| Show Incoming Calls | `cInsight.showIncomingCalls` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Callers title |
 | Show Expanded Function Callers | `cInsight.callers.showExpandedTarget` | Command Palette; Callers title; Tree item context menu |
-| Show Outgoing Calls | `cInsight.showOutgoingCalls` | Command Palette; Editor context menu; Callees title |
+| Show Outgoing Calls | `cInsight.showOutgoingCalls` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Callees title |
 | Pin Context | `cInsight.pinContext` | Command Palette; Context title |
 | Unpin Context | `cInsight.unpinContext` | Command Palette; Context title |
 | Pin References | `cInsight.pinReferences` | Command Palette; References title |
@@ -332,8 +341,8 @@ This section is generated from `package.json`. Every command is available from t
 | Find Callee Path | `cInsight.callees.findPath` | Command Palette; Callees title |
 | Export Callers as Mermaid | `cInsight.callers.exportMermaid` | Command Palette; Callers title |
 | Export Callees as Mermaid | `cInsight.callees.exportMermaid` | Command Palette; Callees title |
-| Show Supertypes | `cInsight.typeHierarchy.showSupertypes` | Command Palette; Editor context menu; Supertypes title |
-| Show Subtypes | `cInsight.typeHierarchy.showSubtypes` | Command Palette; Editor context menu; Subtypes title |
+| Show Supertypes | `cInsight.typeHierarchy.showSupertypes` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Supertypes title |
+| Show Subtypes | `cInsight.typeHierarchy.showSubtypes` | Command Palette; Editor context menu → C Insight: Symbol Navigation; Subtypes title |
 | Expand Supertypes to Depth | `cInsight.supertypes.expandToDepth` | Command Palette; Supertypes title |
 | Expand Subtypes to Depth | `cInsight.subtypes.expandToDepth` | Command Palette; Subtypes title |
 | Stop Type Hierarchy Expansion | `cInsight.typeHierarchy.stopExpansion` | Command Palette; Supertypes title |

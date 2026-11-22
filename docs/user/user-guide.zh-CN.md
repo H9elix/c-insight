@@ -98,7 +98,7 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 2. 为工程生成 `compile_commands.json`。
 3. 打开任意 `.c`、`.cc`、`.cpp` 或 `.cxx` 文件。
 4. 查看底部 C Insight 状态栏是否为准备就绪（Ready）或正在索引（Indexing）。
-5. 打开 C Insight 侧栏，将光标放在函数、变量或类型名称上。
+5. 在命令面板或 C/C++ 编辑器右键菜单执行 **C Insight：打开视图…（Open View…）**，选择需要的栏目，再将光标放在函数、变量或类型名称上。
 6. 使用上下文（Context）、代码预览（Code Preview）、引用（References）、调用者（Callers）和被调用者（Callees）浏览关系。
 7. 如果结果异常，单击底部状态栏进入工程诊断（Project Diagnostics）。
 
@@ -115,6 +115,34 @@ build/compile_commands.json
 ```
 
 交叉编译工程必须使用真实目标工具链生成数据库；目标架构、sysroot、query driver、Remote 路径和 Microsoft 模式的独立配置见[交叉编译与嵌入式工程配置](cross-compilation.zh-CN.md)。
+
+### 打开视图与右键入口
+
+“C Insight：打开视图…”使用 VS Code 原生快速选择框，按清单顺序显示 15 个独立视图及用途，随后列出最多四个已启用的组合视图（Combined Views）和创建／管理入口。输入可匹配中文名称、英文名称和用途。移动候选焦点或取消不会打开栏目；确认独立视图时直接打开该原生栏目，不会跳到组合中的同名功能。选择已有组合会打开对应槽位，自定义名称重复时可用槽位编号区分。没有组合时，管理入口会询问是否创建；创建沿用四个槽位的上限。
+
+| 独立视图 | 主要用途 |
+| --- | --- |
+| 上下文（Context） | 符号摘要及定义／声明链接 |
+| 代码预览（Code Preview） | 查看源码位置并继续浏览定义 |
+| 引用（References） | 分类、分组和筛选符号使用位置 |
+| 调用者（Callers） | 查看传入调用及准确调用点 |
+| 被调用者（Callees） | 查看当前函数调用的函数 |
+| 父类型（Supertypes） | 浏览 C++ 基类型，需要 clangd |
+| 子类型（Subtypes） | 浏览 C++ 派生类型，需要 clangd |
+| 包含文件（Includes） | 查看当前文件包含的文件 |
+| 被包含关系（Included By） | 查看哪些文件包含当前文件 |
+| 导航历史（Navigation History） | 返回已浏览的代码位置 |
+| 书签（Bookmarks） | 保存和整理常用位置 |
+| 符号搜索（Symbol Search） | 搜索工作区符号 |
+| 文档符号（Document Symbols） | 浏览当前文档的符号 |
+| 工程文件（Project Files） | 搜索和排序工作区文件 |
+| 工程诊断（Project Diagnostics） | 查看引擎、编译配置和运行状态 |
+
+首次实际显示任一独立视图或已启用组合视图时，会出现一次非模态提示，提供“打开视图…”按钮；恢复出的栏目、导航历史和书签同样计入。仅激活扩展、打开源码文件或打开选择框不会触发提示。关闭通知也算已提示，标记保存在当前扩展宿主／配置文件的全局状态中，不按版本重置或同步，本地、WSL 和 SSH 各自记录；已有安装也会提示一次。引导不会自动打开其他栏目或调整布局。
+
+C/C++ 编辑器右键菜单中的 C Insight 分组依次为：打开视图、为以下符号添加书签：当前符号、显示包含文件、显示被包含关系、显示关系图、显示文件关系图、**C Insight：符号导航（Symbol Navigation）**。符号导航子菜单包含转到定义、查找所有引用、显示传入调用、显示传出调用、显示父类型和显示子类型。调用命令适用于 C/C++，类型命令适用于 C++/Objective-C++。命令面板、F12/Shift+F12、栏目工具栏、结果右键菜单和 VS Code 自带菜单保持原有入口。
+
+选择框本身不发起分析查询；打开栏目后按原有可见性规则加载对应内容。拖动归组、视图位置和已保存布局仍由 VS Code 管理。
 
 ## 3. 总体更新逻辑
 
@@ -1570,6 +1598,7 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 
 | 命令 | Command ID | 入口 |
 | --- | --- | --- |
+| 打开视图… | `cInsight.openView` | 命令面板；编辑器右键菜单 |
 | 创建组合视图 | `cInsight.combinedViews.create` | 命令面板 |
 | 管理组合视图 | `cInsight.combinedViews.manage` | 命令面板；窗口标题栏 |
 | 关于 | `cInsight.about` | 命令面板 |
@@ -1578,11 +1607,11 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 将关系图导出为文本 | `cInsight.relationshipGraph.exportText` | 命令面板 |
 | 将关系图导出为 JSON | `cInsight.relationshipGraph.exportJson` | 命令面板 |
 | 将关系图导出为 Mermaid | `cInsight.relationshipGraph.exportMermaid` | 命令面板 |
-| 转到定义 | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单；快捷键 `f12` |
-| 查找所有引用 | `cInsight.findReferences` | 命令面板；编辑器右键菜单；快捷键 `shift+f12` |
-| 显示传入调用 | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单；调用者标题栏 |
+| 转到定义 | `cInsight.goToDefinition` | 命令面板；编辑器右键菜单 → C Insight：符号导航；快捷键 `f12` |
+| 查找所有引用 | `cInsight.findReferences` | 命令面板；编辑器右键菜单 → C Insight：符号导航；快捷键 `shift+f12` |
+| 显示传入调用 | `cInsight.showIncomingCalls` | 命令面板；编辑器右键菜单 → C Insight：符号导航；调用者标题栏 |
 | 查询宏展开后函数的调用者 | `cInsight.callers.showExpandedTarget` | 命令面板；调用者标题栏；树节点右键菜单 |
-| 显示传出调用 | `cInsight.showOutgoingCalls` | 命令面板；编辑器右键菜单；被调用者标题栏 |
+| 显示传出调用 | `cInsight.showOutgoingCalls` | 命令面板；编辑器右键菜单 → C Insight：符号导航；被调用者标题栏 |
 | 固定上下文 | `cInsight.pinContext` | 命令面板；上下文标题栏 |
 | 取消固定上下文 | `cInsight.unpinContext` | 命令面板；上下文标题栏 |
 | 固定引用 | `cInsight.pinReferences` | 命令面板；引用标题栏 |
@@ -1651,8 +1680,8 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 查找被调用者路径 | `cInsight.callees.findPath` | 命令面板；被调用者标题栏 |
 | 将调用者导出为 Mermaid | `cInsight.callers.exportMermaid` | 命令面板；调用者标题栏 |
 | 将被调用者导出为 Mermaid | `cInsight.callees.exportMermaid` | 命令面板；被调用者标题栏 |
-| 显示父类型 | `cInsight.typeHierarchy.showSupertypes` | 命令面板；编辑器右键菜单；父类型标题栏 |
-| 显示子类型 | `cInsight.typeHierarchy.showSubtypes` | 命令面板；编辑器右键菜单；子类型标题栏 |
+| 显示父类型 | `cInsight.typeHierarchy.showSupertypes` | 命令面板；编辑器右键菜单 → C Insight：符号导航；父类型标题栏 |
+| 显示子类型 | `cInsight.typeHierarchy.showSubtypes` | 命令面板；编辑器右键菜单 → C Insight：符号导航；子类型标题栏 |
 | 按深度展开父类型 | `cInsight.supertypes.expandToDepth` | 命令面板；父类型标题栏 |
 | 按深度展开子类型 | `cInsight.subtypes.expandToDepth` | 命令面板；子类型标题栏 |
 | 停止类型层次展开 | `cInsight.typeHierarchy.stopExpansion` | 命令面板；父类型标题栏 |

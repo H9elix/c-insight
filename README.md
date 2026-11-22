@@ -92,10 +92,12 @@ C Insight searches the workspace root and common build directories, or you can r
 
 ### 4. Browse
 
-1. Open a C or C++ folder or workspace and select the C Insight icon in the Activity Bar.
+1. Open a C or C++ folder or workspace. Run **C Insight: Open View…** from the Command Palette or the C/C++ editor context menu to find all 15 independent views, open an existing combined view, or create/manage combinations. Search by view name or purpose; both localized and English names are supported.
 2. Put the cursor on a function, variable, type, field, or macro.
-3. Expand References, Callers, or Callees, or run the matching command from the editor context menu.
+3. Open References, Callers, or Callees. Explicit definition, reference, call and type queries are grouped under **C Insight: Symbol Navigation** in the editor context menu; bookmarks, includes and relationship graphs remain top-level C Insight actions.
 4. Single-click a result to preview it; activate it again to open it in the editor.
+
+The first time a C Insight pane becomes visible, a one-time tip links to **Open View…**. Selecting an independent view opens that native pane even if the same feature also appears in a combination. Opening the view list alone does not query the analysis engine or change your layout.
 
 ## Interaction model
 

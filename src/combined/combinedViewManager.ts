@@ -6,6 +6,7 @@ import { combinedLayout, combinedLayoutRevision, combinedHoverTiming, reorderCom
 import { EmbeddedView } from "./embeddedView";
 import { embeddedDocument, renderCombinedWebview } from "./combinedWebview";
 import { manifestLabel } from "./combinedManifest";
+import type { ViewRegistrar } from "../views/viewDiscovery";
 
 interface ManifestCommand { command: string; title: unknown; icon?: unknown }
 interface ManifestMenu { command: string; when?: string; group?: string }
@@ -31,14 +32,15 @@ export class CombinedViewManager implements vscode.Disposable {
   private iconAssets?: Promise<{css: string; font: string}>;
   private disposed = false;
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly factory: PresentationFactory) {
+  constructor(private readonly context: vscode.ExtensionContext, private readonly factory: PresentationFactory,
+    registerView: ViewRegistrar = (...args) => vscode.window.registerWebviewViewProvider(...args)) {
     const manifest = context.extension.packageJSON as { contributes: { commands: ManifestCommand[]; menus: Record<string, ManifestMenu[]>; views: Record<string, {id: string; name: unknown}[]> } };
     this.commands = manifest.contributes.commands; this.menus = manifest.contributes.menus["view/title"];
     Object.values(manifest.contributes.views).flat().forEach(view => {
       const role = view.id.replace(/^cInsight\./, "");
       if (isCombinedRole(role)) this.names.set(role, manifestLabel(view.name, role));
     });
-    COMBINED_SLOTS.forEach(slot => this.disposables.push(vscode.window.registerWebviewViewProvider(`cInsight.combined${slot}`, {
+    COMBINED_SLOTS.forEach(slot => this.disposables.push(registerView(`cInsight.combined${slot}`, {
       resolveWebviewView: (view, _context, token) => this.resolve(slot, view, token),
     }, { webviewOptions: { retainContextWhenHidden: true } })));
     this.disposables.push(vscode.workspace.onDidChangeConfiguration(event => {

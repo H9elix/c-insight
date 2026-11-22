@@ -40,6 +40,7 @@ import { IncludeHierarchyExplorer } from "./includeHierarchy/includeHierarchyExp
 import { IncludeHierarchyRepository } from "./includeHierarchy/includeHierarchyRepository";
 import { RelationshipGraphPanel } from "./relationshipGraph/relationshipGraphPanel";
 import { ViewRegistry } from "./views/viewRegistry";
+import { ViewDiscovery } from "./views/viewDiscovery";
 import { VIEWS, CONTEXT_KEYS, type ViewId } from "./ids";
 import { initializeContextKeys, startAnalysisEngine } from "./activation/runtimeInitialization";
 
@@ -54,6 +55,8 @@ export async function activate(
     log: true,
   });
   context.subscriptions.push(output, clangdOutput);
+  const viewDiscovery = new ViewDiscovery(context, output);
+  context.subscriptions.push(viewDiscovery);
 
   manager = new ClangdManager(
     output,
@@ -65,7 +68,7 @@ export async function activate(
   const navigationHistory = new NavigationHistoryExplorer();
   const bookmarks = new BookmarkExplorer(context);
   const symbolSearch = new SymbolSearchExplorer(analysis);
-  const symbolSearchRegistration = vscode.window.registerWebviewViewProvider(
+  const symbolSearchRegistration = viewDiscovery.registerView(
     VIEWS.WORKSPACE_SYMBOLS,
     symbolSearch,
     { webviewOptions: { retainContextWhenHidden: true } },
@@ -90,6 +93,7 @@ export async function activate(
     includeHierarchy,
     callRepository,
     context.extensionUri,
+    viewDiscovery.registerView,
   );
   const controller = new ContextController(
     analysis,
@@ -97,7 +101,7 @@ export async function activate(
     views,
     output,
   );
-  const projectFiles = new ProjectFilesExplorer(context.extensionUri);
+  const projectFiles = new ProjectFilesExplorer(context.extensionUri, viewDiscovery.registerView);
   const combinedViews = new CombinedViewManager(context, {
     create: (role, view) => {
       if (role === "preview") views.preview.createPresentation(view);
@@ -114,7 +118,7 @@ export async function activate(
     },
     flags: () => ({...views.presentationFlags(), [CONTEXT_KEYS.CONTEXT_PINNED]: controller.isPinned,
       [CONTEXT_KEYS.PROJECT_FILES_LOCKED]: projectFiles.isLocked}),
-  });
+  }, viewDiscovery.registerView);
   context.subscriptions.push(combinedViews);
   context.subscriptions.push(views.callers.onDidChangeTreeData(() => combinedViews.refreshActions()));
   const projectDiagnostics = new ProjectDiagnostics(
@@ -450,10 +454,13 @@ export async function activate(
       restoreWorkspaceSession: () => restoreWithProgress(),
       projectFiles,
       combinedViews,
+      viewDiscovery,
     },
   );
+  viewDiscovery.ready();
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(
+      vscode.commands.registerCommand("cInsight.test.viewDiscoveryState", () => viewDiscovery.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.combinedState", () => combinedViews.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.combinedTree", (slot: CombinedSlot, role: CombinedRole, message?: unknown) => combinedViews.interactionForTest(slot, role, message)),
       vscode.commands.registerCommand("cInsight.test.combinedBrowser", (slot: CombinedSlot, action?: unknown) => combinedViews.browserForTest(slot, action)),

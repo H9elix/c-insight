@@ -130,7 +130,9 @@ AnalysisService（调度、计时、统一结果）
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `viewLifecycle.ts` | 共享结果树及代码预览 Webview 注册、可见性事件、查找与统一释放，是 VS Code 视图资源的唯一所有者。 |
+| `viewLifecycle.ts` | 共享结果树及代码预览 Webview 注册、查询需求可见性事件、查找与统一释放，拥有本组视图注册资源。 |
+| `viewCatalog.ts` | 只读纯模型，按清单顺序组合 15 个独立视图、本地化名称、英文别名、用途及已启用组合槽位。 |
+| `viewDiscovery.ts` | 原生“打开视图”选择框、直接原生聚焦、首次可见提示；通过注入的注册包装器观察独立和组合原生栏目，不接入语义查询或布局调整。 |
 | `resultTreeModel.ts` | 自绘树的纯状态模型：稳定节点标识、展开、懒加载投影、定位、全部折叠与异步结果代次。 |
 | `resultTreeView.ts` | 现有树数据与 Webview 的宿主适配，校验导航、展开、可见节点描述和右键动作，保留层次展开事件与定位接口。 |
 | `resultTreeWebview.ts` | 共享树的虚拟滚动、名称单/双击、独立箭头、键盘、ARIA、右键菜单、本地筛选与消息解析。 |
@@ -286,6 +288,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | --- | --- |
 | `registerCommands.ts` | 命令组合根，只注入各组需要的依赖。 |
 | `commandRegistrar.ts` | 类型化命令注册函数签名。 |
+| `viewCommands.ts` | 注册统一打开视图入口，委托 `ViewDiscovery`。 |
 | `navigationCommands.ts` | 定义（Definition）/声明（Declaration）、统一树位置单击/双击、预览和打开位置等导航命令。 |
 | `referenceCommands.ts` | 引用（References）查询、刷新、固定（Pin）、过滤、分组、分页和导出。 |
 | `callHierarchyCommands.ts` | Incoming/Outgoing、刷新、固定、展开、路径搜索和导出。 |
@@ -295,6 +298,8 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `extensionControlCommands.ts` | About、引擎控制、提供程序（Provider）冲突处理和扩展级刷新。 |
 
 新增命令的顺序是：修改 `package.json` contribution → 更新 NLS → 运行 `npm run ids:generate` → 在唯一一个命令组注册 → 更新中英文用户手册。自动测试会要求每个 manifest 命令恰好有一个注册位置。
+
+首次栏目提示使用私有 `globalState.viewDiscoveryNoticeShown`，当前宿主／配置文件独立保存，不同步或按版本重置。注册包装器覆盖 `ViewLifecycle`、符号搜索、工程文件和组合槽位；保留原提供程序的解析参数、取消令牌、返回值及释放职责。`ready()` 在命令注册完成后调用，解决恢复出的可见栏目先于命令出现的时序。实际原生可见性与自动查询的有效可见性分别维护，导航历史和书签不需要为了提示而接入查询事件。编辑器右键分组及符号导航子菜单由清单声明，命令参考生成器解析本地化父菜单路径。
 
 ### 4.14 通用工具 `src/utils`
 

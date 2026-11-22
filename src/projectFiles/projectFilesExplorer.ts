@@ -4,6 +4,7 @@ import { MutableTreeProvider, TreeNode } from "../views/treeNode";
 import { WebviewResultTree } from "../views/resultTreeView";
 import { isGitMetadata, isKnownBinaryFile, ProjectFileEntry, projectFileLimit, projectFileSort, sortProjectFiles } from "./projectFileModel";
 import { ResultTreeFollowController } from "../views/resultTreeFollowController";
+import type { ViewRegistrar } from "../views/viewDiscovery";
 
 /** File-system presentation only. No AnalysisService, compilation database or document-content watcher. */
 export class ProjectFilesExplorer implements vscode.Disposable {
@@ -28,7 +29,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
   private readonly follows = new Map<WebviewResultTree, ResultTreeFollowController>();
   get isLocked(): boolean { return this.follow.isLocked; }
 
-  constructor(extensionUri: vscode.Uri) {
+  constructor(extensionUri: vscode.Uri, registerView: ViewRegistrar = (...args) => vscode.window.registerWebviewViewProvider(...args)) {
     this.provider.setInteractionScope(VIEWS.PROJECT_FILES);
     this.view = new WebviewResultTree(VIEWS.PROJECT_FILES, this.provider, extensionUri, {
       persistentFilter: true, hideCollapseAll: true, trackInteraction: true, hideBookmarkAction: true,
@@ -43,7 +44,7 @@ export class ProjectFilesExplorer implements vscode.Disposable {
     this.follows.set(this.view, this.follow);
     this.disposables.push(
       this.follow, this.provider, this.view,
-      vscode.window.registerWebviewViewProvider(VIEWS.PROJECT_FILES, this.view, {
+      registerView(VIEWS.PROJECT_FILES, this.view, {
         webviewOptions: { retainContextWhenHidden: true },
       }),
       this.view.onDidCreatePresentation(presentation => {

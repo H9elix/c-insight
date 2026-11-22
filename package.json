@@ -144,7 +144,11 @@
     }
   },
   "contributes": {
+    "submenus": [
+      { "id": "cInsight.symbolNavigation", "label": "%submenu.cInsight.symbolNavigation.label%" }
+    ],
     "commands": [
+      { "command": "cInsight.openView", "title": "%command.cInsight.openView.title%" },
       {
         "command": "cInsight.combinedViews.create",
         "title": "%command.cInsight.combinedViews.create.title%",
@@ -688,6 +692,43 @@
     "menus": {
       "editor/context": [
         {
+          "command": "cInsight.openView",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@1"
+        },
+        {
+          "command": "cInsight.bookmarks.addCurrent",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@2"
+        },
+        {
+          "command": "cInsight.includeHierarchy.showIncludes",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@3"
+        },
+        {
+          "command": "cInsight.includeHierarchy.showIncludedBy",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@4"
+        },
+        {
+          "command": "cInsight.relationshipGraph.show",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@5"
+        },
+        {
+          "command": "cInsight.relationshipGraph.showFile",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@6"
+        },
+        {
+          "submenu": "cInsight.symbolNavigation",
+          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
+          "group": "2_cInsight@7"
+        }
+      ],
+      "cInsight.symbolNavigation": [
+        {
           "command": "cInsight.goToDefinition",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
           "group": "navigation@1"
@@ -716,31 +757,6 @@
           "command": "cInsight.typeHierarchy.showSubtypes",
           "when": "resourceLangId == cpp || resourceLangId == objective-cpp",
           "group": "navigation@6"
-        },
-        {
-          "command": "cInsight.includeHierarchy.showIncludes",
-          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "navigation@7"
-        },
-        {
-          "command": "cInsight.includeHierarchy.showIncludedBy",
-          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "navigation@8"
-        },
-        {
-          "command": "cInsight.relationshipGraph.show",
-          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "navigation@9"
-        },
-        {
-          "command": "cInsight.relationshipGraph.showFile",
-          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "navigation@10"
-        },
-        {
-          "command": "cInsight.bookmarks.addCurrent",
-          "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-          "group": "cInsight@1"
         }
       ],
       "view/title": [

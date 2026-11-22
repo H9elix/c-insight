@@ -5,6 +5,7 @@ import { verifyCombinedTheme } from "./combinedTheme";
 import { verifyCombinedReorder } from "./combinedReorder";
 import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
 import { verifyCombinedHoverDirection } from "./combinedHoverDirection";
+import { verifyViewPickerCancellation, verifyViewPickerOpening } from "./viewDiscovery";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
 interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
@@ -36,6 +37,7 @@ export async function run(): Promise<void> {
     assert(extension.isActive,"A persisted combined view must activate without first opening a C/C++ document");
   }
   await extension.activate();
+  await verifyViewPickerCancellation();
   await verifyCombinedTheme();
   const layout = {enabled: true, title: "Browser", direction: "horizontal", views: ["symbols", "callers", "callees", "references", "preview"], ratios: [1, 1, 1, 1, 1]};
   try {
@@ -167,6 +169,7 @@ export async function run(): Promise<void> {
     assert.equal(scope?.workspaceValue, undefined, "Layouts belong to user settings, not project settings");
     assert.equal(scope?.globalValue?.enabled,true,"The layout must persist in user settings");
     await verifyPreviewPresentationOwnership(uri);
+    await verifyViewPickerOpening();
     console.log(`Combined view real-frame lifecycle and shared navigation passed (${engine}, VS Code ${vscode.version}).`);
   } finally {
     for (let slot = 1; slot <= 4; slot++) await combined.update(`slot${slot}`, undefined, vscode.ConfigurationTarget.Global);

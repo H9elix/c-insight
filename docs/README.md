@@ -26,6 +26,7 @@
 - [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：53 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及测试入口，新反馈在此增补。
 - [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
 - [组合视图验证](validation/combined-views.zh-CN.md)：多实例共享结果、局部显示状态、可见性需求、分隔条和悬停扩展的自动与人工检查。
+- [视图入口与菜单验证](validation/view-discovery.zh-CN.md)：统一视图选择、首次可见提示、右键分组、直接原生聚焦及无查询取消的验证方法。
 - [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：深浅预设、完整默认颜色、自定义配置、输入校验和验收记录。
 - [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，含宏值 `1`、`0` 的生效分支函数调用者与函数式编译宏展开对照；区分已验收的识别、引用及宏调用者与未修复的定义/自动预览边界，关联 `CI-REG-049`。
 - [编辑器跳转历史修复验证](validation/editor-navigation-history.zh-CN.md)：关闭文件旧光标产生多余后退站点的复现、修复边界、双引擎回归及用户验收记录；修复纳入 `0.22.24`。

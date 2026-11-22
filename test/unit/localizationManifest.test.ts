@@ -53,6 +53,9 @@ describe("manifest localization", () => {
     for (const command of manifest.contributes.commands) {
       assert.match(command.title, /^%.+%$/);
     }
+    for (const submenu of manifest.contributes.submenus ?? []) {
+      assert.match(submenu.label, /^%.+%$/);
+    }
     for (const view of Object.values(manifest.contributes.views).flat() as Array<{ name: string }>) {
       assert.match(view.name, /^%.+%$/);
     }

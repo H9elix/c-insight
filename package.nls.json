@@ -1,4 +1,6 @@
 {
+  "command.cInsight.openView.title": "C Insight: Open View…",
+  "submenu.cInsight.symbolNavigation.label": "C Insight: Symbol Navigation",
   "configuration.cInsight.combinedViews.hoverDirection.description": "Hover expansion direction for this combination: forward expands right horizontally or down vertically while preserving the leading edge; both redistributes space on both sides.",
   "command.cInsight.combinedViews.create.title": "C Insight: Create Combined View",
   "command.cInsight.combinedViews.manage.title": "C Insight: Manage Combined View",

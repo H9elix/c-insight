@@ -65,17 +65,25 @@ function generateReference(options) {
     ]),
   );
 
+  const submenuLabels = new Map((manifest.contributes?.submenus ?? [])
+    .map(submenu => [submenu.id, resolveMessage(submenu.label, messages)]));
+  const menuPaths = (menu, visited = new Set()) => {
+    if (visited.has(menu)) return [];
+    if (!submenuLabels.has(menu)) return [options.menuLocations.get(menu) ?? menu];
+    const next = new Set([...visited, menu]);
+    return Object.entries(manifest.contributes?.menus ?? {}).flatMap(([parent, items]) =>
+      items.some(item => item.submenu === menu)
+        ? menuPaths(parent, next).map(path => `${path} → ${submenuLabels.get(menu)}`) : []);
+  };
+
   for (const [menu, items] of Object.entries(manifest.contributes?.menus ?? {})) {
     for (const item of items) {
       const locations = entries.get(item.command);
       if (!locations) continue;
       const viewId = /\bview\s*==\s*([A-Za-z0-9_.-]+)/.exec(item.when ?? "")?.[1];
       const viewName = viewId ? views.get(viewId) : undefined;
-      locations.add(
-        viewName
-          ? options.viewMenu(viewName, menu)
-          : options.menuLocations.get(menu) ?? menu,
-      );
+      if (viewName) locations.add(options.viewMenu(viewName, menu));
+      else menuPaths(menu).forEach(path => locations.add(path));
     }
   }
   for (const binding of manifest.contributes?.keybindings ?? []) {

@@ -65,6 +65,7 @@ import { MutableTreeProvider, TreeNode, viewStatusNode } from "./treeNode";
 import { writeExportWithinBudget } from "../utils/exportWriter";
 import { COMMANDS, CONTEXT_KEYS, INTERNAL_COMMANDS, VIEWS, type ViewId } from "../ids";
 import { ViewLifecycle } from "./viewLifecycle";
+import type { ViewRegistrar } from "./viewDiscovery";
 import { WebviewResultTree } from "./resultTreeView";
 import { ResultTreeFollowController } from "./resultTreeFollowController";
 import { CallHierarchyViewState } from "./callHierarchyViewState";
@@ -194,8 +195,9 @@ export class ViewRegistry implements vscode.Disposable {
     includeHierarchy: IncludeHierarchyExplorer,
     private readonly callRepository: CallHierarchyRepository,
     extensionUri: vscode.Uri,
+    registerView?: ViewRegistrar,
   ) {
-    this.lifecycle = new ViewLifecycle(extensionUri);
+    this.lifecycle = new ViewLifecycle(extensionUri, registerView);
     this.preview = new CodePreviewProvider(analysis, history);
     this.referenceExplorer = new ReferenceExplorer(
       analysis,

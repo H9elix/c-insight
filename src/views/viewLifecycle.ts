@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { VIEWS, ViewId } from "../ids";
 import { MutableTreeProvider } from "./treeNode";
 import { ResultTreeOptions, ResultTreeView, WebviewResultTree } from "./resultTreeView";
+import type { ViewRegistrar } from "./viewDiscovery";
 
 export class ViewLifecycle implements vscode.Disposable {
   private readonly treeViews = new Map<ViewId, ResultTreeView>();
@@ -9,7 +10,7 @@ export class ViewLifecycle implements vscode.Disposable {
   private readonly visibilityEmitter = new vscode.EventEmitter<string>();
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(private readonly extensionUri: vscode.Uri, private readonly registerView: ViewRegistrar = (...args) => vscode.window.registerWebviewViewProvider(...args)) {}
 
   createTreeView(
     id: ViewId,
@@ -18,7 +19,7 @@ export class ViewLifecycle implements vscode.Disposable {
     options?: ResultTreeOptions,
   ): ResultTreeView {
     const view = new WebviewResultTree(id, provider, this.extensionUri, options);
-    this.track(vscode.window.registerWebviewViewProvider(id, view, options?.persistentFilter
+    this.track(this.registerView(id, view, options?.persistentFilter
       ? { webviewOptions: { retainContextWhenHidden: true } } : undefined));
     this.treeViews.set(id, view);
     this.track(view);
@@ -33,7 +34,7 @@ export class ViewLifecycle implements vscode.Disposable {
     onDidChangeVisibility: vscode.Event<void>,
   ): void {
     this.track(
-      vscode.window.registerWebviewViewProvider(VIEWS.PREVIEW, provider),
+      this.registerView(VIEWS.PREVIEW, provider),
       provider,
       onDidChangeVisibility(() => this.visibilityEmitter.fire(VIEWS.PREVIEW)),
     );

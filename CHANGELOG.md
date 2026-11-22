@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added a searchable Open View picker for all fifteen independent panes, enabled combined views, and combination creation/management, plus a one-time tip when a C Insight pane first becomes visible.
+- Organized C/C++ editor context actions with Open View and bookmarks first, retained includes and graphs at the top level, and grouped explicit definition, reference, call and type queries under Symbol Navigation.
+
 ## 0.23.1
 
 - Added per-combination forward/both hover expansion with a toolbar switch and management picker. Forward mode keeps leading edges fixed across consecutive hovers, borrows only trailing slack, and restores base proportions after leaving the combination.

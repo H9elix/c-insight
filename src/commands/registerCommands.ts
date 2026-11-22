@@ -21,6 +21,8 @@ import { registerNavigationCommands } from "./navigationCommands";
 import { registerReferenceCommands } from "./referenceCommands";
 import { registerWorkspaceToolCommands } from "./workspaceToolCommands";
 import { CombinedViewManager, registerCombinedCommands } from "../combined/combinedViewManager";
+import type { ViewDiscovery } from "../views/viewDiscovery";
+import { registerViewCommands } from "./viewCommands";
 
 export interface CommandDependencies {
   manager: ClangdManager; analysis: AnalysisService; controller: ContextController;
@@ -31,6 +33,7 @@ export interface CommandDependencies {
   engine: AnalysisEngine; restoreWorkspaceSession: () => Promise<boolean>;
   projectFiles: ProjectFilesExplorer;
   combinedViews: CombinedViewManager;
+  viewDiscovery: ViewDiscovery;
 }
 
 export function registerCommands(context: vscode.ExtensionContext, dependencies: CommandDependencies): void {
@@ -45,6 +48,7 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
     return editor ? { uri: editor.document.uri, position: editor.selection.active } : undefined;
   };
   const d = dependencies;
+  registerViewCommands(register, d.viewDiscovery);
   registerCombinedCommands(register, d.combinedViews);
   registerExtensionControlCommands(register, context, d.engine, d.manager, d.controller, d.views);
   registerNavigationCommands(
