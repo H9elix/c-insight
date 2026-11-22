@@ -2,9 +2,11 @@
 
 ## Current status
 
-The maintained baseline is `0.22.29`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, and workspace file and symbol browsing. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
+The maintained baseline is `0.23.0`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, workspace file and symbol browsing, and optional combined views. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
 
-Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. Shared focus and follow ownership clears queries after successful unlocked opens, clears only a hiding query during ordinary unfocused follow, and preserves input and scrolling during focused interaction. The maintainer authorized inclusion in `0.22.29`; see [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
+Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. Shared focus and follow ownership clears queries after successful unlocked opens, clears only a hiding query during ordinary unfocused follow, and preserves input and scrolling during focused interaction; see [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
+
+Combined views group existing features in up to four saved layouts, with splitters, title-drag reordering, theme-aware nested content, adaptive toolbars and configurable hover expansion. Shared owners avoid duplicate feature queries while each presentation retains local browsing state. Coverage and manual checks are listed in [combined-view validation](../validation/combined-views.zh-CN.md).
 
 Compiler-macro definition locations, automatic Code Preview placement and workspace-symbol indexing remain unresolved under [CI-REG-049](../validation/historical-issues.zh-CN.md#ci-reg-049). Deferred fourth-phase work is listed below.
 

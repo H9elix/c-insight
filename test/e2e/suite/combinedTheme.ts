@@ -84,7 +84,7 @@ export async function verifyCombinedTheme(): Promise<void> {
   const wait = async (condition: () => boolean | Promise<boolean>, reason: string) => {
     const until = Date.now()+15000;
     while(Date.now()<until){if(await condition())return;await new Promise(resolve=>setTimeout(resolve,100));}
-    assert.fail(reason);
+    assert.fail(`${reason}; ready=${JSON.stringify([...ready])}; browserErrors=${JSON.stringify(browserErrors)}; panels=${JSON.stringify(panels.map(value=>({title:value.title,visible:value.visible,active:value.active})))}`);
   };
   const inspect = (view: vscode.WebviewPanel, role?: string, seed = false): Promise<Inspection> => {
     const request = ++serial;

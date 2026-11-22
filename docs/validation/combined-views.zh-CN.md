@@ -2,6 +2,14 @@
 
 组合视图（Combined View）将现有功能显示层挂载到同一原生 Webview 内。此项是可选布局功能；共享查询、导航、固定、筛选和预览的既有规则沿用 CI-REG-022–028、037、042–043。
 
+维护者于 `2026-11-22` 确认功能完备，授权合回 `main` 并发布，纳入正式版本 `0.23.0`。下文带日期的记录保留临时构建的验证证据；现场主题、真实硬件及 WSL/SSH 的逐项人工结果未提供，复测按人工重点执行。
+
+## 正式版本本地复验（2026-11-22）
+
+`0.23.0` 完整质量门、合成性能基准、VS Code `1.130.0`/`1.95.0` 的 clangd 主宿主、`1.130.0` Microsoft 主宿主及工程文件专项通过。组合专项在 `1.130.0` clangd/Microsoft 和 `1.95.0` clangd 预存布局模式下通过，覆盖主题对比、工具栏与时长、标题排序、显示层所有权和查询计数。Microsoft 使用 cpptools `1.35.6`，联网依赖审计为零漏洞。主干 CI 另加入 `npm run test:e2e:combined` 固定回归。
+
+发布准备期间，原生预览主题对比页数次未在 `15` 秒内报告就绪。一次诊断显示外层已就绪、原生页可见且活跃，未捕获脚本错误；未改变运行时代码的后续复跑通过，具体原因仍未确认。失败信息现包含页面就绪、脚本错误和可见性，供继续定位。该超时不计作功能通过，复跑通过也不代表原因已修复；另见 CI-REG-045、051。
+
 ## 自动覆盖
 
 - `test/unit/combinedModel.test.ts`：四槽默认值、15 功能目录、配置清理、比例预算、最小尺寸、菜单条件、HTML 转义与 CSP nonce。
@@ -47,13 +55,13 @@ C_INSIGHT_COMBINED_ENGINE=microsoft C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/co
 
 一次最低版本主宿主初跑触发 CI-REG-014 的调用点所有权时序断言；保留原生聚焦命令的等待路径后复验通过，未独立确认初跑的具体时序触发条件。多显示实例共用预览定义查询的取消代次，新的显式位置会撤销旧查询。
 
-临时包为 `c-insight-0.22.29-combined-browsing-preview.vsix`。尚待维护者验收；真实鼠标手感、实际布局拖放、辅助技术及 WSL/SSH 检查按上节执行。本次不提升正式版本、不推送或发布。
+初始临时包为 `c-insight-0.22.29-combined-browsing-preview.vsix`。真实鼠标手感、实际布局拖放、辅助技术及 WSL/SSH 检查按上节执行。
 
 ## CI-REG-050 本地化标题兼容（2026-11-21）
 
 维护者报告创建组合时报 `command.title.replace is not function`。运行时清单的标题可以是 `{ value, original }`，组合管理器现统一提取字符串并提供回退；窗格名称和图标字段也经过类型检查。新增运行时管理器测试修复前 10 个案例有 9 个失败，修复后全部通过，完整质量门及 `1.130.0`/`1.95.0` 的真实命令创建和组合回归通过。
 
-修复临时包为 `c-insight-0.22.29-combined-localized-titles-preview.vsix`。本地宿主虽然尝试指定中文，但实际仍使用英文；中文标题对象已通过确定性案例验证，真实中文安装环境需人工检查创建、多选添加、工具栏及窗格标题。待维护者验收，不推送或发布。
+修复临时包为 `c-insight-0.22.29-combined-localized-titles-preview.vsix`。本地宿主虽然尝试指定中文，但实际仍使用英文；中文标题对象已通过确定性案例验证，真实中文安装环境需人工检查创建、多选添加、工具栏及窗格标题。
 
 ## CI-REG-051 嵌套窗格主题与字体（2026-11-22）
 
@@ -61,7 +69,7 @@ C_INSIGHT_COMBINED_ENGINE=microsoft C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/co
 
 `npm run check`、VS Code `1.130.0` clangd 主宿主、clangd/Microsoft 组合宿主，以及 `1.95.0` 预存布局/clangd 组合宿主通过。实际 DOM 对比覆盖四种内置主题、三类渲染器、两种固定配色、字体热更新、控件/菜单/选中态、滚动条颜色及角落、无灰框和状态保留。最低版本出现后台聊天注册表请求失败，组合断言及进程退出码均通过。
 
-临时包为 `c-insight-0.22.29-combined-theme-parity-preview.vsix`，正式版本仍为 `0.22.29`，未推送或发布。现场主题、滚动条悬停/拖动、真实焦点、硬件滚动及 WSL/SSH 按人工重点验收。
+临时包为 `c-insight-0.22.29-combined-theme-parity-preview.vsix`。现场主题、滚动条悬停/拖动、真实焦点、硬件滚动及 WSL/SSH 按人工重点复测。
 
 ## 标题拖动排序验证（2026-11-22）
 
@@ -69,7 +77,7 @@ C_INSIGHT_COMBINED_ENGINE=microsoft C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/co
 
 `npm run check`、24 项模型/指针/宿主定向检查、VS Code `1.130.0` clangd/Microsoft 及 `1.95.0` clangd 组合宿主通过；最低版本同时检查预存布局激活。浏览器验证使用合成指针事件，实际硬件指针捕获和拖动手感仍需人工确认。最低版本出现后台聊天注册表网络错误，`1.130.0` clangd 宿主出现 GPU mailbox 警告，均未导致断言失败或非零退出。
 
-交付为 `c-insight-0.22.29-combined-pane-reorder-preview.vsix`，正式版本维持 `0.22.29`，待维护者验收，未推送或发布。真实硬件指针捕获、标题拖动手感、键盘菜单、重载及 WSL/SSH 按人工重点检查；保存失败由受控管理器自动验证。
+临时包为 `c-insight-0.22.29-combined-pane-reorder-preview.vsix`。真实硬件指针捕获、标题拖动手感、键盘菜单、重载及 WSL/SSH 按人工重点检查；保存失败由受控管理器自动验证。
 
 ## 总工具栏与悬停时长验证（2026-11-22）
 
@@ -77,10 +85,10 @@ C_INSIGHT_COMBINED_ENGINE=microsoft C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/co
 
 `npm run check`、28 项组合模型/桥接/排序定向检查、VS Code `1.130.0` clangd/Microsoft 及 `1.95.0` clangd 组合宿主通过；最低版本同时检查预存布局。初次 Microsoft 配色对比页初始化超时，未执行到本轮功能断言；测试在等待期间显式保持该页可见后复跑通过，首次超时原因未独立确认。最低版本仍有后台聊天注册表网络错误，功能断言与宿主退出码均通过。
 
-临时包为 `c-insight-0.22.29-combined-toolbar-timing-preview.vsix`，正式版本维持 `0.22.29`，待维护者验收，未推送或发布。短/窄空间使用合成焦点转移和计算样式验证；真实鼠标滚轮、键盘 Tab、长名称的视觉效果、减少动态效果及 WSL/SSH 仍按人工重点检查。
+临时包为 `c-insight-0.22.29-combined-toolbar-timing-preview.vsix`。短/窄空间使用合成焦点转移和计算样式验证；真实鼠标滚轮、键盘 Tab、长名称的视觉效果、减少动态效果及 WSL/SSH 仍按人工重点检查。
 
 ## CI-REG-052 组合外层留白（2026-11-22）
 
 原生 Webview 的 `body` 默认左右各有 `20px` 内边距，组合外层现显式清零，工具栏及子文档自己的边距保留。新增源码样式守卫在修复前失败；真实宿主检查两种排列的左缘为 `0`、右侧充满可用宽度以及工具栏 `2px` 内边距。清除外层留白还暴露窄栏末按钮部分可见时聚焦不滚动的问题，现仅在工具栏自身滚动以完整显示聚焦按钮。
 
-`npm run check`、29 项组合定向检查、VS Code `1.130.0` clangd/Microsoft 及 `1.95.0` clangd 组合宿主通过，含短/窄访问、排序、悬停时长、主题和状态保留。临时包为 `c-insight-0.22.29-combined-no-outer-gutter-preview.vsix`，正式版本仍为 `0.22.29`，待维护者验收，未推送或发布。现场视觉、字体/缩放、WSL/SSH 及真实滚轮/Tab 按人工重点检查。
+`npm run check`、29 项组合定向检查、VS Code `1.130.0` clangd/Microsoft 及 `1.95.0` clangd 组合宿主通过，含短/窄访问、排序、悬停时长、主题和状态保留。临时包为 `c-insight-0.22.29-combined-no-outer-gutter-preview.vsix`。现场视觉、字体/缩放、WSL/SSH 及真实滚轮/Tab 按人工重点检查。

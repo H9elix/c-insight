@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.22.29` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.23.0` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -399,6 +399,7 @@ npm run acceptance:ffmpeg
 xvfb-run -a npm run test:e2e
 npm run probe:microsoft
 npm run test:e2e:microsoft
+npm run test:e2e:combined
 npm run test:e2e:ffmpeg:microsoft
 ```
 
@@ -418,7 +419,7 @@ npm run package
 
 GitHub Release 正文只写功能新增、修复及用户可感知的行为变化，不写文档更新；测试结果和已知限制归入测试指导、案例库及专项文档。发布说明契约检查版本、中英双语、比较链接和未完成占位符，不强制安装校验章节。实际发布仍需执行检查并核验附件；已有发布说明保持原文。
 
-公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
+公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门，并运行主宿主、工程文件、组合视图及两种宏分支专项。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
 
 真实 FFmpeg 验收没有个人机器默认路径：运行 clangd 验收前必须设置 `C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg`，运行 Microsoft E2E 前必须设置 `C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg`。这两个命令都只在显式请求真实工程验收时运行，不属于普通 PR 的默认门槛。
 

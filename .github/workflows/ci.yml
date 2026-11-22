@@ -53,6 +53,9 @@ jobs:
       - name: Run Project Files Extension Host regressions
         run: npm run test:e2e:project-files
 
+      - name: Run combined browsing view regressions
+        run: npm run test:e2e:combined
+
       - name: Run compiler macro navigation regressions
         run: npm run test:e2e:command-line-macros
 
