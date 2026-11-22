@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained baseline is `0.23.1`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, workspace file and symbol browsing, and optional combined views. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
+The maintained baseline is `0.23.2`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, workspace file and symbol browsing, and optional combined views. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
 
 Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. Shared focus and follow ownership clears queries after successful unlocked opens, clears only a hiding query during ordinary unfocused follow, and preserves input and scrolling during focused interaction; see [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
 

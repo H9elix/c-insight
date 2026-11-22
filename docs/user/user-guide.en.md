@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.23.1`. Start with the fifteen functional views, then use the layout, shared-interaction, update and configuration sections as needed. Source, issues and releases are at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight).
+This guide applies to C Insight `0.23.2`. Start with the fifteen functional views, then use the layout, shared-interaction, update and configuration sections as needed. Source, issues and releases are at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight).
 
 Reading guide:
 

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.23.2
+
+### New in 0.23
+
+- Added up to four named combined views with horizontal/vertical panes, title-drag reordering, resizable splitters, pane collapsing and reusable internal layouts. Original views remain available; combinations share feature results and pins while tree panes retain local filtering, expansion and scrolling.
+- Added smooth hover expansion with forward/both directions, configurable dwell/animation/restoration timing and protected controls that keep buttons stable. Combined content follows VS Code theme and font settings.
+
+### 0.23.2 updates
+
 - Added a searchable Open View picker for all fifteen independent panes, enabled combined views, and combination creation/management, plus a one-time tip when a C Insight pane first becomes visible.
 - Organized C/C++ editor context actions as a separate native group with a separator immediately after clangd's Switch Between Source/Header, with Open View and bookmarks first, retained includes and graphs at the top level, and grouped explicit definition, reference, call and type queries under Symbol Navigation.
 
