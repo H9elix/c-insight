@@ -1,6 +1,6 @@
 # C Insight 历史问题与回归案例库
 
-汇编日期：`2026-10-17`；当前行为基线：`0.23.1`。本库结合历次用户反馈、[更新日志](../../CHANGELOG.md)、Git 历史及现有测试建立，当前共 `54` 条记录。编号永久保留；后续报告按[测试指南](regression-testing-guide.zh-CN.md)继续登记。
+汇编日期：`2026-10-17`；当前行为基线：`0.23.1`。本库结合历次用户反馈、[更新日志](../../CHANGELOG.md)、Git 历史及现有测试建立，当前共 `55` 条记录。编号永久保留；后续报告按[测试指南](regression-testing-guide.zh-CN.md)继续登记。
 
 每条记录列出症状、定位、复现与测试入口；带日期的执行记录说明构建、环境和结果。未知版本、根因及未验证场景保留待确认状态。源码行号随修订变化，复现时应按符号定位。
 
@@ -562,6 +562,18 @@
 - 本次执行：命令参考、中文术语、Markdown 自然段、本地链接、既有发布说明及 `git diff --check` 均通过；没有修改插件源码、重新打包或更改系统配置。
 - 关联：CI-REG-046 的安装与构建一致性、[WSL 官方互操作说明](https://learn.microsoft.com/en-us/windows/wsl/interop)、[VS Code 远程 VSIX 安装](https://code.visualstudio.com/docs/remote/troubleshooting#_need-to-install-local-vsix-on-remote-endpoint)。
 
+<a id="ci-reg-055"></a>
+
+### CI-REG-055 从 WSL UNC 路径安装 VSIX 时主机访问被拒绝
+
+- 首次反馈（`2026-11-22`）：维护者按 CI-REG-054 的 UI 安装建议使用 WSL UNC 路径选择临时包，收到 `Extract: UNC host 'wsl.localhost' access is not allowed`。关联包为 `c-insight-0.23.1-view-discovery-menu-preview.vsix`；现场 VS Code 版本、执行解压的具体进程及有效安全设置未提供。
+- 性质与状态：外部 UNC 访问安全限制，错误环节已明确；绕行安装待用户确认。与 CI-REG-054 中启动 Windows 可执行文件失败的原因不同，也不是 C Insight 激活后的运行时错误。
+- 复现与预期：在已连接 WSL 的窗口执行“扩展：从 VSIX 安装…”，选择 `\\wsl.localhost\<distribution>\<project>\<package>.vsix`；预期读取并安装，实际提取阶段拒绝访问该 UNC 主机。错误消息与 VS Code 官方 UNC 主机许可机制一致；尚未在维护者的桌面 UI 独立复现。
+- 绕行方案：用 WSL 的普通文件复制命令将同一个 VSIX 复制到已挂载的 Windows 本地磁盘，再在安装对话框选择该盘符路径。此复制不需要调用 Windows 程序，可避开当前 UNC 源路径和 Windows 启动器；安装目标仍需核对为 WSL 扩展宿主。尚未代替维护者复制或安装。
+- 设置边界：本次不修改 `security.allowedUNCHosts`、`security.restrictUNCAccess` 或全局环境变量。扩展包来源可信且确需长期访问 UNC 时，可单独评估精确主机许可；不为安装临时包关闭全部 UNC 访问保护。
+- 检查与剩余验收：只读确认临时包及目标磁盘目录存在，并核对[官方 UNC 说明](https://code.visualstudio.com/docs/setup/windows#_working-with-unc-paths)。没有重建插件或在测试宿主中宣称修复此 Windows 安装限制；仍需确认盘符路径安装成功、扩展位于 WSL，以及原功能验收结果。未推送或发布。
+- 本次文档验证：命令参考、中文术语、Markdown 自然段、本地链接、既有发布说明及 `git diff --check` 通过。
+
 ## 后续记录
 
-新增实际报告从 `CI-REG-055` 开始，沿用[登记模板](regression-testing-guide.zh-CN.md#7-新问题登记模板与维护流程)。同一问题追加环境、证据、已证伪方向及验收记录，不为一次重试或一条附加日志随意新建编号。当前记录数和“下一个编号”也要随新增同步；保留被修复条目，防止以后回归时失去复现依据。编号 048 归在第三节引用展示，049 归在第四节编译参数宏，不因主题分类而重排其他编号。
+新增实际报告从 `CI-REG-056` 开始，沿用[登记模板](regression-testing-guide.zh-CN.md#7-新问题登记模板与维护流程)。同一问题追加环境、证据、已证伪方向及验收记录，不为一次重试或一条附加日志随意新建编号。当前记录数和“下一个编号”也要随新增同步；保留被修复条目，防止以后回归时失去复现依据。编号 048 归在第三节引用展示，049 归在第四节编译参数宏，不因主题分类而重排其他编号。
