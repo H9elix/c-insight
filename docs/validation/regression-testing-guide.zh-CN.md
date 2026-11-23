@@ -1,6 +1,6 @@
 # C Insight 历史问题驱动测试指南
 
-本指南基于当前 `0.23.2` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `55` 条记录。
+本指南基于当前 `0.23.2` 代码、已有测试、更新日志与历次用户反馈整理，首次汇编日期为 `2026-10-17`。具体缺陷、配置问题、行为约定和已知限制见[历史问题与回归案例库](historical-issues.zh-CN.md)，共 `56` 条记录。
 
 本指南及案例库中的源码和测试链接面向 GitHub 或完整源码工作副本；从已安装扩展阅读时，请到项目仓库打开这些文件。
 
@@ -47,9 +47,9 @@
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
 | 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |
-| 会话、关系图、文档符号 | 040–042 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；关闭/重开工程与切换引擎 |
-| 工程文件 | 022、024、037、042–043 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性，详见[专项验证](project-files.zh-CN.md) |
-| 组合视图、多显示实例 | 022–028、037、042–043、050–053 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
+| 会话、关系图、文档符号 | 040–042、056 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；收缩后的可见性修正另查 `combinedViewportFollow`；关闭/重开工程与切换引擎 |
+| 工程文件 | 022、024、037、042–043、056 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性；组合收缩检查 `combinedViewportFollow`，详见[专项验证](project-files.zh-CN.md) |
+| 组合视图、多显示实例 | 022–028、037、042–043、050–053、056 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、收缩时高亮可见性、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
 | 文档、本地化、构建、发布 | 044–047 | `documentationCompleteness` 检查连续编号、15 个独立视图、README 清单、配置／命令覆盖及手册锚点；另执行本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`。依赖覆盖需核对生产补丁，Release 附件与隐私人工复核 |
 | 打开视图、首次可见提示、编辑器菜单 | 037、043–044、050 | `viewCatalog`、`viewDiscovery`、`viewMenu`；组合宿主覆盖原生选择／取消、准确聚焦及请求计数，搜索键入、右键视觉和中文／Remote 按[专项验证](view-discovery.zh-CN.md)人工检查 |
 | WSL 中的 VSIX 安装与 CLI 启动 | 046、054–055 | 先区分 Windows 启动器、当前服务器 `remote-cli`、UNC 源文件读取与安装目标；核对外部 Windows 程序启动和 WSL 窗口 UI 安装，UNC 被拦截时用本地盘符副本验证，不关闭全部访问保护，不用插件 E2E 代替系统检查 |
@@ -143,6 +143,8 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 23. 文档结构（CI-REG-044）：README 按名称列出 15 个独立视图并链接到对应说明；手册的功能视图章只包含这 15 个栏目，组合布局、关系图、会话及共性运行机制分别归类。除文档主标题外，所有章节标题按层级连续编号；更新逻辑位于功能介绍之后。重排后检查目录、README、相关维护文档的跳转，不能只验证目标文件存在；补图前不加入失效图片或占位说明。
 
 24. 组合展开占比（关联 CI-REG-043、053）：子栏目“…”菜单设置 `1–100` 的整数，仅影响当前组合中的该栏目；取消／无效输入不保存，恢复默认不改基础比例。检查横向宽度和纵向高度的可用区域占比、单向后方余量与末尾、双向最小尺寸及小于基础尺寸时不缩小。普通分隔条仍只改基础比例，排序保留归属、移除清理；操作区热更新不移动按钮，返回内容区的新移动才应用，不重建子文档或增加语义查询。硬件指针、原生输入框、重载和 Remote 环境人工检查。
+
+25. 收缩后的高亮可见性（CI-REG-056）：分别在文档符号和工程文件悬停放大时跟随中部目标，再移出组合。缩回后若原本可见的目标被挤出，尺寸稳定后只补一次定位，不依赖点击搜索框或恢复窗口；若仍可见则保持滚动。锁定、关闭跟随、窗口失焦、视图内搜索／菜单或手动滚动时不强制拉回；新目标／新输入取代旧修正。检查筛选词、分支展开、选择和焦点不变，同功能的其他显示实例不滚动，语义请求和文件扫描不增加。临时零高度恢复、原生分隔条、真实鼠标及 WSL/SSH 另作现场检查。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

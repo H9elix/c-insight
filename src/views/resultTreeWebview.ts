@@ -1,6 +1,7 @@
 export type ResultTreeMessage =
   | { type: "ready" | "collapseAll" | "focus" }
   | { type: "interaction"; focused: boolean; inputRevision: number }
+  | { type: "viewportClipped"; id: string; inputRevision: number }
   | { type: "activate"; id: string; intent: "preview" | "open"; inputRevision?: number }
   | { type: "expand"; id: string; expanded: boolean }
   | { type: "resolve"; ids: string[] }
@@ -22,6 +23,7 @@ export function parseResultTreeMessage(value: unknown): ResultTreeMessage | unde
     return { type: "resolve", ids: item.ids as string[] };
   }
   if (typeof item.id !== "string" || item.id.length > 16_384) return undefined;
+  if (item.type === "viewportClipped" && revision !== undefined) return {type:"viewportClipped",id:item.id,inputRevision:revision};
   if (item.type === "activate" && (item.intent === "preview" || item.intent === "open")) {
     return { type: "activate", id: item.id, intent: item.intent, ...(revision === undefined ? {} : { inputRevision: revision }) };
   }
@@ -132,13 +134,46 @@ export const resultTreeClientScript = String.raw`
   const saved = vscode.getState() || {};
   selected = saved.selected;
   let restoreScroll = Number(saved.scrollTop) || 0;
+  let resizeTarget, resizeTimer, resizeClipped = false, resizeHeight = tree.clientHeight;
+  function cancelResizeFollow(forget = true) {
+    clearTimeout(resizeTimer); resizeTimer = undefined; resizeClipped = false;
+    if (forget) resizeTarget = undefined;
+  }
+  function resizeTargetVisible(height = tree.clientHeight) {
+    const index = resizeTarget ? visibleRows.findIndex(row => row.id === resizeTarget.id) : -1;
+    return index >= 0 && index * rowHeight >= tree.scrollTop && (index + 1) * rowHeight <= tree.scrollTop + height;
+  }
+  function rememberResizeTarget(id) {
+    cancelResizeFollow(); resizeTarget = { id, inputRevision }; resizeHeight = tree.clientHeight;
+  }
+  function viewportChanged() {
+    const previousHeight = resizeHeight; resizeHeight = tree.clientHeight;
+    scheduleDraw();
+    if (!trackInteraction || !resizeTarget) return;
+    if (autoFollowBlocked || viewFocused || document.hasFocus() ||
+      resizeTarget.inputRevision !== inputRevision || !visibleRows.some(row => row.id === resizeTarget.id)) { cancelResizeFollow(); return; }
+    if (resizeHeight < previousHeight && resizeTargetVisible(previousHeight) && !resizeTargetVisible()) resizeClipped = true;
+    if (resizeHeight < rowHeight) { clearTimeout(resizeTimer); resizeTimer = undefined; return; }
+    if (!resizeClipped) return;
+    clearTimeout(resizeTimer);
+    const target = resizeTarget;
+    resizeTimer = setTimeout(() => {
+      resizeTimer = undefined;
+      if (resizeTarget !== target || !resizeClipped) return;
+      resizeClipped = false;
+      if (!autoFollowBlocked && !viewFocused && !document.hasFocus() && tree.clientHeight >= rowHeight &&
+        target.inputRevision === inputRevision && visibleRows.some(row => row.id === target.id) && !resizeTargetVisible()) {
+        post({type:'viewportClipped',id:target.id,inputRevision:target.inputRevision});
+      }
+    }, 100);
+  }
   function post(message) {
-    if (trackInteraction && (message.type === 'activate' || message.type === 'action')) message.inputRevision = inputRevision;
+    if (trackInteraction && (message.type === 'activate' || message.type === 'action')) { cancelResizeFollow(); message.inputRevision = inputRevision; }
     vscode.postMessage(message);
   }
   function interaction(focused) {
     viewFocused = focused;
-    if (focused) { rejectedOpenTarget = undefined; lastAutoFollowId = undefined; }
+    if (focused) { cancelResizeFollow(); rejectedOpenTarget = undefined; lastAutoFollowId = undefined; }
     if (trackInteraction) post({ type: 'interaction', focused, inputRevision });
   }
   if (trackInteraction) {
@@ -146,7 +181,8 @@ export const resultTreeClientScript = String.raw`
     document.addEventListener('focusout', () => queueMicrotask(() => interaction(document.hasFocus())));
     document.addEventListener('pointerdown', () => interaction(true));
     window.addEventListener('focus', () => interaction(document.hasFocus()));
-    window.addEventListener('blur', () => interaction(false));
+    window.addEventListener('blur', () => { cancelResizeFollow(); interaction(false); });
+    tree.addEventListener('wheel', () => cancelResizeFollow(), {passive:true});
   }
   function persist() { vscode.setState({ selected, scrollTop: tree.scrollTop }); }
   function hideMenu() { menu.hidden = true; menu.replaceChildren(); menuRow = undefined; }
@@ -378,6 +414,7 @@ export const resultTreeClientScript = String.raw`
       if (selected && !rows.some(row => row.id === selected) && !filterRows?.some(row => row.id === selected)) { selected = undefined; pendingClick = undefined; }
       draw();
     } else if (message?.type === 'reveal') {
+      cancelResizeFollow();
       if (filterRows && filter.value && !message.focus && !message.select) return;
       if (!persistentFilter) filter.value = '';
       draw();
@@ -392,34 +429,37 @@ export const resultTreeClientScript = String.raw`
     } else if (message?.type === 'autoFollowPolicy' && trackInteraction) {
       if (autoFollowBlocked && !message.blocked) { rejectedOpenTarget = undefined; lastAutoFollowId = undefined; }
       autoFollowBlocked = !!message.blocked;
+      if (autoFollowBlocked) cancelResizeFollow();
     } else if (message?.type === 'autoFollow' && trackInteraction) {
       if (autoFollowBlocked || viewFocused || (typeof document.hasFocus === 'function' && document.hasFocus())) return;
       if (message.inputRevision !== inputRevision) {
         if (message.clear === 'always') rejectedOpenTarget = message.id;
         return;
       }
+      if (message.clear === 'never' && (resizeTarget?.id !== message.id || resizeTarget.inputRevision !== inputRevision)) return;
       if (rejectedOpenTarget === message.id) return;
       if (rejectedOpenTarget && rejectedOpenTarget !== message.id) rejectedOpenTarget = undefined;
       const row = rows.find(candidate => candidate.id === message.id) ?? filterRows?.find(candidate => candidate.id === message.id);
       if (!row) return;
       draw();
-      const clearQuery = message.clear === 'always' || (!!filter.value && !visibleRows.some(candidate => candidate.id === row.id));
+      const clearQuery = message.clear === 'always' || (message.clear === 'ifHidden' && !!filter.value && !visibleRows.some(candidate => candidate.id === row.id));
       if (clearQuery) {
         filter.value = ''; collapsedMatches.clear(); pendingClick = undefined; restoreScroll = 0;
         draw();
       }
       if (message.reveal) {
-        const index = visibleRows.indexOf(row);
+        const index = visibleRows.findIndex(candidate => candidate.id === row.id);
         if (index < 0) return;
         const outside = index * rowHeight < tree.scrollTop || (index + 1) * rowHeight > tree.scrollTop + tree.clientHeight;
         // Center new follow actions, not repeated metadata for a file the user can still see.
-        if (lastAutoFollowId !== message.id || clearQuery || outside) {
+        if (message.clear === 'never' ? outside : lastAutoFollowId !== message.id || clearQuery || outside) {
           const maximumScroll = Math.max(0, visibleRows.length * rowHeight - tree.clientHeight);
           tree.scrollTop = Math.max(0, Math.min(maximumScroll, (index + 0.5) * rowHeight - tree.clientHeight / 2));
         }
         lastAutoFollowId = message.id;
+        rememberResizeTarget(message.id);
         draw(); persist();
-      }
+      } else cancelResizeFollow();
     } else if (message?.type === 'patch') {
       for (const patch of message.rows || []) {
         const index = rows.findIndex(row => row.id === patch.id);
@@ -432,7 +472,7 @@ export const resultTreeClientScript = String.raw`
       status.textContent = message.status || ''; status.hidden = !message.status;
     }
   });
-  new ResizeObserver(scheduleDraw).observe(tree);
+  new ResizeObserver(viewportChanged).observe(tree);
   post({ type: 'ready' });
   if (trackInteraction) interaction(document.hasFocus());
 `;

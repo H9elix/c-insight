@@ -186,6 +186,8 @@ describe("custom result tree message boundary", () => {
       { type: "activate", id: "a", intent: "open" });
     assert.deepEqual(parseResultTreeMessage({ type: "expand", id: "a", expanded: false }),
       { type: "expand", id: "a", expanded: false });
+    assert.deepEqual(parseResultTreeMessage({type:"viewportClipped",id:"a",inputRevision:3}),{type:"viewportClipped",id:"a",inputRevision:3});
+    for(const revision of [undefined,-1,NaN,1.5,"3"])assert.equal(parseResultTreeMessage({type:"viewportClipped",id:"a",inputRevision:revision}),undefined);
     assert.equal(parseResultTreeMessage({ type: "activate", id: "a", intent: "execute" }), undefined);
     assert.equal(parseResultTreeMessage({ type: "expand", id: "a", expanded: "false" }), undefined);
     assert.equal(parseResultTreeMessage({ type: "action", id: "a", command: "x".repeat(128) }), undefined);

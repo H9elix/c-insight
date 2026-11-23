@@ -12,6 +12,7 @@ function emitter<T>() {
 function fixture() {
   const interaction = emitter<{ focused: boolean; inputRevision: number }>();
   const visibility = emitter<{ visible: boolean }>();
+  const viewport = emitter<{ node: TreeNode; inputRevision: number }>();
   const windowState = emitter<vscode.WindowState>();
   let target: TreeNode = { id: "a", label: "a" }, enabled = true, blocked = true;
   let holdFollow: Promise<void> | undefined;
@@ -19,8 +20,9 @@ function fixture() {
   const view = {
     visible: true, hasFocus: false, inputRevision: 0,
     onDidChangeVisibility: visibility.event, onDidChangeInteraction: interaction.event,
+    onDidLoseFollowVisibility: viewport.event,
     setAutomaticFollowBlocked: (value: boolean) => { blocked = value; },
-    followTarget: async (node: TreeNode, action: { clear: "always" | "ifHidden"; reveal: boolean; inputRevision: number }, current: () => boolean) => {
+    followTarget: async (node: TreeNode, action: { clear: "always" | "ifHidden" | "never"; reveal: boolean; inputRevision: number }, current: () => boolean) => {
       await holdFollow;
       if (blocked || !current()) return false;
       calls.push({ key: node.id!, ...action }); return true;
@@ -35,6 +37,7 @@ function fixture() {
     setTarget: (key: string) => { target = { id: key, label: key }; },
     setEnabled: (value: boolean) => { enabled = value; },
     hold: (value: Promise<void>) => { holdFollow = value; },
+    clipped: (key = target.id!, inputRevision = view.inputRevision) => viewport.fire({node:{id:key,label:key},inputRevision}),
     focus: (value: boolean) => { view.hasFocus = value; interaction.fire({ focused: value, inputRevision: view.inputRevision }); },
     visible: (value: boolean) => { view.visible = value; visibility.fire({ visible: value }); },
     windowFocused: (value: boolean) => { window.state.focused = value; windowState.fire(window.state); },
@@ -43,6 +46,26 @@ function fixture() {
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
 
 describe("persistent result-tree follow lifecycle", () => {
+  it("corrects only the requesting presentation when the same target is displayed twice",async t=>{
+    const first=fixture(),second=fixture();t.after(()=>{first.controller.dispose();second.controller.dispose();});
+    first.clipped();await settle();assert.equal(first.calls.length,1);assert.equal(second.calls.length,0);
+  });
+  it("reuses cached target following for viewport clipping without clearing input",async t=>{
+    const f=fixture();t.after(()=>f.controller.dispose());
+    f.clipped();await settle();assert.deepEqual(f.calls,[{key:"a",clear:"never",reveal:true,inputRevision:0}]);
+    f.controller.schedule();f.clipped();await settle();assert.equal(f.calls.at(-1)?.clear,"ifHidden","Normal pending follow keeps priority");
+    const count=f.calls.length;f.clipped("stale");f.clipped("a",99);await settle();assert.equal(f.calls.length,count);
+  });
+  it("keeps viewport correction behind locks, focus, follow settings and current input ownership",async t=>{
+    const f=fixture();t.after(()=>f.controller.dispose());
+    f.setEnabled(false);f.clipped();await settle();assert.equal(f.calls.length,0);
+    f.setEnabled(true);f.controller.setLocked(true);f.clipped();await settle();assert.equal(f.calls.length,0);
+    f.controller.setLocked(false);await settle();const count=f.calls.length;
+    f.focus(true);f.clipped();await settle();assert.equal(f.calls.length,count);
+    f.focus(false);await settle();f.windowFocused(false);const next=f.calls.length;f.clipped();await settle();assert.equal(f.calls.length,next);
+    f.windowFocused(true);await settle();f.clipped();f.view.inputRevision++;await settle();assert.notEqual(f.calls.at(-1)?.clear,"never");
+    f.visible(false);f.clipped();await settle();assert.notEqual(f.calls.at(-1)?.clear,"never");
+  });
   it("shares focus, independent lock, window and visibility gates without querying data", async t => {
     const f = fixture(); t.after(() => f.controller.dispose());
     f.controller.schedule(); await settle();

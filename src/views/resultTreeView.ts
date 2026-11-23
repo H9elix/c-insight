@@ -51,6 +51,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   private revision = 0;
   private automaticFollowBlocked = true;
   private readonly interactionEmitter = new vscode.EventEmitter<{ focused: boolean; inputRevision: number }>();
+  private readonly viewportEmitter = new vscode.EventEmitter<{ node: TreeNode; inputRevision: number }>();
   private readonly presentations = new Set<WebviewResultTree>();
   private readonly presentationEmitter = new vscode.EventEmitter<WebviewResultTree>();
   private readonly disposeEmitter = new vscode.EventEmitter<void>();
@@ -66,6 +67,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
   readonly onDidChangeEffectiveVisibility = this.effectiveVisibilityEmitter.event;
   get effectiveVisible(): boolean { return this.visible || [...this.presentations].some(view => view.visible); }
   readonly onDidChangeInteraction = this.interactionEmitter.event;
+  readonly onDidLoseFollowVisibility = this.viewportEmitter.event;
   get hasFocus(): boolean { return this.focused; }
   get inputRevision(): number { return this.revision; }
   readonly onDidChangeVisibility = this.visibilityEmitter.event;
@@ -221,9 +223,9 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (this.ready && this.visible) void this.view?.webview.postMessage({ type: "autoFollowPolicy", blocked });
   }
 
-  async followTarget(node: TreeNode, action: { clear: "always" | "ifHidden"; reveal: boolean; inputRevision: number }, current: () => boolean): Promise<boolean> {
+  async followTarget(node: TreeNode, action: { clear: "always" | "ifHidden" | "never"; reveal: boolean; inputRevision: number }, current: () => boolean): Promise<boolean> {
     if (!current() || !this.ready || !this.visible || this.automaticFollowBlocked) return false;
-    const id = this.model.snapshot().find(row => row.node === node)?.id ?? (action.reveal
+    const id = this.model.snapshot().find(row => row.node === node)?.id ?? (action.reveal && action.clear !== "never"
       ? await this.model.reveal(node) : this.model.filterSnapshot()?.find(row => row.node === node)?.id);
     if (!id || !current() || this.automaticFollowBlocked || !this.ready || !this.visible) return false;
     return !!await this.view?.webview.postMessage({ type: "autoFollow", id, ...action });
@@ -260,7 +262,7 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     this.disposables.splice(0).forEach((item) => item.dispose());
     this.model.dispose();
     this.visibilityEmitter.dispose(); this.expandEmitter.dispose(); this.collapseEmitter.dispose();
-    this.interactionEmitter.dispose();
+    this.interactionEmitter.dispose(); this.viewportEmitter.dispose();
     this.presentations.forEach(view => view.dispose()); this.presentations.clear();
     this.effectiveVisibilityEmitter.dispose();
     this.presentationEmitter.dispose();
@@ -342,7 +344,10 @@ export class WebviewResultTree implements ResultTreeView, vscode.WebviewViewProv
     if (!("id" in message)) return;
     const row = this.model.row(message.id);
     if (!row) return;
-    if (message.type === "expand") {
+    if (message.type === "viewportClipped") {
+      if (this.options.trackInteraction && this.visible && !this.focused && !this.automaticFollowBlocked && message.inputRevision === this.revision)
+        this.viewportEmitter.fire({node:row.node,inputRevision:message.inputRevision});
+    } else if (message.type === "expand") {
       await this.model.setExpanded(row.id, message.expanded);
     } else if (message.type === "activate") {
       if (this.options.onActivate && row.node.location) {

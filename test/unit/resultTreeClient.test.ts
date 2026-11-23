@@ -58,6 +58,8 @@ function harness(persistentFilter = false, trackInteraction = false) {
   const messages: any[] = [];
   const windowListeners = new Map<string, (event: any) => void>();
   let now = 1_000;
+  let resizeCallback: (() => void) | undefined, nextTimer = 0;
+  const timers = new Map<number, () => void>();
   runInNewContext(resultTreeClientScript, {
     Element, Date: { now: () => now },
     acquireVsCodeApi: () => ({ postMessage: (value: unknown) => messages.push(value), getState: () => ({}), setState: () => undefined }),
@@ -72,7 +74,9 @@ function harness(persistentFilter = false, trackInteraction = false) {
     window: { addEventListener: (name: string, listener: (event: any) => void) => windowListeners.set(name, listener), innerWidth: 600, innerHeight: 400 },
     requestAnimationFrame: (callback: () => void) => callback(),
     queueMicrotask: (callback: () => void) => callback(),
-    ResizeObserver: class { observe(): void {} },
+    ResizeObserver: class { constructor(callback: () => void) { resizeCallback = callback; } observe(): void {} },
+    setTimeout: (callback: () => void) => { timers.set(++nextTimer, callback); return nextTimer; },
+    clearTimeout: (id: number) => { timers.delete(id); },
   });
   const receive = (data: unknown): void => { windowListeners.get("message")!({ data }); };
   const state = (expanded = false, count = 1): void => {
@@ -99,10 +103,75 @@ function harness(persistentFilter = false, trackInteraction = false) {
     elements.get("filter")!.listeners.get("input")!({});
     return messages.at(-1)?.inputRevision ?? 0;
   };
-  return { elements, messages, state, dispatch, receive, focus, input, advance: (ms: number) => { now += ms; } };
+  return { elements, messages, state, dispatch, receive, focus, input, advance: (ms: number) => { now += ms; },
+    resize: (height: number) => { elements.get("tree")!.clientHeight = height; resizeCallback?.(); },
+    flushResize: () => { const callbacks = [...timers.values()]; timers.clear(); callbacks.forEach(callback => callback()); } };
 }
 
 describe("custom result tree browser interaction", () => {
+  it("reports an automatically followed row clipped by shrink once after geometry settles (CI-REG-056)", () => {
+    const h = harness(true, true), tree = h.elements.get("tree")!;
+    h.resize(480); h.state(false, 100); h.receive({type:"autoFollowPolicy",blocked:false});
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});
+    assert.equal(tree.scrollTop,972);
+    h.resize(360); h.resize(240); h.resize(120);
+    assert.equal(tree.scrollTop,972);
+    assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,0);
+    h.flushResize();
+    assert.deepEqual(h.messages.filter(message=>message.type==="viewportClipped").map(message=>({...message})),[{type:"viewportClipped",id:"node-50",inputRevision:0}]);
+    h.receive({type:"autoFollow",id:"node-50",clear:"never",reveal:true,inputRevision:0});
+    assert.equal(tree.scrollTop,1152);
+    h.flushResize();assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,1);
+    const before=tree.scrollTop;h.resize(110);h.flushResize();assert.equal(tree.scrollTop,before);
+    assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,1,"Visible rows must not be recentered");
+  });
+
+  it("does not use resize correction to clear a changed filter or recenter an already visible row", () => {
+    const h=harness(true,true),tree=h.elements.get("tree")!;
+    h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});
+    h.resize(120);h.input("function_1");h.focus(false);h.flushResize();
+    assert.equal(h.messages.some(message=>message.type==="viewportClipped"),false);
+    h.receive({type:"autoFollow",id:"node-50",clear:"never",reveal:true,inputRevision:1});
+    assert.equal(h.elements.get("filter")!.value,"function_1");
+    h.input("");h.focus(false);h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:2});
+    const before=tree.scrollTop;h.receive({type:"autoFollow",id:"node-50",clear:"never",reveal:true,inputRevision:2});
+    assert.equal(tree.scrollTop,before);
+  });
+  it("defers a clipped target across a temporarily zero-height viewport",()=>{
+    const h=harness(true,true);h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});
+    h.resize(0);h.flushResize();assert.equal(h.messages.some(message=>message.type==="viewportClipped"),false);
+    h.resize(120);h.flushResize();assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,1);
+  });
+
+  it("corrects filtered symbol projections by stable ID without changing their query",()=>{
+    const h=harness(true,true),tree=h.elements.get("tree")!;
+    const rows=Array.from({length:100},(_,index)=>({id:`node-${index}`,label:`function_${index}`,depth:0}));
+    h.resize(480);h.receive({type:"state",rows,filterRows:rows});
+    h.receive({type:"autoFollowPolicy",blocked:false});const revision=h.input("function_");h.focus(false);
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:revision});
+    assert.equal(tree.scrollTop,972);h.resize(120);h.flushResize();
+    assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,1);
+    h.receive({type:"autoFollow",id:"node-50",clear:"never",reveal:true,inputRevision:revision});
+    assert.equal(tree.scrollTop,1152);assert.equal(h.elements.get("filter")!.value,"function_");
+  });
+
+  for(const interruption of ["focus","lock","wheel","hide","newTarget","removeTarget"]){
+    it(`cancels pending resize correction after ${interruption}`,()=>{
+      const h=harness(true,true),tree=h.elements.get("tree")!;
+      h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+      h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});h.resize(120);
+      if(interruption==="focus")h.focus(true);
+      else if(interruption==="lock")h.receive({type:"autoFollowPolicy",blocked:true});
+      else if(interruption==="wheel")tree.listeners.get("wheel")?.({});
+      else if(interruption==="hide")h.resize(0);
+      else if(interruption==="newTarget")h.receive({type:"autoFollow",id:"node-2",clear:"ifHidden",reveal:true,inputRevision:0});
+      else h.state(false,5);
+      h.flushResize();assert.equal(h.messages.some(message=>message.type==="viewportClipped"),false);
+    });
+  }
+
   function symbolHierarchy(h: ReturnType<typeof harness>, highlight = false, expanded = false): void {
     const root = { id: "scope", label: "Codec", depth: 0, expandable: true, expanded: false, navigable: true, icon: "symbol-class" };
     const group = { id: "nested", parent: "scope", label: "Packet", depth: 1, expandable: true, expanded: false, navigable: true, icon: "symbol-struct" };

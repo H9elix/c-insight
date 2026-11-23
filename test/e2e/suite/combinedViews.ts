@@ -6,6 +6,7 @@ import { verifyCombinedReorder } from "./combinedReorder";
 import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
 import { verifyCombinedHoverDirection } from "./combinedHoverDirection";
 import { verifyCombinedHoverSize } from "./combinedHoverSize";
+import { verifyCombinedViewportFollow } from "./combinedViewportFollow";
 import { verifyViewPickerCancellation, verifyViewPickerOpening } from "./viewDiscovery";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
@@ -172,6 +173,7 @@ export async function run(): Promise<void> {
     assert.equal(scope?.globalValue?.enabled,true,"The layout must persist in user settings");
     await verifyPreviewPresentationOwnership(uri);
     await verifyViewPickerOpening();
+    await verifyCombinedViewportFollow(requestCount);
     console.log(`Combined view real-frame lifecycle and shared navigation passed (${engine}, VS Code ${vscode.version}).`);
   } finally {
     for (let slot = 1; slot <= 4; slot++) await combined.update(`slot${slot}`, undefined, vscode.ConfigurationTarget.Global);

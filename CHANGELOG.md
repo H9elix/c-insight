@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed Document Symbols and Project Files followed highlights moving outside the viewport when a combined pane shrinks. A previously visible row is recentered only if clipped, respecting locks, filters and manual browsing without data refreshes or extra engine queries.
 - Added optional per-pane hover target percentages in each combined view, with Set/Restore Default actions in pane menus. Targets retain direction and minimum-size limits, base ratios, protected controls and existing weighted defaults for unset panes.
 
 ## 0.23.2
