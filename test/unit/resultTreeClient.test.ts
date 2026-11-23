@@ -21,8 +21,10 @@ class Element {
   offsetHeight = 40;
   id = "";
   focused = false;
+  scrollCalls: Array<{top:number;behavior:string}> = [];
   constructor(readonly tag = "div") {}
   classList = {
+    contains: (name: string): boolean => this.className.split(" ").includes(name),
     toggle: (name: string, enabled: boolean): void => {
       const names = new Set(this.className.split(" "));
       if (enabled) names.add(name); else names.delete(name);
@@ -45,6 +47,7 @@ class Element {
   }
   contains(other: Element): boolean { return other === this || this.children.some((child) => child.contains(other)); }
   focus(): void { this.focused = true; }
+  scrollTo(options: {top:number;behavior:string}): void { this.scrollCalls.push(options); this.scrollTop=options.top; }
   get firstElementChild(): Element | undefined { return this.children[0]; }
 }
 
@@ -54,7 +57,7 @@ function harness(persistentFilter = false, trackInteraction = false) {
   elements.get("toolbar")!.dataset.persistentFilter = String(persistentFilter);
   elements.get("toolbar")!.dataset.trackInteraction = String(trackInteraction);
   const documentListeners = new Map<string, Array<(event: any) => void>>();
-  let documentFocused = false;
+  let documentFocused = false, reducedMotion = false;
   const messages: any[] = [];
   const windowListeners = new Map<string, (event: any) => void>();
   let now = 1_000;
@@ -64,6 +67,7 @@ function harness(persistentFilter = false, trackInteraction = false) {
     Element, Date: { now: () => now },
     acquireVsCodeApi: () => ({ postMessage: (value: unknown) => messages.push(value), getState: () => ({}), setState: () => undefined }),
     document: {
+      body: new Element("body"),
       getElementById: (id: string) => elements.get(id),
       createElement: (tag: string) => new Element(tag),
       createDocumentFragment: () => new Element("fragment"),
@@ -71,7 +75,8 @@ function harness(persistentFilter = false, trackInteraction = false) {
       hasFocus: () => documentFocused,
       addEventListener: (name: string, listener: (event: any) => void) => documentListeners.set(name, [...documentListeners.get(name) ?? [], listener]),
     },
-    window: { addEventListener: (name: string, listener: (event: any) => void) => windowListeners.set(name, listener), innerWidth: 600, innerHeight: 400 },
+    window: { addEventListener: (name: string, listener: (event: any) => void) => windowListeners.set(name, listener), innerWidth: 600, innerHeight: 400,
+      matchMedia: () => ({matches:reducedMotion}) },
     requestAnimationFrame: (callback: () => void) => callback(),
     queueMicrotask: (callback: () => void) => callback(),
     ResizeObserver: class { constructor(callback: () => void) { resizeCallback = callback; } observe(): void {} },
@@ -104,11 +109,64 @@ function harness(persistentFilter = false, trackInteraction = false) {
     return messages.at(-1)?.inputRevision ?? 0;
   };
   return { elements, messages, state, dispatch, receive, focus, input, advance: (ms: number) => { now += ms; },
+    reducedMotion: (enabled:boolean) => { reducedMotion=enabled; },
     resize: (height: number) => { elements.get("tree")!.clientHeight = height; resizeCallback?.(); },
     flushResize: () => { const callbacks = [...timers.values()]; timers.clear(); callbacks.forEach(callback => callback()); } };
 }
 
 describe("custom result tree browser interaction", () => {
+  it("restores the followed target after repeated expanded wheel browsing, including when already out of view (CI-REG-056)",()=>{
+    const h=harness(true,true),tree=h.elements.get("tree")!;
+    h.resize(120);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});
+    for(const [cycle,offset] of [200,1800,400].entries()){
+      h.resize(480);tree.listeners.get("wheel")!({});tree.scrollTop=offset;h.flushResize();
+      assert.equal(tree.scrollTop,offset,"Expanded browsing must not be interrupted");
+      assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,cycle);
+      h.resize(120);h.flushResize();
+      assert.equal(h.messages.filter(message=>message.type==="viewportClipped").length,cycle+1);
+      h.receive({type:"autoFollow",id:"node-50",clear:"never",reveal:true,inputRevision:0});
+      assert.equal(tree.scrollTop,1152);assert.equal(tree.scrollCalls.at(-1)?.behavior,"smooth");
+    }
+  });
+
+  it("respects reduced motion and cancels only an in-flight resize scroll when wheel browsing resumes",()=>{
+    const h=harness(true,true),tree=h.elements.get("tree")!;
+    h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+    const follow={type:"autoFollow",id:"node-50",reveal:true,inputRevision:0};
+    h.receive({...follow,clear:"ifHidden"});h.resize(120);h.flushResize();h.receive({...follow,clear:"never"});
+    assert.equal(tree.scrollCalls.at(-1)?.behavior,"smooth");
+    tree.scrollTop=1100;tree.listeners.get("wheel")!({});
+    assert.equal(tree.scrollCalls.at(-1)?.behavior,"auto");assert.equal(tree.scrollTop,1100);
+    h.resize(480);tree.scrollTop=200;h.resize(120);h.flushResize();h.reducedMotion(true);
+    h.receive({...follow,clear:"never"});
+    assert.equal(tree.scrollTop,1152);assert.equal(tree.scrollCalls.at(-1)?.behavior,"auto");
+  });
+
+  it("keeps a manually scrolled target in place if it remains visible after contraction",()=>{
+    const h=harness(true,true),tree=h.elements.get("tree")!;
+    h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+    h.receive({type:"autoFollow",id:"node-50",clear:"ifHidden",reveal:true,inputRevision:0});
+    tree.listeners.get("wheel")!({});tree.scrollTop=1150;h.resize(120);h.flushResize();
+    assert.equal(tree.scrollTop,1150);assert.equal(h.messages.some(message=>message.type==="viewportClipped"),false);
+  });
+
+  for(const interruption of ["focus","lock","query","navigation"]){
+    it(`stops resize animation on ${interruption} without applying an old correction`,()=>{
+      const h=harness(true,true),tree=h.elements.get("tree")!;
+      h.resize(480);h.state(false,100);h.receive({type:"autoFollowPolicy",blocked:false});
+      const follow={type:"autoFollow",id:"node-50",reveal:true,inputRevision:0};
+      h.receive({...follow,clear:"ifHidden"});h.resize(120);h.flushResize();h.receive({...follow,clear:"never"});
+      assert.equal(tree.scrollCalls.at(-1)?.behavior,"smooth");tree.scrollTop=1100;
+      if(interruption==="focus")h.focus(true);
+      else if(interruption==="lock")h.receive({type:"autoFollowPolicy",blocked:true});
+      else if(interruption==="query")h.input("new query");
+      else h.receive({type:"reveal",id:"node-2",focus:false,select:false});
+      assert.equal(tree.scrollCalls.at(-1)?.behavior,"auto");const position=tree.scrollTop;
+      h.receive({...follow,clear:"never"});assert.equal(tree.scrollTop,position);
+    });
+  }
+
   it("reports an automatically followed row clipped by shrink once after geometry settles (CI-REG-056)", () => {
     const h = harness(true, true), tree = h.elements.get("tree")!;
     h.resize(480); h.state(false, 100); h.receive({type:"autoFollowPolicy",blocked:false});

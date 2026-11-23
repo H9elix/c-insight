@@ -134,8 +134,14 @@ export const resultTreeClientScript = String.raw`
   const saved = vscode.getState() || {};
   selected = saved.selected;
   let restoreScroll = Number(saved.scrollTop) || 0;
-  let resizeTarget, resizeTimer, resizeClipped = false, resizeHeight = tree.clientHeight;
+  let resizeTarget, resizeTimer, resizeClipped = false, resizeHeight = tree.clientHeight, resizeMotion = false;
+  function stopResizeMotion() {
+    if (!resizeMotion) return;
+    resizeMotion = false;
+    tree.scrollTo({top:tree.scrollTop,behavior:'auto'});
+  }
   function cancelResizeFollow(forget = true) {
+    stopResizeMotion();
     clearTimeout(resizeTimer); resizeTimer = undefined; resizeClipped = false;
     if (forget) resizeTarget = undefined;
   }
@@ -148,11 +154,13 @@ export const resultTreeClientScript = String.raw`
   }
   function viewportChanged() {
     const previousHeight = resizeHeight; resizeHeight = tree.clientHeight;
+    if (resizeHeight !== previousHeight) stopResizeMotion();
     scheduleDraw();
     if (!trackInteraction || !resizeTarget) return;
     if (autoFollowBlocked || viewFocused || document.hasFocus() ||
       resizeTarget.inputRevision !== inputRevision || !visibleRows.some(row => row.id === resizeTarget.id)) { cancelResizeFollow(); return; }
-    if (resizeHeight < previousHeight && resizeTargetVisible(previousHeight) && !resizeTargetVisible()) resizeClipped = true;
+    // Wheel browsing can move the target out of view before the pane starts shrinking.
+    if (resizeHeight < previousHeight && !resizeTargetVisible()) resizeClipped = true;
     if (resizeHeight < rowHeight) { clearTimeout(resizeTimer); resizeTimer = undefined; return; }
     if (!resizeClipped) return;
     clearTimeout(resizeTimer);
@@ -182,7 +190,8 @@ export const resultTreeClientScript = String.raw`
     document.addEventListener('pointerdown', () => interaction(true));
     window.addEventListener('focus', () => interaction(document.hasFocus()));
     window.addEventListener('blur', () => { cancelResizeFollow(); interaction(false); });
-    tree.addEventListener('wheel', () => cancelResizeFollow(), {passive:true});
+    tree.addEventListener('wheel', () => cancelResizeFollow(false), {passive:true});
+    tree.addEventListener('scrollend', () => { resizeMotion = false; persist(); });
   }
   function persist() { vscode.setState({ selected, scrollTop: tree.scrollTop }); }
   function hideMenu() { menu.hidden = true; menu.replaceChildren(); menuRow = undefined; }
@@ -451,13 +460,18 @@ export const resultTreeClientScript = String.raw`
         const index = visibleRows.findIndex(candidate => candidate.id === row.id);
         if (index < 0) return;
         const outside = index * rowHeight < tree.scrollTop || (index + 1) * rowHeight > tree.scrollTop + tree.clientHeight;
+        rememberResizeTarget(message.id);
         // Center new follow actions, not repeated metadata for a file the user can still see.
         if (message.clear === 'never' ? outside : lastAutoFollowId !== message.id || clearQuery || outside) {
           const maximumScroll = Math.max(0, visibleRows.length * rowHeight - tree.clientHeight);
-          tree.scrollTop = Math.max(0, Math.min(maximumScroll, (index + 0.5) * rowHeight - tree.clientHeight / 2));
+          const top = Math.max(0, Math.min(maximumScroll, (index + 0.5) * rowHeight - tree.clientHeight / 2));
+          if (message.clear === 'never') {
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.classList.contains('vscode-reduce-motion');
+            resizeMotion = !reduced;
+            tree.scrollTo({top,behavior:reduced?'auto':'smooth'});
+          } else tree.scrollTop = top;
         }
         lastAutoFollowId = message.id;
-        rememberResizeTarget(message.id);
         draw(); persist();
       } else cancelResizeFollow();
     } else if (message?.type === 'patch') {
