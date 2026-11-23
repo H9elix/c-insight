@@ -36,6 +36,45 @@ describe("combined layouts", () => {
     assert.deepEqual(combinedPaneSizes(300,[1,1,1],160,1),[160,160,160]);
     assert.deepEqual(combinedPaneSizes(320,[3,1],80,0),[240,80]);
   });
+  it("keeps only valid per-role hover percentages for panes present in the layout", () => {
+    const raw = {views:["preview","callers","symbols"], hoverSizePercentages:{preview:65, callers:1, symbols:100, status:50, unknown:70}};
+    const layout = combinedLayout(raw);
+    assert.deepEqual(layout.hoverSizePercentages,{preview:65,callers:1,symbols:100});
+    for (const value of [0,101,-1,1.5,NaN,Infinity,"65",null,undefined]) {
+      assert.equal(combinedLayout({views:["preview"],hoverSizePercentages:{preview:value}}).hoverSizePercentages,undefined);
+    }
+    assert.equal(combinedLayout({views:["preview"],hoverSizePercentages:[65]}).hoverSizePercentages,undefined);
+    assert.equal(combinedLayout({views:["preview"],hoverSizePercentages:Object.create({preview:65})}).hoverSizePercentages,undefined);
+    assert.equal(combinedLayout({...layout,views:["references"]}).hoverSizePercentages,undefined);
+    assert.deepEqual(reorderCombinedPane(layout,"preview","symbols","after").hoverSizePercentages,layout.hoverSizePercentages);
+    const properties=JSON.parse(readFileSync("package.json","utf8")).contributes.configuration.properties;
+    for(const slot of COMBINED_SLOTS){
+      const field=properties[`cInsight.combinedViews.slot${slot}`].properties.hoverSizePercentages;
+      assert.deepEqual(field.default,{});assert.equal(field.additionalProperties,false);
+      const [[pattern,range]]=Object.entries(field.patternProperties) as [string,{type:string;minimum:number;maximum:number}][];
+      assert(COMBINED_ROLES.every(role=>new RegExp(pattern).test(role)));assert(!new RegExp(pattern).test("unknown"));
+      assert.deepEqual(range,{type:"integer",minimum:1,maximum:100});
+    }
+  });
+  it("uses a target percentage without shrinking a base pane or breaking minima", () => {
+    assert.deepEqual(combinedPaneSizes(1200,[1,1,1],160,1,65),[210,780,210]);
+    assert.deepEqual(combinedPaneSizes(1200,[1,1,1],160,1,20),[400,400,400]);
+    assert.deepEqual(combinedPaneSizes(1200,[1,1,1],160,1,100),[160,880,160]);
+    assert.deepEqual(combinedPaneSizes(1200,[1,2,1],160,1,65),[210,780,210]);
+    const desired=combinedPaneSizes(1200,[1,1,1],160,1,65);
+    assert.deepEqual(combinedForwardSizes([400,400,400],160,1,desired[1]),[400,640,160]);
+    for(const percentage of [undefined,0,101,1.5,NaN,Infinity])
+      assert.deepEqual(combinedPaneSizes(1200,[1,1,1],160,1,percentage),combinedPaneSizes(1200,[1,1,1],160,1));
+    assert.deepEqual(combinedPaneSizes(600,[1],160,0,65),[600]);
+    for(const minimum of [80,160])for(let count=1;count<=15;count++)for(const total of [100,480,1200]){
+      const ratios=Array.from({length:count},(_,index)=>index+1),base=combinedPaneSizes(total,ratios,minimum,-1);
+      for(let index=0;index<count;index++)for(const percentage of [1,20,65,100]){
+        const sizes=combinedPaneSizes(total,ratios,minimum,index,percentage);
+        assert(sizes.every(size=>size>=minimum-0.001));assert(sizes[index]>=base[index]-0.001);
+        assert(Math.abs(sizes.reduce((a,b)=>a+b,0)-Math.max(total,count*minimum))<0.001);
+      }
+    }
+  });
   it("defaults legacy layouts to forward and exposes the same per-slot schema", () => {
     const legacy={enabled:true,views:["preview","callers"],ratios:[2,1],direction:"vertical"};
     for(const value of [undefined,"right",null,42])assert.equal(combinedLayout({...legacy,hoverDirection:value}).hoverDirection,"forward");
@@ -84,10 +123,10 @@ describe("combined layouts", () => {
     assert.equal(reorderCombinedPane(layout,"preview","callers","invalid" as "after"),layout);
     const disabled={...layout,enabled:false};assert.equal(reorderCombinedPane(disabled,"symbols","preview","before"),disabled);
   });
-  it("revisions track only enabled, orientation, order and weights", () => {
+  it("revisions track geometry settings, including per-pane hover targets", () => {
     const layout=combinedLayout({enabled:true,views:["preview","callers"],ratios:[2,1]});
     assert.equal(combinedLayoutRevision(layout),combinedLayoutRevision({...layout,title:"Renamed"}));
-    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,hoverDirection:"both" as const},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
+    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,hoverDirection:"both" as const},{...layout,hoverSizePercentages:{preview:65}},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
       assert.notEqual(combinedLayoutRevision(layout),combinedLayoutRevision(changed));
   });
   it("honors lower bounds and conserves each available budget", () => {

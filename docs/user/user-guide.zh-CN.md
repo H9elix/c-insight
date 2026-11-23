@@ -852,29 +852,39 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 
 #### 4.2.4 悬停扩展与方向
 
-开启悬停扩展时，目标窗格的期望尺寸按两倍基础权重计算，实际增长受可借空间和最小尺寸限制。每个组合的 `hoverDirection` 默认为 `forward`：水平向右、垂直向下扩展，只压缩目标后方的展开窗格，保持目标左侧／顶部边界及前方窗格的当前尺寸。连续切换不会立即缩回前方已扩展的窗格，因此后面的窗格可能只能少量扩展；末尾或后方已达最小尺寸时不扩展，不反向借空间或增加滚动范围。移出整个组合后统一恢复基础比例。设为 `both` 使用双向分配，目标两侧的窗格都可变化。组合工具栏的箭头按钮可在两档之间切换，仅修改当前组合；“管理组合视图 → 扩展方向”也可选择。已有布局缺少此字段时同样使用 `forward`。
+未指定栏目展开占比时，目标窗格的期望尺寸按两倍基础权重计算，实际增长受可借空间和最小尺寸限制。每个组合的 `hoverDirection` 默认为 `forward`：水平向右、垂直向下扩展，只压缩目标后方的展开窗格，保持目标左侧／顶部边界及前方窗格的当前尺寸。连续切换不会立即缩回前方已扩展的窗格，因此后面的窗格可能只能少量扩展；末尾或后方已达最小尺寸时不扩展，不反向借空间或增加滚动范围。移出整个组合后统一恢复基础比例。设为 `both` 使用双向分配，目标两侧的窗格都可变化。组合工具栏的箭头按钮可在两档之间切换，仅修改当前组合；“管理组合视图 → 扩展方向”也可选择。已有布局缺少此字段时同样使用 `forward`。
 
-#### 4.2.5 操作区保护与时间配置
+<a id="combined-hover-size"></a>
+
+#### 4.2.5 栏目展开占比
+
+在组合内某个子栏目的“…”菜单中选择“设置展开占比…（Set Hover Expansion Size…）”，输入 `1–100` 的整数。例如输入 `65`，表示悬停后目标为组合可用宽度的 `65%`；垂直排列时按可用高度计算。可用区域扣除组合总工具栏、分隔条和折叠栏目占用，并非整个 VS Code 窗口。菜单显示当前目标值或“默认展开”，已有自定义值时提供“恢复默认展开占比”。取消输入、无效输入和重复确认相同值不会保存。
+
+展开占比仅属于当前组合中的该栏目，按栏目身份保存，排序后仍跟随该栏目；移除栏目会删除对应占比。另一个组合的同名栏目不受影响。基础比例仍由普通分隔条或“等分尺寸”调整，两者互不覆盖；恢复默认只删除自定义占比，回到两倍权重算法，不重置基础布局。
+
+占比是目标而非强制尺寸。目标小于基础尺寸时不缩小栏目；邻栏仍保留横向 `160px`、纵向 `80px` 的最小尺寸。单向模式只能借用后方余量，前方已扩展栏目保持原样，因此可能达不到目标，最后一栏仍不会反向扩展。双向模式可向两侧分配空间，但同样受最小尺寸限制。配置无需重载；菜单和按钮区保持当前尺寸，返回内容区并产生新的鼠标移动后再应用。筛选、滚动、固定状态和语义查询不因设置占比而重置。
+
+#### 4.2.6 操作区保护与时间配置
 
 鼠标进入组合总工具栏、窗格标题工具栏、代码预览顶部操作区或搜索／结果工具栏时，会取消等待并将动画冻结在当前可见尺寸，按钮不会随动画继续移动。返回内容区并产生新的鼠标移动后重新等待触发；在操作区切换扩展模式只保存选择，离开后再应用尺寸变化。此暂停规则同时适用于双向模式。
 
 `cInsight.combinedViews.hoverEnterDelay` 控制触发等待，默认 `200` 毫秒；`hoverAnimationDuration` 控制扩展/恢复动画，默认 `200` 毫秒；`hoverLeaveDelay` 控制移出整个组合后的恢复等待，默认 `250` 毫秒。这三项均位于 `cInsight.combinedViews` 下，接受 `0`–`10000` 的整数，作用于所有组合，修改后无需重载；`0` 分别表示立即扩展、无动画和立即恢复。等待期间修改对应时长会按新值重新计时。水平排列的展开窗格至少 160 像素宽，垂直排列至少 80 像素高；空间不足时组合内部滚动。只有一个展开窗格时不扩展。拖动分隔条、选中文本、按住鼠标或打开菜单时暂停自动调整；系统启用减少动态效果时始终不播放过渡动画。悬停不会抢焦点或触发语义查询，也不会改变外部原生窗口的尺寸。
 
-#### 4.2.6 共享结果与局部状态
+#### 4.2.7 共享结果与局部状态
 
 同一功能在多个位置显示时共享查询结果、业务筛选和固定/锁定状态：调用者与被调用者仍共用固定状态，引用独立固定，代码预览共用目标及锁定。树的局部过滤、展开、选择和滚动位置属于各自窗格；文档符号与工程文件共享功能锁，但过滤词和自动定位按各显示实例处理。工具栏操作优先作用于发起操作的显示位置，编辑器命令优先使用最近操作且可见的相应位置，没有可见位置时打开原栏目。
 
 同一功能有任一显示位置可见就保留该功能的可见需求；隐藏整个组合、折叠或移除窗格会撤销对应显示位置的需求。重复加入不会建立第二个分析引擎或第二份语义查询控制器；引擎自己的后台索引不受窗格悬停控制。
 
-#### 4.2.7 主题与字体
+#### 4.2.8 主题与字体
 
 组合窗格的横纵滚动条、界面字体、输入框和焦点样式随 VS Code 主题更新，支持深色、浅色及高对比度主题。代码字体和字号使用 `editor.fontFamily`、`editor.fontSize`；预览固定配色仍按 `cInsight.codePreview.colorScheme` 和 `tokenColors` 显示。主题与字体更新直接作用于样式，保留当前筛选、展开及滚动位置。
 
-#### 4.2.8 布局保存与配置示例
+#### 4.2.9 布局保存与配置示例
 
 名称、功能顺序、方向及比例保存在当前 VS Code 用户配置中，跨工程共用；外部停靠位置由 VS Code 保存。配置中不包含工程文件路径或语义结果。全部默认值见[组合视图配置](#settings-combined-views)。
 
-布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`hoverDirection` 可为 `forward`（默认向右／下）或 `both`（双向）；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
+布局对象：`enabled` 为是否显示；`title` 为最长 80 个字符的名称，空字符串使用默认名；`direction` 可为 `horizontal` 或 `vertical`；`hoverDirection` 可为 `forward`（默认向右／下）或 `both`（双向）；`views` 为不重复的功能后缀数组；`ratios` 为与其逐项对应的正数权重，范围 `0.001`–`1000`，省略的项按 `1` 处理；可选的 `hoverSizePercentages` 按栏目后缀保存 `1–100` 的整数目标占比，默认没有覆盖值，非法值或不在本组合中的栏目键会忽略。功能后缀为 `context`、`preview`、`references`、`callers`、`callees`、`supertypes`、`subtypes`、`includes`、`includedBy`、`history`、`bookmarks`、`workspaceSymbols`、`symbols`、`projectFiles`、`status`。
 
 例如，在用户设置中配置下方横向阅读组合，再使用 VS Code 的“移动视图”将其放到面板：
 
@@ -885,6 +895,7 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
     "title": "代码阅读",
     "direction": "horizontal",
     "hoverDirection": "forward",
+    "hoverSizePercentages": {"preview": 65},
     "views": ["preview", "callers", "references"],
     "ratios": [2, 1, 1]
   },
@@ -1571,7 +1582,7 @@ PROJECT DIAGNOSTICS 的 `Runtime performance` 会显示最近一次语义请求�
 
 | 配置 | 类型 | 默认值 | 可用值/范围 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`hoverDirection`、`views`、`ratios` | 第一个组合布局 |
+| `cInsight.combinedViews.slot1` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | `enabled`、`title`、`direction`、`hoverDirection`、`hoverSizePercentages`、`views`、`ratios` | 第一个组合布局；栏目展开占比为可选字段，默认无覆盖 |
 | `cInsight.combinedViews.slot2` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第二个组合布局 |
 | `cInsight.combinedViews.slot3` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第三个组合布局 |
 | `cInsight.combinedViews.slot4` | object | `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}` | 同上 | 第四个组合布局 |

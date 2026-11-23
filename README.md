@@ -81,7 +81,7 @@ Combined views place the C Insight features you need inside one native view: for
 
 VS Code already supports moving, grouping and manually resizing views. Combined views build on those [native layout capabilities](https://code.visualstudio.com/docs/configure/custom-layout#_drag-and-drop-views-and-panels) with code-reading conveniences inside the combination:
 
-- **Reading space follows your pointer:** hover enlarges the current content pane and leaving restores proportions. Forward expansion preserves leading text edges; entering titles or controls pauses resizing.
+- **Reading space follows your pointer:** hover enlarges the current content pane and leaving restores proportions, with [per-pane expansion targets](docs/user/user-guide.en.md#combined-hover-size). Forward expansion preserves leading text edges; entering titles or controls pauses resizing.
 - **Manage a browsing setup together:** move the entire combination to a panel or side bar. User settings preserve its name, internal order, direction and proportions across projects.
 - **Reuse features across setups:** combinations share feature results and pins while tree panes retain local filters, expansion and scrolling. Presentation copies do not create another analysis engine.
 

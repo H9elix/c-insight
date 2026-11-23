@@ -316,23 +316,33 @@ Drag a pane's title text to reorder it within the same combination: move left/ri
 
 #### 4.2.3 Hover expansion and direction
 
-A hovered pane targets the size calculated from twice its base weight, bounded by available space and pane minimums. Each combination defaults to `hoverDirection: "forward"`: expand right horizontally or down vertically, borrowing only from trailing expanded panes while preserving the target's leading edge and preceding panes' visible sizes. Consecutive hovers retain preceding allocations until the pointer leaves the entire combination; later panes may expand less, and the last pane or a pane with no trailing slack does not expand. Hovering adds no overflow. Use `"both"` for two-sided allocation. The arrow button toggles the current combination only; Manage Combined View also offers Expansion Direction. Layouts without the field use `forward`.
+Without a per-pane target percentage, a hovered pane targets the size calculated from twice its base weight, bounded by available space and pane minimums. Each combination defaults to `hoverDirection: "forward"`: expand right horizontally or down vertically, borrowing only from trailing expanded panes while preserving the target's leading edge and preceding panes' visible sizes. Consecutive hovers retain preceding allocations until the pointer leaves the entire combination; later panes may expand less, and the last pane or a pane with no trailing slack does not expand. Hovering adds no overflow. Use `"both"` for two-sided allocation. The arrow button toggles the current combination only; Manage Combined View also offers Expansion Direction. Layouts without the field use `forward`.
 
-#### 4.2.4 Control protection and timing
+<a id="combined-hover-size"></a>
+
+#### 4.2.4 Per-pane expansion targets
+
+Choose **Set Hover Expansion Size…** from a child pane's **…** menu and enter an integer from `1` to `100`. A value of `65` targets 65% of the combination's usable width, or height for vertical layouts, excluding the global toolbar, splitters and collapsed panes. The menu shows the current target or **Default expansion**, and offers **Restore Default Hover Expansion Size** when an override exists. Cancelled, invalid or unchanged input does not save.
+
+Targets belong to one pane in one combination. They follow the pane when reordered and are removed with it; another combination's matching pane is unaffected. Ordinary splitters and equal-size reset still adjust only base ratios. Restoring default removes the percentage override and returns to weighted expansion without resetting the base layout. The optional layout field `hoverSizePercentages` maps included role suffixes to integer percentages; omitted, invalid or absent-role entries use the default behavior.
+
+Targets cannot shrink a pane below its base size or compress neighbors below 160 px horizontally or 80 px vertically. Forward mode borrows only trailing slack and retains preceding expanded panes, so a target may not be reached and the last pane still cannot grow backwards. Both-direction mode can use space on either side but retains the same minima. Changes need no reload; protected controls retain their geometry until fresh content movement applies the new target. Pane state and semantic queries are unchanged.
+
+#### 4.2.5 Control protection and timing
 
 Entering the global toolbar, a pane header, the Code Preview header or a search/result toolbar cancels pending resizing and freezes an active animation at its visible pixels. Fresh pointer movement in content restarts the dwell. Mode changes made over controls are saved immediately but geometry changes wait until pointer departure. This protection also applies to both-direction mode.
 
 `cInsight.combinedViews.hoverEnterDelay` controls dwell (default `200` ms), `cInsight.combinedViews.hoverAnimationDuration` controls expansion/restoration animation (default `200` ms), and `cInsight.combinedViews.hoverLeaveDelay` controls the wait after leaving the entire combination (default `250` ms). All three are user-wide integer settings from `0` to `10000` ms and update all combinations without reloading. Zero means immediate expansion, no animation, or immediate restoration respectively; changing an active wait restarts it with the new value. Expanded panes have a minimum width of 160 px horizontally or height of 80 px vertically; undersized combinations scroll internally. A single expanded pane does not enlarge. Dragging, text selection, held mouse buttons and menus pause automatic resizing, and reduced-motion preferences always disable animation. Hovering does not focus, query the engine, reload code, or resize VS Code's outer view boundaries.
 
-#### 4.2.5 Shared feature state
+#### 4.2.6 Shared feature state
 
 Results, business filters and feature pins/locks remain shared. Callers/Callees retain their shared pin; References has its own pin; Code Preview shares its target and lock. Each tree presentation keeps independent local filtering, expansion, selection and scrolling. Symbol/file lists share their feature lock but manage local filter clearing and following independently. Actions target the originating presentation; editor commands prefer the last-used visible matching presentation, then the original view. Query demand is the OR of all visible presentations; hiding a combination or collapsing/removing its pane withdraws that presentation's demand without creating a second engine or semantic controller.
 
-#### 4.2.6 Themes and fonts
+#### 4.2.7 Themes and fonts
 
 Combined panes follow VS Code's dark, light and high-contrast themes for horizontal/vertical scrollbars, interface typography, inputs and focus indicators. Source text uses `editor.fontFamily` and `editor.fontSize`; fixed preview colors still follow `cInsight.codePreview.colorScheme` and `tokenColors`. Theme and font updates apply to styles while retaining filters, expansion and scroll positions.
 
-#### 4.2.7 Saved layout settings
+#### 4.2.8 Saved layout settings
 
 `cInsight.combinedViews.slot1` through `slot4` are application/user settings shared across projects. Each defaults to `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}`. `enabled` shows the slot, `title` allows up to 80 characters (empty uses the default), `direction` accepts `horizontal` or `vertical`, `hoverDirection` accepts `forward` (default) or `both`, `views` lists unique role suffixes, and `ratios` supplies matching positive weights from `0.001` to `1000` (missing entries use `1`). Role suffixes are `context`, `preview`, `references`, `callers`, `callees`, `supertypes`, `subtypes`, `includes`, `includedBy`, `history`, `bookmarks`, `workspaceSymbols`, `symbols`, `projectFiles`, `status`. Native docking positions remain VS Code-managed; layout settings contain no source paths or semantic results. `cInsight.combinedViews.hoverExpand` defaults to `true` and is independent of feature locks.
 
@@ -343,6 +353,7 @@ Combined panes follow VS Code's dark, light and high-contrast themes for horizon
     "title": "Code browsing",
     "direction": "horizontal",
     "hoverDirection": "forward",
+    "hoverSizePercentages": {"preview": 65},
     "views": ["preview", "callers", "references"],
     "ratios": [2, 1, 1]
   },

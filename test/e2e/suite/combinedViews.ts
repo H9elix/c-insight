@@ -5,6 +5,7 @@ import { verifyCombinedTheme } from "./combinedTheme";
 import { verifyCombinedReorder } from "./combinedReorder";
 import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
 import { verifyCombinedHoverDirection } from "./combinedHoverDirection";
+import { verifyCombinedHoverSize } from "./combinedHoverSize";
 import { verifyViewPickerCancellation, verifyViewPickerOpening } from "./viewDiscovery";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
@@ -130,6 +131,7 @@ export async function run(): Promise<void> {
     await verifyCombinedToolbarTiming(requestCount);
     await verifyCombinedReorder(requestCount);
     await verifyCombinedHoverDirection(requestCount);
+    await verifyCombinedHoverSize(requestCount);
     await browser(2, {action:"collapse",role:"projectFiles"});
     await wait(async()=>!(await state()).find(surface=>surface.slot===2)?.panes.find(pane=>pane.role==="projectFiles")?.visible?true:undefined,"Collapsed panes must withdraw demand");
     const before = (await state()).find(surface => surface.slot === 1)!.panes.map(pane => [pane.role, pane.generation]);

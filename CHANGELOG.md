@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added optional per-pane hover target percentages in each combined view, with Set/Restore Default actions in pane menus. Targets retain direction and minimum-size limits, base ratios, protected controls and existing weighted defaults for unset panes.
+
 ## 0.23.2
 
 ### New in 0.23

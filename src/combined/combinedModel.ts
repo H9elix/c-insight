@@ -10,6 +10,7 @@ export interface CombinedLayout {
   title: string;
   direction: "horizontal" | "vertical";
   hoverDirection: CombinedHoverDirection;
+  hoverSizePercentages?: Partial<Record<CombinedRole, number>>;
   views: CombinedRole[];
   ratios: number[];
 }
@@ -30,13 +31,20 @@ export function combinedLayout(value: unknown): CombinedLayout {
   const views = Array.isArray(data.views) ? [...new Set(data.views.filter(isCombinedRole))] : [];
   const ratios = views.map((_, index) => Array.isArray(data.ratios) && typeof data.ratios[index] === "number" &&
     Number.isFinite(data.ratios[index]) && data.ratios[index] > 0 ? Math.min(1000, Math.max(0.001, data.ratios[index])) : 1);
+  const sizes = data.hoverSizePercentages && typeof data.hoverSizePercentages === "object" && !Array.isArray(data.hoverSizePercentages)
+    ? data.hoverSizePercentages as Record<string, unknown> : {};
+  const hoverSizePercentages = Object.fromEntries(views.filter(role => Object.hasOwn(sizes, role) &&
+    typeof sizes[role] === "number" && Number.isInteger(sizes[role]) && (sizes[role] as number) >= 1 && (sizes[role] as number) <= 100)
+    .map(role => [role, sizes[role] as number]));
   return { enabled: data.enabled === true, title: typeof data.title === "string" ? data.title.trim().slice(0, 80) : "",
-    direction: data.direction === "vertical" ? "vertical" : "horizontal", hoverDirection: data.hoverDirection === "both" ? "both" : "forward", views, ratios };
+    direction: data.direction === "vertical" ? "vertical" : "horizontal", hoverDirection: data.hoverDirection === "both" ? "both" : "forward", views, ratios,
+    ...(Object.keys(hoverSizePercentages).length ? {hoverSizePercentages} : {}) };
 }
 
 /** Shared by the host and browser. Excludes titles and unrelated toolbar updates. */
 export function combinedLayoutRevision(layout: CombinedLayout): string {
-  return JSON.stringify([layout.enabled, layout.direction, layout.hoverDirection ?? "forward", layout.views, layout.ratios]);
+  return JSON.stringify([layout.enabled, layout.direction, layout.hoverDirection ?? "forward", layout.views, layout.ratios,
+    layout.views.map(role => layout.hoverSizePercentages?.[role] ?? null)]);
 }
 
 /** Insert a pane without changing identities or detaching its base weight. */
@@ -52,9 +60,16 @@ export function reorderCombinedPane(layout: CombinedLayout, source: string, targ
 }
 
 /** Pixel sizes with minimums. The caller scrolls the layout when total < count * minimum. */
-export function combinedPaneSizes(total: number, ratios: readonly number[], minimum: number, hovered: number): number[] {
+export function combinedPaneSizes(total: number, ratios: readonly number[], minimum: number, hovered: number, percentage?: number): number[] {
   if (!ratios.length) return [];
   const available = Math.max(total, ratios.length * minimum);
+  if (ratios.length > 1 && Number.isInteger(hovered) && hovered >= 0 && hovered < ratios.length &&
+    typeof percentage === "number" && Number.isInteger(percentage) && percentage >= 1 && percentage <= 100) {
+    const base = combinedPaneSizes(total, ratios, minimum, -1);
+    const target = Math.min(available - (ratios.length - 1) * minimum, Math.max(base[hovered], total * percentage / 100));
+    const others = combinedPaneSizes(available - target, ratios.filter((_, index) => index !== hovered), minimum, -1);
+    return ratios.map((_, index) => index === hovered ? target : others[index < hovered ? index : index - 1]);
+  }
   const weights = ratios.map((value, index) => Math.max(0.001, value) * (index === hovered && ratios.length > 1 ? 2 : 1));
   const sizes = weights.map(() => 0);
   const remaining = new Set(weights.map((_, index) => index));

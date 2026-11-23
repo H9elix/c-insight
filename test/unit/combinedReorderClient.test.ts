@@ -72,10 +72,10 @@ describe("combined pane reorder pointer handlers",()=>{
     });
   }
   it("retains a drag on unrelated title changes but cancels altered layouts",()=>{
-    for(const change of ["weights","direction","roles"]){
+    for(const change of ["weights","direction","roles","hoverSize"]){
       const h=harness();h.down();h.emit("pointermove",h.event(280,100));
       h.layout={...h.layout,title:"Renamed"};assert(h.controller.active);
-      h.layout=change==="weights"?{...h.layout,ratios:[1,1,1]}:change==="direction"?{...h.layout,direction:"vertical"}:{...h.layout,views:["callers","preview"]};
+      h.layout=change==="weights"?{...h.layout,ratios:[1,1,1]}:change==="direction"?{...h.layout,direction:"vertical"}:change==="hoverSize"?{...h.layout,hoverSizePercentages:{preview:65}}:{...h.layout,views:["callers","preview"]};
       assert(!h.controller.active);assert.equal(h.drops.length,0);assert.equal(h.raf.size,0);
     }
   });

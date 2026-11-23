@@ -1400,6 +1400,19 @@
               "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
+            "hoverSizePercentages": {
+              "type": "object",
+              "default": {},
+              "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
             "views": {
               "type": "array",
               "items": {
@@ -1474,6 +1487,19 @@
               "enum": ["forward", "both"],
               "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverSizePercentages": {
+              "type": "object",
+              "default": {},
+              "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
             },
             "views": {
               "type": "array",
@@ -1550,6 +1576,19 @@
               "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
+            "hoverSizePercentages": {
+              "type": "object",
+              "default": {},
+              "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
             "views": {
               "type": "array",
               "items": {
@@ -1624,6 +1663,19 @@
               "enum": ["forward", "both"],
               "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverSizePercentages": {
+              "type": "object",
+              "default": {},
+              "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
             },
             "views": {
               "type": "array",

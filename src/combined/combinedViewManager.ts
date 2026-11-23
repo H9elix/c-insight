@@ -213,13 +213,21 @@ export class CombinedViewManager implements vscode.Disposable {
       pane.view.webview.receiveMessage(message.message);
     } else if (message.type === "paneMenu") {
       await this.interact(slot, async () => {
-        const entries = this.actions(role).map(action => ({label: action.title, command: action.command, layoutAction: ""}));
+        const entries: Array<vscode.QuickPickItem & {command: string; layoutAction: string}> = this.actions(role)
+          .map(action => ({label: action.title, command: action.command, layoutAction: ""}));
+        const percentage = this.layout(slot).hoverSizePercentages?.[role];
+        entries.push({label: vscode.l10n.t("Set Hover Expansion Size…"), command: "", layoutAction: "hoverSize",
+          description: percentage === undefined ? vscode.l10n.t("Default expansion") : vscode.l10n.t("Target: {percent}%", {percent: percentage})});
+        if (percentage !== undefined) entries.push({label: vscode.l10n.t("Restore Default Hover Expansion Size"), command: "", layoutAction: "resetHoverSize"});
         entries.push({label: vscode.l10n.t("Move Pane Earlier"), command: "", layoutAction: "earlier"},
           {label: vscode.l10n.t("Move Pane Later"), command: "", layoutAction: "later"},
           {label: vscode.l10n.t("Remove Pane"), command: "", layoutAction: "remove"});
         const selected = await vscode.window.showQuickPick(entries, {title: this.names.get(role)});
         if (selected?.command) await this.runAction(role, selected.command);
         else if (selected?.layoutAction) {
+          if (selected.layoutAction === "hoverSize" || selected.layoutAction === "resetHoverSize") {
+            await this.configureHoverSize(slot, role, selected.layoutAction === "resetHoverSize"); return;
+          }
           const layout = this.layout(slot), index = layout.views.indexOf(role);
           if (index < 0) return;
           if (selected.layoutAction === "remove") { layout.views.splice(index, 1); layout.ratios.splice(index, 1); }
@@ -233,6 +241,26 @@ export class CombinedViewManager implements vscode.Disposable {
         }
       });
     } else if (message.type === "action" && typeof message.command === "string") await this.interact(slot, () => this.runAction(role, message.command as string));
+  }
+  private async configureHoverSize(slot: CombinedSlot, role: CombinedRole, reset: boolean): Promise<void> {
+    const current = this.layout(slot);
+    if (this.disposed || !current.enabled || !current.views.includes(role)) return;
+    let percentage: number | undefined;
+    if (!reset) {
+      const valid = (value: string) => /^\d{1,3}$/.test(value.trim()) && Number(value) >= 1 && Number(value) <= 100;
+      const input = await vscode.window.showInputBox({title: vscode.l10n.t("Set Hover Expansion Size…"),
+        value: current.hoverSizePercentages?.[role]?.toString() ?? "", placeHolder: vscode.l10n.t("1–100, for example 65"),
+        prompt: vscode.l10n.t("Target percentage of usable width or height. Expansion direction and minimum pane sizes may limit the result."),
+        validateInput: value => valid(value) ? undefined : vscode.l10n.t("Enter a whole percentage from 1 to 100.")});
+      if (input === undefined || !valid(input)) return;
+      percentage = Number(input);
+    }
+    // Input can outlive a rename, reorder, removal or external configuration edit.
+    const latest = this.layout(slot);
+    if (this.disposed || !latest.enabled || !latest.views.includes(role) || latest.hoverSizePercentages?.[role] === percentage) return;
+    const hoverSizePercentages = {...latest.hoverSizePercentages};
+    if (percentage === undefined) delete hoverSizePercentages[role]; else hoverSizePercentages[role] = percentage;
+    await this.save(slot, {...latest, hoverSizePercentages});
   }
   private async runAction(role: CombinedRole, command: string): Promise<void> {
     if (this.actions(role).some(action => action.command === command)) await vscode.commands.executeCommand(command);
