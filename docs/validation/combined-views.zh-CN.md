@@ -15,7 +15,7 @@ npm run build
 C_INSIGHT_VIEWPORT_FOLLOW_ONLY=1 xvfb-run -a node dist/test/e2e/runCombinedViewTest.js
 ```
 
-用 `C_INSIGHT_VSCODE_EXECUTABLE_PATH` 指定已有测试运行时。临时包为 `c-insight-0.23.2-combined-follow-smooth-preview.vsix`；首次包未通过验收，本轮仍待维护者按录屏复测连续操作、动画手感、锁定、搜索、减少动态效果、原生分隔条及 WSL/SSH，未推送或发布。
+用 `C_INSIGHT_VSCODE_EXECUTABLE_PATH` 指定已有测试运行时。维护者于 `2026-11-24` 接受临时包 `c-insight-0.23.2-combined-follow-smooth-preview.vsix`，授权将本轮修复及逐栏目展开占比纳入 `0.23.3` 推送、发布。首次包未通过验收的记录保留；锁定、搜索、减少动态效果、原生分隔条及 WSL/SSH 的逐项现场结果未提供，后续按人工重点复测。
 
 ## CI-REG-056 首轮验证记录（2026-11-23）
 

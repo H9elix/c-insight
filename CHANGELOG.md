@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.23.3
 
 - Fixed Document Symbols and Project Files restoring out-of-view followed highlights after repeated expanded wheel browsing and contraction. Centering is smooth and interruptible, respects reduced motion, locks and focus, and leaves visible rows, filters and data unchanged without extra engine queries.
 - Added optional per-pane hover target percentages in each combined view, with Set/Restore Default actions in pane menus. Targets retain direction and minimum-size limits, base ratios, protected controls and existing weighted defaults for unset panes.
