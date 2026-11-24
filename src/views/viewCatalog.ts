@@ -20,7 +20,7 @@ const ENGLISH_NAMES: Record<CombinedRole, string> = {
   context: "Context", preview: "Code Preview", references: "References", callers: "Callers", callees: "Callees",
   supertypes: "Supertypes", subtypes: "Subtypes", includes: "Includes", includedBy: "Included By",
   history: "Navigation History", bookmarks: "Bookmarks", workspaceSymbols: "Symbol Search",
-  symbols: "Document Symbols", projectFiles: "Project Files", status: "Project Diagnostics",
+  symbols: "Document Symbols", projectFiles: "Project Files", status: "Project Diagnostics", textSearch: "Search & Replace",
 };
 
 /** A read-only UI inventory. It never opens documents, queries an engine or writes layouts. */

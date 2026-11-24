@@ -47,12 +47,12 @@ describe("user guide completeness", () => {
     }
   });
 
-  it("gives exactly fifteen independent views their own functional-view subsections", () => {
+  it("gives exactly sixteen independent views their own functional-view subsections", () => {
     const views = Object.values(manifest.contributes.views).flat().filter(view => !/^cInsight\.combined[1-4]$/.test(view.id));
-    assert.equal(views.length, 15);
+    assert.equal(views.length, 16);
     for (const [language, guide, messages] of [["zh-CN", chineseGuide, chineseMessages], ["en", englishGuide, packageMessages]] as const) {
       const headings = [...guide.matchAll(/^### 3\.\d+ (.+)$/gm)].map(match => match[1]);
-      assert.equal(headings.length, 15, `${language}: non-view content must not become a functional-view subsection`);
+      assert.equal(headings.length, 16, `${language}: non-view content must not become a functional-view subsection`);
       views.forEach((view, index) => {
         const key = /^%(.+)%$/.exec(view.name)![1];
         assert(headings[index].includes(messages[key]), `${language}: missing or misplaced view: ${view.id}`);
@@ -65,9 +65,9 @@ describe("user guide completeness", () => {
     for (const language of ["zh-CN", "en"]) {
       const readme = readFileSync(language === "en" ? "README.md" : "README.zh-CN.md", "utf8");
       const rows = readme.split("\n").filter(line => /^\| \d+ \|/.test(line));
-      assert.equal(rows.length, 15, `${language}: expected fifteen numbered independent views`);
+      assert.equal(rows.length, 16, `${language}: expected sixteen numbered independent views`);
       assert(rows.every(row => row.includes("user-guide.") && row.includes("#view-")));
-      assert.equal(new Set(rows.map(row => /#view-([^)]*)/.exec(row)?.[1])).size, 15, `${language}: duplicate view link`);
+      assert.equal(new Set(rows.map(row => /#view-([^)]*)/.exec(row)?.[1])).size, 16, `${language}: duplicate view link`);
       const messages = language === "en" ? packageMessages : chineseMessages;
       Object.values(manifest.contributes.views).flat().filter(view => !/^cInsight\.combined[1-4]$/.test(view.id)).forEach((view, index) => {
         const key = /^%(.+)%$/.exec(view.name)![1];

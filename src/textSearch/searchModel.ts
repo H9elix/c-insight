@@ -47,12 +47,15 @@ export function findMatches(text: string, options: SearchOptions, maximum: numbe
     return [low, offset - starts[low]];
   };
   const matches: TextMatch[] = [];
+  let payload = 0;
   let match: RegExpExecArray | null;
   while ((match = expression.exec(text))) {
     const start = match.index, end = start + match[0].length;
     const next = text.codePointAt(end);
     if (!options.wholeWord || (!word(before(text, start)) && !word(next === undefined ? "" : String.fromCodePoint(next)))) {
       if (matches.length >= maximum) return {matches, truncated: true};
+      payload += match.reduce((sum, value) => sum + (value?.length ?? 0), 0);
+      if (payload > 1024 * 1024) throw new Error("Match payload limit.");
       const [line, character] = position(start), [endLine, endCharacter] = position(end);
       const snippetStart = Math.max(starts[line], start - 120);
       const lineEnd = text.indexOf("\n", start);

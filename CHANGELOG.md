@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added an engine-independent Search & Replace view with manual text queries, file/folder/workspace scopes, case/whole-word/regex/multiline options, ignore rules and file-grouped source navigation. The view is available independently and inside combinations.
+- Added checked replacement diffs, explicit confirmation, content/version conflict checks and undoable unsaved workspace edits, with bounded scanning, matching timeouts and cancellation.
+
 ## 0.23.4
 
 - Added independent per-pane hover directions: both, right/down and left/up, with positional defaults for unset panes and per-pane reset. Legacy combination-wide choices remain compatible and migrate on user layout edits; direction controls now live only in pane menus.

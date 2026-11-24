@@ -1,6 +1,6 @@
 # C Insight User Guide
 
-This guide applies to C Insight `0.23.4`. Start with the fifteen functional views, then use the layout, shared-interaction, update and configuration sections as needed. Source, issues and releases are at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight).
+This guide applies to C Insight `0.23.4`. Start with the sixteen functional views, then use the layout, shared-interaction, update and configuration sections as needed. Source, issues and releases are at [github.com/H9elix/c-insight](https://github.com/H9elix/c-insight).
 
 Reading guide:
 
@@ -38,7 +38,7 @@ Put the editor cursor on a symbol, open the required views, single-click a resul
 
 ### 2.2 Find a view
 
-Run **C Insight: Open View…** from the Command Palette or a C/C++ editor's context menu. The searchable picker lists 15 independent views with short purposes, up to four enabled combined views with their custom names and slot numbers, and actions to create/manage combinations. Search matches names, English aliases and purposes. Highlighting or cancelling opens nothing; accepting an independent view opens its native pane, not a combined presentation of that feature. Selecting a combination opens that exact slot. With no combinations, Manage offers to create one; Create uses the existing four-slot limit.
+Run **C Insight: Open View…** from the Command Palette or a C/C++ editor's context menu. The searchable picker lists 16 independent views with short purposes, up to four enabled combined views with their custom names and slot numbers, and actions to create/manage combinations. Search matches names, English aliases and purposes. Highlighting or cancelling opens nothing; accepting an independent view opens its native pane, not a combined presentation of that feature. Selecting a combination opens that exact slot. With no combinations, Manage offers to create one; Create uses the existing four-slot limit.
 
 A nonmodal one-time tip appears when any independent or enabled combined pane first becomes visible, including a restored pane or History/Bookmarks. Activating the extension, opening only a source file, or opening only the picker does not trigger it. Dismissal is remembered in the extension host/profile's global state, without per-version resets or synchronization; local, WSL and SSH hosts keep separate records. Existing installations receive the tip once too. Its **Open Views…** action opens the same picker without moving other panes.
 
@@ -46,7 +46,7 @@ A nonmodal one-time tip appears when any independent or enabled combined pane fi
 
 ## 3. Functional views
 
-The fifteen independent views are listed below. Combined layouts, graphs, shared interactions and update scheduling have separate sections.
+The sixteen independent views are listed below. Combined layouts, graphs, shared interactions and update scheduling have separate sections.
 
 <a id="view-context"></a>
 
@@ -298,6 +298,28 @@ Project Diagnostics explains missing or incomplete results: selected engine and 
 
 <a id="layouts"></a>
 
+<a id="view-text-search"></a>
+
+### 3.16 Search & Replace
+
+Choose **Search & Replace** in **C Insight: Open View…**, or run **C Insight: Search Text…**. This view searches all text files without clangd or Microsoft C/C++ queries. It can also be added to a combination as `textSearch`. Native editor Ctrl+F/H remain unchanged; within this view Ctrl+F focuses the query and Ctrl+H opens replacement controls.
+
+Press Enter or Search to run; Shift+Enter inserts a newline. Typing, cursor movement and source edits never automatically start a scan. Scopes are current file, open text files, a chosen folder and the entire multi-root workspace. Without a workspace, use the current file. Results group by file with line/column, context and highlighted matches. Single-click previews source; double-click or Enter opens the editor without clearing the query. Previous/Next browse matches. Checkboxes select replacement targets; groups display 200 rows at a time with a button for more.
+
+Options include match case, Unicode whole words, ECMAScript regular expressions and multiline matching (`.` spans newlines when enabled; anchors are line-based). Include/exclude filters accept comma-separated globs such as `**/*.{c,h}, **/*.cpp`. By default scanning respects workspace-local and nested `.gitignore`, `files.exclude` and `search.exclude`; turn off the ignore option to include excluded files. Git metadata, known binary formats and symbolic links remain skipped. Open documents use their unsaved contents. Other files use BOM detection followed by `files.encoding`, including UTF-8, UTF-16 and GBK; uncertain decoding, failed reads and oversized files are counted as skipped.
+
+Two matching workers process bounded file reads. A regular expression exceeding 2 seconds per file is terminated and that file is skipped. Defaults are 50000 candidate files, 10000 matches and 10 MiB per file. Retained result content is bounded to 32 MiB and matching payload to 1 MiB per file. Counts distinguish searched, skipped and timed-out files. Cancelled or limited scans retain explicitly partial results. Hiding every independent/combined presentation cancels scanning; showing it again does not restart. Queries/results live only in the current extension session.
+
+Expand Replace, enter replacement text and optionally preserve case. Preview the current match, checked matches, one file or all results. Regex replacements support JavaScript capture syntax including `$1`, `$<name>`, `$&` and `$$`. Inspect read-only diffs, switch files with their buttons, then confirm replacement in the modal dialog. Changing checkboxes requires a fresh preview. Batches are limited to 200 files and 64 MiB of diff snapshots. Edits use VS Code WorkspaceEdit, remain unsaved and support native undo.
+
+Incomplete, cancelled, truncated, skipped-file or stale searches cannot be batch-replaced. Query, replacement or selection changes invalidate the diff plan; all target contents and document versions are checked again before applying. Conflicts prevent edits. Read-only targets and untrusted workspaces reject replacement. Source edits only invalidate results; replacements refresh affected files, retaining original unreplaced matches rather than repeatedly discovering text inserted by replacement.
+
+| Setting | Default | Values | Meaning |
+| --- | --- | --- | --- |
+| `cInsight.textSearch.maximumFiles` | `50000` | integer, 1–200000 | Candidate files per query |
+| `cInsight.textSearch.maximumMatches` | `10000` | integer, 1–100000 | Retained matches per query |
+| `cInsight.textSearch.maximumFileMegabytes` | `10` | integer, 1–100 | Per-file size limit in MiB |
+
 ## 4. View layout and combinations
 
 ### 4.1 Native docking and grouping
@@ -384,7 +406,7 @@ VS Code already lets you move, group and resize native views. A combined view ad
 | Temporarily gain reading space | Resize boundaries or collapse neighboring views | Hover expands a content pane and leaving restores proportions; controls pause resizing |
 | Reuse a feature in several setups | Use the original view placement | Up to four named combinations reuse shared results, with local tree filtering, expansion and scrolling |
 | Reuse internal layout across projects | VS Code owns native view/container placement | User settings retain combination names, roles, directions and proportions |
-| Available content | Native and extension-contributed views | The fifteen C Insight roles; original independent views remain available and graphs stay in editor tabs |
+| Available content | Native and extension-contributed views | The sixteen C Insight roles; original independent views remain available and graphs stay in editor tabs |
 
 <a id="shared-interactions"></a>
 
@@ -616,5 +638,8 @@ This section is generated from `package.json`. Every command is available from t
 | Sort Project Files | `cInsight.projectFiles.sort` | Command Palette; Project Files title |
 | Lock Project Files Following | `cInsight.projectFiles.lock` | Command Palette; Project Files title |
 | Unlock Project Files Following | `cInsight.projectFiles.unlock` | Command Palette; Project Files title |
+| Search Text… | `cInsight.searchText` | Command Palette |
+| Run Text Search | `cInsight.textSearch.run` | Command Palette; Search & Replace title |
+| Cancel Text Search | `cInsight.textSearch.cancel` | Command Palette; Search & Replace title |
 
 <!-- GENERATED COMMAND REFERENCE END -->

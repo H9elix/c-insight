@@ -10,10 +10,10 @@ const labels: ViewCatalogLabels = {purposes: Object.fromEntries(COMBINED_ROLES.m
   combined: slot => `Combined View ${slot}`, create: "Create", manage: "Manage"};
 
 describe("view discovery catalog", () => {
-  it("lists exactly the fifteen independent panes in manifest order, with searchable aliases and purposes", () => {
+  it("lists exactly the sixteen independent panes in manifest order, with searchable aliases and purposes", () => {
     const entries = viewCatalog(views, [], labels);
     const independent = entries.filter(entry => entry.action === "view");
-    assert.equal(independent.length, 15);
+    assert.equal(independent.length, 16);
     assert.deepEqual(independent.map(entry => entry.viewId), views.filter(view => !view.id.includes("combined")).map(view => view.id));
     assert(independent.every(entry => entry.description && entry.detail));
     assert.deepEqual(entries.slice(-2).map(entry => entry.action), ["create", "manage"]);

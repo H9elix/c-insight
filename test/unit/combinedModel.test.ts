@@ -7,7 +7,7 @@ import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 
 describe("combined layouts", () => {
   it("defaults to four optional, empty horizontal slots", () => {
-    assert.deepEqual(COMBINED_SLOTS, [1,2,3,4]); assert.equal(COMBINED_ROLES.length, 15);
+    assert.deepEqual(COMBINED_SLOTS, [1,2,3,4]); assert.equal(COMBINED_ROLES.length, 16);
     assert.deepEqual(combinedLayout(undefined), {enabled: false, title: "", direction: "horizontal", views: [], ratios: []});
   });
   it("retains only supported unique roles and finite bounded ratios", () => {
@@ -66,7 +66,7 @@ describe("combined layouts", () => {
     for(const percentage of [undefined,0,101,1.5,NaN,Infinity])
       assert.deepEqual(combinedPaneSizes(1200,[1,1,1],160,1,percentage),combinedPaneSizes(1200,[1,1,1],160,1));
     assert.deepEqual(combinedPaneSizes(600,[1],160,0,65),[600]);
-    for(const minimum of [80,160])for(let count=1;count<=15;count++)for(const total of [100,480,1200]){
+    for(const minimum of [80,160])for(let count=1;count<=16;count++)for(const total of [100,480,1200]){
       const ratios=Array.from({length:count},(_,index)=>index+1),base=combinedPaneSizes(total,ratios,minimum,-1);
       for(let index=0;index<count;index++)for(const percentage of [1,20,65,100]){
         const sizes=combinedPaneSizes(total,ratios,minimum,index,percentage);
@@ -107,7 +107,7 @@ describe("combined layouts", () => {
   it("mirrors one-way growth while preserving the trailing edge and all following panes",()=>{
     assert.deepEqual(combinedOneWaySizes([300,300,300],160,1,450,"backward"),[160,440,300]);
     assert.deepEqual(combinedOneWaySizes([300,300,300],160,0,450,"backward"),[300,300,300]);
-    for(let count=1;count<=15;count++)for(let index=0;index<count;index++){
+    for(let count=1;count<=16;count++)for(let index=0;index<count;index++){
       const sizes=Array.from({length:count},(_,i)=>160+i*15),before=sizes.slice(0,index+1).reduce((a,b)=>a+b,0);
       const grown=combinedOneWaySizes(sizes,160,index,1500,"backward");
       assert(grown.every(size=>size>=160-0.001));assert(Math.abs(grown.reduce((a,b)=>a+b,0)-sizes.reduce((a,b)=>a+b,0))<0.001);
@@ -125,7 +125,7 @@ describe("combined layouts", () => {
     assert.deepEqual(combinedForwardSizes(base,160,0,Infinity),base);
   });
   it("conserves forward budgets, minima and preceding pixels for either orientation", () => {
-    for(const minimum of [80,160])for(let count=1;count<=15;count++){
+    for(const minimum of [80,160])for(let count=1;count<=16;count++){
       let sizes=combinedPaneSizes(count*minimum*3,Array.from({length:count},(_,i)=>i+1),minimum,-1);
       for(let index=0;index<count;index++){
         const before=[...sizes];sizes=combinedForwardSizes(sizes,minimum,index,count*minimum*2);
@@ -159,7 +159,7 @@ describe("combined layouts", () => {
       assert.notEqual(combinedLayoutRevision(layout),combinedLayoutRevision(changed));
   });
   it("honors lower bounds and conserves each available budget", () => {
-    for (let count=1;count<=15;count++) for (const total of [100,480,1500,10000]) for (let hovered=-1;hovered<count;hovered++) {
+    for (let count=1;count<=16;count++) for (const total of [100,480,1500,10000]) for (let hovered=-1;hovered<count;hovered++) {
       const sizes=combinedPaneSizes(total,Array.from({length:count},(_,index)=>index+1),80,hovered);
       assert(sizes.every(size=>size>=80-0.0001));
       assert(Math.abs(sizes.reduce((a,b)=>a+b,0)-Math.max(total,count*80))<0.0001);

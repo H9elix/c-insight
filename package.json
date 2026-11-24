@@ -40,6 +40,7 @@
   "l10n": "./l10n",
   "files": [
     "dist/extension.js",
+    "dist/textSearchWorker.js",
     "dist/codicons/*",
     "package.nls.json",
     "package.nls.zh-cn.json",
@@ -684,6 +685,21 @@
         "command": "cInsight.projectFiles.unlock",
         "title": "%command.cInsight.projectFiles.unlock.title%",
         "icon": "$(pinned)"
+      },
+      {
+        "command": "cInsight.searchText",
+        "title": "%command.cInsight.searchText.title%",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cInsight.textSearch.run",
+        "title": "%command.cInsight.textSearch.run.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cInsight.textSearch.cancel",
+        "title": "%command.cInsight.textSearch.cancel.title%",
+        "icon": "$(debug-stop)"
       }
     ],
     "keybindings": [
@@ -1198,6 +1214,16 @@
           "command": "cInsight.includedBy.exportMermaid",
           "when": "view == cInsight.includedBy",
           "group": "cInsight.export@3"
+        },
+        {
+          "command": "cInsight.textSearch.run",
+          "when": "view == cInsight.textSearch",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cInsight.textSearch.cancel",
+          "when": "view == cInsight.textSearch",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -1363,6 +1389,12 @@
           "id": "cInsight.status",
           "name": "%view.cInsight.status.name%",
           "type": "webview"
+        },
+        {
+          "id": "cInsight.textSearch",
+          "name": "%view.cInsight.textSearch.name%",
+          "type": "webview",
+          "visibility": "collapsed"
         }
       ]
     },
@@ -1435,7 +1467,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "string",
                   "enum": [
                     "forward",
@@ -1451,7 +1483,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 100
@@ -1477,11 +1509,12 @@
                   "workspaceSymbols",
                   "symbols",
                   "projectFiles",
-                  "status"
+                  "status",
+                  "textSearch"
                 ]
               },
               "uniqueItems": true,
-              "maxItems": 15,
+              "maxItems": 16,
               "default": []
             },
             "ratios": {
@@ -1539,7 +1572,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "string",
                   "enum": [
                     "forward",
@@ -1555,7 +1588,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 100
@@ -1581,11 +1614,12 @@
                   "workspaceSymbols",
                   "symbols",
                   "projectFiles",
-                  "status"
+                  "status",
+                  "textSearch"
                 ]
               },
               "uniqueItems": true,
-              "maxItems": 15,
+              "maxItems": 16,
               "default": []
             },
             "ratios": {
@@ -1643,7 +1677,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "string",
                   "enum": [
                     "forward",
@@ -1659,7 +1693,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 100
@@ -1685,11 +1719,12 @@
                   "workspaceSymbols",
                   "symbols",
                   "projectFiles",
-                  "status"
+                  "status",
+                  "textSearch"
                 ]
               },
               "uniqueItems": true,
-              "maxItems": 15,
+              "maxItems": 16,
               "default": []
             },
             "ratios": {
@@ -1747,7 +1782,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "string",
                   "enum": [
                     "forward",
@@ -1763,7 +1798,7 @@
               "description": "%configuration.cInsight.combinedViews.hoverSizePercentages.description%",
               "additionalProperties": false,
               "patternProperties": {
-                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status|textSearch)$": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 100
@@ -1789,11 +1824,12 @@
                   "workspaceSymbols",
                   "symbols",
                   "projectFiles",
-                  "status"
+                  "status",
+                  "textSearch"
                 ]
               },
               "uniqueItems": true,
-              "maxItems": 15,
+              "maxItems": 16,
               "default": []
             },
             "ratios": {
@@ -2603,6 +2639,27 @@
             "/third_party/"
           ],
           "description": "%configuration.cInsight.exclude.description%"
+        },
+        "cInsight.textSearch.maximumFiles": {
+          "type": "integer",
+          "default": 50000,
+          "minimum": 1,
+          "maximum": 200000,
+          "description": "%configuration.cInsight.textSearch.maximumFiles.description%"
+        },
+        "cInsight.textSearch.maximumMatches": {
+          "type": "integer",
+          "default": 10000,
+          "minimum": 1,
+          "maximum": 100000,
+          "description": "%configuration.cInsight.textSearch.maximumMatches.description%"
+        },
+        "cInsight.textSearch.maximumFileMegabytes": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "%configuration.cInsight.textSearch.maximumFileMegabytes.description%"
         }
       }
     }

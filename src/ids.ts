@@ -117,6 +117,9 @@ export const COMMANDS = {
   PROJECT_FILES_SORT: "cInsight.projectFiles.sort",
   PROJECT_FILES_LOCK: "cInsight.projectFiles.lock",
   PROJECT_FILES_UNLOCK: "cInsight.projectFiles.unlock",
+  SEARCH_TEXT: "cInsight.searchText",
+  TEXT_SEARCH_RUN: "cInsight.textSearch.run",
+  TEXT_SEARCH_CANCEL: "cInsight.textSearch.cancel",
 } as const;
 
 export const INTERNAL_COMMANDS = {
@@ -152,6 +155,7 @@ export const VIEWS = {
   SYMBOLS: "cInsight.symbols",
   PROJECT_FILES: "cInsight.projectFiles",
   STATUS: "cInsight.status",
+  TEXT_SEARCH: "cInsight.textSearch",
 } as const;
 
 export const CONTEXT_KEYS = {

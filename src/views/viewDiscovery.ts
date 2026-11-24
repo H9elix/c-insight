@@ -89,6 +89,7 @@ export class ViewDiscovery implements vscode.Disposable {
         symbols: vscode.l10n.t("Browse symbols in the active document"),
         projectFiles: vscode.l10n.t("Search and sort workspace files"),
         status: vscode.l10n.t("Inspect the analysis engine, compilation settings and runtime status"),
+        textSearch: vscode.l10n.t("Search text and preview safe replacements across files"),
       },
       combined: slot => vscode.l10n.t("Combined View {number}", {number: slot}),
       create: vscode.l10n.t("Create Combined View…"), manage: vscode.l10n.t("Manage Combined Views…"),

@@ -110,7 +110,7 @@ describe("view discovery notice lifecycle", () => {
 describe("view picker actions", () => {
   it("searches aliases and purposes; highlighting and cancelling have no side effects", async () => {
     const f = fixture(); f.choose((items, options) => {
-      assert.equal(items.filter(item => item.entry?.action === "view").length, 15);
+      assert.equal(items.filter(item => item.entry?.action === "view").length, 16);
       assert(options.matchOnDescription && options.matchOnDetail);
       options.onDidSelectItem(items.find(item => item.entry?.viewId === "cInsight.callers")); return undefined;
     });

@@ -6,6 +6,7 @@ import { WorkspaceSessionManager } from "../session/workspaceSession";
 import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { RegisterCommand } from "./commandRegistrar";
 import { ProjectFilesExplorer } from "../projectFiles/projectFilesExplorer";
+import { TextSearchExplorer } from "../textSearch/textSearchExplorer";
 
 interface WorkspaceToolDependencies {
   history: NavigationHistoryExplorer;
@@ -14,6 +15,7 @@ interface WorkspaceToolDependencies {
   workspaceSession: WorkspaceSessionManager;
   restoreWorkspaceSession: () => Promise<boolean>;
   projectFiles: ProjectFilesExplorer;
+  textSearch: TextSearchExplorer;
   documentSymbols: { chooseSort(): Promise<void>; setLocked(locked: boolean): Promise<void> };
 }
 
@@ -26,6 +28,9 @@ export function registerWorkspaceToolCommands(
   register(COMMANDS.DOCUMENT_SYMBOLS_LOCK, () => dependencies.documentSymbols.setLocked(true));
   register(COMMANDS.DOCUMENT_SYMBOLS_UNLOCK, () => dependencies.documentSymbols.setLocked(false));
   register(COMMANDS.PROJECT_FILES_REFRESH, () => dependencies.projectFiles.refresh());
+  register(COMMANDS.SEARCH_TEXT, () => dependencies.textSearch.openSearch());
+  register(COMMANDS.TEXT_SEARCH_RUN, () => dependencies.textSearch.run());
+  register(COMMANDS.TEXT_SEARCH_CANCEL, () => dependencies.textSearch.cancel());
   register(COMMANDS.PROJECT_FILES_SORT, () => dependencies.projectFiles.chooseSort());
   register(COMMANDS.PROJECT_FILES_LOCK, () => dependencies.projectFiles.setLocked(true));
   register(COMMANDS.PROJECT_FILES_UNLOCK, () => dependencies.projectFiles.setLocked(false));

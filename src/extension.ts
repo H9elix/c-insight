@@ -29,6 +29,7 @@ import { SymbolSearchExplorer } from "./symbols/symbolSearchExplorer";
 import { CombinedViewManager } from "./combined/combinedViewManager";
 import type { CombinedRole, CombinedSlot } from "./combined/combinedModel";
 import { ProjectFilesExplorer } from "./projectFiles/projectFilesExplorer";
+import { TextSearchExplorer } from "./textSearch/textSearchExplorer";
 import {
   WorkspaceSessionManager,
   WorkspaceSessionSnapshot,
@@ -102,16 +103,19 @@ export async function activate(
     output,
   );
   const projectFiles = new ProjectFilesExplorer(context.extensionUri, viewDiscovery.registerView);
+  const textSearch = new TextSearchExplorer(context.extensionUri, viewDiscovery.registerView, context.extensionMode === vscode.ExtensionMode.Test);
   const combinedViews = new CombinedViewManager(context, {
     create: (role, view) => {
       if (role === "preview") views.preview.createPresentation(view);
       else if (role === "workspaceSymbols") symbolSearch.resolveWebviewView(view);
+      else if (role === "textSearch") textSearch.resolveWebviewView(view);
       else if (role === "projectFiles") return projectFiles.view.createPresentation(view);
       else return views.createPresentation(`cInsight.${role}` as ViewId, view);
       return undefined;
     },
     prefer: (role, tree, view) => {
       if (role === "workspaceSymbols") symbolSearch.preferPresentation(view);
+      if (role === "textSearch") textSearch.preferPresentation(view);
       if (!tree) return;
       if (role === "projectFiles") projectFiles.view.prefer(tree);
       else views.preferPresentation(`cInsight.${role}` as ViewId, tree);
@@ -422,6 +426,7 @@ export async function activate(
     bookmarks,
     symbolSearch,
     symbolSearchRegistration,
+    textSearch,
     projectFiles,
     typeHierarchy,
     includeHierarchy,
@@ -454,11 +459,17 @@ export async function activate(
       restoreWorkspaceSession: () => restoreWithProgress(),
       projectFiles,
       combinedViews,
+      textSearch,
       viewDiscovery,
     },
   );
   viewDiscovery.ready();
   if (context.extensionMode === vscode.ExtensionMode.Test) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand("cInsight.test.textSearchState", () => textSearch.stateForTest()),
+      vscode.commands.registerCommand("cInsight.test.textSearchMessage", (message: unknown) => textSearch.receive(message)),
+      vscode.commands.registerCommand("cInsight.test.textSearchApply", (id: string) => textSearch.applyForTest(id)),
+    );
     context.subscriptions.push(
       vscode.commands.registerCommand("cInsight.test.viewDiscoveryState", () => viewDiscovery.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.combinedState", () => combinedViews.stateForTest()),

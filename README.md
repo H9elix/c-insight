@@ -53,7 +53,7 @@ Open a Call Graph for a function, a Type Graph for a C++ class or struct, or a F
 
 ## What is included?
 
-### Fifteen independent views
+### Sixteen independent views
 
 Run **C Insight: Open View…** to find these views by name or purpose. Each name links to its usage instructions.
 
@@ -74,6 +74,7 @@ Run **C Insight: Open View…** to find these views by name or purpose. Each nam
 | 13 | [Document Symbols](docs/user/user-guide.en.md#view-document-symbols) | Browse the active hierarchy, filter collapsed members, sort siblings and highlight the editor-center symbol |
 | 14 | [Project Files](docs/user/user-guide.en.md#view-project-files) | Search/sort multi-root files, center the active file and independently lock automatic filter/scroll following |
 | 15 | [Project Diagnostics](docs/user/user-guide.en.md#view-diagnostics) | Inspect the engine, compilation database, active command, diagnostics and runtime counters; copy/export reports |
+| 16 | [Search & Replace](docs/user/user-guide.en.md#view-text-search) | Search text across files independently of the analysis engine; preview and confirm replacements |
 
 ### Combined views: a reusable browsing layout
 
@@ -87,7 +88,7 @@ VS Code already supports moving, grouping and manually resizing views. Combined 
 
 ![Browse Code Preview, Callers, and References in one combined view, with panes expanding on hover and restoring their proportions when the pointer leaves](.github/readme-assets/combined-views.gif)
 
-Independent views remain available. Combinations contain only the fifteen C Insight roles; Relationship Graph stays in an editor tab. See [combined-view usage and settings examples](docs/user/user-guide.en.md#combined-views).
+Independent views remain available. Combinations contain only the sixteen C Insight roles; Relationship Graph stays in an editor tab. See [combined-view usage and settings examples](docs/user/user-guide.en.md#combined-views).
 
 ### Other browsing tools
 
@@ -122,7 +123,7 @@ C Insight searches the workspace root and common build directories, or you can r
 
 ### 4. Browse
 
-1. Open a C or C++ folder or workspace. Run **C Insight: Open View…** from the Command Palette or the C/C++ editor context menu to find all 15 independent views, open an existing combined view, or create/manage combinations. Search by view name or purpose; both localized and English names are supported.
+1. Open a C or C++ folder or workspace. Run **C Insight: Open View…** from the Command Palette or the C/C++ editor context menu to find all 16 independent views, open an existing combined view, or create/manage combinations. Search by view name or purpose; both localized and English names are supported.
 2. Put the cursor on a function, variable, type, field, or macro.
 3. Open References, Callers, or Callees.
 4. Single-click a result to preview it; activate it again to open it in the editor.

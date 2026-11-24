@@ -9,3 +9,5 @@ Project Diagnostics reports may contain filesystem paths, compile commands, incl
 Workspace Session Restore stores bounded browsing state in VS Code workspace storage. Bookmarks are also stored in VS Code workspace storage. Explicit exports are written to the location selected by the user.
 
 VS Code, Remote extensions, clangd, the operating system, and any separately installed extensions have their own data-handling behavior and are outside the C Insight privacy boundary.
+
+Search & Replace scans text in the extension environment using bounded worker threads. Queries, results, checkboxes and read-only replacement snapshots stay in memory for the extension session and are not sent to an analysis engine or stored in settings. Confirmed replacements use VS Code document edits and do not automatically save files.

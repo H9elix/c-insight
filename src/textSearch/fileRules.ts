@@ -16,8 +16,17 @@ export function isIgnored(path: string, directory: boolean, layers: IgnoreLayer[
   }
   return ignored;
 }
+export function globList(patterns: string): string[] {
+  const values: string[] = []; let depth = 0, start = 0;
+  for (let i = 0; i < patterns.length; i++) {
+    if (patterns[i] === "{" || patterns[i] === "[") depth++;
+    if (patterns[i] === "}" || patterns[i] === "]") depth = Math.max(0, depth - 1);
+    if (patterns[i] === "," && !depth) { values.push(patterns.slice(start, i).trim()); start = i + 1; }
+  }
+  return [...values, patterns.slice(start).trim()].filter(Boolean);
+}
 export function matchesPatterns(path: string, patterns: string): boolean {
-  return patterns.split(",").map(value => value.trim()).filter(Boolean)
+  return globList(patterns)
     .some(pattern => minimatch(path, pattern, {dot: true, matchBase: !pattern.includes("/")}));
 }
 export function excludedBySettings(path: string, rules: Record<string, unknown>, siblings: readonly string[]): boolean {

@@ -13,6 +13,7 @@ import { SymbolSearchExplorer } from "../symbols/symbolSearchExplorer";
 import { TypeHierarchyExplorer } from "../typeHierarchy/typeHierarchyExplorer";
 import { ViewRegistry } from "../views/viewRegistry";
 import { ProjectFilesExplorer } from "../projectFiles/projectFilesExplorer";
+import { TextSearchExplorer } from "../textSearch/textSearchExplorer";
 import { registerCallHierarchyCommands } from "./callHierarchyCommands";
 import { registerDiagnosticCommands } from "./diagnosticCommands";
 import { registerExtensionControlCommands } from "./extensionControlCommands";
@@ -32,6 +33,7 @@ export interface CommandDependencies {
   includeHierarchy: IncludeHierarchyExplorer; workspaceSession: WorkspaceSessionManager;
   engine: AnalysisEngine; restoreWorkspaceSession: () => Promise<boolean>;
   projectFiles: ProjectFilesExplorer;
+  textSearch: TextSearchExplorer;
   combinedViews: CombinedViewManager;
   viewDiscovery: ViewDiscovery;
 }
@@ -67,6 +69,7 @@ export function registerCommands(context: vscode.ExtensionContext, dependencies:
     workspaceSession: d.workspaceSession,
     restoreWorkspaceSession: d.restoreWorkspaceSession,
     projectFiles: d.projectFiles,
+    textSearch: d.textSearch,
     documentSymbols: {
       chooseSort: () => d.views.chooseDocumentSymbolSort(),
       setLocked: locked => d.views.setDocumentSymbolsLocked(locked),

@@ -1,6 +1,6 @@
 /** Layout preferences only: no workspace URIs, source text or semantic nodes. */
 export const COMBINED_ROLES = ["context", "preview", "references", "callers", "callees", "supertypes", "subtypes",
-  "includes", "includedBy", "history", "bookmarks", "workspaceSymbols", "symbols", "projectFiles", "status"] as const;
+  "includes", "includedBy", "history", "bookmarks", "workspaceSymbols", "symbols", "projectFiles", "status", "textSearch"] as const;
 export type CombinedRole = typeof COMBINED_ROLES[number];
 export const COMBINED_SLOTS = [1, 2, 3, 4] as const;
 export type CombinedSlot = typeof COMBINED_SLOTS[number];

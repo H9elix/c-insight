@@ -27,6 +27,7 @@ export class WorkspaceTextSearch {
     const stats: SearchStats = {files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false};
     const candidates = this.candidates(request, current, budget, signal, stats);
     let serial = 0;
+    let payloadBytes = 0;
     // Serialize iterator advancement, not disk reading or matching.
     let advancing: Promise<IteratorResult<Candidate>> = Promise.resolve({done: true, value: undefined});
     const next = (): Promise<IteratorResult<Candidate>> => advancing = advancing.then(() => candidates.next());
@@ -47,6 +48,8 @@ export class WorkspaceTextSearch {
             if (result.matches.length > available || result.truncated) stats.limited = true;
             const matches = result.matches.slice(0, available);
             if (matches.length) {
+              payloadBytes += matches.reduce((sum, match) => sum + (match.value.length + match.captures.reduce((sum, value) => sum + (value?.length ?? 0), 0)) * 2 + 1024, 0);
+              if (payloadBytes > 32 * 1024 * 1024) { stats.limited = true; break; }
               const id = String(++serial);
               onFile({id, uri: uri.toString(), label, hash: contentHash(snapshot.text), version: snapshot.version,
                 matches: matches.map((match, index) => ({...match, id: `${id}:${index}`}))});
@@ -71,6 +74,7 @@ export class WorkspaceTextSearch {
     const document = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
     if (document) {
       const text = document.getText();
+      if (text.includes("\0")) throw new Error("Binary file.");
       if (Buffer.byteLength(text, "utf8") > maximum) throw new Error("File size limit.");
       return {text, version: document.version};
     }
@@ -93,8 +97,8 @@ export class WorkspaceTextSearch {
       return true;
     };
     if (request.scope === "file" || request.scope === "open") {
-      const uris = request.scope === "file" ? current ? [current] : [] : vscode.workspace.textDocuments
-        .filter(document => !document.isClosed && ["file", "vscode-remote", "untitled"].includes(document.uri.scheme)).map(document => document.uri);
+      const uris = request.scope === "file" ? current ? [current] : [] : vscode.window.tabGroups.all.flatMap(group => group.tabs.flatMap(tab =>
+        tab.input instanceof vscode.TabInputText ? [tab.input.uri] : []));
       for (const uri of uris) {
         if (signal.aborted || stats.limited) return;
         const label = vscode.workspace.asRelativePath(uri, true);
@@ -126,7 +130,7 @@ export class WorkspaceTextSearch {
           const path = prefix + name, uri = vscode.Uri.joinPath(directory, name), isDirectory = !!(kind & vscode.FileType.Directory);
           if (kind & vscode.FileType.SymbolicLink || isGitMetadata(path)) continue;
           if (request.useIgnores && (isIgnored(path, isDirectory, layers) ||
-            excludedBySettings(path, filesRules, siblings) || excludedBySettings(path, searchRules, siblings))) continue;
+            excludedBySettings(path, {...filesRules, ...searchRules}, siblings))) continue;
           if (matchesPatterns(path, request.exclude)) continue;
           if (isDirectory) yield* walk(uri, layers);
           else if (kind & vscode.FileType.File && accepted(uri) && (!request.include || matchesPatterns(path, request.include))) {

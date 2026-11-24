@@ -231,5 +231,12 @@
   "configuration.cInsight.projectFiles.followActiveEditor.description": "Highlight the active file and reveal it while Project Files is unfocused and unlocked, clearing a hiding filter if needed. Disabling does not suppress clearing after an unlocked explicit open.",
   "configuration.cInsight.projectFiles.maximumFiles.description": "Maximum files loaded in Project Files. A visible limit warning also applies to search completeness.",
   "command.cInsight.projectFiles.lock.title": "C Insight: Lock Project Files Following",
-  "command.cInsight.projectFiles.unlock.title": "C Insight: Unlock Project Files Following"
+  "command.cInsight.projectFiles.unlock.title": "C Insight: Unlock Project Files Following",
+  "view.cInsight.textSearch.name": "Search & Replace",
+  "command.cInsight.searchText.title": "C Insight: Search Text…",
+  "command.cInsight.textSearch.run.title": "C Insight: Run Text Search",
+  "command.cInsight.textSearch.cancel.title": "C Insight: Cancel Text Search",
+  "configuration.cInsight.textSearch.maximumFiles.description": "Maximum number of text files examined per search.",
+  "configuration.cInsight.textSearch.maximumMatches.description": "Maximum number of text matches retained per search.",
+  "configuration.cInsight.textSearch.maximumFileMegabytes.description": "Maximum file size in MiB for text search."
 }
