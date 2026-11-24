@@ -1,6 +1,6 @@
 # 搜索与替换验证
 
-搜索与替换（Search & Replace）使用独立文本匹配线程，不调用 clangd 或 Microsoft 查询。相关共性回归为 CI-REG-022（导航）、035（编辑不自动查）、037（有效可见性）和 038（取消／资源预算）。
+搜索与替换（Search & Replace）使用原生文件筛选和独立文本匹配线程，不调用 clangd 或 Microsoft 查询。相关共性回归为 CI-REG-022（导航）、035（编辑不自动查）、037（有效可见性）、038（取消／资源预算）和 057（吞吐／结果展示）。
 
 ## 自动检查
 
@@ -18,6 +18,10 @@ C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code xvfb-run -a node dist/test/e
 - `textSearchSafety.test.ts`：未信任、只读、超过 200 文件、内容冲突及文档版本变化的拒绝路径。
 - `suite/textSearch.ts`：真实多根扫描、未保存文档、默认／关闭忽略、上限、取消、只读差异、版本／内容冲突、单文件和跨文件原生撤销、视图预览／编辑器打开、输入及编辑零扫描、旧差异失效、实际替换后的剩余匹配与零引擎请求。
 - 同一宿主还覆盖 1000 个文件／10000 个结果的上限、事件循环响应和零批量打开；全部隐藏时取消、重显不重搜；两个真实组合 Webview 的输入／搜索／复选框共享和分组展开独立；原先未命中文件编辑后的查询失效。
+- `ripgrepSearch.test.ts`：兼容查询筛选、显式路径、含空格／标点／选项前缀的文件名、UTF-16 BOM 候选、取消与缺失二进制；宿主进一步对照新旧后端的完整位置、Unicode 大小写／整词、UTF-16 BOM／GBK、文件大小、正则和原生失败回退，以及仅存在于未保存内存中的新匹配。
+- `searchPresentationDelta.test.ts`：新增／变化／删除文件及复选框差量、首次／重建同步、URI／哈希不进入展示消息；虚拟投影对十万行保持有界。真实组合检查万条结果只创建可见行、滚动后仍有界，并保留被点击行和令牌节点。
+
+FFmpeg 的只读分段基线和复测入口见[性能对照](text-search-performance.zh-CN.md)。
 
 ## 人工重点
 
@@ -36,4 +40,8 @@ C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code xvfb-run -a node dist/test/e
 
 专项检查曾出现一次组合浏览器 inspection 超时；首次失败日志保留在本地。测试补充了外层就绪、子文档 generation 应答等待及失败时的槽位／动作／表面状态采集，随后两个版本复验通过。首次超时的运行时原因尚未确认，后续相同失败继续保留原始证据。
 
-交付为 `c-insight-0.23.4-text-search-replace-preview.vsix`，维护者验收待完成，未合并主干或发布。鼠标、主题、未信任工作区的完整 UI 和实际 WSL／SSH 检查按上节执行。
+首版临时包为 `c-insight-0.23.4-text-search-replace-preview.vsix`。维护者随后反馈工作区搜索慢，按 CI-REG-057 追加原生筛选、增量传输和虚拟列表优化。
+
+同日优化构建的 `npm run check`、VS Code `1.130.0` 与最低支持版 `1.95.0` 搜索专项通过，覆盖编码／失败回退、位置一致、替换／撤销和真实组合中的万条结果有界 DOM；`1.130.0` 组合专项的明暗／高对比度主题、排序、悬停方向、标题工具栏、可见性和状态保留检查通过。只读 FFmpeg 基准未激活分析引擎，未截断的完整位置对照通过，聚合计时见[性能对照](text-search-performance.zh-CN.md)。
+
+优化临时包为 `c-insight-0.23.4-search-performance-preview.vsix`，正式版本号不变，维护者验收待完成，未合并主干、推送或发布。鼠标、主题、未信任工作区的完整 UI 和实际 WSL／SSH 检查按上节执行。
