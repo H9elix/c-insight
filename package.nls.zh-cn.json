@@ -1,4 +1,5 @@
 {
+  "capability.untrustedWorkspaces.description": "受限模式下可搜索文本；替换及托管 clangd 需要信任工作区。",
   "command.cInsight.openView.title": "C Insight：打开视图…",
   "submenu.cInsight.symbolNavigation.label": "C Insight：符号导航",
   "configuration.cInsight.combinedViews.hoverDirection.description": "旧版组合统一方向，仅兼容读取；下次保存布局时转换为各栏目的显式 hoverDirections。新布局使用逐栏目方向。",

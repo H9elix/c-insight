@@ -43,6 +43,8 @@ export class WorkspaceTextSearch {
             if (signal.aborted) break;
             const result = await worker.match(snapshot.text, request, Math.max(1, budget.maximumMatches - stats.matches), signal);
             if (signal.aborted) break;
+            const current = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
+            if (snapshot.version !== undefined && current?.version !== snapshot.version) { stats.skipped++; continue; }
             stats.files++;
             const available = budget.maximumMatches - stats.matches;
             if (result.matches.length > available || result.truncated) stats.limited = true;

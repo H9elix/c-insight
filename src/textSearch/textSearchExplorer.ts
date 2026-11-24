@@ -9,6 +9,7 @@ import { MatchingWorker } from "./matchingPool";
 import { applyReplacementPlan, canReplace, createReplacementPlan, ReplacementSnapshots, type ReplacementPlan } from "./replacementPlan";
 import { renderTextSearch } from "./textSearchWebview";
 import { textSearchLabels } from "./textSearchLabels";
+import { isGitMetadata, isKnownBinaryFile } from "../projectFiles/projectFileModel";
 import { DEFAULT_SEARCH_BUDGET, WorkspaceTextSearch, type SearchFile, type SearchRequest, type SearchStats } from "./workspaceSearch";
 
 const emptyStats = (): SearchStats => ({files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false});
@@ -18,6 +19,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private preserveCase = false;
   private replaceVisible = false;
   private revision = 0;
+  private editOrigin = "";
+  private editSequence = 0;
   private generation = 0;
   private results: SearchFile[] = [];
   private checked = new Set<string>();
@@ -27,6 +30,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private loading = false;
   private stale = false;
   private searched = false;
+  private searchSnapshot?: {request: SearchRequest; current?: string; open: Set<string>};
   private error?: string;
   private scan?: AbortController;
   private plan?: ReplacementPlan;
@@ -47,19 +51,32 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     this.search = new WorkspaceTextSearch(this.workerPath);
     this.current = vscode.window.activeTextEditor?.document.uri;
     this.listeners.push(registrar(VIEWS.TEXT_SEARCH, this, {webviewOptions: {retainContextWhenHidden: true}}),
+      vscode.workspace.onDidChangeConfiguration(event => {
+        if (["cInsight.textSearch", "files.encoding", "files.exclude", "search.exclude"].some(key => event.affectsConfiguration(key))) {
+          this.cancel(); this.invalidate(true);
+        }
+      }),
       vscode.window.onDidChangeActiveTextEditor(editor => { if (editor && !editor.document.uri.scheme.startsWith("c-insight-")) this.current = editor.document.uri; }),
       vscode.workspace.onDidChangeTextDocument(event => {
         if (!event.contentChanges.length || this.applying) return;
-        if (this.results.some(file => file.uri === event.document.uri.toString())) this.invalidate(true);
+        this.sourceChanged(event.document.uri);
       }),
-      vscode.workspace.onDidRenameFiles(() => this.invalidate(true)), vscode.workspace.onDidDeleteFiles(() => this.invalidate(true)),
-      vscode.workspace.onDidChangeConfiguration(event => {
-        if (["cInsight.textSearch", "files.encoding", "files.exclude", "search.exclude"].some(key => event.affectsConfiguration(key))) this.invalidate(true);
-      }));
+      vscode.workspace.onDidRenameFiles(event => event.files.forEach(file => { this.sourceChanged(file.oldUri); this.sourceChanged(file.newUri); })),
+      vscode.workspace.onDidDeleteFiles(event => event.files.forEach(uri => this.sourceChanged(uri))));
     const watcher = vscode.workspace.createFileSystemWatcher("**/*");
-    this.listeners.push(watcher, watcher.onDidChange(uri => {
-      if (!this.applying && this.results.some(file => file.uri === uri.toString())) this.invalidate(true);
-    }));
+    this.listeners.push(watcher, watcher.onDidChange(uri => this.sourceChanged(uri)),
+      watcher.onDidCreate(uri => this.sourceChanged(uri)), watcher.onDidDelete(uri => this.sourceChanged(uri)));
+  }
+  private sourceChanged(uri: vscode.Uri): void {
+    const snapshot = this.searchSnapshot;
+    if (this.applying || !snapshot || this.stale && !this.plan || isGitMetadata(uri.path) || isKnownBinaryFile(uri.path)) return;
+    const {request} = snapshot;
+    const relevant = request.scope === "file" ? uri.toString() === snapshot.current : request.scope === "open" ? snapshot.open.has(uri.toString()) :
+      request.scope === "folder" && request.folder ? (() => {
+        const folder = vscode.Uri.parse(request.folder);
+        return uri.scheme === folder.scheme && uri.authority === folder.authority && (uri.path === folder.path || uri.path.startsWith(folder.path.replace(/\/$/, "") + "/"));
+      })() : !!vscode.workspace.getWorkspaceFolder(uri);
+    if (relevant) this.invalidate(true);
   }
   resolveWebviewView(view: vscode.WebviewView): void {
     this.presentations.add(view); this.active ??= view;
@@ -95,6 +112,10 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   }
   async run(): Promise<void> {
     if (this.applying) return;
+    if (![...this.presentations].some(view => view.visible)) await this.openSearch();
+    if (this.request.scope === "folder" && !this.request.folder) {
+      await this.receive({type: "folder"}); if (!this.request.folder) return;
+    }
     this.cancel(); const generation = ++this.generation;
     const scan = this.scan = new AbortController();
     this.invalidate(false); this.results = []; this.checked.clear(); this.selected = undefined;
@@ -106,6 +127,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
         if (!this.current) throw new Error(vscode.l10n.t("Open a text file or workspace before searching."));
         request.scope = this.request.scope = "file";
       }
+      this.searchSnapshot = {request, current: this.current?.toString(), open: new Set(vscode.window.tabGroups.all.flatMap(group => group.tabs.flatMap(tab =>
+        tab.input instanceof vscode.TabInputText ? [tab.input.uri.toString()] : [])))};
       const stats = await this.search.run(request, this.current, this.budget(), scan.signal, file => {
         if (generation !== this.generation) return;
         file.id = `${generation}/${file.id}`;
@@ -123,6 +146,9 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     if (message.type === "focus") return;
     if (this.applying) return;
     if (message.type === "input") {
+      if (typeof message.client === "string" && message.client.length <= 64 && Number.isSafeInteger(message.sequence)) {
+        this.editOrigin = message.client; this.editSequence = message.sequence as number;
+      }
       const previous = JSON.stringify(this.request);
       for (const key of ["query", "include", "exclude"] as const) if (typeof message[key] === "string") this.request[key] = (message[key] as string).slice(0, 10000);
       for (const key of ["caseSensitive", "wholeWord", "regex", "multiline", "useIgnores"] as const) if (typeof message[key] === "boolean") this.request[key] = message[key] as boolean;
@@ -203,6 +229,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     const answer = this.confirmingForTest && this.testMode ? confirm : await vscode.window.showWarningMessage(vscode.l10n.t("Replace {matches} matches in {files} files? Changes will remain unsaved.",
       {matches: plan.count, files: plan.files.length}), {modal: true}, confirm);
     if (answer !== confirm) return;
+    const order = this.results.flatMap(file => file.matches.map(match => match.id)), previousIndex = order.indexOf(this.selected ?? "");
     this.applying = true; this.publish();
     try {
       await applyReplacementPlan(plan, this.request, this.replacement, this.preserveCase, () => this.plan === plan && plan.revision === this.revision);
@@ -214,25 +241,32 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
         const remaining = planned.file.matches.filter(match => !selected.has(match.start));
         const worker = new MatchingWorker(this.workerPath);
         try {
-          const found = await worker.match(document.getText(), this.request, this.budget().maximumMatches, new AbortController().signal);
-          // Compute each replacement's own length; support variable captures and mixed selections.
-          const mapped = new Set(remaining.map(match => match.start + planned.matches.filter(edit => edit.end <= match.start)
-            .reduce((delta, edit) => delta + replacementLength(planned.before, edit, this.replacement, this.request.regex, this.preserveCase) - (edit.end - edit.start), 0)));
-          planned.file.matches.forEach(match => this.checked.delete(match.id));
+          const version = document.version, text = document.getText();
+          const edits = [...planned.matches].sort((a, b) => a.start - b.start).map(edit => ({end: edit.end,
+            delta: replacementLength(planned.before, edit, this.replacement, this.request.regex, this.preserveCase) - (edit.end - edit.start)}));
+          const mapped = new Map<number, string>(); let delta = 0, index = 0;
+          for (const match of remaining) {
+            while (index < edits.length && edits[index].end <= match.start) delta += edits[index++].delta;
+            mapped.set(match.start + delta, match.id);
+          }
+          const found = mapped.size ? await worker.match(text, this.request, this.budget().maximumMatches, new AbortController().signal, [...mapped.keys()]) : {matches: [], truncated: false};
+          if (document.version !== version) throw new Error(vscode.l10n.t("Search results changed. Search again before replacing."));
+          planned.matches.forEach(match => this.checked.delete(match.id));
           const fresh: SearchFile = {...planned.file, hash: contentHash(document.getText()), version: document.version,
-            matches: found.matches.filter(match => mapped.has(match.start)).map((match, index) => ({...match, id: `${planned.file.id}:r${this.revision}:${index}`}))};
-          fresh.matches.forEach(match => this.checked.add(match.id));
+            matches: found.matches.map(match => ({...match, id: mapped.get(match.start)!}))};
           this.results = this.results.map(file => file.id === fresh.id ? fresh : file).filter(file => file.matches.length);
         } finally { worker.dispose(); }
       }
-      this.selected = this.results.flatMap(file => file.matches)[0]?.id;
+      const remaining = new Set(this.results.flatMap(file => file.matches.map(match => match.id)));
+      this.selected = order.slice(previousIndex + 1).find(id => remaining.has(id)) ?? order.find(id => remaining.has(id));
       this.stats.matches = this.results.reduce((sum, file) => sum + file.matches.length, 0); this.revision++;
     } catch (error) { this.error = String(error); this.stale = true; }
     finally { this.applying = false; this.publish(); }
   }
   private queuePublish(): void { this.timer ??= setTimeout(() => { this.timer = undefined; this.publish(); }, 100); }
   private publish(): void {
-    const state = {type: "state", revision: this.revision, request: this.request, replacement: this.replacement, preserveCase: this.preserveCase,
+    const state = {type: "state", revision: this.revision, generation: this.generation, editOrigin: this.editOrigin, editSequence: this.editSequence,
+      request: this.request, replacement: this.replacement, preserveCase: this.preserveCase,
       replaceVisible: this.replaceVisible, files: this.results.map(file => ({id: file.id, label: file.label, matches: file.matches.map(match => ({id: match.id,
         line: match.line, character: match.character, snippet: match.snippet, highlightStart: match.highlightStart, highlightEnd: match.highlightEnd}))})),
       checked: [...this.checked], selected: this.selected, stats: this.stats, loading: this.loading, stale: this.stale, error: this.error,
@@ -241,7 +275,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     for (const view of this.presentations) if (view.visible) void view.webview.postMessage(state);
   }
   stateForTest() { return {revision: this.revision, request: {...this.request}, results: this.results, checked: [...this.checked], stats: {...this.stats},
-    loading: this.loading, stale: this.stale, ready: this.replaceReady(), generation: this.generation, plan: this.plan?.id, selected: this.selected, error: this.error}; }
+    loading: this.loading, visible: [...this.presentations].filter(view => view.visible).length, stale: this.stale,
+    ready: this.replaceReady(), generation: this.generation, plan: this.plan?.id, selected: this.selected, error: this.error}; }
   async applyForTest(id: string): Promise<void> {
     if (!this.testMode) throw new Error("Test-only entry point.");
     this.confirmingForTest = true;

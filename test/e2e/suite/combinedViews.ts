@@ -154,9 +154,9 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand("cInsight.pinCallHierarchy");
     await combined.update("slot3", {...layout, views: ["supertypes", "subtypes", "includes", "includedBy"]}, vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand("cInsight.combined3.focus");
-    await combined.update("slot4", {...layout, views: ["history", "bookmarks", "status"]}, vscode.ConfigurationTarget.Global);
+    await combined.update("slot4", {...layout, views: ["history", "bookmarks", "status", "textSearch"]}, vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand("cInsight.combined4.focus");
-    await wait(async () => { const values = await state(); return values.length === 4 && values.every(surface => surface.panes.every(pane => pane.acknowledged === pane.generation)) ? true : undefined; }, "Not all 15 roles initialized");
+    await wait(async () => { const values = await state(); return values.length === 4 && values.every(surface => surface.panes.every(pane => pane.acknowledged === pane.generation)) ? true : undefined; }, "Not all 16 roles initialized");
     const previousCallerGeneration=(await state()).find(surface=>surface.slot===1)!.panes.find(pane=>pane.role==="callers")!.generation;
     const savedLayout=vscode.workspace.getConfiguration("cInsight.combinedViews").get<typeof layout>("slot1")!;
     await vscode.commands.executeCommand("workbench.view.explorer");

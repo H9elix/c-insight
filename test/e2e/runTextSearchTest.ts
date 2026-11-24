@@ -15,6 +15,7 @@ async function main(): Promise<void> {
       "alpha/.gitignore": "ignored.txt\n", "alpha/ignored.txt": "needle ignored\n", "alpha/search-hidden.txt": "needle excluded\n",
       "alpha/.git/private.txt": "needle never\n", "alpha/src/.gitignore": "*.log\n!keep.log\n",
       "alpha/src/drop.log": "needle hidden\n", "alpha/src/keep.log": "needle kept\n",
+      "alpha/src/no-hit.txt": "quiet text\n",
     })) await writeFile(path.join(temporary, name), text);
     await writeFile(path.join(temporary, "alpha/binary.dat"), Buffer.from([0, 1, 2, 3]));
     const workspace = path.join(temporary, "search.code-workspace");

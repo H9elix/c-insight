@@ -1,4 +1,5 @@
 {
+  "capability.untrustedWorkspaces.description": "Text search is available in Restricted Mode. Replacement and managed clangd require workspace trust.",
   "command.cInsight.openView.title": "C Insight: Open View…",
   "submenu.cInsight.symbolNavigation.label": "C Insight: Symbol Navigation",
   "configuration.cInsight.combinedViews.hoverDirection.description": "Legacy combination-wide direction, read for compatibility and migrated to explicit per-pane hoverDirections on the next layout save. New layouts use per-pane directions.",

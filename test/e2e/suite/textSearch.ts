@@ -5,7 +5,7 @@ import { createReplacementPlan, applyReplacementPlan } from "../../../src/textSe
 import * as vscode from "vscode";
 import { join } from "node:path";
 
-interface State {revision: number; generation: number; request: SearchRequest; results: SearchFile[]; stats: SearchStats; stale: boolean; ready: boolean; plan?: string; error?: string}
+interface State {revision: number; generation: number; request: SearchRequest; results: SearchFile[]; stats: SearchStats; stale: boolean; ready: boolean; plan?: string; error?: string; visible: number; selected?: string}
 const state = () => vscode.commands.executeCommand<State>("cInsight.test.textSearchState") as Promise<State>;
 const message = (value: object) => vscode.commands.executeCommand("cInsight.test.textSearchMessage", value);
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -78,10 +78,79 @@ export async function run(): Promise<void> {
   assert(document.getText().includes("needle_updated"));
   await vscode.window.showTextDocument(document); await vscode.commands.executeCommand("undo"); assert.equal(document.getText(), before);
   await message({type: "search"});
+  const single = await state(), middle = single.results[0].matches[1], following = single.results[0].matches[2];
+  await message({type: "activate", id: middle.id, intent: "preview", revision: single.revision});
+  await message({type: "plan", mode: "current", revision: single.revision});
+  await vscode.commands.executeCommand("cInsight.test.textSearchApply", (await state()).plan);
+  assert.equal((await state()).selected, following.id, "Single replacement must move to the next original match, not an earlier hit");
+  assert.equal((await state()).stats.matches, 2); assert(!(await state()).error);
+  await vscode.window.showTextDocument(document); await vscode.commands.executeCommand("undo"); assert.equal(document.getText(), before);
+  await message({type: "search"});
   const edit = new vscode.WorkspaceEdit(); edit.insert(a, new vscode.Position(0, 0), " "); await vscode.workspace.applyEdit(edit);
-  result = await state(); assert(result.stale); assert.equal(result.generation, generation + 2, "Editing may invalidate, never rescan");
+  result = await state(); assert(result.stale); assert.equal(result.generation, generation + 3, "Editing may invalidate, never rescan");
   const after = await vscode.commands.executeCommand<{scheduler: {submitted: number}}>("cInsight.test.navigationState");
   assert.equal(after?.scheduler.submitted, scheduler?.scheduler.submitted, "Text search must not use the analysis engine");
   assert.equal(contentHash(document.getText()), contentHash(" " + before));
   console.log("TEXT_SEARCH_VIEW: manual start, source preview/open, retained query, selection invalidation and zero engine requests passed");
+
+  const scale = vscode.Uri.joinPath(roots[0].uri, "scale"); await vscode.workspace.fs.createDirectory(scale);
+  for (let batch = 0; batch < 20; batch++) await Promise.all(Array.from({length: 50}, (_, index) =>
+    vscode.workspace.fs.writeFile(vscode.Uri.joinPath(scale, `${batch * 50 + index}.txt`), Buffer.from("PERF_NEEDLE\n".repeat(16)))));
+  let ticks = 0; const timer = setInterval(() => ticks++, 5), started = Date.now(), documentsBefore = vscode.workspace.textDocuments.length;
+  const performanceFiles: SearchFile[] = [];
+  const performance = await engine.run({...request, query: "PERF_NEEDLE", scope: "folder", folder: scale.toString()}, a,
+    DEFAULT_SEARCH_BUDGET, new AbortController().signal, file => performanceFiles.push(file), () => undefined);
+  clearInterval(timer);
+  assert(performance.limited); assert.equal(performance.matches, 10000); assert(ticks > 0);
+  assert.equal(vscode.workspace.textDocuments.length, documentsBefore, "Scanning must not open matched files as documents");
+  assert.equal(performanceFiles.reduce((sum, file) => sum + file.matches.length, 0), 10000);
+  console.log(`TEXT_SEARCH_SCALE: 1000-file fixture, 10000 retained matches, ${Date.now() - started} ms, ${ticks} responsive ticks, zero opened documents`);
+
+  await vscode.commands.executeCommand("cInsight.searchText");
+  await message({type: "input", query: "PERF_NEEDLE", scope: "workspace", include: "**/scale/**/*.txt"});
+  const scanning = message({type: "search"}); await pause(25);
+  await vscode.commands.executeCommand("workbench.action.closeSidebar"); await scanning;
+  const hidden = await state(); assert.equal(hidden.visible, 0); assert(hidden.stats.cancelled, "All hidden presentations must cancel the search");
+  await vscode.commands.executeCommand("cInsight.searchText"); await pause(100);
+  assert.equal((await state()).generation, hidden.generation, "Showing partial results must not restart a scan");
+  console.log("TEXT_SEARCH_VISIBILITY: hide-all cancellation and show-without-rescan passed");
+  const combined = vscode.workspace.getConfiguration("cInsight.combinedViews");
+  for (const slot of [1, 2]) {
+    await combined.update(`slot${slot}`, {enabled: true, title: `Search ${slot}`, direction: "horizontal", views: ["textSearch", "preview"], ratios: [1, 1]}, vscode.ConfigurationTarget.Global);
+    await vscode.commands.executeCommand(`cInsight.combined${slot}.focus`);
+  }
+  type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string}>};
+  const browser = async (slot: number, action?: object): Promise<Inspection> => {
+    try { return await vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser", slot, action) as Inspection; }
+    catch (error) { throw new Error(`Search browser slot=${slot} action=${JSON.stringify(action)} surfaces=${JSON.stringify(await vscode.commands.executeCommand("cInsight.test.combinedState"))}: ${String(error)}`); }
+  };
+  const pane = async (slot: number) => (await browser(slot)).panes.find(pane => pane.role === "textSearch");
+  const until = async (query: () => Promise<boolean>, reason: string) => {
+    for (let i = 0; i < 100; i++) { if (await query()) return; await pause(50); } assert.fail(reason);
+  };
+  await until(async () => {
+    const surfaces = await vscode.commands.executeCommand<Array<{slot: number; ready: boolean; panes: Array<{generation: number; acknowledged?: number}>}>>("cInsight.test.combinedState");
+    return [1, 2].every(slot => surfaces?.some(surface => surface.slot === slot && surface.ready && surface.panes.length === 2 && surface.panes.every(pane => pane.generation === pane.acknowledged)));
+  }, "Combined bridges and child renderers did not acknowledge initialization");
+  await until(async () => (await pane(1))?.searchQuery === "PERF_NEEDLE" && (await pane(2))?.searchQuery === "PERF_NEEDLE", "Search renderers were not initialized");
+  for (const [control, value] of [["scope", "file"], ["include", ""], ["query", "needle"]]) await browser(1, {action: "textSearch", role: "textSearch", control, value});
+  await until(async () => (await pane(2))?.searchQuery === "needle", "Query was not shared across presentations");
+  const beforeBrowserQuery = (await state()).generation;
+  await browser(1, {action: "textSearch", role: "textSearch", control: "search"});
+  await until(async () => (await state()).generation === beforeBrowserQuery + 1 && (await pane(2))?.searchChecked === 3, "Browser Enter/Search did not populate both renderers");
+  await browser(1, {action: "textSearch", role: "textSearch", control: "preview"}); await pause(100);
+  assert.equal((await pane(1))?.searchRowMarker, "stable", "Preview selection must retain row DOM so a subsequent double-click reaches the same target");
+  await browser(1, {action: "textSearch", role: "textSearch", control: "collapse"});
+  await browser(1, {action: "textSearch", role: "textSearch", control: "check"});
+  await until(async () => (await pane(2))?.searchChecked === 2, "Replacement selections were not shared");
+  assert.equal((await pane(1))?.searchOpen, false); assert.equal((await pane(2))?.searchOpen, true);
+  assert.equal((await state()).generation, beforeBrowserQuery + 1, "Presentation actions started another search");
+  await message({type: "input", scope: "workspace", include: "**/*.txt", query: "other"}); await message({type: "search"});
+  const originalMatches = await state();
+  const unrelated = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(roots[0].uri, "src/no-hit.txt"));
+  const change = new vscode.WorkspaceEdit(); change.insert(unrelated.uri, new vscode.Position(0, 0), "other\n");
+  await vscode.workspace.applyEdit(change);
+  assert((await state()).stale, "Changing an initially unmatched file must invalidate a workspace search snapshot");
+  assert.equal((await state()).generation, originalMatches.generation, "Source invalidation must not rescan");
+  console.log("TEXT_SEARCH_COMBINED: live browser controls, shared query/results/checkboxes and independent group expansion passed");
 }

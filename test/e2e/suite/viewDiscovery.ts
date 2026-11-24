@@ -35,7 +35,7 @@ async function choose(query: string, predicate: (entry: DiscoveryState["activeEn
 
 export async function verifyViewPickerCancellation(): Promise<void> {
   const before = await state(), count = await submitted();
-  assert.equal(before.registered.length, 19, "All fifteen independent views and four native slots must be observed");
+  assert.equal(before.registered.length, 20, "All sixteen independent views and four native slots must be observed");
   await choose("Project Files", entry => entry?.viewId === "cInsight.projectFiles", false);
   const after = await state();
   assert.deepEqual(after.visible.sort(), before.visible.sort(), "Browsing and cancelling must not open a pane");

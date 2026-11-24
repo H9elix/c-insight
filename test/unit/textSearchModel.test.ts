@@ -36,6 +36,16 @@ describe("independent text matching", () => {
     assert.throws(() => decodeSearchFile(Uint8Array.of(0xff), "utf8"));
     assert.throws(() => decodeSearchFile(Uint8Array.of(1), "unknown"));
   });
+  it("rechecks only original offsets and bounds replacement expansion", () => {
+    const options = {...DEFAULT_SEARCH_OPTIONS, query: "foo"};
+    assert.deepEqual(findMatches("foo foo foo", options, 1, [8]).matches.map(match => match.start), [8]);
+    assert.equal(findMatches("😀", {...options, query: ".", regex: true}, 1, [1]).matches.length, 0);
+    assert.equal(findMatches("food foo", {...options, wholeWord: true}, 2, [0, 5]).matches.length, 1);
+    const text = "x".repeat(1024 * 1024), match = findMatches(text, {...options, query: "^", regex: true}, 1).matches[0];
+    assert.throws(() => replacementText(text, match, "$'".repeat(40), true, false), /limit/);
+    assert.equal(matchesPatterns("src/a.h", "**/*.{c,h}, **/*.cpp"), true);
+    assert.equal(isIgnored("src/keep.log", false, [ignoreLayer("", "*.log"), ignoreLayer("src/", "!keep.log")]), false);
+  });
   it("handles nested ignore bases, glob lists and conditional exclude siblings", () => {
     assert.equal(isIgnored("src/cache/a.c", false, [ignoreLayer("src/", "cache/\n!keep.c")]), true);
     assert.equal(isIgnored("other/cache/a.c", false, [ignoreLayer("src/", "cache/")]), false);

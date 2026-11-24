@@ -8,7 +8,7 @@ export class MatchTimeout extends Error { constructor() { super("Regular express
 export class MatchingWorker {
   private worker?: Worker;
   constructor(private readonly path: string, private readonly timeout = 2000) {}
-  async match(text: string, options: SearchOptions, maximum: number, signal: AbortSignal): Promise<MatchResult> {
+  async match(text: string, options: SearchOptions, maximum: number, signal: AbortSignal, positions?: number[]): Promise<MatchResult> {
     if (signal.aborted) throw new SearchCancelled();
     const environment = {...process.env};
     delete environment.NODE_TEST_CONTEXT;
@@ -26,7 +26,7 @@ export class MatchingWorker {
       const timer = setTimeout(() => finish(new MatchTimeout()), this.timeout);
       worker.once("message", receive); worker.once("error", failed); worker.once("exit", exited);
       signal.addEventListener("abort", abort, {once: true});
-      worker.postMessage({text, options, maximum});
+      worker.postMessage({text, options, maximum, positions});
     });
   }
   dispose(): void { const worker = this.worker; this.worker = undefined; if (worker) void worker.terminate(); }

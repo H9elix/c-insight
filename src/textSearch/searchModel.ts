@@ -37,8 +37,9 @@ function before(text: string, offset: number): string {
 }
 
 /** Runs only in a terminable worker for user expressions. Offsets are UTF-16, as in VS Code. */
-export function findMatches(text: string, options: SearchOptions, maximum: number): MatchResult {
-  const expression = searchExpression(options);
+export function findMatches(text: string, options: SearchOptions, maximum: number, positions?: readonly number[]): MatchResult {
+  const base = searchExpression(options);
+  const expression = positions ? new RegExp(base.source, base.flags + "y") : base;
   const starts = [0];
   for (let index = 0; index < text.length; index++) if (text[index] === "\n") starts.push(index + 1);
   const position = (offset: number): [number, number] => {
@@ -49,7 +50,15 @@ export function findMatches(text: string, options: SearchOptions, maximum: numbe
   const matches: TextMatch[] = [];
   let payload = 0;
   let match: RegExpExecArray | null;
-  while ((match = expression.exec(text))) {
+  let cursor = 0;
+  while (true) {
+    if (positions) {
+      if (cursor >= positions.length) break;
+      expression.lastIndex = positions[cursor++];
+    }
+    match = expression.exec(text);
+    if (!match) { if (positions) continue; else break; }
+    if (positions && match.index !== positions[cursor - 1]) continue;
     const start = match.index, end = start + match[0].length;
     const next = text.codePointAt(end);
     if (!options.wholeWord || (!word(before(text, start)) && !word(next === undefined ? "" : String.fromCodePoint(next)))) {
@@ -74,7 +83,7 @@ export function findMatches(text: string, options: SearchOptions, maximum: numbe
 }
 
 export function replacementText(text: string, match: TextMatch, replacement: string, regex: boolean, preserveCase: boolean): string {
-  let result = regex ? replacement.replace(/\$(\$|&|`|'|\d{1,2}|<[^>]+>)/g, (whole, key: string) => {
+  const expand = (whole: string, key: string): string => {
     if (key === "$") return "$";
     if (key === "&") return match.value;
     if (key === "`") return text.slice(0, match.start);
@@ -84,7 +93,18 @@ export function replacementText(text: string, match: TextMatch, replacement: str
     if (index > 0 && index <= match.captures.length) return match.captures[index - 1] ?? "";
     const first = Number(key[0]);
     return key.length === 2 && first > 0 && first <= match.captures.length ? (match.captures[first - 1] ?? "") + key[1] : whole;
-  }) : replacement;
+  };
+  let result = replacement;
+  if (regex) {
+    const pieces: string[] = []; let offset = 0, length = 0;
+    for (const token of replacement.matchAll(/\$(\$|&|`|'|\d{1,2}|<[^>]+>)/g)) {
+      const prefix = replacement.slice(offset, token.index), value = expand(token[0], token[1]);
+      length += prefix.length + value.length;
+      if (length > 32 * 1024 * 1024) throw new Error("Replacement text limit.");
+      pieces.push(prefix, value); offset = token.index + token[0].length;
+    }
+    pieces.push(replacement.slice(offset)); result = pieces.join("");
+  }
   if (preserveCase && match.value.toLowerCase() !== match.value.toUpperCase()) {
     if (match.value === match.value.toUpperCase()) result = result.toUpperCase();
     else if (match.value === match.value.toLowerCase()) result = result.toLowerCase();
@@ -96,9 +116,14 @@ export function replacementText(text: string, match: TextMatch, replacement: str
 }
 
 export function applyMatches(text: string, matches: TextMatch[], replacement: string, regex: boolean, preserveCase: boolean): string {
-  let result = text;
-  for (const match of [...matches].sort((a, b) => b.start - a.start)) {
-    result = result.slice(0, match.start) + replacementText(text, match, replacement, regex, preserveCase) + result.slice(match.end);
+  const pieces: string[] = []; let offset = 0, length = 0;
+  for (const match of [...matches].sort((a, b) => a.start - b.start)) {
+    if (match.start < offset || match.end < match.start || match.end > text.length) throw new Error("Invalid replacement range.");
+    const prefix = text.slice(offset, match.start), value = replacementText(text, match, replacement, regex, preserveCase);
+    length += prefix.length + value.length;
+    if (length > 32 * 1024 * 1024) throw new Error("Replacement text limit.");
+    pieces.push(prefix, value); offset = match.end;
   }
-  return result;
+  if (length + text.length - offset > 32 * 1024 * 1024) throw new Error("Replacement text limit.");
+  pieces.push(text.slice(offset)); return pieces.join("");
 }

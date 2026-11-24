@@ -16,6 +16,7 @@ describe("text search view isolation", () => {
     assert.doesNotThrow(() => new Script(script));
     assert.match(script, /event\.preventDefault\(\);event\.stopPropagation\(\)/);
     assert.doesNotMatch(script, /setTimeout|debounce/);
+    assert.match(script, /key===renderKey/);
   });
   it("does not depend on semantic engines or expose arbitrary edit locations", () => {
     const source = readFileSync("src/textSearch/textSearchExplorer.ts", "utf8");

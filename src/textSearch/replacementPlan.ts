@@ -4,7 +4,7 @@ import { applyMatches, contentHash, replacementText, type TextMatch } from "./se
 import type { SearchFile, SearchRequest } from "./workspaceSearch";
 import { minimatch } from "minimatch";
 
-export interface PlannedFile { file: SearchFile; matches: TextMatch[]; before: string; after: string }
+export interface PlannedFile { file: SearchFile; matches: Array<TextMatch & {id: string}>; before: string; after: string }
 export interface ReplacementPlan { id: string; revision: number; files: PlannedFile[]; count: number }
 
 /** Read-only, ephemeral snapshots. URLs identify snapshots, never source files supplied by a webview. */

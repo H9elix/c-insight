@@ -359,6 +359,17 @@ window.addEventListener('message',event=>{
     else if(message.action==='filter'){
       const input=item?.iframe.contentDocument.getElementById('filter');if(input){input.value=message.value;input.dispatchEvent(new Event('input'));}
     }
+    else if(message.action==='textSearch'&&message.role==='textSearch'){
+      const child=item?.iframe.contentDocument,win=item?.iframe.contentWindow;
+      if(child&&win&&['query','include','exclude','scope'].includes(message.control)){
+        const input=child.getElementById(message.control);input.value=message.value;input.dispatchEvent(new win.Event(message.control==='scope'?'change':'input',{bubbles:true}));
+      }else if(child&&['search','toggle'].includes(message.control))child.getElementById(message.control)?.click();
+      else if(message.control==='check')child?.querySelector('.match input')?.click();
+      else if(message.control==='collapse'){const group=child?.querySelector('details');if(group)group.open=false;}
+      else if(message.control==='preview'){
+        const row=child?.querySelector('.match');if(row&&win){row.dataset.testStable='stable';row.dispatchEvent(new win.MouseEvent('click',{detail:1,bubbles:true}));}
+      }
+    }
     else if(message.action==='viewport'){viewport.style.width=(message.width||1200)+'px';viewport.style.height=(message.height||500)+'px';viewport.style.flex='none';resize();}
     else if(message.action==='naturalViewport'){viewport.style.width='';viewport.style.height='';viewport.style.flex='';resize();}
     else if(message.action==='surfaceSize'){document.body.style.width=message.width?message.width+'px':'';document.body.style.height=message.height?message.height+'px':'';resize();}
@@ -402,6 +413,10 @@ window.addEventListener('message',event=>{
     const child=item.iframe.contentDocument,icon=child?.querySelector('.codicon'),scroll=child?.querySelector('.code,#tree,#results');
     return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),left:item.element.getBoundingClientRect().left,top:item.element.getBoundingClientRect().top,width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
       headerButton:rectangle(item.element.querySelector('header button:last-child')),embeddedButton:child?.querySelector('[data-ci-hover-pause] button')?rectangle(child.querySelector('[data-ci-hover-pause] button')):undefined,
+      searchQuery:role==='textSearch'?child?.getElementById('query')?.value:undefined,
+      searchChecked:role==='textSearch'?child?.querySelectorAll('.match input:checked').length:undefined,
+      searchOpen:role==='textSearch'?child?.querySelector('details')?.open:undefined,
+      searchRowMarker:role==='textSearch'?child?.querySelector('.match')?.dataset.testStable:undefined,
       marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
     }),hovered,candidate,hoverTiming,direction:layout.direction,hoverDirections:Object.fromEntries(metrics().expanded.map(role=>[role,paneDirectionFor(layout,role,metrics().expanded)])),configuredHoverDirections:layout.hoverDirections||{},hoverSizePercentages:layout.hoverSizePercentages||{},usableSize:metrics().total,controlsPaused,pendingHoverReset,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
       lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop,surfaceWidth:document.documentElement.clientWidth},
