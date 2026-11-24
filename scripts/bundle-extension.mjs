@@ -14,3 +14,12 @@ await build({
   logLevel: "info",
   plugins: [languageClientMinimatchCompat(repositoryRoot)],
 });
+await build({
+  absWorkingDir: repositoryRoot,
+  entryPoints: ["src/textSearch/searchWorker.ts"],
+  bundle: true,
+  platform: "node",
+  format: "cjs",
+  outfile: "dist/textSearchWorker.js",
+  logLevel: "info",
+});

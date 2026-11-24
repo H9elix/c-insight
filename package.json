@@ -116,6 +116,9 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.46-24",
+    "iconv-lite": "0.7.3",
+    "ignore": "7.0.14",
+    "minimatch": "11.0.5",
     "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
@@ -145,10 +148,16 @@
   },
   "contributes": {
     "submenus": [
-      { "id": "cInsight.symbolNavigation", "label": "%submenu.cInsight.symbolNavigation.label%" }
+      {
+        "id": "cInsight.symbolNavigation",
+        "label": "%submenu.cInsight.symbolNavigation.label%"
+      }
     ],
     "commands": [
-      { "command": "cInsight.openView", "title": "%command.cInsight.openView.title%" },
+      {
+        "command": "cInsight.openView",
+        "title": "%command.cInsight.openView.title%"
+      },
       {
         "command": "cInsight.combinedViews.create",
         "title": "%command.cInsight.combinedViews.create.title%",
@@ -694,37 +703,37 @@
         {
           "command": "cInsight.openView",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@1"
+          "group": "0_navigation_cInsight@1"
         },
         {
           "command": "cInsight.bookmarks.addCurrent",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@2"
+          "group": "0_navigation_cInsight@2"
         },
         {
           "command": "cInsight.includeHierarchy.showIncludes",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@3"
+          "group": "0_navigation_cInsight@3"
         },
         {
           "command": "cInsight.includeHierarchy.showIncludedBy",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@4"
+          "group": "0_navigation_cInsight@4"
         },
         {
           "command": "cInsight.relationshipGraph.show",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@5"
+          "group": "0_navigation_cInsight@5"
         },
         {
           "command": "cInsight.relationshipGraph.showFile",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@6"
+          "group": "0_navigation_cInsight@6"
         },
         {
           "submenu": "cInsight.symbolNavigation",
           "when": "resourceLangId == c || resourceLangId == cpp || resourceLangId == objective-c || resourceLangId == objective-cpp",
-        "group": "0_navigation_cInsight@7"
+          "group": "0_navigation_cInsight@7"
         }
       ],
       "cInsight.symbolNavigation": [
@@ -1255,10 +1264,30 @@
     },
     "views": {
       "cInsight": [
-        {"id":"cInsight.combined1","name":"%view.cInsight.combined1.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined1Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot1.enabled"},
-        {"id":"cInsight.combined2","name":"%view.cInsight.combined2.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined2Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot2.enabled"},
-        {"id":"cInsight.combined3","name":"%view.cInsight.combined3.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined3Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot3.enabled"},
-        {"id":"cInsight.combined4","name":"%view.cInsight.combined4.name%","type":"webview","when":"cInsight.combinedReady && cInsight.combined4Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot4.enabled"},
+        {
+          "id": "cInsight.combined1",
+          "name": "%view.cInsight.combined1.name%",
+          "type": "webview",
+          "when": "cInsight.combinedReady && cInsight.combined1Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot1.enabled"
+        },
+        {
+          "id": "cInsight.combined2",
+          "name": "%view.cInsight.combined2.name%",
+          "type": "webview",
+          "when": "cInsight.combinedReady && cInsight.combined2Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot2.enabled"
+        },
+        {
+          "id": "cInsight.combined3",
+          "name": "%view.cInsight.combined3.name%",
+          "type": "webview",
+          "when": "cInsight.combinedReady && cInsight.combined3Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot3.enabled"
+        },
+        {
+          "id": "cInsight.combined4",
+          "name": "%view.cInsight.combined4.name%",
+          "type": "webview",
+          "when": "cInsight.combinedReady && cInsight.combined4Enabled || !cInsight.combinedReady && config.cInsight.combinedViews.slot4.enabled"
+        },
         {
           "id": "cInsight.context",
           "name": "%view.cInsight.context.name%",
@@ -1395,7 +1424,10 @@
             },
             "hoverDirection": {
               "type": "string",
-              "enum": ["forward", "both"],
+              "enum": [
+                "forward",
+                "both"
+              ],
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "hoverDirections": {
@@ -1405,7 +1437,11 @@
               "patternProperties": {
                 "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
                   "type": "string",
-                  "enum": ["forward", "backward", "both"]
+                  "enum": [
+                    "forward",
+                    "backward",
+                    "both"
+                  ]
                 }
               }
             },
@@ -1492,7 +1528,10 @@
             },
             "hoverDirection": {
               "type": "string",
-              "enum": ["forward", "both"],
+              "enum": [
+                "forward",
+                "both"
+              ],
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "hoverDirections": {
@@ -1502,7 +1541,11 @@
               "patternProperties": {
                 "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
                   "type": "string",
-                  "enum": ["forward", "backward", "both"]
+                  "enum": [
+                    "forward",
+                    "backward",
+                    "both"
+                  ]
                 }
               }
             },
@@ -1589,7 +1632,10 @@
             },
             "hoverDirection": {
               "type": "string",
-              "enum": ["forward", "both"],
+              "enum": [
+                "forward",
+                "both"
+              ],
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "hoverDirections": {
@@ -1599,7 +1645,11 @@
               "patternProperties": {
                 "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
                   "type": "string",
-                  "enum": ["forward", "backward", "both"]
+                  "enum": [
+                    "forward",
+                    "backward",
+                    "both"
+                  ]
                 }
               }
             },
@@ -1686,7 +1736,10 @@
             },
             "hoverDirection": {
               "type": "string",
-              "enum": ["forward", "both"],
+              "enum": [
+                "forward",
+                "both"
+              ],
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
             },
             "hoverDirections": {
@@ -1696,7 +1749,11 @@
               "patternProperties": {
                 "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
                   "type": "string",
-                  "enum": ["forward", "backward", "both"]
+                  "enum": [
+                    "forward",
+                    "backward",
+                    "both"
+                  ]
                 }
               }
             },
@@ -1879,7 +1936,11 @@
         },
         "cInsight.documentSymbols.sortBy": {
           "type": "string",
-          "enum": ["position", "name", "type"],
+          "enum": [
+            "position",
+            "name",
+            "type"
+          ],
           "default": "position",
           "description": "%configuration.cInsight.documentSymbols.sortBy.description%"
         },
@@ -1890,7 +1951,11 @@
         },
         "cInsight.projectFiles.sortBy": {
           "type": "string",
-          "enum": ["name", "path", "type"],
+          "enum": [
+            "name",
+            "path",
+            "type"
+          ],
           "default": "name",
           "description": "%configuration.cInsight.projectFiles.sortBy.description%"
         },

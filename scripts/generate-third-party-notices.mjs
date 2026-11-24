@@ -68,7 +68,7 @@ function dependencyNotice(location, metadata) {
     readFileSync(path.join(directory, "package.json"), "utf8"),
   );
   const licenseFile = readdirSync(directory)
-    .filter((entry) => /^(?:licen[cs]e|copying)(?:\..*)?$/i.test(entry))
+    .filter((entry) => /^(?:licen[cs]e|copying)(?:[.-].*)?$/i.test(entry))
     .sort()[0];
   if (!licenseFile) {
     throw new Error(`No license file found for ${manifest.name}@${manifest.version}`);
