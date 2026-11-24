@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added independent per-pane hover directions: both, right/down and left/up, with positional defaults for unset panes and per-pane reset. Legacy combination-wide choices remain compatible and migrate on user layout edits; direction controls now live only in pane menus.
+
 ## 0.23.3
 
 - Fixed Document Symbols and Project Files restoring out-of-view followed highlights after repeated expanded wheel browsing and contraction. Centering is smooth and interruptible, respects reduced motion, locks and focus, and leaves visible rows, filters and data unchanged without extra engine queries.

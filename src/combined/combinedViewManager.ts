@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { COMMANDS, CONTEXT_KEYS } from "../ids";
 import { WebviewResultTree } from "../views/resultTreeView";
-import { combinedLayout, combinedLayoutRevision, combinedHoverTiming, reorderCombinedPane, COMBINED_ROLES, COMBINED_SLOTS, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
+import { combinedLayout, combinedLayoutRevision, combinedHoverTiming, combinedPaneHoverDirection, reorderCombinedPane, COMBINED_ROLES, COMBINED_SLOTS, CombinedHoverDirection, CombinedLayout, CombinedRole, CombinedSlot, isCombinedRole, matchesPaneCondition } from "./combinedModel";
 import { EmbeddedView } from "./embeddedView";
 import { embeddedDocument, renderCombinedWebview } from "./combinedWebview";
 import { manifestLabel } from "./combinedManifest";
@@ -101,9 +101,6 @@ export class CombinedViewManager implements vscode.Disposable {
         manage: vscode.l10n.t("Manage Combined View"), collapse: vscode.l10n.t("Collapse / Expand Pane"),
         actions: vscode.l10n.t("Pane Actions and Layout"), splitter: vscode.l10n.t("Resize neighboring panes"),
         reorder: vscode.l10n.t("Drag to reorder pane"),
-        hoverDirection: vscode.l10n.t("Expansion Direction"), both: vscode.l10n.t("Both Directions"),
-        forwardRight: vscode.l10n.t("Expand Right"), forwardDown: vscode.l10n.t("Expand Down"),
-        switchHoverDirection: vscode.l10n.t("Switch expansion direction"),
       }, this.context.extensionMode === vscode.ExtensionMode.Test, icons);
     surface.listeners.push(
       view.webview.onDidReceiveMessage((message: unknown) => {
@@ -174,7 +171,7 @@ export class CombinedViewManager implements vscode.Disposable {
       surface.panes.forEach((pane, role) => { pane.sentGeneration = undefined; pane.collapsed = states[role]?.collapsed === true; pane.view.setVisible(surface.view.visible && !pane.collapsed); });
       this.publish(slot, surface); return;
     }
-    if (message.type === "manage" && ["add", "direction", "hover", "toggleHoverDirection", "menu"].includes(String(message.action))) {
+    if (message.type === "manage" && ["add", "direction", "hover", "menu"].includes(String(message.action))) {
       await this.interact(slot, () => this.perform(slot, String(message.action))); return;
     }
     if (message.type === "ratios" && Array.isArray(message.ratios)) {
@@ -219,6 +216,10 @@ export class CombinedViewManager implements vscode.Disposable {
         entries.push({label: vscode.l10n.t("Set Hover Expansion Size…"), command: "", layoutAction: "hoverSize",
           description: percentage === undefined ? vscode.l10n.t("Default expansion") : vscode.l10n.t("Target: {percent}%", {percent: percentage})});
         if (percentage !== undefined) entries.push({label: vscode.l10n.t("Restore Default Hover Expansion Size"), command: "", layoutAction: "resetHoverSize"});
+        const layout = this.layout(slot), expanded = layout.views.filter(role => !surface.panes.get(role)?.collapsed);
+        const label = this.directionLabel(combinedPaneHoverDirection(layout, role, expanded), layout.direction === "vertical");
+        entries.push({label: vscode.l10n.t("Expansion Direction…"), command: "", layoutAction: "paneHoverDirection",
+          description: layout.hoverDirections?.[role] ? label : vscode.l10n.t("Default: {direction}", {direction:label})});
         entries.push({label: vscode.l10n.t("Move Pane Earlier"), command: "", layoutAction: "earlier"},
           {label: vscode.l10n.t("Move Pane Later"), command: "", layoutAction: "later"},
           {label: vscode.l10n.t("Remove Pane"), command: "", layoutAction: "remove"});
@@ -228,6 +229,7 @@ export class CombinedViewManager implements vscode.Disposable {
           if (selected.layoutAction === "hoverSize" || selected.layoutAction === "resetHoverSize") {
             await this.configureHoverSize(slot, role, selected.layoutAction === "resetHoverSize"); return;
           }
+          if (selected.layoutAction === "paneHoverDirection") { await this.configureHoverDirection(slot, role); return; }
           const layout = this.layout(slot), index = layout.views.indexOf(role);
           if (index < 0) return;
           if (selected.layoutAction === "remove") { layout.views.splice(index, 1); layout.ratios.splice(index, 1); }
@@ -241,6 +243,30 @@ export class CombinedViewManager implements vscode.Disposable {
         }
       });
     } else if (message.type === "action" && typeof message.command === "string") await this.interact(slot, () => this.runAction(role, message.command as string));
+  }
+  private directionLabel(direction: CombinedHoverDirection, vertical: boolean): string {
+    return direction === "both" ? vscode.l10n.t("Both Directions") : direction === "backward"
+      ? vertical ? vscode.l10n.t("Expand Up") : vscode.l10n.t("Expand Left")
+      : vertical ? vscode.l10n.t("Expand Down") : vscode.l10n.t("Expand Right");
+  }
+  private async configureHoverDirection(slot: CombinedSlot, role: CombinedRole): Promise<void> {
+    const current = this.layout(slot);
+    if (this.disposed || !current.enabled || !current.views.includes(role)) return;
+    const expanded = current.views.filter(role => !this.surfaces.get(slot)?.panes.get(role)?.collapsed);
+    const fallback = combinedPaneHoverDirection({...current,hoverDirections:undefined}, role, expanded);
+    const selected = await vscode.window.showQuickPick([
+      {label:vscode.l10n.t("Default Expansion Direction"), value:"default" as const,
+        description:this.directionLabel(fallback,current.direction === "vertical"), picked:!current.hoverDirections?.[role]},
+      ...(["both","forward","backward"] as const).map(value => ({label:this.directionLabel(value,current.direction === "vertical"),
+        value, picked:current.hoverDirections?.[role] === value})),
+    ], {title:vscode.l10n.t("Expansion Direction…")});
+    if (!selected || !["default","both","forward","backward"].includes(selected.value)) return;
+    const direction = selected.value === "default" ? undefined : selected.value;
+    const latest = this.layout(slot);
+    if (this.disposed || !latest.enabled || !latest.views.includes(role) || latest.hoverDirections?.[role] === direction) return;
+    const hoverDirections = {...latest.hoverDirections};
+    if (direction === undefined) delete hoverDirections[role]; else hoverDirections[role] = direction;
+    await this.save(slot,{...latest,hoverDirections});
   }
   private async configureHoverSize(slot: CombinedSlot, role: CombinedRole, reset: boolean): Promise<void> {
     const current = this.layout(slot);
@@ -279,7 +305,6 @@ export class CombinedViewManager implements vscode.Disposable {
       const selected = await vscode.window.showQuickPick([
         {label: vscode.l10n.t("Add Panes"), action: "add"}, {label: vscode.l10n.t("Rename Combined View"), action: "rename"},
         {label: vscode.l10n.t("Switch Horizontal / Vertical"), action: "direction"},
-        {label: vscode.l10n.t("Expansion Direction"), action: "hoverDirection"},
         {label: vscode.l10n.t("Reset Equal Pane Sizes"), action: "equal"}, {label: vscode.l10n.t("Toggle Hover Expansion"), action: "hover"},
         {label: vscode.l10n.t("Delete Combined View"), action: "delete"},
       ], {title: this.title(slot)});
@@ -299,13 +324,6 @@ export class CombinedViewManager implements vscode.Disposable {
       const name = await vscode.window.showInputBox({title: vscode.l10n.t("Rename Combined View"), value: this.title(slot),
         validateInput: value => value.trim().length > 80 ? vscode.l10n.t("Use at most 80 characters.") : undefined});
       if (name === undefined) return; layout.title = name;
-    } else if (action === "toggleHoverDirection") layout.hoverDirection = layout.hoverDirection === "forward" ? "both" : "forward";
-    else if (action === "hoverDirection") {
-      const selected = await vscode.window.showQuickPick([
-        {label: layout.direction === "vertical" ? vscode.l10n.t("Expand Down") : vscode.l10n.t("Expand Right"), value: "forward" as const, picked: layout.hoverDirection === "forward"},
-        {label: vscode.l10n.t("Both Directions"), value: "both" as const, picked: layout.hoverDirection === "both"},
-      ], {title: vscode.l10n.t("Expansion Direction")});
-      if (!selected) return; layout.hoverDirection = selected.value;
     } else if (action === "direction") layout.direction = layout.direction === "horizontal" ? "vertical" : "horizontal";
     else if (action === "equal") layout.ratios = layout.views.map(() => 1);
     else if (action === "delete") {

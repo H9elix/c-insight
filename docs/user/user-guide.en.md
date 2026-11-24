@@ -312,7 +312,7 @@ View headers, containers, and layout moves remain native VS Code features; the r
 
 Run **C Insight: Create Combined View** and select panes. Up to four native slots—**Combined View 1**, **Combined View 2**, **Combined View 3**, and **Combined View 4**—can be shown and moved independently to the bottom, left, or right. Existing independent views remain available. Each combination supports horizontal or vertical arrangement regardless of docking location.
 
-Choose from Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, Project Files, and Project Diagnostics. A role can appear once per combination and in multiple combinations; Relationship Graph remains an editor panel. The combination toolbar adds panes, changes orientation, toggles hover expansion, switches expansion direction and opens management. Horizontal combinations place it vertically on the left, with buttons above the name; vertical combinations place it horizontally at the top, with the name on the left and buttons on the right. The outer surface has no side gutters: toolbar and content use the available width while keeping their internal padding. This follows arrangement rather than docking location; individual pane headers and VS Code's native title bar keep their layout. Long names truncate with a full-name tooltip, and the button group scrolls when space is limited. Management supports renaming, expansion-direction selection, equal sizing and deletion; each pane's “…” menu provides its feature actions, moving earlier/later and removal. The pane arrow collapses it. Drag splitters or focus a splitter and use arrow keys to adjust base proportions.
+Choose from Context, Code Preview, References, Callers, Callees, Supertypes, Subtypes, Includes, Included By, Navigation History, Bookmarks, Symbol Search, Document Symbols, Project Files, and Project Diagnostics. A role can appear once per combination and in multiple combinations; Relationship Graph remains an editor panel. The combination toolbar has four buttons: add panes, change orientation, toggle hover expansion and manage. Horizontal combinations place it vertically on the left, with buttons above the name; vertical combinations place it horizontally at the top, with the name on the left and buttons on the right. The outer surface has no side gutters: toolbar and content use the available width while keeping their internal padding. This follows arrangement rather than docking location; individual pane headers and VS Code's native title bar keep their layout. Long names truncate with a full-name tooltip, and the button group scrolls when space is limited. Management supports renaming, equal sizing and deletion; each pane's “…” menu provides its feature actions, expansion percentage, expansion direction, moving earlier/later and removal. The pane arrow collapses it. Drag splitters or focus a splitter and use arrow keys to adjust base proportions.
 
 #### 4.2.2 Reorder and resize panes
 
@@ -320,7 +320,13 @@ Drag a pane's title text to reorder it within the same combination: move left/ri
 
 #### 4.2.3 Hover expansion and direction
 
-Without a per-pane target percentage, a hovered pane targets the size calculated from twice its base weight, bounded by available space and pane minimums. Each combination defaults to `hoverDirection: "forward"`: expand right horizontally or down vertically, borrowing only from trailing expanded panes while preserving the target's leading edge and preceding panes' visible sizes. Consecutive hovers retain preceding allocations until the pointer leaves the entire combination; later panes may expand less, and the last pane or a pane with no trailing slack does not expand. Hovering adds no overflow. Use `"both"` for two-sided allocation. The arrow button toggles the current combination only; Manage Combined View also offers Expansion Direction. Layouts without the field use `forward`.
+Without a per-pane target percentage, a hovered pane targets the size calculated from twice its base weight, bounded by available space and pane minimums. Each pane's “…” menu offers **Expansion Direction…** with Both Directions (`both`), Expand Right/Down (`forward`), Expand Left/Up (`backward`) and Default Expansion Direction. Labels follow orientation, and the default option shows its current effective direction. There is no combination-wide direction button or menu.
+
+Unconfigured panes follow current expanded order: the rightmost/bottommost expanded pane defaults to `both`, all others to `forward`. Reordering, collapsing, adding or removing panes recalculates defaults. Explicit choices stay with pane identity and do not affect matching panes in another combination.
+
+Forward borrows trailing slack while fixing the leading edge; backward borrows leading slack while fixing the trailing edge; both allows redistribution on both sides. One-way consecutive hovers preserve visible sizes outside the permitted side. Insufficient slack limits growth without borrowing from the wrong side or adding overflow. Leaving the entire combination restores base proportions.
+
+Legacy combination-wide `hoverDirection` values are read as explicit choices for existing panes, preserving their behavior. Reading never writes settings; the next user layout edit saves the new `hoverDirections` format. An existing per-pane mapping takes priority. Restoring one pane's default removes only its explicit choice; other legacy choices remain, and newly added panes follow positional defaults.
 
 <a id="combined-hover-size"></a>
 
@@ -348,7 +354,7 @@ Combined panes follow VS Code's dark, light and high-contrast themes for horizon
 
 #### 4.2.8 Saved layout settings
 
-`cInsight.combinedViews.slot1` through `slot4` are application/user settings shared across projects. Each defaults to `{"enabled":false,"title":"","direction":"horizontal","hoverDirection":"forward","views":[],"ratios":[]}`. `enabled` shows the slot, `title` allows up to 80 characters (empty uses the default), `direction` accepts `horizontal` or `vertical`, `hoverDirection` accepts `forward` (default) or `both`, `views` lists unique role suffixes, and `ratios` supplies matching positive weights from `0.001` to `1000` (missing entries use `1`). Role suffixes are `context`, `preview`, `references`, `callers`, `callees`, `supertypes`, `subtypes`, `includes`, `includedBy`, `history`, `bookmarks`, `workspaceSymbols`, `symbols`, `projectFiles`, `status`. Native docking positions remain VS Code-managed; layout settings contain no source paths or semantic results. `cInsight.combinedViews.hoverExpand` defaults to `true` and is independent of feature locks.
+`cInsight.combinedViews.slot1` through `slot4` are application/user settings shared across projects. Each defaults to `{"enabled":false,"title":"","direction":"horizontal","views":[],"ratios":[]}`. `enabled` shows the slot, `title` allows up to 80 characters (empty uses the default), `direction` accepts `horizontal` or `vertical`, and optional `hoverDirections` maps pane roles to `forward`, `backward` or `both`, with omitted entries following expanded order. The old `hoverDirection` is accepted only for compatibility as described above. `views` lists unique role suffixes, and `ratios` supplies matching positive weights from `0.001` to `1000` (missing entries use `1`). Role suffixes are `context`, `preview`, `references`, `callers`, `callees`, `supertypes`, `subtypes`, `includes`, `includedBy`, `history`, `bookmarks`, `workspaceSymbols`, `symbols`, `projectFiles`, `status`. Native docking positions remain VS Code-managed; layout settings contain no source paths or semantic results. `cInsight.combinedViews.hoverExpand` defaults to `true` and is independent of feature locks.
 
 ```json
 {
@@ -356,7 +362,7 @@ Combined panes follow VS Code's dark, light and high-contrast themes for horizon
     "enabled": true,
     "title": "Code browsing",
     "direction": "horizontal",
-    "hoverDirection": "forward",
+    "hoverDirections": {"preview": "forward", "references": "backward"},
     "hoverSizePercentages": {"preview": 65},
     "views": ["preview", "callers", "references"],
     "ratios": [2, 1, 1]

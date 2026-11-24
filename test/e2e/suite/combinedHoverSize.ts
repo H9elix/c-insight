@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 interface Layout {enabled:boolean;title:string;direction:string;hoverDirection?:string;hoverSizePercentages?:Record<string,number>;views:string[];ratios:number[]}
 interface Pane {role:string;left:number;top:number;width:number;height:number;generation:number;marker?:string;filter?:string;selected?:string;headerButton:unknown;embeddedButton?:unknown}
-interface Inspection {hovered:number;direction:string;hoverDirection:string;hoverSizePercentages:Record<string,number>;usableSize:number;controlsPaused:boolean;panes:Pane[]}
+interface Inspection {hovered:number;direction:string;hoverDirections:Record<string,string>;hoverSizePercentages:Record<string,number>;usableSize:number;controlsPaused:boolean;panes:Pane[]}
 const config=()=>vscode.workspace.getConfiguration("cInsight.combinedViews");
 const browser=(action?:unknown)=>vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser",1,action) as Promise<Inspection>;
 const pause=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -29,7 +29,7 @@ export async function verifyCombinedHoverSize(requestCount:()=>Promise<number>):
   const save=async(layout:Layout)=>{
     await config().update("slot1",layout,vscode.ConfigurationTarget.Global);
     await wait(async()=>{
-      const state=await browser();return state.direction===layout.direction&&state.hoverDirection===layout.hoverDirection&&
+      const state=await browser();return state.direction===layout.direction&&state.hoverDirections[layout.views[0]]===layout.hoverDirection&&
         JSON.stringify(state.hoverSizePercentages)===JSON.stringify(layout.hoverSizePercentages??{});
     },"Percentage layout did not reach the browser");
   };

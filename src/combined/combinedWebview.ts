@@ -1,4 +1,4 @@
-import { combinedHoverTiming, combinedLayoutRevision, combinedPaneSizes, combinedForwardSizes, reorderCombinedPane } from "./combinedModel";
+import { combinedHoverTiming, combinedLayoutRevision, combinedPaneSizes, combinedOneWaySizes, combinedPaneHoverDirection, reorderCombinedPane } from "./combinedModel";
 import { PANE_REORDER_CLIENT } from "./combinedReorderClient";
 import { EMBEDDED_THEME_CSS } from "./embeddedTheme";
 import { escapeHtml } from "../views/sourceHighlight";
@@ -29,7 +29,7 @@ export function renderCombinedWebview(nonce: string, cspSource: string, iconsUri
   .reorder-marker{position:fixed;z-index:101;pointer-events:none;background:var(--vscode-focusBorder)}
   @media(prefers-reduced-motion:reduce){.pane{transition:none}}
   </style></head><body><div id="bar" role="toolbar" aria-label="${escapeHtml(labels.manage ?? "")}" aria-orientation="vertical"><div id="bar-actions"></div><span id="name"></span></div><div id="viewport"><div id="panes"></div><p id="empty">${escapeHtml(labels.empty)}</p></div>
-  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const forwardSizesFor=${combinedForwardSizes.toString()};const layoutKey=${combinedLayoutRevision.toString()};const timingFor=${combinedHoverTiming.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
+  <script nonce="${nonce}">const paneNonce=${scriptJson(nonce)};const icons=${scriptJson(icons)};const testMode=${testMode};const labels=${scriptJson(labels)};const sizesFor=${combinedPaneSizes.toString()};const oneWaySizesFor=${combinedOneWaySizes.toString()};const paneDirectionFor=${combinedPaneHoverDirection.toString()};const layoutKey=${combinedLayoutRevision.toString()};const timingFor=${combinedHoverTiming.toString()};const reorderPane=${reorderCombinedPane.toString()};${PANE_REORDER_CLIENT}${COMBINED_CLIENT}</script></body></html>`;
 }
 
 /** Only trusted, escaped renderer output enters srcdoc. All executable code uses the outer nonce. */
@@ -106,7 +106,7 @@ const fontUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(icons.font),cha
 const iconStyle='<style nonce="'+paneNonce+'">'+icons.css.replace(/\.\/codicon\.ttf(?:\?[^"')\s]+)?/g,fontUrl)+'</style>';
 window.addEventListener('pagehide',()=>URL.revokeObjectURL(fontUrl));
 const saved=vscode.getState()||{}, frames=new Map(), paneState=saved.panes||{};
-let layout={views:[],ratios:[],direction:'horizontal',hoverDirection:'forward'}, hoverEnabled=true, hoverTiming=timingFor(), hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
+let layout={views:[],ratios:[],direction:'horizontal'}, hoverEnabled=true, hoverTiming=timingFor(), hovered=-1, candidate, enterTimer, leaveTimer, busy=false, suspended=false, dragging, lastPoint;
 let hoverSizes,geometryKey,controlsPaused=false,pendingHoverReset=false;
 let lastActivityAt=-Infinity;
 let nextReorder=0,reorderPending,testReorderPoint;
@@ -126,9 +126,7 @@ barActions.append(
   button('add',labels.add,()=>post({type:'manage',action:'add'})),
   button('layout',labels.direction,()=>post({type:'manage',action:'direction'})),
   button('expand-all',labels.hover,()=>post({type:'manage',action:'hover'})),
-  button('arrow-right',labels.hoverDirection,()=>post({type:'manage',action:'toggleHoverDirection'})),
   button('gear',labels.manage,()=>post({type:'manage',action:'menu'})));
-const hoverDirectionButton=barActions.children[3];hoverDirectionButton.id='hover-direction';
 // Native focus may leave a partly visible icon clipped. Scroll this toolbar only.
 barActions.addEventListener('focusin',event=>{
   const target=event.target.closest?.('button');if(!target)return;
@@ -161,7 +159,7 @@ function resize(){
   if(dragging||paneOrder.active||reorderPending)return;
   const m=metrics(),key=JSON.stringify([layout.direction,layout.views,layout.ratios,m.expanded,viewport.clientWidth,viewport.clientHeight]);
   if(key!==geometryKey){geometryKey=key;hoverSizes=undefined;hovered=-1;pendingHoverReset=false;cancelHoverTimers();container.classList.remove('hover-freeze');}
-  const sizes=sizesFor(m.total,m.ratios,m.minimum,hoverEnabled&&layout.hoverDirection==='both'?m.expanded.indexOf(layout.views[hovered]):-1,
+  const sizes=sizesFor(m.total,m.ratios,m.minimum,hoverEnabled&&paneDirectionFor(layout,layout.views[hovered],m.expanded)==='both'?m.expanded.indexOf(layout.views[hovered]):-1,
     layout.hoverSizePercentages?.[layout.views[hovered]]);
   writeSizes(hoverSizes??new Map(layout.views.map(role=>[role,m.expanded.includes(role)?sizes[m.expanded.indexOf(role)]:28])));
 }
@@ -185,16 +183,17 @@ function consider(role,activity){
   if(pendingHoverReset){pendingHoverReset=false;hoverSizes=undefined;hovered=-1;resumeAnimation();resize();}
   clearTimeout(leaveTimer);leaveTimer=undefined;
   if(candidate===role)return;
-  if(layout.hoverDirection==='forward')freezeVisible();
+  if(paneDirectionFor(layout,role,metrics().expanded)!=='both')freezeVisible();
   candidate=role;scheduleEnter();
 }
 function scheduleEnter(){
   clearTimeout(enterTimer);const role=candidate;
   enterTimer=setTimeout(()=>{enterTimer=undefined;if(role===candidate&&!busy&&!controlsPaused&&!suspended&&!dragging&&!paneOrder.active&&!reorderPending&&hoverEnabled){
     hovered=layout.views.indexOf(role);
-    if(layout.hoverDirection==='forward'){
+    const direction=paneDirectionFor(layout,role,metrics().expanded);
+    if(direction!=='both'){
       const m=metrics(),index=m.expanded.indexOf(role),desired=sizesFor(m.total,m.ratios,m.minimum,index,layout.hoverSizePercentages?.[role]);
-      if(index>=0){if(!hoverSizes)freezeVisible();const sizes=forwardSizesFor(m.expanded.map(role=>hoverSizes?.get(role)??0),m.minimum,index,desired[index]);
+      if(index>=0){if(!hoverSizes)freezeVisible();const sizes=oneWaySizesFor(m.expanded.map(role=>hoverSizes?.get(role)??0),m.minimum,index,desired[index],direction);
         m.expanded.forEach((role,index)=>hoverSizes?.set(role,sizes[index]));}
     }else hoverSizes=undefined;
     resumeAnimation();resize();
@@ -227,12 +226,12 @@ document.body.addEventListener('mouseleave',()=>{
 });
 function render(message){
   paneOrder.layoutChanged(message.layout);
-  const previouslyHovered=layout.views[hovered],wasHoverEnabled=hoverEnabled,previousHoverDirection=layout.hoverDirection;
+  const previouslyHovered=layout.views[hovered],wasHoverEnabled=hoverEnabled,previousHoverDirections=JSON.stringify(layout.hoverDirections||{});
   const previousHoverSizes=JSON.stringify(layout.hoverSizePercentages||{});
-  const previousRoles=layout.views.join();layout={...message.layout,hoverDirection:message.layout.hoverDirection==='both'?'both':'forward'};hoverEnabled=message.hover;
+  const previousRoles=layout.views.join();layout={...message.layout};hoverEnabled=message.hover;
   if(candidate&&!layout.views.includes(candidate)){candidate=undefined;clearTimeout(enterTimer);enterTimer=undefined;}
   hovered=previouslyHovered?layout.views.indexOf(previouslyHovered):-1;
-  if(wasHoverEnabled!==hoverEnabled||previousHoverDirection!==layout.hoverDirection||previousHoverSizes!==JSON.stringify(layout.hoverSizePercentages||{})){cancelHoverTimers();hovered=-1;
+  if(wasHoverEnabled!==hoverEnabled||previousHoverDirections!==JSON.stringify(layout.hoverDirections||{})||previousHoverSizes!==JSON.stringify(layout.hoverSizePercentages||{})){cancelHoverTimers();hovered=-1;
     if(controlsPaused||suspended||busy)pendingHoverReset=true;else{hoverSizes=undefined;resumeAnimation();}}
   applyHoverTiming(message.hoverTiming);
   document.getElementById('name').textContent=message.title;
@@ -240,10 +239,6 @@ function render(message){
   document.documentElement.classList.toggle('combined-vertical',layout.direction==='vertical');
   document.getElementById('bar').setAttribute('aria-orientation',layout.direction==='vertical'?'horizontal':'vertical');
   const toggle=document.getElementById('bar').querySelector('.codicon-expand-all');toggle.setAttribute('aria-pressed',String(hoverEnabled));
-  const directionName=layout.hoverDirection==='both'?labels.both:layout.direction==='vertical'?labels.forwardDown:labels.forwardRight;
-  hoverDirectionButton.className='codicon codicon-'+(layout.hoverDirection==='both'?'arrow-both':layout.direction==='vertical'?'arrow-down':'arrow-right');
-  hoverDirectionButton.title=labels.hoverDirection+': '+directionName+' — '+labels.switchHoverDirection;
-  hoverDirectionButton.setAttribute('aria-label',hoverDirectionButton.title);hoverDirectionButton.setAttribute('aria-pressed',String(layout.hoverDirection==='forward'));
   container.classList.toggle('vertical',layout.direction==='vertical');
   for(const [role,item] of frames)if(!layout.views.includes(role)){item.element.remove();frames.delete(role);delete paneState[role];}
   for(const pane of message.panes){
@@ -355,11 +350,10 @@ window.addEventListener('message',event=>{
     else if(message.action==='staleContent')consider(message.role,{move:true,x:message.x||9999,y:120,busy:false,protected:false,at:lastActivityAt-10});
     else if(message.action==='controlPointer'){
       const child=item?.iframe.contentDocument;
-      const target=message.target==='bar'?hoverDirectionButton:message.target==='header'?item?.element.querySelector('header button:last-child'):
+      const target=message.target==='bar'?barActions.lastElementChild:message.target==='header'?item?.element.querySelector('header button:last-child'):
         message.target==='content'?child?.querySelector('.code,#tree,#results'):child?.querySelector('[data-ci-hover-pause] '+(message.target==='input'?'input':'button'));
       if(target)for(const type of ['pointerover','pointermove'])target.dispatchEvent(new PointerEvent(type,{bubbles:true,screenX:message.x||200,screenY:100,clientX:10,clientY:10}));
     }
-    else if(message.action==='toggleHoverDirection')hoverDirectionButton.click();
     else if(message.action==='leave')document.body.dispatchEvent(new MouseEvent('mouseleave'));
     else if(message.action==='collapse')item?.element.querySelector('button').click();
     else if(message.action==='filter'){
@@ -409,7 +403,7 @@ window.addEventListener('message',event=>{
     return {role,generation:item.generation,collapsed:item.element.classList.contains('collapsed'),left:item.element.getBoundingClientRect().left,top:item.element.getBoundingClientRect().top,width:item.element.clientWidth,height:item.element.clientHeight,filter:child?.getElementById('filter')?.value,theme:item.iframe.contentWindow?.getComputedStyle(child.body).getPropertyValue('--vscode-foreground'),iconFont:icon?item.iframe.contentWindow.getComputedStyle(icon).fontFamily:undefined,
       headerButton:rectangle(item.element.querySelector('header button:last-child')),embeddedButton:child?.querySelector('[data-ci-hover-pause] button')?rectangle(child.querySelector('[data-ci-hover-pause] button')):undefined,
       marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
-    }),hovered,candidate,hoverTiming,direction:layout.direction,hoverDirection:layout.hoverDirection,hoverSizePercentages:layout.hoverSizePercentages||{},usableSize:metrics().total,controlsPaused,pendingHoverReset,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,directionIcon:hoverDirectionButton.className,directionTitle:hoverDirectionButton.title,
+    }),hovered,candidate,hoverTiming,direction:layout.direction,hoverDirections:Object.fromEntries(metrics().expanded.map(role=>[role,paneDirectionFor(layout,role,metrics().expanded)])),configuredHoverDirections:layout.hoverDirections||{},hoverSizePercentages:layout.hoverSizePercentages||{},usableSize:metrics().total,controlsPaused,pendingHoverReset,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
       lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop,surfaceWidth:document.documentElement.clientWidth},
       reordering:paneOrder.active,reorderPending:!!reorderPending,visualOrder:[...frames].sort((a,b)=>Number(a[1].element.style.order)-Number(b[1].element.style.order)).map(([role])=>role),ratios:layout.ratios,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop});
   }

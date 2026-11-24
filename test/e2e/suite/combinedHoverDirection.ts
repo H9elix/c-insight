@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
 
-interface Layout {enabled:boolean;title:string;direction:string;hoverDirection?:string;views:string[];ratios:number[]}
+interface Layout {enabled:boolean;title:string;direction:string;hoverDirection?:string;hoverDirections?:Record<string,string>;views:string[];ratios:number[]}
 interface Rect {left:number;top:number;width:number;height:number}
 interface Pane extends Rect {role:string;generation:number;marker?:string;filter?:string;selected?:string;scrollTop?:number;scrollLeft?:number;headerButton:Rect;embeddedButton?:Rect}
-interface Inspection {hovered:number;candidate?:string;hoverDirection:string;controlsPaused:boolean;pendingHoverReset:boolean;panes:Pane[];toolbar:{directionIcon:string;directionTitle:string}}
+interface Inspection {hovered:number;candidate?:string;hoverDirections:Record<string,string>;configuredHoverDirections:Record<string,string>;controlsPaused:boolean;pendingHoverReset:boolean;panes:Pane[];toolbar:{buttonCount:number}}
 const browser=(action?:unknown,slot=1)=>vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser",slot,action) as Promise<Inspection>;
 const config=()=>vscode.workspace.getConfiguration("cInsight.combinedViews");
 const pause=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -37,7 +37,7 @@ export async function verifyCombinedHoverDirection(requestCount:()=>Promise<numb
       await config().update("slot1",layout,vscode.ConfigurationTarget.Global);
       await browser({action:"viewport",height:1000});await reset();
       const base=await browser(),axis=direction==="horizontal"?"left":"top",size=direction==="horizontal"?"width":"height";
-      assert.equal(base.hoverDirection,"forward");assert(base.toolbar.directionIcon.includes(direction==="horizontal"?"arrow-right":"arrow-down"));
+      assert(views.every(role=>base.hoverDirections[role]==="forward"));assert.equal(base.toolbar.buttonCount,4);
       await content(views[0]);await wait(async()=>(await browser()).hovered===0,"Forward hover did not start");
       for(let sample=0;sample<9;sample++){near(pane(await browser(),views[0])[axis],pane(base,views[0])[axis],"First leading edge moved during animation");await pause(50);}
       const first=await browser();assert(pane(first,views[0])[size]>pane(base,views[0])[size]);
@@ -71,12 +71,12 @@ export async function verifyCombinedHoverDirection(requestCount:()=>Promise<numb
       assert.deepEqual(dimensions(await browser()),dimensions(treeControls),"Result toolbar moved during hover");
       await control("symbols","input");const search=await browser();await pause(200);
       assert.deepEqual(dimensions(await browser()),dimensions(search),"Search toolbar did not hold its geometry");
-      // A button changes only its own slot and cannot move itself while being operated.
-      await control("preview","bar");const beforeToggle=await browser();await browser({action:"toggleHoverDirection"});
-      await wait(async()=>(await browser()).hoverDirection==="both","The direction button did not update the slot");
-      assert.equal(config().get<Layout>("slot1")!.hoverDirection,"both");assert.deepEqual(config().get("slot2"),second);
+      // Per-pane direction changes must not move protected controls or other slots.
+      await control("preview","bar");const beforeToggle=await browser();
+      await config().update("slot1",{...layout,hoverDirections:{[views[1]]:"both"}},vscode.ConfigurationTarget.Global);
+      await wait(async()=>(await browser()).hoverDirections[views[1]]==="both","The per-pane direction did not update");
+      assert.deepEqual(config().get("slot2"),second);
       assert.deepEqual(dimensions(await browser()),dimensions(beforeToggle),"Mode switching moved controls before pointer departure");
-      assert((await browser()).toolbar.directionIcon.includes("arrow-both"));
       await content(views[1]);await wait(async()=>(await browser()).hovered===1,"Both-direction hover did not resume");await pause(60);
       await control(views[1],"header");const bothFrozen=await browser();await pause(500);
       assert.deepEqual(dimensions(await browser()),dimensions(bothFrozen),"The compatibility mode must also protect controls");
@@ -88,7 +88,7 @@ export async function verifyCombinedHoverDirection(requestCount:()=>Promise<numb
       assert.deepEqual(stable(await browser()),identity,"Direction and pause changes must retain renderer state");
     }
     assert.equal(await requestCount(),count,"Direction and control protection must not query the engine");
-    console.log("COMBINED_HOVER_DIRECTION: anchored forward geometry, consecutive/edge/minimum cases, protected controls, per-slot persistence and retained state passed.");
+    console.log("COMBINED_HOVER_DIRECTION: anchored forward geometry, consecutive/edge/minimum cases, protected per-pane updates, removed global control and retained state passed.");
   }finally{
     await browser({action:"leave"});await config().update("slot1",original,vscode.ConfigurationTarget.Global);
     for(const [index,key] of timingKeys.entries())await config().update(key,previous[index],vscode.ConfigurationTarget.Global);

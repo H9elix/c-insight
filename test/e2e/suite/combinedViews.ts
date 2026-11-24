@@ -5,6 +5,7 @@ import { verifyCombinedTheme } from "./combinedTheme";
 import { verifyCombinedReorder } from "./combinedReorder";
 import { verifyCombinedToolbarTiming } from "./combinedToolbarTiming";
 import { verifyCombinedHoverDirection } from "./combinedHoverDirection";
+import { verifyCombinedPaneDirections } from "./combinedPaneDirections";
 import { verifyCombinedHoverSize } from "./combinedHoverSize";
 import { verifyCombinedViewportFollow } from "./combinedViewportFollow";
 import { verifyViewPickerCancellation, verifyViewPickerOpening } from "./viewDiscovery";
@@ -132,6 +133,7 @@ export async function run(): Promise<void> {
     await verifyCombinedToolbarTiming(requestCount);
     await verifyCombinedReorder(requestCount);
     await verifyCombinedHoverDirection(requestCount);
+    await verifyCombinedPaneDirections(requestCount);
     await verifyCombinedHoverSize(requestCount);
     await browser(2, {action:"collapse",role:"projectFiles"});
     await wait(async()=>!(await state()).find(surface=>surface.slot===2)?.panes.find(pane=>pane.role==="projectFiles")?.visible?true:undefined,"Collapsed panes must withdraw demand");

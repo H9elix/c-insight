@@ -4,17 +4,17 @@ export const COMBINED_ROLES = ["context", "preview", "references", "callers", "c
 export type CombinedRole = typeof COMBINED_ROLES[number];
 export const COMBINED_SLOTS = [1, 2, 3, 4] as const;
 export type CombinedSlot = typeof COMBINED_SLOTS[number];
-export type CombinedHoverDirection = "forward" | "both";
+export type CombinedHoverDirection = "forward" | "backward" | "both";
 export interface CombinedLayout {
   enabled: boolean;
   title: string;
   direction: "horizontal" | "vertical";
-  hoverDirection: CombinedHoverDirection;
+  hoverDirections?: Partial<Record<CombinedRole, CombinedHoverDirection>>;
   hoverSizePercentages?: Partial<Record<CombinedRole, number>>;
   views: CombinedRole[];
   ratios: number[];
 }
-export const DEFAULT_COMBINED_LAYOUT: CombinedLayout = { enabled: false, title: "", direction: "horizontal", hoverDirection: "forward", views: [], ratios: [] };
+export const DEFAULT_COMBINED_LAYOUT: CombinedLayout = { enabled: false, title: "", direction: "horizontal", views: [], ratios: [] };
 export interface CombinedHoverTiming { enterDelay: number; animationDuration: number; leaveDelay: number }
 /** Also serialized into the browser, so defaults and runtime bounds stay identical. */
 export function combinedHoverTiming(value?: unknown): CombinedHoverTiming {
@@ -36,15 +36,28 @@ export function combinedLayout(value: unknown): CombinedLayout {
   const hoverSizePercentages = Object.fromEntries(views.filter(role => Object.hasOwn(sizes, role) &&
     typeof sizes[role] === "number" && Number.isInteger(sizes[role]) && (sizes[role] as number) >= 1 && (sizes[role] as number) <= 100)
     .map(role => [role, sizes[role] as number]));
+  const directions = data.hoverDirections && typeof data.hoverDirections === "object" && !Array.isArray(data.hoverDirections)
+    ? data.hoverDirections as Record<string, unknown> : undefined;
+  const legacy = data.hoverDirection === "forward" || data.hoverDirection === "both" ? data.hoverDirection : undefined;
+  const hoverDirections = Object.fromEntries(views.flatMap(role => {
+    const value = directions ? Object.hasOwn(directions, role) ? directions[role] : undefined : legacy;
+    return value === "forward" || value === "backward" || value === "both" ? [[role, value]] : [];
+  })) as Partial<Record<CombinedRole, CombinedHoverDirection>>;
   return { enabled: data.enabled === true, title: typeof data.title === "string" ? data.title.trim().slice(0, 80) : "",
-    direction: data.direction === "vertical" ? "vertical" : "horizontal", hoverDirection: data.hoverDirection === "both" ? "both" : "forward", views, ratios,
+    direction: data.direction === "vertical" ? "vertical" : "horizontal", views, ratios,
+    ...(Object.keys(hoverDirections).length ? {hoverDirections} : {}),
     ...(Object.keys(hoverSizePercentages).length ? {hoverSizePercentages} : {}) };
+}
+
+/** Defaults follow visible order; explicit choices stay attached to pane identity. */
+export function combinedPaneHoverDirection(layout: CombinedLayout, role: CombinedRole, expanded: readonly CombinedRole[] = layout.views): CombinedHoverDirection {
+  return layout.hoverDirections?.[role] ?? (role === expanded[expanded.length - 1] ? "both" : "forward");
 }
 
 /** Shared by the host and browser. Excludes titles and unrelated toolbar updates. */
 export function combinedLayoutRevision(layout: CombinedLayout): string {
-  return JSON.stringify([layout.enabled, layout.direction, layout.hoverDirection ?? "forward", layout.views, layout.ratios,
-    layout.views.map(role => layout.hoverSizePercentages?.[role] ?? null)]);
+  return JSON.stringify([layout.enabled, layout.direction, layout.views, layout.ratios,
+    layout.views.map(role => layout.hoverSizePercentages?.[role] ?? null), layout.views.map(role => layout.hoverDirections?.[role] ?? null)]);
 }
 
 /** Insert a pane without changing identities or detaching its base weight. */
@@ -86,11 +99,11 @@ export function combinedPaneSizes(total: number, ratios: readonly number[], mini
   return sizes;
 }
 
-/** Grow from the visible snapshot, borrowing only trailing slack. Never move the leading edge. */
-export function combinedForwardSizes(current: readonly number[], minimum: number, hovered: number, target: number): number[] {
+/** Grow from a visible snapshot, borrowing one side only and fixing the opposite edge. */
+export function combinedOneWaySizes(current: readonly number[], minimum: number, hovered: number, target: number, direction: "forward" | "backward" = "forward"): number[] {
   const sizes = [...current];
   if (!Number.isInteger(hovered) || hovered < 0 || hovered >= sizes.length || !Number.isFinite(target)) return sizes;
-  const slack = sizes.map((size, index) => index > hovered ? Math.max(0, size - minimum) : 0);
+  const slack = sizes.map((size, index) => (direction === "backward" ? index < hovered : index > hovered) ? Math.max(0, size - minimum) : 0);
   const available = slack.reduce((sum, value) => sum + value, 0);
   const growth = Math.min(Math.max(0, target - sizes[hovered]), available);
   if (!growth || !available) return sizes;
@@ -98,6 +111,8 @@ export function combinedForwardSizes(current: readonly number[], minimum: number
   slack.forEach((value, index) => { if (value) sizes[index] -= growth * value / available; });
   return sizes;
 }
+
+export const combinedForwardSizes = combinedOneWaySizes;
 
 /** Interpret only the known simple clauses in this extension's own view/title menus. */
 export function matchesPaneCondition(when: string, view: string, flags: Readonly<Record<string, boolean>>): boolean {

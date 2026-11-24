@@ -14,7 +14,7 @@ function harness() {
   const posted:any[]=[];
   const dispose=()=>({dispose:()=>undefined});
   const vscode={l10n:{t:(value:string)=>value},ConfigurationTarget:{Global:1},window:{registerWebviewViewProvider:dispose,
-    showQuickPick:async(items:any)=>{picks.push(items);return choice;},showInputBox:async(options:any)=>{inputs.push(options);onInput?.();return input;}},commands:{executeCommand:async()=>undefined},
+    showQuickPick:async(items:any)=>{picks.push(items);const value=Array.isArray(choice)?choice.shift():choice;return typeof value==="function"?value():value;},showInputBox:async(options:any)=>{inputs.push(options);onInput?.();return input;}},commands:{executeCommand:async()=>undefined},
     workspace:{onDidChangeConfiguration:dispose,getConfiguration:()=>({get:(key:string,fallback:unknown)=>key==="slot1"?layout:key==="slot2"?second:fallback,update:async(key:string,value:model.CombinedLayout,target:number)=>{
       assert.equal(key,"slot1");assert.equal(target,1);writes++;if(fail)throw new Error("settings are read-only");layout=value;
     }})}};
@@ -39,12 +39,14 @@ function harness() {
 describe("combined pane reorder persistence",()=>{
   it("retains targets across base resizing and reordering, but removes a deleted pane's target",async()=>{
     const h=harness();try{
-      h.layout=model.combinedLayout({...h.layout,hoverSizePercentages:{preview:65,callers:50}});
+      h.layout=model.combinedLayout({...h.layout,hoverSizePercentages:{preview:65,callers:50},hoverDirections:{preview:"backward",callers:"both"}});
       await h.manager.receive(1,h.surface,{type:"ratios",ratios:[2,2,1]});
       assert.deepEqual(h.layout.hoverSizePercentages,{callers:50,preview:65});
       await h.send();assert.equal(h.layout.hoverSizePercentages?.preview,65);
+      assert.deepEqual(h.layout.hoverDirections,{preview:"backward",callers:"both"});
       h.choose({layoutAction:"remove"});await h.manager.receive(1,h.surface,{type:"paneMenu",role:"preview"});
       assert(!h.layout.views.includes("preview"));assert.deepEqual(h.layout.hoverSizePercentages,{callers:50});
+      assert.deepEqual(h.layout.hoverDirections,{callers:"both"});
     }finally{h.manager.dispose();}
   });
   it("offers set/reset per-pane percentages and preserves the base layout and other slots",async()=>{
@@ -56,7 +58,7 @@ describe("combined pane reorder persistence",()=>{
       assert(h.picks.at(-1).some((item:any)=>item.layoutAction==="hoverSize"));
       assert(!h.picks.at(-1).some((item:any)=>item.layoutAction==="resetHoverSize"));
       assert.deepEqual(h.layout.ratios,original.ratios);assert.deepEqual(h.layout.views,original.views);
-      assert.equal(h.layout.hoverDirection,original.hoverDirection);assert.equal(JSON.stringify(h.second),other);
+      assert.deepEqual(h.layout.hoverDirections,original.hoverDirections);assert.equal(JSON.stringify(h.second),other);
       h.choose(undefined);await h.manager.receive(1,h.surface,{type:"paneMenu",role:"preview"});
       assert(h.picks.at(-1).some((item:any)=>item.layoutAction==="resetHoverSize"));
       h.choose({layoutAction:"hoverSize"});h.input("50");await h.manager.receive(1,h.surface,{type:"paneMenu",role:"callers"});
@@ -86,7 +88,7 @@ describe("combined pane reorder persistence",()=>{
       h.choose({layoutAction:"hoverSize"});h.input("65",()=>{h.layout=model.combinedLayout({...h.layout,title:"Renamed",ratios:[1,2,3],hoverDirection:"both",hoverSizePercentages:{callers:40}});});
       await h.manager.receive(1,h.surface,{type:"paneMenu",role:"preview"});
       assert.equal(h.layout.title,"Renamed");assert.deepEqual(h.layout.ratios,[1,2,3]);
-      assert.equal(h.layout.hoverDirection,"both");assert.deepEqual(h.layout.hoverSizePercentages,{callers:40,preview:65});
+      assert.deepEqual(h.layout.hoverDirections,{symbols:"both",callers:"both",preview:"both"});assert.deepEqual(h.layout.hoverSizePercentages,{callers:40,preview:65});
       h.input("80",()=>{h.layout=model.combinedLayout({...h.layout,views:["symbols","callers"],ratios:[1,2]});});
       await h.manager.receive(1,h.surface,{type:"paneMenu",role:"preview"});assert.equal(h.writes,1);
       h.input("80",()=>{h.layout={...h.layout,enabled:false};});
@@ -95,18 +97,37 @@ describe("combined pane reorder persistence",()=>{
       await h.manager.receive(1,h.surface,{type:"paneMenu",role:"callers"});assert.equal(h.writes,1,"Disposed managers must not save late input");
     }finally{h.manager.dispose();}
   });
-  it("persists direction through the toolbar and explicit menu without changing base layout",async()=>{
+  it("persists per-pane directions and defaults without a combination-wide control",async()=>{
     const h=harness();try{
-      const original=h.layout;
+      const original=h.layout,other=JSON.stringify(h.second);
       await h.manager.receive(1,h.surface,{type:"manage",action:"toggleHoverDirection"});
-      assert.equal(h.layout.hoverDirection,"both");assert.equal(h.writes,1);
+      assert.equal(h.writes,0);
+      h.choose([{layoutAction:"paneHoverDirection"},{value:"backward"}]);
+      await h.manager.receive(1,h.surface,{type:"paneMenu",role:"callers"});
+      assert.deepEqual(h.layout.hoverDirections,{callers:"backward"});assert.equal(h.writes,1);
       assert.deepEqual(h.layout.views,original.views);assert.deepEqual(h.layout.ratios,original.ratios);
       assert.deepEqual(h.posted.filter(message=>message.type==="suspend").map(message=>message.value),[true,false]);
-      h.choose({value:"forward"});await h.manager.perform(1,"hoverDirection");assert.equal(h.layout.hoverDirection,"forward");
-      assert.equal(h.picks.at(-1).find((item:any)=>item.value==="both").picked,true);
-      h.choose(undefined);await h.manager.perform(1,"hoverDirection");assert.equal(h.writes,2,"Cancelling the picker must not save");
-      h.fail();await assert.rejects(h.manager.receive(1,h.surface,{type:"manage",action:"toggleHoverDirection"}),/read-only/);
-      assert.equal(h.layout.hoverDirection,"forward");assert.equal(h.posted.at(-1).value,false,"A failed save must release suspended interaction");
+      h.choose({value:"default"});await h.manager.configureHoverDirection(1,"callers");assert.equal(h.layout.hoverDirections,undefined);
+      assert.equal(h.picks.at(-1).find((item:any)=>item.value==="backward").picked,true);
+      h.choose(undefined);await h.manager.configureHoverDirection(1,"callers");assert.equal(h.writes,2,"Cancelling the picker must not save");
+      assert.equal(JSON.stringify(h.second),other);
+      h.choose([{layoutAction:"paneHoverDirection"},{value:"both"}]);h.fail();
+      await assert.rejects(h.manager.receive(1,h.surface,{type:"paneMenu",role:"callers"}),/read-only/);
+      assert.equal(h.layout.hoverDirections,undefined);assert.equal(h.posted.at(-1).value,false,"A failed save must release suspended interaction");
+    }finally{h.manager.dispose();}
+  });
+  it("preserves legacy choices until a user saves, and restores only the selected pane to positional defaults",async()=>{
+    const h=harness();try{
+      h.layout={...h.layout,hoverDirection:"both"} as model.CombinedLayout;
+      assert.deepEqual(h.manager.layout(1).hoverDirections,{symbols:"both",callers:"both",preview:"both"});assert.equal(h.writes,0);
+      h.choose({value:"default"});await h.manager.configureHoverDirection(1,"callers");
+      assert.deepEqual(h.layout.hoverDirections,{symbols:"both",preview:"both"});assert(!("hoverDirection" in h.layout));
+      h.choose(()=>{h.layout=model.combinedLayout({...h.layout,title:"Renamed",hoverDirections:{preview:"backward"}});return {value:"forward"};});
+      await h.manager.configureHoverDirection(1,"callers");
+      assert.equal(h.layout.title,"Renamed");assert.deepEqual(h.layout.hoverDirections,{preview:"backward",callers:"forward"});
+      const count=h.writes;
+      h.choose(()=>{h.layout=model.combinedLayout({...h.layout,views:["symbols","preview"]});return {value:"both"};});
+      await h.manager.configureHoverDirection(1,"callers");assert.equal(h.writes,count);
     }finally{h.manager.dispose();}
   });
   it("saves one ordered layout and carries weights without touching feature owners",async()=>{

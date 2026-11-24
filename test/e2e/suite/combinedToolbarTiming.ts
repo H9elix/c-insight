@@ -45,7 +45,7 @@ export async function verifyCombinedToolbarTiming(requestCount:()=>Promise<numbe
     assert(horizontal.bar.right<=horizontal.viewport.left+1,"Horizontal toolbar must sit to the left, not above the content");
     assert(Math.abs(horizontal.bar.top-horizontal.viewport.top)<2);
     assert.equal(horizontal.actionsDirection,"column");assert.equal(horizontal.writingMode,"vertical-rl");
-    assert.equal(horizontal.orientation,"vertical");assert.equal(horizontal.buttonCount,5);
+    assert.equal(horizontal.orientation,"vertical");assert.equal(horizontal.buttonCount,4);
     assert(horizontal.actions.bottom<=horizontal.name.top+1,"Horizontal toolbar buttons belong above its name");
     await config().update("slot1",{...original,direction:"vertical"},vscode.ConfigurationTarget.Global);
     await wait(async()=>(await browser(1)).toolbar.orientation==="horizontal","Vertical toolbar did not move to the top");

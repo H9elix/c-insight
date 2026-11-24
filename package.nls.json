@@ -1,7 +1,8 @@
 {
   "command.cInsight.openView.title": "C Insight: Open View…",
   "submenu.cInsight.symbolNavigation.label": "C Insight: Symbol Navigation",
-  "configuration.cInsight.combinedViews.hoverDirection.description": "Hover expansion direction for this combination: forward expands right horizontally or down vertically while preserving the leading edge; both redistributes space on both sides.",
+  "configuration.cInsight.combinedViews.hoverDirection.description": "Legacy combination-wide direction, read for compatibility and migrated to explicit per-pane hoverDirections on the next layout save. New layouts use per-pane directions.",
+  "configuration.cInsight.combinedViews.hoverDirections.description": "Per-pane hover directions: forward expands right/down, backward expands left/up, both borrows on both sides. Unset panes follow visible order: the last expanded pane uses both; other panes use forward. Explicit choices stay with panes when reordered.",
   "configuration.cInsight.combinedViews.hoverSizePercentages.description": "Per-pane hover target percentages (integers 1–100) of this combination's usable width or height, keyed by pane role. Unset panes keep default expansion. Direction and minimum pane sizes can limit the target.",
   "command.cInsight.combinedViews.create.title": "C Insight: Create Combined View",
   "command.cInsight.combinedViews.manage.title": "C Insight: Manage Combined View",

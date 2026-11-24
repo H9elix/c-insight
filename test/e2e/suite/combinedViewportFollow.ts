@@ -40,7 +40,7 @@ export async function verifyCombinedViewportFollow(requestCount:()=>Promise<numb
   const pending=new Map<number,(value:Inspection)=>void>();let serial=0,ready=false;
   let outerInspection: {request:number;hovered:number;panes:unknown[]}|undefined;
   const nonce="viewport-follow-regression";
-  const layout={enabled:true,title:"Viewport",direction:"vertical",hoverDirection:"both",views:["symbols","projectFiles","context"],ratios:[1,1,1],hoverSizePercentages:{symbols:65,projectFiles:65}};
+  const layout={enabled:true,title:"Viewport",direction:"vertical",hoverDirections:{symbols:"both",projectFiles:"both",context:"both"},views:["symbols","projectFiles","context"],ratios:[1,1,1],hoverSizePercentages:{symbols:65,projectFiles:65}};
   const publish=()=>{
     if(!ready)return;
     void panel.webview.postMessage({type:"layout",layout,title:"Viewport",hover:true,hoverTiming:{enterDelay:0,animationDuration:120,leaveDelay:0},

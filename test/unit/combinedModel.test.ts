@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedHoverTiming, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, combinedForwardSizes, matchesPaneCondition } from "../../src/combined/combinedModel";
+import { COMBINED_ROLES, COMBINED_SLOTS, combinedLayout, combinedHoverTiming, combinedLayoutRevision, reorderCombinedPane, combinedPaneSizes, combinedForwardSizes, combinedOneWaySizes, combinedPaneHoverDirection, matchesPaneCondition } from "../../src/combined/combinedModel";
 import { readFileSync } from "node:fs";
 import { embeddedDocument, renderCombinedWebview } from "../../src/combined/combinedWebview";
 import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
@@ -8,11 +8,11 @@ import { EMBEDDED_THEME_CSS } from "../../src/combined/embeddedTheme";
 describe("combined layouts", () => {
   it("defaults to four optional, empty horizontal slots", () => {
     assert.deepEqual(COMBINED_SLOTS, [1,2,3,4]); assert.equal(COMBINED_ROLES.length, 15);
-    assert.deepEqual(combinedLayout(undefined), {enabled: false, title: "", direction: "horizontal", hoverDirection: "forward", views: [], ratios: []});
+    assert.deepEqual(combinedLayout(undefined), {enabled: false, title: "", direction: "horizontal", views: [], ratios: []});
   });
   it("retains only supported unique roles and finite bounded ratios", () => {
     const layout = combinedLayout({enabled: true, title: "  Browser  ", views: ["preview", "callers", "preview", "relationshipGraph", "file:///private.c"], ratios: [2, NaN]});
-    assert.deepEqual(layout, {enabled: true, title: "Browser", direction: "horizontal", hoverDirection: "forward", views: ["preview", "callers"], ratios: [2,1]});
+    assert.deepEqual(layout, {enabled: true, title: "Browser", direction: "horizontal", views: ["preview", "callers"], ratios: [2,1]});
     assert.equal(JSON.stringify(layout).includes("private"), false);
     assert.deepEqual(combinedLayout({views:["references"],ratios:[Infinity]}).ratios,[1]);
   });
@@ -75,15 +75,44 @@ describe("combined layouts", () => {
       }
     }
   });
-  it("defaults legacy layouts to forward and exposes the same per-slot schema", () => {
+  it("reads legacy directions as explicit pane choices and exposes compatible per-slot schemas", () => {
     const legacy={enabled:true,views:["preview","callers"],ratios:[2,1],direction:"vertical"};
-    for(const value of [undefined,"right",null,42])assert.equal(combinedLayout({...legacy,hoverDirection:value}).hoverDirection,"forward");
-    const layout=combinedLayout({...legacy,hoverDirection:"both"});assert.equal(layout.hoverDirection,"both");
+    for(const value of [undefined,"right",null,42])assert.equal(combinedLayout({...legacy,hoverDirection:value}).hoverDirections,undefined);
+    const layout=combinedLayout({...legacy,hoverDirection:"both"});assert.deepEqual(layout.hoverDirections,Object.fromEntries(layout.views.map(role=>[role,"both"])));
     assert.deepEqual(layout.views,legacy.views);assert.deepEqual(layout.ratios,legacy.ratios);
     const properties=JSON.parse(readFileSync("package.json","utf8")).contributes.configuration.properties;
     for(const slot of COMBINED_SLOTS){const setting=properties[`cInsight.combinedViews.slot${slot}`];
-      assert.equal(setting.default.hoverDirection,"forward");assert.equal(setting.properties.hoverDirection.default,"forward");
+      assert.equal(setting.default.hoverDirection,undefined);assert.equal(setting.properties.hoverDirection.default,undefined);
       assert.deepEqual(setting.properties.hoverDirection.enum,["forward","both"]);}
+  });
+  it("defaults only the last expanded pane to both and keeps overrides through reorder and normalization",()=>{
+    const layout=combinedLayout({enabled:true,views:["preview","callers","symbols"],hoverDirections:{callers:"backward",unknown:"both",status:"forward"}});
+    assert.deepEqual(layout.hoverDirections,{callers:"backward"});
+    assert.equal(combinedPaneHoverDirection(layout,"preview"),"forward");assert.equal(combinedPaneHoverDirection(layout,"symbols"),"both");
+    assert.equal(combinedPaneHoverDirection(layout,"callers"),"backward");
+    assert.equal(combinedPaneHoverDirection(layout,"preview",["preview"]),"both");
+    const reordered=reorderCombinedPane(layout,"preview","symbols","after");
+    assert.equal(combinedPaneHoverDirection(reordered,"preview"),"both");assert.equal(combinedPaneHoverDirection(reordered,"symbols"),"forward");
+    assert.equal(combinedPaneHoverDirection(reordered,"callers"),"backward");
+    assert.equal(combinedLayout({...layout,hoverDirection:"both",hoverDirections:{}}).hoverDirections,undefined);
+    for(const value of ["invalid",42,null])assert.equal(combinedLayout({views:["preview"],hoverDirections:{preview:value}}).hoverDirections,undefined);
+    assert.deepEqual(combinedLayout({views:["preview"],hoverDirection:"forward"}).hoverDirections,{preview:"forward"});
+    assert.deepEqual(combinedLayout({...layout,hoverDirections:{preview:"both"},views:["callers"]}).hoverDirections,undefined);
+    for(const slot of COMBINED_SLOTS){
+      const property=JSON.parse(readFileSync("package.json","utf8")).contributes.configuration.properties[`cInsight.combinedViews.slot${slot}`].properties.hoverDirections;
+      assert.equal(property.default,undefined);assert.equal(property.additionalProperties,false);
+      assert.deepEqual(Object.values(property.patternProperties)[0],{type:"string",enum:["forward","backward","both"]});
+    }
+  });
+  it("mirrors one-way growth while preserving the trailing edge and all following panes",()=>{
+    assert.deepEqual(combinedOneWaySizes([300,300,300],160,1,450,"backward"),[160,440,300]);
+    assert.deepEqual(combinedOneWaySizes([300,300,300],160,0,450,"backward"),[300,300,300]);
+    for(let count=1;count<=15;count++)for(let index=0;index<count;index++){
+      const sizes=Array.from({length:count},(_,i)=>160+i*15),before=sizes.slice(0,index+1).reduce((a,b)=>a+b,0);
+      const grown=combinedOneWaySizes(sizes,160,index,1500,"backward");
+      assert(grown.every(size=>size>=160-0.001));assert(Math.abs(grown.reduce((a,b)=>a+b,0)-sizes.reduce((a,b)=>a+b,0))<0.001);
+      assert(Math.abs(grown.slice(0,index+1).reduce((a,b)=>a+b,0)-before)<0.001);assert.deepEqual(grown.slice(index+1),sizes.slice(index+1));
+    }
   });
   it("keeps the current leading edge through consecutive forward expansions (CI-REG-053)", () => {
     const base=[300,300,300],first=combinedForwardSizes(base,160,0,450),second=combinedForwardSizes(first,160,1,450);
@@ -126,7 +155,7 @@ describe("combined layouts", () => {
   it("revisions track geometry settings, including per-pane hover targets", () => {
     const layout=combinedLayout({enabled:true,views:["preview","callers"],ratios:[2,1]});
     assert.equal(combinedLayoutRevision(layout),combinedLayoutRevision({...layout,title:"Renamed"}));
-    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,hoverDirection:"both" as const},{...layout,hoverSizePercentages:{preview:65}},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
+    for(const changed of [{...layout,enabled:false},{...layout,direction:"vertical" as const},{...layout,hoverDirections:{preview:"both" as const}},{...layout,hoverSizePercentages:{preview:65}},{...layout,ratios:[1,2]},reorderCombinedPane(layout,"preview","callers","after")])
       assert.notEqual(combinedLayoutRevision(layout),combinedLayoutRevision(changed));
   });
   it("honors lower bounds and conserves each available budget", () => {

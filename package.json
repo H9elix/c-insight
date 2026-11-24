@@ -1371,7 +1371,6 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
-            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1397,8 +1396,18 @@
             "hoverDirection": {
               "type": "string",
               "enum": ["forward", "both"],
-              "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverDirections": {
+              "type": "object",
+              "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "string",
+                  "enum": ["forward", "backward", "both"]
+                }
+              }
             },
             "hoverSizePercentages": {
               "type": "object",
@@ -1459,7 +1468,6 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
-            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1485,8 +1493,18 @@
             "hoverDirection": {
               "type": "string",
               "enum": ["forward", "both"],
-              "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverDirections": {
+              "type": "object",
+              "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "string",
+                  "enum": ["forward", "backward", "both"]
+                }
+              }
             },
             "hoverSizePercentages": {
               "type": "object",
@@ -1547,7 +1565,6 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
-            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1573,8 +1590,18 @@
             "hoverDirection": {
               "type": "string",
               "enum": ["forward", "both"],
-              "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverDirections": {
+              "type": "object",
+              "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "string",
+                  "enum": ["forward", "backward", "both"]
+                }
+              }
             },
             "hoverSizePercentages": {
               "type": "object",
@@ -1635,7 +1662,6 @@
             "enabled": false,
             "title": "",
             "direction": "horizontal",
-            "hoverDirection": "forward",
             "views": [],
             "ratios": []
           },
@@ -1661,8 +1687,18 @@
             "hoverDirection": {
               "type": "string",
               "enum": ["forward", "both"],
-              "default": "forward",
               "description": "%configuration.cInsight.combinedViews.hoverDirection.description%"
+            },
+            "hoverDirections": {
+              "type": "object",
+              "description": "%configuration.cInsight.combinedViews.hoverDirections.description%",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^(context|preview|references|callers|callees|supertypes|subtypes|includes|includedBy|history|bookmarks|workspaceSymbols|symbols|projectFiles|status)$": {
+                  "type": "string",
+                  "enum": ["forward", "backward", "both"]
+                }
+              }
             },
             "hoverSizePercentages": {
               "type": "object",
