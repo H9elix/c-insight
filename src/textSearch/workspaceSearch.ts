@@ -3,6 +3,7 @@ import { isGitMetadata, isKnownBinaryFile } from "../projectFiles/projectFileMod
 import { decodeSearchFile, excludedBySettings, ignoreLayer, isIgnored, matchesPatterns, type IgnoreLayer } from "./fileRules";
 import { contentHash, searchExpression, type SearchOptions, type TextMatch } from "./searchModel";
 import { MatchingWorker, MatchTimeout, SearchCancelled } from "./matchingPool";
+import type { SearchDiagnostics } from "./searchDiagnostics";
 
 export type TextSearchScope = "file" | "open" | "folder" | "workspace";
 export interface SearchRequest extends SearchOptions {
@@ -14,7 +15,7 @@ export interface SearchFile {
 export interface SearchStats { files: number; skipped: number; timedOut: number; matches: number; limited: boolean; cancelled: boolean }
 export interface SearchBudget { maximumFiles: number; maximumMatches: number; maximumFileBytes: number }
 export const DEFAULT_SEARCH_BUDGET: SearchBudget = {maximumFiles: 50000, maximumMatches: 10000, maximumFileBytes: 10 * 1024 * 1024};
-interface Candidate { uri: vscode.Uri; label: string }
+export interface SearchCandidate { uri: vscode.Uri; label: string }
 const tick = (): Promise<void> => new Promise(resolve => setImmediate(resolve));
 
 /** No analysis engine or language-provider dependency. Content is retained only for the two in-flight files. */
@@ -22,15 +23,20 @@ export class WorkspaceTextSearch {
   constructor(private readonly workerPath: string) {}
 
   async run(request: SearchRequest, current: vscode.Uri | undefined, budget: SearchBudget,
-    signal: AbortSignal, onFile: (file: SearchFile) => void, onProgress: (stats: SearchStats) => void): Promise<SearchStats> {
+    signal: AbortSignal, onFile: (file: SearchFile) => void, onProgress: (stats: SearchStats) => void, diagnostics?: SearchDiagnostics): Promise<SearchStats> {
+    const started = performance.now();
     searchExpression(request);
     const stats: SearchStats = {files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false};
     const candidates = this.candidates(request, current, budget, signal, stats);
     let serial = 0;
     let payloadBytes = 0;
     // Serialize iterator advancement, not disk reading or matching.
-    let advancing: Promise<IteratorResult<Candidate>> = Promise.resolve({done: true, value: undefined});
-    const next = (): Promise<IteratorResult<Candidate>> => advancing = advancing.then(() => candidates.next());
+    let advancing: Promise<IteratorResult<SearchCandidate>> = Promise.resolve({done: true, value: undefined});
+    const next = (): Promise<IteratorResult<SearchCandidate>> => advancing = advancing.then(async () => {
+      const time = performance.now(), result = await candidates.next();
+      if (diagnostics) { diagnostics.enumerationMs += performance.now() - time; if (!result.done) diagnostics.candidateFiles++; }
+      return result;
+    });
     const lane = async (): Promise<void> => {
       const worker = new MatchingWorker(this.workerPath);
       try {
@@ -39,9 +45,11 @@ export class WorkspaceTextSearch {
           if (candidate.done) break;
           const {uri, label} = candidate.value;
           try {
-            const snapshot = await this.read(uri, budget.maximumFileBytes);
+            const snapshot = await this.read(uri, budget.maximumFileBytes, diagnostics);
             if (signal.aborted) break;
+            const matching = performance.now();
             const result = await worker.match(snapshot.text, request, Math.max(1, budget.maximumMatches - stats.matches), signal);
+            if (diagnostics) diagnostics.matchingMs += performance.now() - matching;
             if (signal.aborted) break;
             const current = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
             if (snapshot.version !== undefined && current?.version !== snapshot.version) { stats.skipped++; continue; }
@@ -53,8 +61,11 @@ export class WorkspaceTextSearch {
               payloadBytes += matches.reduce((sum, match) => sum + (match.value.length + match.captures.reduce((sum, value) => sum + (value?.length ?? 0), 0)) * 2 + 1024, 0);
               if (payloadBytes > 32 * 1024 * 1024) { stats.limited = true; break; }
               const id = String(++serial);
+              const publishing = performance.now();
+              if (diagnostics) diagnostics.firstResultMs ??= publishing - started;
               onFile({id, uri: uri.toString(), label, hash: contentHash(snapshot.text), version: snapshot.version,
                 matches: matches.map((match, index) => ({...match, id: `${id}:${index}`}))});
+              if (diagnostics) diagnostics.resultsMs += performance.now() - publishing;
               stats.matches += matches.length;
             }
           } catch (error) {
@@ -69,10 +80,11 @@ export class WorkspaceTextSearch {
     await Promise.all([lane(), lane()]);
     await candidates.return(undefined);
     stats.cancelled = signal.aborted;
+    if (diagnostics) diagnostics.elapsedMs = performance.now() - started;
     return stats;
   }
 
-  async read(uri: vscode.Uri, maximum: number): Promise<{text: string; version?: number}> {
+  async read(uri: vscode.Uri, maximum: number, diagnostics?: SearchDiagnostics): Promise<{text: string; version?: number}> {
     const document = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
     if (document) {
       const text = document.getText();
@@ -80,16 +92,32 @@ export class WorkspaceTextSearch {
       if (Buffer.byteLength(text, "utf8") > maximum) throw new Error("File size limit.");
       return {text, version: document.version};
     }
+    let time = performance.now();
     const stat = await vscode.workspace.fs.stat(uri);
+    if (diagnostics) diagnostics.statMs += performance.now() - time;
     if (stat.size > maximum) throw new Error("File size limit.");
+    time = performance.now();
     const bytes = await vscode.workspace.fs.readFile(uri);
+    if (diagnostics) { diagnostics.readMs += performance.now() - time; diagnostics.bytesRead += bytes.byteLength; }
     if (bytes.byteLength > maximum) throw new Error("File size limit.");
     const encoding = vscode.workspace.getConfiguration("files", uri).get<string>("encoding", "utf8");
-    return {text: decodeSearchFile(bytes, encoding)};
+    time = performance.now();
+    const text = decodeSearchFile(bytes, encoding);
+    if (diagnostics) { diagnostics.decodeMs += performance.now() - time; diagnostics.decodedFiles++; }
+    return {text};
+  }
+
+  /** Bounded path-only inventory for equal-candidate performance comparisons. */
+  async listCandidates(request: SearchRequest, current: vscode.Uri | undefined, budget: SearchBudget, signal: AbortSignal): Promise<SearchCandidate[]> {
+    const stats: SearchStats = {files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false};
+    const files: SearchCandidate[] = [];
+    for await (const file of this.candidates(request, current, budget, signal, stats)) files.push(file);
+    if (stats.limited || stats.skipped || signal.aborted) throw new Error("Candidate inventory is incomplete.");
+    return files;
   }
 
   private async *candidates(request: SearchRequest, current: vscode.Uri | undefined, budget: SearchBudget,
-    signal: AbortSignal, stats: SearchStats): AsyncGenerator<Candidate> {
+    signal: AbortSignal, stats: SearchStats): AsyncGenerator<SearchCandidate> {
     const seen = new Set<string>();
     let visited = 0;
     const accepted = (uri: vscode.Uri): boolean => {
@@ -116,7 +144,7 @@ export class WorkspaceTextSearch {
       const base = workspace?.uri ?? root;
       const filesRules = vscode.workspace.getConfiguration("files", base).get<Record<string, unknown>>("exclude", {});
       const searchRules = vscode.workspace.getConfiguration("search", base).get<Record<string, unknown>>("exclude", {});
-      const walk = async function* (directory: vscode.Uri, layers: IgnoreLayer[]): AsyncGenerator<Candidate> {
+      const walk = async function* (directory: vscode.Uri, layers: IgnoreLayer[]): AsyncGenerator<SearchCandidate> {
         if (signal.aborted || stats.limited) return;
         let entries: [string, vscode.FileType][];
         try { entries = await vscode.workspace.fs.readDirectory(directory); } catch { stats.skipped++; return; }

@@ -4,6 +4,8 @@
 
 ## 自动检查
 
+工作区搜索吞吐、分段计时和只读 FFmpeg 对照见[性能基准](text-search-performance.zh-CN.md)。
+
 ```bash
 npm run check
 C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code xvfb-run -a node dist/test/e2e/runTextSearchTest.js
