@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Accelerated compatible workspace text searches with bundled ripgrep prefiltering, preserving unsaved-buffer priority and JavaScript match verification with automatic fallback. Results now use incremental updates and viewport virtualization while retaining group expansion and click targets.
+
 - Added an engine-independent Search & Replace view with manual text queries, file/folder/workspace scopes, case/whole-word/regex/multiline options, ignore rules and file-grouped source navigation. The view is available independently and inside combinations.
 - Added checked replacement diffs, explicit confirmation, content/version conflict checks and undoable unsaved workspace edits, with bounded scanning, matching timeouts and cancellation.
 

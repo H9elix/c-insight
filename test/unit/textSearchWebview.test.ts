@@ -16,7 +16,10 @@ describe("text search view isolation", () => {
     assert.doesNotThrow(() => new Script(script));
     assert.match(script, /event\.preventDefault\(\);event\.stopPropagation\(\)/);
     assert.doesNotMatch(script, /setTimeout|debounce/);
-    assert.match(script, /key===renderKey/);
+    assert.match(script, /rendered\.get\(entry\.key\)/);
+    assert.match(script, /row\.match!==match/);
+    assert.equal(script.match(/details\.addEventListener\('toggle'/g)?.length, 1);
+    assert.doesNotMatch(script, /results\.replaceChildren/);
   });
   it("does not depend on semantic engines or expose arbitrary edit locations", () => {
     const source = readFileSync("src/textSearch/textSearchExplorer.ts", "utf8");

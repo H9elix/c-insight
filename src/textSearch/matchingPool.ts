@@ -10,9 +10,11 @@ export class MatchingWorker {
   constructor(private readonly path: string, private readonly timeout = 2000) {}
   async match(text: string, options: SearchOptions, maximum: number, signal: AbortSignal, positions?: number[]): Promise<MatchResult> {
     if (signal.aborted) throw new SearchCancelled();
-    const environment = {...process.env};
-    delete environment.NODE_TEST_CONTEXT;
-    const worker = this.worker ??= new Worker(this.path, {env: environment});
+    if (!this.worker) {
+      const environment = {...process.env}; delete environment.NODE_TEST_CONTEXT;
+      this.worker = new Worker(this.path, {env: environment});
+    }
+    const worker = this.worker;
     return new Promise<MatchResult>((resolve, reject) => {
       const finish = (error?: Error, result?: MatchResult): void => {
         clearTimeout(timer); signal.removeEventListener("abort", abort);

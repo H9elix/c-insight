@@ -1,5 +1,5 @@
 import ignore, { type Ignore } from "ignore";
-import { minimatch } from "minimatch";
+import { Minimatch } from "minimatch";
 import iconv from "iconv-lite";
 
 export interface IgnoreLayer { base: string; rules: Ignore }
@@ -26,20 +26,28 @@ export function globList(patterns: string): string[] {
   return [...values, patterns.slice(start).trim()].filter(Boolean);
 }
 export function matchesPatterns(path: string, patterns: string): boolean {
-  return globList(patterns)
-    .some(pattern => minimatch(path, pattern, {dot: true, matchBase: !pattern.includes("/")}));
+  return compilePatterns(patterns)(path);
+}
+export function compilePatterns(patterns: string): (path: string) => boolean {
+  const matchers = globList(patterns).map(pattern => new Minimatch(pattern, {dot: true, matchBase: !pattern.includes("/")}));
+  return path => matchers.some(matcher => matcher.match(path));
 }
 export function excludedBySettings(path: string, rules: Record<string, unknown>, siblings: readonly string[]): boolean {
-  return Object.entries(rules).some(([pattern, value]) => {
-    if (!value || !minimatch(path, pattern, {dot: true})) return false;
+  return compileExclusions(rules)(path, siblings);
+}
+export function compileExclusions(rules: Record<string, unknown>): (path: string, siblings: readonly string[]) => boolean {
+  const compiled = Object.entries(rules).filter(([, value]) => value).map(([pattern, value]) => ({matcher: new Minimatch(pattern, {dot: true}), value}));
+  return (path, siblings) => compiled.some(({matcher, value}) => {
+    if (!matcher.match(path)) return false;
     if (value === true) return true;
-    if (typeof value !== "object" || !("when" in value) || typeof value.when !== "string") return false;
+    if (!value || typeof value !== "object" || !("when" in value) || typeof value.when !== "string") return false;
     const name = path.split("/").at(-1)!, base = name.replace(/\.[^.]*$/, "");
     return siblings.includes(value.when.replace(/\$\(basename\)/g, base));
   });
 }
 export function decodeSearchFile(bytes: Uint8Array, configuredEncoding: string): string {
   let encoding = configuredEncoding.toLowerCase();
+  if (encoding === "utf8bom") encoding = "utf8";
   const buffer = Buffer.from(bytes);
   if (buffer[0] === 0xff && buffer[1] === 0xfe) encoding = "utf16le";
   else if (buffer[0] === 0xfe && buffer[1] === 0xff) encoding = "utf16be";

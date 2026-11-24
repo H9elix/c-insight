@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
+import { readFile, stat } from "node:fs/promises";
 import { isGitMetadata, isKnownBinaryFile } from "../projectFiles/projectFileModel";
-import { decodeSearchFile, excludedBySettings, ignoreLayer, isIgnored, matchesPatterns, type IgnoreLayer } from "./fileRules";
+import { decodeSearchFile, compileExclusions, compilePatterns, ignoreLayer, isIgnored, type IgnoreLayer } from "./fileRules";
 import { contentHash, searchExpression, type SearchOptions, type TextMatch } from "./searchModel";
 import { MatchingWorker, MatchTimeout, SearchCancelled } from "./matchingPool";
 import type { SearchDiagnostics } from "./searchDiagnostics";
+import { canPrefilter, packagedRipgrep, prefilterFiles } from "./ripgrepSearch";
 
 export type TextSearchScope = "file" | "open" | "folder" | "workspace";
 export interface SearchRequest extends SearchOptions {
@@ -20,7 +22,7 @@ const tick = (): Promise<void> => new Promise(resolve => setImmediate(resolve));
 
 /** No analysis engine or language-provider dependency. Content is retained only for the two in-flight files. */
 export class WorkspaceTextSearch {
-  constructor(private readonly workerPath: string) {}
+  constructor(private readonly workerPath: string, private readonly options: {backend?: "auto" | "javascript"; ripgrepPath?: string} = {}) {}
 
   async run(request: SearchRequest, current: vscode.Uri | undefined, budget: SearchBudget,
     signal: AbortSignal, onFile: (file: SearchFile) => void, onProgress: (stats: SearchStats) => void, diagnostics?: SearchDiagnostics): Promise<SearchStats> {
@@ -30,6 +32,12 @@ export class WorkspaceTextSearch {
     const candidates = this.candidates(request, current, budget, signal, stats);
     let serial = 0;
     let payloadBytes = 0;
+    let resultLimit = false;
+    const roots = request.scope === "folder" && request.folder ? [vscode.Uri.parse(request.folder)] : (vscode.workspace.workspaceFolders ?? []).map(folder => folder.uri);
+    const binary = this.options.backend === "javascript" ? undefined : this.options.ripgrepPath ?? packagedRipgrep(this.workerPath);
+    const native = binary && ["workspace", "folder"].includes(request.scope) && roots.length && roots.every(root => root.scheme === "file") &&
+      canPrefilter(request, roots.map(root => vscode.workspace.getConfiguration("files", root).get<string>("encoding", "utf8"))) ? binary : undefined;
+    if (diagnostics) diagnostics.backend = native ? "ripgrep" : "javascript";
     // Serialize iterator advancement, not disk reading or matching.
     let advancing: Promise<IteratorResult<SearchCandidate>> = Promise.resolve({done: true, value: undefined});
     const next = (): Promise<IteratorResult<SearchCandidate>> => advancing = advancing.then(async () => {
@@ -37,29 +45,23 @@ export class WorkspaceTextSearch {
       if (diagnostics) { diagnostics.enumerationMs += performance.now() - time; if (!result.done) diagnostics.candidateFiles++; }
       return result;
     });
-    const lane = async (): Promise<void> => {
-      const worker = new MatchingWorker(this.workerPath);
-      try {
-        while (!signal.aborted && !stats.limited) {
-          const candidate = await next();
-          if (candidate.done) break;
-          const {uri, label} = candidate.value;
+    const processFile = async ({uri, label}: SearchCandidate, worker: MatchingWorker): Promise<void> => {
           try {
-            const snapshot = await this.read(uri, budget.maximumFileBytes, diagnostics);
-            if (signal.aborted) break;
+            const snapshot = await this.read(uri, budget.maximumFileBytes, diagnostics, !!native);
+            if (signal.aborted || resultLimit) return;
             const matching = performance.now();
             const result = await worker.match(snapshot.text, request, Math.max(1, budget.maximumMatches - stats.matches), signal);
             if (diagnostics) diagnostics.matchingMs += performance.now() - matching;
-            if (signal.aborted) break;
+            if (signal.aborted || resultLimit) return;
             const current = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
-            if (snapshot.version !== undefined && current?.version !== snapshot.version) { stats.skipped++; continue; }
+            if (snapshot.version !== undefined && current?.version !== snapshot.version) { stats.skipped++; return; }
             stats.files++;
             const available = budget.maximumMatches - stats.matches;
-            if (result.matches.length > available || result.truncated) stats.limited = true;
+            if (result.matches.length > available || result.truncated) stats.limited = resultLimit = true;
             const matches = result.matches.slice(0, available);
             if (matches.length) {
               payloadBytes += matches.reduce((sum, match) => sum + (match.value.length + match.captures.reduce((sum, value) => sum + (value?.length ?? 0), 0)) * 2 + 1024, 0);
-              if (payloadBytes > 32 * 1024 * 1024) { stats.limited = true; break; }
+              if (payloadBytes > 32 * 1024 * 1024) { stats.limited = resultLimit = true; return; }
               const id = String(++serial);
               const publishing = performance.now();
               if (diagnostics) diagnostics.firstResultMs ??= publishing - started;
@@ -69,9 +71,59 @@ export class WorkspaceTextSearch {
               stats.matches += matches.length;
             }
           } catch (error) {
-            if (error instanceof SearchCancelled) break;
+            if (error instanceof SearchCancelled) return;
             if (error instanceof MatchTimeout) stats.timedOut++;
             else stats.skipped++;
+          }
+          onProgress({...stats});
+    };
+    // Keep argument lists well below Windows command-line limits and bound in-flight path storage.
+    let batches: Promise<SearchCandidate[]> = Promise.resolve([]);
+    const nextBatch = (): Promise<SearchCandidate[]> => batches = batches.then(async () => {
+      const batch: SearchCandidate[] = []; let bytes = 0;
+      while (batch.length < 256 && bytes < 16000 && !signal.aborted && !resultLimit) {
+        const candidate = await next(); if (candidate.done) break;
+        batch.push(candidate.value); bytes += Buffer.byteLength(candidate.value.uri.fsPath, "utf8") + 4;
+      }
+      return batch;
+    });
+    const lane = async (): Promise<void> => {
+      const worker = new MatchingWorker(this.workerPath);
+      try {
+        while (!signal.aborted && !resultLimit) {
+          if (!native) {
+            const candidate = await next(); if (candidate.done) break;
+            await processFile(candidate.value, worker); continue;
+          }
+          const batch = await nextBatch(); if (!batch.length) break;
+          const open = new Set(vscode.workspace.textDocuments.filter(document => !document.isClosed).map(document => document.uri.toString()));
+          const eligible = (await Promise.all(batch.map(async candidate => {
+            if (open.has(candidate.uri.toString())) return candidate;
+            const time = performance.now();
+            try {
+              const metadata = await stat(candidate.uri.fsPath);
+              if (metadata.size > budget.maximumFileBytes) { stats.skipped++; return undefined; }
+              return candidate;
+            } catch { stats.skipped++; return undefined; }
+            finally { if (diagnostics) diagnostics.statMs += performance.now() - time; }
+          }))).filter((candidate): candidate is SearchCandidate => !!candidate);
+          if (signal.aborted || resultLimit) break;
+          const disk = eligible.filter(candidate => !open.has(candidate.uri.toString()));
+          let matched: Set<string> | undefined;
+          if (disk.length) {
+            try {
+              if (diagnostics) diagnostics.nativeProcesses++;
+              matched = await prefilterFiles(native, disk.map(candidate => candidate.uri.fsPath), request, signal);
+            } catch (error) {
+              if (error instanceof SearchCancelled) break;
+              if (diagnostics) diagnostics.backend = "mixed";
+              // No results have escaped this batch. Verify all its files with JS when the native process fails.
+            }
+          }
+          for (const candidate of eligible) {
+            if (signal.aborted || resultLimit) break;
+            if (!open.has(candidate.uri.toString()) && matched && !matched.has(candidate.uri.fsPath)) {stats.files++; continue;}
+            await processFile(candidate, worker);
           }
           onProgress({...stats});
         }
@@ -84,7 +136,7 @@ export class WorkspaceTextSearch {
     return stats;
   }
 
-  async read(uri: vscode.Uri, maximum: number, diagnostics?: SearchDiagnostics): Promise<{text: string; version?: number}> {
+  async read(uri: vscode.Uri, maximum: number, diagnostics?: SearchDiagnostics, local = false): Promise<{text: string; version?: number}> {
     const document = vscode.workspace.textDocuments.find(document => document.uri.toString() === uri.toString() && !document.isClosed);
     if (document) {
       const text = document.getText();
@@ -93,11 +145,11 @@ export class WorkspaceTextSearch {
       return {text, version: document.version};
     }
     let time = performance.now();
-    const stat = await vscode.workspace.fs.stat(uri);
+    const metadata = local && uri.scheme === "file" ? await stat(uri.fsPath) : await vscode.workspace.fs.stat(uri);
     if (diagnostics) diagnostics.statMs += performance.now() - time;
-    if (stat.size > maximum) throw new Error("File size limit.");
+    if (metadata.size > maximum) throw new Error("File size limit.");
     time = performance.now();
-    const bytes = await vscode.workspace.fs.readFile(uri);
+    const bytes = local && uri.scheme === "file" ? await readFile(uri.fsPath) : await vscode.workspace.fs.readFile(uri);
     if (diagnostics) { diagnostics.readMs += performance.now() - time; diagnostics.bytesRead += bytes.byteLength; }
     if (bytes.byteLength > maximum) throw new Error("File size limit.");
     const encoding = vscode.workspace.getConfiguration("files", uri).get<string>("encoding", "utf8");
@@ -119,6 +171,7 @@ export class WorkspaceTextSearch {
   private async *candidates(request: SearchRequest, current: vscode.Uri | undefined, budget: SearchBudget,
     signal: AbortSignal, stats: SearchStats): AsyncGenerator<SearchCandidate> {
     const seen = new Set<string>();
+    const included = compilePatterns(request.include), excluded = compilePatterns(request.exclude);
     let visited = 0;
     const accepted = (uri: vscode.Uri): boolean => {
       if (seen.has(uri.toString()) || isGitMetadata(uri.path) || isKnownBinaryFile(uri.path)) return false;
@@ -132,7 +185,7 @@ export class WorkspaceTextSearch {
       for (const uri of uris) {
         if (signal.aborted || stats.limited) return;
         const label = vscode.workspace.asRelativePath(uri, true);
-        if (accepted(uri) && (!request.include || matchesPatterns(label, request.include)) && !matchesPatterns(label, request.exclude)) yield {uri, label};
+        if (accepted(uri) && (!request.include || included(label)) && !excluded(label)) yield {uri, label};
       }
       return;
     }
@@ -144,6 +197,7 @@ export class WorkspaceTextSearch {
       const base = workspace?.uri ?? root;
       const filesRules = vscode.workspace.getConfiguration("files", base).get<Record<string, unknown>>("exclude", {});
       const searchRules = vscode.workspace.getConfiguration("search", base).get<Record<string, unknown>>("exclude", {});
+      const excludedSettings = compileExclusions({...filesRules, ...searchRules});
       const walk = async function* (directory: vscode.Uri, layers: IgnoreLayer[]): AsyncGenerator<SearchCandidate> {
         if (signal.aborted || stats.limited) return;
         let entries: [string, vscode.FileType][];
@@ -160,10 +214,10 @@ export class WorkspaceTextSearch {
           const path = prefix + name, uri = vscode.Uri.joinPath(directory, name), isDirectory = !!(kind & vscode.FileType.Directory);
           if (kind & vscode.FileType.SymbolicLink || isGitMetadata(path)) continue;
           if (request.useIgnores && (isIgnored(path, isDirectory, layers) ||
-            excludedBySettings(path, {...filesRules, ...searchRules}, siblings))) continue;
-          if (matchesPatterns(path, request.exclude)) continue;
+            excludedSettings(path, siblings))) continue;
+          if (excluded(path)) continue;
           if (isDirectory) yield* walk(uri, layers);
-          else if (kind & vscode.FileType.File && accepted(uri) && (!request.include || matchesPatterns(path, request.include))) {
+          else if (kind & vscode.FileType.File && accepted(uri) && (!request.include || included(path))) {
             yield {uri, label: workspaceRoots.length > 1 && workspace ? `${workspace.name}/${path}` : path};
           }
           if (visited % 100 === 0) await tick();

@@ -4,6 +4,8 @@ import { DEFAULT_SEARCH_OPTIONS, contentHash } from "../../../src/textSearch/sea
 import { createReplacementPlan, applyReplacementPlan } from "../../../src/textSearch/replacementPlan";
 import * as vscode from "vscode";
 import { join } from "node:path";
+import { searchDiagnostics } from "../../../src/textSearch/searchDiagnostics";
+import * as iconv from "iconv-lite";
 
 interface State {revision: number; generation: number; request: SearchRequest; results: SearchFile[]; stats: SearchStats; stale: boolean; ready: boolean; plan?: string; error?: string; visible: number; selected?: string}
 const state = () => vscode.commands.executeCommand<State>("cInsight.test.textSearchState") as Promise<State>;
@@ -22,6 +24,18 @@ export async function run(): Promise<void> {
     return {files, stats};
   };
   const baseline = await collect();
+  const legacy = new WorkspaceTextSearch(join(extension.extensionPath, "dist/textSearchWorker.js"), {backend: "javascript"});
+  const fallback = new WorkspaceTextSearch(join(extension.extensionPath, "dist/textSearchWorker.js"), {ripgrepPath: join(extension.extensionPath, "missing-ripgrep")});
+  const normalize = (files: SearchFile[]) => files.flatMap(file => file.matches.map(match => `${file.uri}:${match.start}:${match.end}:${match.value}`)).sort();
+  for (const backend of [legacy, fallback]) {
+    const files: SearchFile[] = [], diagnostics = searchDiagnostics();
+    const stats = await backend.run(request, a, DEFAULT_SEARCH_BUDGET, new AbortController().signal, file => files.push(file), () => undefined, diagnostics);
+    assert.deepEqual(normalize(files), normalize(baseline.files)); assert.equal(stats.matches, baseline.stats.matches);
+    assert.equal(diagnostics.backend, backend === legacy ? "javascript" : "mixed");
+  }
+  const nativeDiagnostics = searchDiagnostics();
+  await engine.run(request, a, DEFAULT_SEARCH_BUDGET, new AbortController().signal, () => undefined, () => undefined, nativeDiagnostics);
+  assert.equal(nativeDiagnostics.backend, "ripgrep"); assert(nativeDiagnostics.decodedFiles < nativeDiagnostics.candidateFiles);
   assert.equal(baseline.stats.matches, 4); assert.equal(baseline.files.length, 3);
   assert(baseline.files.every(file => !/ignored|search-hidden|drop|private/.test(file.label)));
   assert(!vscode.workspace.textDocuments.some(doc => doc.uri.toString() === b.toString()), "Scanning must not open files as documents");
@@ -31,8 +45,10 @@ export async function run(): Promise<void> {
   assert.equal((await collect({...request, scope: "folder", folder: vscode.Uri.joinPath(roots[0].uri, "src").toString()})).stats.matches, 3);
   const document = await vscode.workspace.openTextDocument(a); await vscode.window.showTextDocument(document);
   const dirty = new vscode.WorkspaceEdit(); dirty.insert(a, new vscode.Position(0, 0), "needle dirty\n"); assert(await vscode.workspace.applyEdit(dirty));
+  assert.equal((await collect({...request, query: "dirty"})).stats.matches, 1, "Workspace prefilter must retain new matches present only in unsaved buffers");
   const current = await collect({...request, scope: "file"}); assert.equal(current.stats.matches, 3); assert(document.isDirty);
   assert.equal((await collect({...request, scope: "open"})).stats.matches, 3);
+  assert.equal((await collect({...request, query: "dirty"})).stats.matches, 1, "Native disk filtering must not hide a match present only in an unsaved buffer");
 
   const plan = await createReplacementPlan(current.files, new Set(current.files.flatMap(file => file.matches.map(match => match.id))), 1,
     request, "thread", false, uri => engine.read(uri, DEFAULT_SEARCH_BUDGET.maximumFileBytes));
@@ -119,7 +135,7 @@ export async function run(): Promise<void> {
     await combined.update(`slot${slot}`, {enabled: true, title: `Search ${slot}`, direction: "horizontal", views: ["textSearch", "preview"], ratios: [1, 1]}, vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand(`cInsight.combined${slot}.focus`);
   }
-  type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string}>};
+  type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string; searchTokenMarker?: string; searchRendered?: number; searchTotal?: number}>};
   const browser = async (slot: number, action?: object): Promise<Inspection> => {
     try { return await vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser", slot, action) as Inspection; }
     catch (error) { throw new Error(`Search browser slot=${slot} action=${JSON.stringify(action)} surfaces=${JSON.stringify(await vscode.commands.executeCommand("cInsight.test.combinedState"))}: ${String(error)}`); }
@@ -140,8 +156,9 @@ export async function run(): Promise<void> {
   await until(async () => (await state()).generation === beforeBrowserQuery + 1 && (await pane(2))?.searchChecked === 3, "Browser Enter/Search did not populate both renderers");
   await browser(1, {action: "textSearch", role: "textSearch", control: "preview"}); await pause(100);
   assert.equal((await pane(1))?.searchRowMarker, "stable", "Preview selection must retain row DOM so a subsequent double-click reaches the same target");
+  assert.equal((await pane(1))?.searchTokenMarker, "stable", "Selection-only updates must retain the clicked token node");
   await browser(1, {action: "textSearch", role: "textSearch", control: "collapse"});
-  await browser(1, {action: "textSearch", role: "textSearch", control: "check"});
+  await browser(2, {action: "textSearch", role: "textSearch", control: "check"});
   await until(async () => (await pane(2))?.searchChecked === 2, "Replacement selections were not shared");
   assert.equal((await pane(1))?.searchOpen, false); assert.equal((await pane(2))?.searchOpen, true);
   assert.equal((await state()).generation, beforeBrowserQuery + 1, "Presentation actions started another search");
@@ -152,5 +169,54 @@ export async function run(): Promise<void> {
   await vscode.workspace.applyEdit(change);
   assert((await state()).stale, "Changing an initially unmatched file must invalidate a workspace search snapshot");
   assert.equal((await state()).generation, originalMatches.generation, "Source invalidation must not rescan");
+  await message({type: "input", scope: "workspace", include: "**/scale/**/*.txt", query: "PERF_NEEDLE"}); await message({type: "search"});
+  await until(async () => ((await pane(1))?.searchTotal ?? 0) >= 10000, "Virtualized result data did not arrive");
+  assert(((await pane(1))?.searchRendered ?? 1000) <= 200, "Large result sets must not create all DOM rows");
+  await browser(1, {action: "textSearch", role: "textSearch", control: "scroll", value: 100000}); await pause(50);
+  assert(((await pane(1))?.searchRendered ?? 1000) <= 200);
   console.log("TEXT_SEARCH_COMBINED: live browser controls, shared query/results/checkboxes and independent group expansion passed");
+
+  const parity = vscode.Uri.joinPath(roots[0].uri, "parity"); await vscode.workspace.fs.createDirectory(parity);
+  await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, "a.txt"), Buffer.from("Needle needle needles ſ K 中文\n😀needle\r\n"));
+  await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, "bom.txt"), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("needle 中文", "utf16le")]));
+  await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, "multi.txt"), Buffer.from("first\nsecond\n"));
+  await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, ".rgignore"), Buffer.from("a.txt\n"));
+  const broken = new WorkspaceTextSearch(join(extension.extensionPath, "dist/textSearchWorker.js"), {ripgrepPath: join(parity.fsPath, "no-binary")});
+  const compare = async (service: WorkspaceTextSearch, options: SearchRequest) => {
+    const found: string[] = [], diagnostics = searchDiagnostics();
+    const stats = await service.run(options, a, DEFAULT_SEARCH_BUDGET, new AbortController().signal,
+      file => found.push(...file.matches.map(match => `${file.uri}:${match.start}:${match.end}`)), () => undefined, diagnostics);
+    return {found: found.sort(), stats, diagnostics};
+  };
+  for (const options of [
+    {...request, query: "needle", wholeWord: true}, {...request, query: "k"}, {...request, query: "s"},
+    {...request, query: "中文"}, {...request, query: "first.*second", regex: true, multiline: true},
+  ]) {
+    const query: SearchRequest = {...options, scope: "folder", folder: parity.toString(), include: "**/*.txt"};
+    const reference = await compare(legacy, query), fast = await compare(engine, query);
+    assert.deepEqual(fast.found, reference.found, "Native prefilter changed Unicode, BOM, whole-word or regex semantics");
+    assert.equal(fast.diagnostics.backend, options.regex || options.query === "中文" ? "javascript" : "ripgrep");
+    if (options.query === "needle") assert.deepEqual((await compare(broken, query)).found, reference.found, "Missing native binary must safely recheck the batch in JS");
+  }
+  const encoding = vscode.workspace.getConfiguration("files", roots[0].uri);
+  const previousEncoding = encoding.inspect<string>("encoding")?.workspaceFolderValue;
+  await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, "gbk.txt"), iconv.encode("needle 中文\r\n", "gbk"));
+  try {
+    await encoding.update("encoding", "gbk", vscode.ConfigurationTarget.WorkspaceFolder);
+    const query: SearchRequest = {...request, scope: "folder", folder: parity.toString(), include: "**/gbk.txt"};
+    const reference = await compare(legacy, query), fallback = await compare(engine, query);
+    assert.equal(reference.found.length, 1); assert.deepEqual(fallback.found, reference.found);
+    assert.equal(fallback.diagnostics.backend, "javascript", "Legacy root encoding must bypass native filtering");
+  } finally { await encoding.update("encoding", previousEncoding, vscode.ConfigurationTarget.WorkspaceFolder); }
+  const smallBudget = {...DEFAULT_SEARCH_BUDGET, maximumFileBytes: 10};
+  const smallQuery: SearchRequest = {...request, scope: "folder", folder: parity.toString(), include: "**/*.txt"};
+  const smallResults: string[][] = [];
+  for (const service of [legacy, engine]) {
+    const found: string[] = [];
+    const stats = await service.run(smallQuery, a, smallBudget, new AbortController().signal,
+      file => found.push(...file.matches.map(match => `${file.uri}:${match.start}:${match.end}`)), () => undefined);
+    assert(stats.skipped > 0); smallResults.push(found.sort());
+  }
+  assert.deepEqual(smallResults[0], smallResults[1], "Native filtering must preserve per-file size limits");
+  console.log("TEXT_SEARCH_PARITY: exact positions, Unicode case folding/whole words, BOM/GBK, file sizes, regex fallback and missing-binary fallback passed");
 }

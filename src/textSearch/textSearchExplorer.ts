@@ -10,6 +10,7 @@ import { applyReplacementPlan, canReplace, createReplacementPlan, ReplacementSna
 import { renderTextSearch } from "./textSearchWebview";
 import { textSearchLabels } from "./textSearchLabels";
 import { isGitMetadata, isKnownBinaryFile } from "../projectFiles/projectFileModel";
+import { searchPresentationDelta, type SearchPresentationCursor } from "./searchPresentationDelta";
 import { DEFAULT_SEARCH_BUDGET, WorkspaceTextSearch, type SearchFile, type SearchRequest, type SearchStats } from "./workspaceSearch";
 
 const emptyStats = (): SearchStats => ({files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false});
@@ -41,6 +42,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private active?: vscode.WebviewView;
   private timer?: NodeJS.Timeout;
   private readonly presentations = new Set<vscode.WebviewView>();
+  private readonly deliveries = new Map<vscode.WebviewView, SearchPresentationCursor>();
   private readonly listeners: vscode.Disposable[] = [];
   private readonly snapshots = new ReplacementSnapshots();
   private readonly search: WorkspaceTextSearch;
@@ -83,9 +85,10 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     view.webview.options = {enableScripts: true};
     view.webview.html = renderTextSearch(view.webview.cspSource, randomBytes(16).toString("hex"), textSearchLabels());
     const listeners = [view.webview.onDidReceiveMessage((message: unknown) => {
+      if (message && typeof message === "object" && "type" in message && message.type === "ready") this.deliveries.delete(view);
       this.active = view; void this.receive(message).catch(error => { this.error = String(error); this.publish(); });
-    }), view.onDidChangeVisibility(() => { this.checkVisibility(); if (view.visible) this.publish(); }),
-    view.onDidDispose(() => { this.presentations.delete(view); if (this.active === view) this.active = undefined; this.checkVisibility(); listeners.forEach(listener => listener.dispose()); })];
+    }), view.onDidChangeVisibility(() => { this.deliveries.delete(view); this.checkVisibility(); if (view.visible) this.publish(); }),
+    view.onDidDispose(() => { this.deliveries.delete(view); this.presentations.delete(view); if (this.active === view) this.active = undefined; this.checkVisibility(); listeners.forEach(listener => listener.dispose()); })];
     this.publish();
   }
   preferPresentation(view: vscode.WebviewView): void { if (this.presentations.has(view)) this.active = view; }
@@ -267,12 +270,13 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private publish(): void {
     const state = {type: "state", revision: this.revision, generation: this.generation, editOrigin: this.editOrigin, editSequence: this.editSequence,
       request: this.request, replacement: this.replacement, preserveCase: this.preserveCase,
-      replaceVisible: this.replaceVisible, files: this.results.map(file => ({id: file.id, label: file.label, matches: file.matches.map(match => ({id: match.id,
-        line: match.line, character: match.character, snippet: match.snippet, highlightStart: match.highlightStart, highlightEnd: match.highlightEnd}))})),
-      checked: [...this.checked], selected: this.selected, stats: this.stats, loading: this.loading, stale: this.stale, error: this.error,
+      replaceVisible: this.replaceVisible, selected: this.selected, stats: this.stats, loading: this.loading, stale: this.stale, error: this.error,
       ready: this.replaceReady(), planning: this.planning || this.applying,
       plan: this.plan ? {id: this.plan.id, count: this.plan.count, files: this.plan.files.map(file => ({id: file.file.id, label: file.file.label}))} : undefined};
-    for (const view of this.presentations) if (view.visible) void view.webview.postMessage(state);
+    for (const view of this.presentations) if (view.visible) {
+      const {cursor, ...delta} = searchPresentationDelta(this.results, this.checked, this.generation, this.deliveries.get(view));
+      this.deliveries.set(view, cursor); void view.webview.postMessage({...state, ...delta});
+    }
   }
   stateForTest() { return {revision: this.revision, request: {...this.request}, results: this.results, checked: [...this.checked], stats: {...this.stats},
     loading: this.loading, visible: [...this.presentations].filter(view => view.visible).length, stale: this.stale,

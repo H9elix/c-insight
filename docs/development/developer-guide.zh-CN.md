@@ -272,11 +272,14 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | --- | --- |
 | `searchModel.ts` | 字面量／ECMAScript 正则、Unicode 整词、UTF-16 位置、匹配载荷预算、捕获组替换和保留大小写。 |
 | `searchWorker.ts`、`matchingPool.ts` | 两个串行扫描通道的独立匹配线程；单文件超时和取消直接销毁线程，无待处理文件队列。打包产物为 `dist/textSearchWorker.js`。 |
+| `ripgrepSearch.ts` | 只定位随包原生程序，按有界显式文件批次预筛选兼容字面量；关闭用户配置／预处理及二次忽略规则，路径输出必须属于已知集合，失败后整批回退 JavaScript。最终位置和哈希仍由现有匹配器生成。 |
+| `searchDiagnostics.ts` | 按需收集分段时间、首批结果、读取量及后端／进程计数，不记录查询、路径或源码；并发阶段时间不可相加当作墙钟时间。 |
 | `fileRules.ts` | 嵌套 `.gitignore`、包含／排除 glob、VS Code 条件排除、BOM 与 `files.encoding` 解码、二进制和不确定解码拒绝。 |
 | `workspaceSearch.ts` | 多根及文件范围枚举、忽略规则、文件／结果／正文预算、优先读取内存文档、流式结果和摘要；不依赖分析引擎。 |
 | `textSearchExplorer.ts` | 显式启动查询、共享状态与修订号、所有呈现隐藏后的取消、已知 ID 导航、勾选、差异计划、确认替换和受影响文件更新。输入和编辑不启动扫描。 |
 | `replacementPlan.ts` | 有界只读差异快照、全部目标哈希／版本核对、信任／只读检查及 WorkspaceEdit；不直接写文件或保存。 |
-| `textSearchWebview.ts`、`textSearchLabels.ts` | 常驻查询／替换控件、范围和匹配选项、文件分组与局部显示批次、结果复选框、主题变量和中英文标签。各呈现保留独立滚动／折叠，查询、结果及勾选由宿主持有。 |
+| `searchPresentationDelta.ts` | 每个呈现只传新增／变化文件和复选框差量；隐藏／重建释放旧游标，首次就绪及重新显示完整同步，不把源码 URI 或哈希送到浏览器。 |
+| `textSearchWebview.ts`、`textSearchClient.ts`、`textSearchPresentation.ts`、`textSearchLabels.ts` | 常驻控件、文件分组投影和可见行虚拟渲染；按稳定 ID 复用行及实际点击令牌，选中／进度更新不重建结果树。各呈现保留独立滚动／折叠，查询、结果及勾选由宿主持有。 |
 
 专项宿主入口为 `test/e2e/runTextSearchTest.ts`；自动覆盖和 Remote／鼠标人工重点见[搜索与替换验证](../validation/text-search.zh-CN.md)。
 
@@ -372,6 +375,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/check-document-links.mjs` / `npm run docs:links:check` | 检查仓库内 Markdown 本地链接的目标是否存在；标准质量门会自动执行。 |
 | `scripts/generate-third-party-notices.mjs` / `npm run third-party:generate` | 从锁定的生产依赖及其许可证文件生成 `THIRD_PARTY_NOTICES.md`；`third-party:check` 检查漂移。 |
 | `scripts/bundle-extension.mjs` | esbuild 生产打包入口，保持 `vscode` 外部依赖并启用客户端匹配器兼容补丁。 |
+| `scripts/copy-search-assets.mjs` | 将锁定依赖的跨平台 ripgrep 二进制及许可证复制到 `dist/ripgrep`；与匹配线程一起纳入 VSIX，运行时按宿主平台／架构选择。 |
 | `scripts/languageclient-minimatch-compat.mjs` | 仅在打包时适配 `vscode-languageclient@10.1.0` 两处旧匹配器检查；版本、源码位置或打包覆盖不符时终止构建。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |

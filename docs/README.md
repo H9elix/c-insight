@@ -27,6 +27,7 @@
 - [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
 - [组合视图验证](validation/combined-views.zh-CN.md)：多实例共享结果、局部显示状态、可见性需求、分隔条和悬停扩展的自动与人工检查。
 - [搜索与替换验证](validation/text-search.zh-CN.md)：文本范围、匹配／编码／忽略规则、替换冲突和撤销、可见性、组合呈现及资源预算。
+- [文本搜索性能对照](validation/text-search-performance.zh-CN.md)：只读 FFmpeg 的同候选清单计时、原生筛选与 JavaScript 校验、完整位置核对及界面验收方法。
 - [视图入口与菜单验证](validation/view-discovery.zh-CN.md)：统一视图选择、首次可见提示、右键分组、直接原生聚焦及无查询取消的验证方法。
 - [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：深浅预设、完整默认颜色、自定义配置、输入校验和验收记录。
 - [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，含宏值 `1`、`0` 的生效分支函数调用者与函数式编译宏展开对照；区分已验收的识别、引用及宏调用者与未修复的定义/自动预览边界，关联 `CI-REG-049`。

@@ -40,9 +40,13 @@ function before(text: string, offset: number): string {
 export function findMatches(text: string, options: SearchOptions, maximum: number, positions?: readonly number[]): MatchResult {
   const base = searchExpression(options);
   const expression = positions ? new RegExp(base.source, base.flags + "y") : base;
+  let indexed = false;
   const starts = [0];
-  for (let index = 0; index < text.length; index++) if (text[index] === "\n") starts.push(index + 1);
   const position = (offset: number): [number, number] => {
+    if (!indexed) {
+      for (let index = 0; index < text.length; index++) if (text[index] === "\n") starts.push(index + 1);
+      indexed = true;
+    }
     let low = 0, high = starts.length;
     while (low + 1 < high) { const middle = (low + high) >>> 1; if (starts[middle] <= offset) low = middle; else high = middle; }
     return [low, offset - starts[low]];

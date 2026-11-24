@@ -366,8 +366,9 @@ window.addEventListener('message',event=>{
       }else if(child&&['search','toggle'].includes(message.control))child.getElementById(message.control)?.click();
       else if(message.control==='check')child?.querySelector('.match input')?.click();
       else if(message.control==='collapse'){const group=child?.querySelector('details');if(group)group.open=false;}
+      else if(message.control==='scroll'){const list=child?.getElementById('results');if(list&&win){list.scrollTop=message.value;list.dispatchEvent(new win.Event('scroll'));}}
       else if(message.control==='preview'){
-        const row=child?.querySelector('.match');if(row&&win){row.dataset.testStable='stable';row.dispatchEvent(new win.MouseEvent('click',{detail:1,bubbles:true}));}
+        const row=child?.querySelector('.match');if(row&&win){row.dataset.testStable='stable';const mark=row.querySelector('mark');if(mark)mark.dataset.testStable='stable';row.dispatchEvent(new win.MouseEvent('click',{detail:1,bubbles:true}));}
       }
     }
     else if(message.action==='viewport'){viewport.style.width=(message.width||1200)+'px';viewport.style.height=(message.height||500)+'px';viewport.style.flex='none';resize();}
@@ -417,6 +418,9 @@ window.addEventListener('message',event=>{
       searchChecked:role==='textSearch'?child?.querySelectorAll('.match input:checked').length:undefined,
       searchOpen:role==='textSearch'?child?.querySelector('details')?.open:undefined,
       searchRowMarker:role==='textSearch'?child?.querySelector('.match')?.dataset.testStable:undefined,
+      searchTokenMarker:role==='textSearch'?child?.querySelector('.match mark')?.dataset.testStable:undefined,
+      searchRendered:role==='textSearch'?Number(child?.body?.dataset.searchRendered):undefined,
+      searchTotal:role==='textSearch'?Number(child?.body?.dataset.searchTotal):undefined,
       marker:child?.body?.dataset.reorderMarker,selected:child?.querySelector('.row.selected')?.dataset.id,scrollTop:scroll?.scrollTop,scrollLeft:scroll?.scrollLeft,headerDirection:getComputedStyle(item.element.querySelector('header')).flexDirection,transitionDuration:getComputedStyle(item.element).transitionDuration};
     }),hovered,candidate,hoverTiming,direction:layout.direction,hoverDirections:Object.fromEntries(metrics().expanded.map(role=>[role,paneDirectionFor(layout,role,metrics().expanded)])),configuredHoverDirections:layout.hoverDirections||{},hoverSizePercentages:layout.hoverSizePercentages||{},usableSize:metrics().total,controlsPaused,pendingHoverReset,reducedMotion:document.body.classList.contains('vscode-reduce-motion'),toolbar:{bar:rectangle(bar),viewport:rectangle(viewport),actions:rectangle(actions),name:rectangle(name),writingMode:getComputedStyle(name).writingMode,actionsDirection:getComputedStyle(actions).flexDirection,orientation:bar.getAttribute('aria-orientation'),title:name.title,buttonCount:actions.querySelectorAll('button').length,
       lastButton:rectangle(actions.lastElementChild),scrollLeft:actions.scrollLeft,scrollTop:actions.scrollTop,surfaceWidth:document.documentElement.clientWidth},

@@ -11,3 +11,5 @@ Workspace Session Restore stores bounded browsing state in VS Code workspace sto
 VS Code, Remote extensions, clangd, the operating system, and any separately installed extensions have their own data-handling behavior and are outside the C Insight privacy boundary.
 
 Search & Replace scans text in the extension environment using bounded worker threads. Queries, results, checkboxes and read-only replacement snapshots stay in memory for the extension session and are not sent to an analysis engine or stored in settings. Confirmed replacements use VS Code document edits and do not automatically save files.
+
+Compatible disk searches also use the bundled ripgrep executable in that same environment. It receives only explicitly selected candidate paths and search options, does not load user ripgrep configuration or run preprocessors, and makes no runtime network downloads. Candidate matches are verified using C Insight's text rules before replacement plans can use them.

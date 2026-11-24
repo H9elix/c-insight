@@ -47,6 +47,7 @@
   "files": [
     "dist/extension.js",
     "dist/textSearchWorker.js",
+    "dist/ripgrep/**/*",
     "dist/codicons/*",
     "package.nls.json",
     "package.nls.zh-cn.json",
@@ -85,7 +86,7 @@
   ],
   "scripts": {
     "compile": "tsc -p .",
-    "bundle": "node scripts/bundle-extension.mjs && node scripts/copy-webview-assets.mjs",
+    "bundle": "node scripts/bundle-extension.mjs && node scripts/copy-webview-assets.mjs && node scripts/copy-search-assets.mjs",
     "build": "npm run compile && npm run bundle",
     "watch": "tsc -p . --watch",
     "lint": "eslint src test --ext .ts",
@@ -123,6 +124,7 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.46-24",
+    "@vscode/ripgrep-universal": "1.18.0",
     "iconv-lite": "0.7.3",
     "ignore": "7.0.14",
     "minimatch": "11.0.5",
