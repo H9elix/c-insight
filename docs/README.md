@@ -23,7 +23,7 @@
 ## 测试验收 `validation/`
 
 - [历史问题驱动测试指南](validation/regression-testing-guide.zh-CN.md)：按修改范围选择测试、自动与人工边界、高频冒烟清单，以及以后收到问题时的持续登记流程。
-- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：56 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及测试入口，新反馈在此增补。
+- [历史问题与回归案例库](validation/historical-issues.zh-CN.md)：57 条稳定编号场景，包含历史现象、已确认与未确认的原因、复现预期及测试入口，新反馈在此增补。
 - [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
 - [组合视图验证](validation/combined-views.zh-CN.md)：多实例共享结果、局部显示状态、可见性需求、分隔条和悬停扩展的自动与人工检查。
 - [搜索与替换验证](validation/text-search.zh-CN.md)：文本范围、匹配／编码／忽略规则、替换冲突和撤销、可见性、组合呈现及资源预算。
