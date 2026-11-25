@@ -27,4 +27,23 @@ describe("text search view isolation", () => {
     assert.match(source, /message\.revision !== this\.revision/);
     assert.doesNotMatch(source, /Uri\.parse\(message\./);
   });
+  it("keeps a single results-window entry above the list without a bottom control", () => {
+    const labels = new Proxy({}, {get: (_, key) => String(key)}) as ReturnType<typeof textSearchLabels>;
+    for (const readOnly of [false, true]) {
+      const html = renderTextSearch("vscode-webview://test", "test-nonce", labels, readOnly);
+      assert.equal(html.match(/id="openResultsTop"/g)?.length, 1);
+      assert.equal(html.match(/class="result-actions"/g)?.length, 1);
+      assert(html.indexOf('id="openResultsTop"') < html.indexOf('id="results"'));
+      assert.doesNotMatch(html, /openResultsBottom/);
+      assert.match(html, /\$\('openResultsTop'\)\.onclick=\(\)=>send\('openResults'\)/);
+    }
+  });
+  it("uses the concise results-window label in both languages and the command palette", () => {
+    const english = JSON.parse(readFileSync("l10n/bundle.l10n.json", "utf8")), chinese = JSON.parse(readFileSync("l10n/bundle.l10n.zh-cn.json", "utf8"));
+    assert.equal(english["Open results window"], "Open results window");
+    assert.equal(chinese["Open results window"], "打开结果窗口");
+    assert(!("Open large results window" in english)); assert(!("Open large results window" in chinese));
+    assert.equal(JSON.parse(readFileSync("package.nls.json", "utf8"))["command.cInsight.textSearch.openResults.title"], "C Insight: Open Results Window");
+    assert.equal(JSON.parse(readFileSync("package.nls.zh-cn.json", "utf8"))["command.cInsight.textSearch.openResults.title"], "C Insight: 打开结果窗口");
+  });
 });

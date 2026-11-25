@@ -15,7 +15,7 @@ export function renderTextSearch(cspSource: string, nonce: string, labels: Retur
 <div class="row"><input type="text" id="include"><input type="text" id="exclude"></div>
 <section id="replaceArea" hidden><div class="row"><textarea id="replacement" spellcheck="false"></textarea><label class="option"><input id="preserveCase" type="checkbox"><span id="preserveLabel"></span></label></div><div class="row"><button id="current"></button><button id="checked"></button><button id="all"></button></div></section>
 <label class="option compact"><input id="useIgnores" type="checkbox" checked><span id="ignoresLabel"></span></label></section>
-<section id="plan" hidden></section><div id="status" role="status" aria-live="polite"></div><div class="result-actions" hidden><button id="openResultsTop"></button></div><main id="results" aria-label="Search results"></main><div class="result-actions" hidden><button id="openResultsBottom"></button></div>
+<section id="plan" hidden></section><div id="status" role="status" aria-live="polite"></div><div class="result-actions" hidden><button id="openResultsTop"></button></div><main id="results" aria-label="Search results"></main>
 <script nonce="${nonce}">
 const labels=${JSON.stringify(labels).replace(/</g, "\\u003c")};const readOnly=${readOnly};const client="client-${nonce}";const windowFor=${searchWindow.toString()};
 ${TEXT_SEARCH_CLIENT}

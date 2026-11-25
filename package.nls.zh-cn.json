@@ -237,7 +237,7 @@
   "command.cInsight.searchText.title": "C Insight: 搜索文本…",
   "command.cInsight.textSearch.run.title": "C Insight: 执行文本搜索",
   "command.cInsight.textSearch.cancel.title": "C Insight: 取消文本搜索",
-  "command.cInsight.textSearch.openResults.title": "C Insight: 打开搜索结果大窗口",
+  "command.cInsight.textSearch.openResults.title": "C Insight: 打开结果窗口",
   "configuration.cInsight.textSearch.inlineResultLimit.description": "独立／组合搜索视图内显示的匹配数量。完整结果仍可在大窗口浏览，并用于替换。",
   "configuration.cInsight.textSearch.maximumFiles.description": "已弃用且不再生效。原生文本搜索不单独限制候选文件数量。",
   "configuration.cInsight.textSearch.maximumMatches.description": "已弃用且不再生效。请使用 search.maxResults（null 表示不限制匹配数量）。",

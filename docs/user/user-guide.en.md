@@ -304,7 +304,7 @@ Project Diagnostics explains missing or incomplete results: selected engine and 
 
 Choose **Search & Replace** in **C Insight: Open View…**, or run **C Insight: Search Text…**. This view searches all text files without clangd or Microsoft C/C++ queries. It can also be added to a combination as `textSearch`. Native editor Ctrl+F/H remain unchanged; within this view Ctrl+F focuses the query and Ctrl+H opens replacement controls.
 
-Independent and combined views display the first 200 matches by default; file headers do not consume that allowance. Status shows displayed/total and checked matches outside the list. This display cap does not truncate the query or narrow file checkboxes and replacement selections. Open large results window buttons appear above and below results whenever there are matches, including fewer than 200. The command palette also offers C Insight: Open Large Search Results Window.
+Independent and combined views display the first 200 matches by default; file headers do not consume that allowance. Status shows displayed/total and checked matches outside the list. This display cap does not truncate the query or narrow file checkboxes and replacement selections. An Open results window button appears above results whenever there are matches, including fewer than 200. The command palette also offers C Insight: Open Results Window.
 
 The editor-area results window is a read-only snapshot of one query, with independent scroll, selection and file expansion. Single-click previews; double-click or Enter opens source. It has no replacement controls. A running query continues streaming into its window; completion or cancellation fixes the snapshot. Reopening the same query focuses its window, while different queries can remain open together. Source changes mark snapshots stale and navigation revalidates content before opening a target. Hiding all presentations of the current query, including its snapshot, cancels scanning; old query windows cannot keep a new query running. Closing a window releases its data references; snapshots do not restore across restarts.
 
@@ -647,6 +647,6 @@ This section is generated from `package.json`. Every command is available from t
 | Search Text… | `cInsight.searchText` | Command Palette |
 | Run Text Search | `cInsight.textSearch.run` | Command Palette; Search & Replace title |
 | Cancel Text Search | `cInsight.textSearch.cancel` | Command Palette; Search & Replace title |
-| Open Large Search Results Window | `cInsight.textSearch.openResults` | Command Palette |
+| Open Results Window | `cInsight.textSearch.openResults` | Command Palette |
 
 <!-- GENERATED COMMAND REFERENCE END -->

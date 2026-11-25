@@ -4,7 +4,7 @@ const vscode=acquireVsCodeApi(), $=id=>document.getElementById(id);
 let state,selected,sequence=0,generation=-1,flat=[],rowHeight=26,frame,maximumWidth=0;
 const files=new Map(),checked=new Set(),collapsed=new Map(),rendered=new Map();
 const send=(type,extra={})=>vscode.postMessage({type,revision:state?.revision,...extra});
-for(const id of ['openResultsTop','openResultsBottom']){$(id).textContent=labels.openResults;$(id).onclick=()=>send('openResults');}
+$('openResultsTop').textContent=labels.openResults;$('openResultsTop').onclick=()=>send('openResults');
 for(const id of ['search','current','checked','all'])$(id).textContent=labels[id];
 for(const id of ['query','replacement','include','exclude']){$(id).placeholder=labels[id];$(id).setAttribute('aria-label',labels[id]);}
 for(const id of ['clear','cancel','previous','next','folder']){$(id).title=labels[id];$(id).setAttribute('aria-label',labels[id]);}

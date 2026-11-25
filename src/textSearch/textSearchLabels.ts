@@ -17,7 +17,7 @@ export function textSearchLabels() {
     partial: vscode.l10n.t("Partial results (cancelled, skipped files or limit reached)."),
     idle: vscode.l10n.t("Enter text and press Enter to search. Single-click previews; double-click or Enter opens the editor."),
     summary: vscode.l10n.t("Matches / scanned / skipped / timed out"), selectAll: vscode.l10n.t("Select all matches"),
-    openResults: vscode.l10n.t("Open large results window"), snapshot: vscode.l10n.t("Search snapshot"), frozen: vscode.l10n.t("Snapshot complete; new searches do not replace these results."),
+    openResults: vscode.l10n.t("Open results window"), snapshot: vscode.l10n.t("Search snapshot"), frozen: vscode.l10n.t("Snapshot complete; new searches do not replace these results."),
     shown: vscode.l10n.t("Displayed / total matches"), hiddenChecked: vscode.l10n.t("Checked matches outside this list"),
   };
 }

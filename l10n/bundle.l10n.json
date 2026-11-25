@@ -294,7 +294,7 @@
   "Enter text and press Enter to search. Single-click previews; double-click or Enter opens the editor.": "Enter text and press Enter to search. Single-click previews; double-click or Enter opens the editor.",
   "Matches / scanned / skipped / timed out": "Matches / scanned / skipped / timed out",
   "Select all matches": "Select all matches",
-  "Open large results window": "Open large results window",
+  "Open results window": "Open results window",
   "Search snapshot": "Search snapshot",
   "Snapshot complete; new searches do not replace these results.": "Snapshot complete; new searches do not replace these results.",
   "Displayed / total matches": "Displayed / total matches",
