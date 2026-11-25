@@ -1,6 +1,6 @@
 # C Insight 文档索引
 
-本文档集对应 C Insight `0.23.4`，按用途分为以下五类。项目介绍和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
+本文档集对应 C Insight `0.24.0`，按用途分为以下五类。项目介绍和快速开始见 [English README](../README.md) 或[简体中文 README](../README.zh-CN.md)；源码、Issue 与发布包位于 [GitHub 仓库](https://github.com/H9elix/c-insight)。
 
 ## 用户文档 `user/`
 
@@ -27,7 +27,7 @@
 - [工程文件验证](validation/project-files.zh-CN.md)：文件清单、筛选、排序、焦点跟随、独立锁定和居中定位的自动覆盖与人工检查。
 - [组合视图验证](validation/combined-views.zh-CN.md)：多实例共享结果、局部显示状态、可见性需求、分隔条和悬停扩展的自动与人工检查。
 - [搜索与替换验证](validation/text-search.zh-CN.md)：文本范围、匹配／编码／忽略规则、替换冲突和撤销、可见性、组合呈现及资源预算。
-- [文本搜索性能对照](validation/text-search-performance.zh-CN.md)：只读 FFmpeg 的同候选清单计时、原生筛选与 JavaScript 校验、完整位置核对及界面验收方法。
+- [文本搜索性能对照](validation/text-search-performance.zh-CN.md)：只读 FFmpeg 与合成工程的实际原生界面五轮对照、原生匹配流、完整位置核对及首开计时。
 - [视图入口与菜单验证](validation/view-discovery.zh-CN.md)：统一视图选择、首次可见提示、右键分组、直接原生聚焦及无查询取消的验证方法。
 - [代码预览固定配色使用与验证](validation/code-preview-fixed-colors.zh-CN.md)：深浅预设、完整默认颜色、自定义配置、输入校验和验收记录。
 - [编译参数宏的构造与查询验证](validation/command-line-macros.zh-CN.md)：仅通过 `-D` 注入宏的可编译 C 工程、原始协议和 C Insight 实测，含宏值 `1`、`0` 的生效分支函数调用者与函数式编译宏展开对照；区分已验收的识别、引用及宏调用者与未修复的定义/自动预览边界，关联 `CI-REG-049`。
@@ -40,7 +40,7 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.23.4 发布说明](releases/v0.23.4.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
+- [C Insight 0.24.0 发布说明](releases/v0.24.0.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门检查版本、中英双语、比较链接和未完成占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 

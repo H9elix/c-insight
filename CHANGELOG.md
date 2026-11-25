@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.24.0
 
 - Added engine-independent Search & Replace with explicit queries across current/open files, folders or workspaces, native regex/whole-word/newline matching, ignore rules and unsaved-buffer priority. The bundled backend directly streams matches without a second full-text search.
 - Follow native `search.maxResults` (20000 by default; `null` means unlimited) instead of separate legacy search caps. Small views display a configurable prefix of 200 matches, with complete results retained for replacement.

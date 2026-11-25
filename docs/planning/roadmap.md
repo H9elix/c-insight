@@ -2,7 +2,7 @@
 
 ## Current status
 
-The maintained baseline is `0.23.4`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, workspace file and symbol browsing, and optional combined views. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
+The maintained baseline is `0.24.0`. C Insight provides dual-engine navigation, occurrence-based call trees, macro-aware Callers, configurable preview palettes, shared result-tree interaction, workspace file and symbol browsing, and optional combined views. The [user guides](../user/user-guide.en.md) describe current behavior; validation reports record environments and reproducible checks.
 
 Document Symbols and Project Files provide persistent search, sorting, active-target highlighting and independent locks. Shared focus and follow ownership clears queries after successful unlocked opens, clears only a hiding query during ordinary unfocused follow, and preserves input and scrolling during focused interaction; see [CI-REG-042](../validation/historical-issues.zh-CN.md#ci-reg-042).
 
@@ -14,7 +14,7 @@ Compiler-macro definition locations, automatic Code Preview placement and worksp
 
 ## Native text search and query snapshots
 
-The feature branch directly consumes bundled native search matches for disk and unsaved documents. Regex, whole words and newline handling follow native workspace-search conventions instead of the historical custom JavaScript matcher. Captures are expanded by the same native matcher during validated replacement planning.
+Text search directly consumes bundled native search matches for disk and unsaved documents. Regex, whole words and newline handling follow native workspace-search conventions instead of the historical custom JavaScript matcher. Captures are expanded by the same native matcher during validated replacement planning.
 
 Content/version conflict checks, replacement confirmation and native undo remain in place. Current interaction, settings and result-window behavior are described in the [user guide](../user/user-guide.en.md#view-text-search).
 
@@ -22,7 +22,7 @@ Search follows `search.maxResults` (20000 by default; `null` removes the match-c
 
 The ordinary view displays the first 200 matches by default, configurable independently of search completeness. A single button above results opens an editor-area read-only snapshot, which collects its original in-flight query until completion/cancellation and then stays fixed. Different query windows can coexist; same-query reopening focuses its existing window. Navigation and folding remain independent, with no replacement authority. Original-view replacement uses the complete query and reports hidden checked matches.
 
-Performance acceptance compares identical queries in the actual native and C Insight interfaces, with matched scope, settings, source/buffer state and result limits. After warm-up, alternate five runs and compare medians for first visible results, search completion and final rendering. Each target is `C Insight <= max(native * 1.2, native + 100 ms)`; no-hit queries omit first-result timing and first-open costs are recorded separately. Use read-only FFmpeg and synthetic fixtures without analysis-engine activity. Raw ripgrep timing is diagnostic evidence, not UI acceptance. Implement in local commit batches and deliver a temporary VSIX before any formal version, merge or publication.
+Performance acceptance compares identical queries in the actual native and C Insight interfaces, with matched scope, settings, source/buffer state and result limits. After warm-up, alternate five runs and compare medians for first visible results, search completion and final rendering. Each target is `C Insight <= max(native * 1.2, native + 100 ms)`; no-hit queries omit first-result timing and first-open costs are recorded separately. Use read-only FFmpeg and synthetic fixtures without analysis-engine activity. Raw ripgrep timing is diagnostic evidence, not UI acceptance. The maintainer accepted the temporary build and authorized the `0.24.0` release; execution evidence remains in the [search validation](../validation/text-search.zh-CN.md).
 
 ## Completed phases
 

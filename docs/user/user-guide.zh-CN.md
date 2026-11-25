@@ -1,6 +1,6 @@
 # C Insight 使用手册
 
-本文对应 C Insight `0.23.4`。先介绍安装与快速开始，再按 16 个独立视图说明功能，随后介绍布局、浏览工具、更新机制、会话、配置与故障排查。源码、Issue 与发布包见 [GitHub 仓库](https://github.com/H9elix/c-insight)，交叉工具链配置另见[专项指南](cross-compilation.zh-CN.md)。
+本文对应 C Insight `0.24.0`。先介绍安装与快速开始，再按 16 个独立视图说明功能，随后介绍布局、浏览工具、更新机制、会话、配置与故障排查。源码、Issue 与发布包见 [GitHub 仓库](https://github.com/H9elix/c-insight)，交叉工具链配置另见[专项指南](cross-compilation.zh-CN.md)。
 
 阅读导航：
 
