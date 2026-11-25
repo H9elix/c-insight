@@ -47,6 +47,9 @@ jobs:
       - name: Run quality gate
         run: npm run check
 
+      - name: Package and verify platform-specific and Universal VSIX files
+        run: node scripts/package-release.mjs
+
       - name: Run VS Code Extension Host smoke test
         run: npm run test:e2e:xvfb
 

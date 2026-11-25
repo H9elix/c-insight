@@ -46,16 +46,17 @@ jobs:
       - name: Audit and package
         run: |
           npm audit --audit-level=low
-          npm run package
+          npm run package:release
 
-      - name: Create checksums
-        run: sha256sum "c-insight-${GITHUB_REF_NAME#v}.vsix" > SHA256SUMS
+      - name: Verify every release package and checksum
+        run: npm run package:release:verify
 
       - name: Publish GitHub Release
         run: |
+          packages=".cache/release-packages/${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
-            "c-insight-${GITHUB_REF_NAME#v}.vsix" \
-            SHA256SUMS \
+            "$packages"/*.vsix \
+            "$packages/SHA256SUMS" \
             --verify-tag \
             --fail-on-no-commits \
             --notes-file "docs/releases/$GITHUB_REF_NAME.md" \

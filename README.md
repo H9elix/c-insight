@@ -100,7 +100,7 @@ Detailed behavior, every command, and the complete configuration table are maint
 
 ### 1. Install
 
-Download `c-insight-<version>.vsix` and `SHA256SUMS` from the [latest GitHub Release](https://github.com/H9elix/c-insight/releases/latest), verify the checksum, and run **Extensions: Install from VSIX...** in VS Code.
+Download the VSIX matching your extension host's OS and architecture, together with `SHA256SUMS`, from the [latest GitHub Release](https://github.com/H9elix/c-insight/releases/latest). Prefer `c-insight-<version>-<platform>.vsix` when available, or choose `c-insight-<version>-universal.vsix`; a package without a platform suffix is also Universal. Verify the checksum and run **Extensions: Install from VSIX...** in VS Code. For WSL or SSH, choose the remote host's platform, not your desktop's. See [package selection](docs/user/user-guide.en.md#prerequisites).
 
 ### 2. Choose an analysis engine
 

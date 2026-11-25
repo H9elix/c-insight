@@ -378,6 +378,9 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/generate-third-party-notices.mjs` / `npm run third-party:generate` | 从锁定的生产依赖及其许可证文件生成 `THIRD_PARTY_NOTICES.md`；`third-party:check` 检查漂移。 |
 | `scripts/bundle-extension.mjs` | esbuild 生产打包入口，保持 `vscode` 外部依赖并启用客户端匹配器兼容补丁。 |
 | `scripts/copy-search-assets.mjs` | 将锁定依赖的跨平台 ripgrep 二进制及许可证复制到 `dist/ripgrep`；与匹配线程一起纳入 VSIX，运行时按宿主平台／架构选择。 |
+| `scripts/release-targets.mjs` | 统一维护正式发布平台、Universal 资源清单、ARM 目录映射和临时包命名。 |
+| `scripts/package-release.mjs` / `npm run package:release` | 完整检查后，在隔离目录生成 7 个平台专用 VSIX、1 个 Universal 和统一校验和，不裁剪工作副本的 `dist`。 |
+| `scripts/verify-release-assets.mjs` / `npm run package:release:verify` | 独立核验全部附件的 CRC、平台标记、版本、资源、执行权限、共享内容一致性及 SHA-256。 |
 | `scripts/languageclient-minimatch-compat.mjs` | 仅在打包时适配 `vscode-languageclient@10.1.0` 两处旧匹配器检查；版本、源码位置或打包覆盖不符时终止构建。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |
@@ -446,13 +449,20 @@ npm run test:e2e:ffmpeg:microsoft
 npm run package
 ```
 
-该命令会再次执行完整 `check`，然后生成 `c-insight-<version>.vsix`。
+该命令会再次执行完整 `check`，然后生成本地通用包 `c-insight-<version>.vsix`。正式发布附件使用：
+
+```bash
+npm run package:release
+npm run package:release:verify
+```
+
+输出目录为 `.cache/release-packages/<version>/`，包含 7 个平台专用包、1 个显式命名的 Universal 包和覆盖全部 VSIX 的 `SHA256SUMS`。临时包、平台对应关系、Remote 选包和跨平台验收步骤见[发布打包指南](release-packaging.zh-CN.md)。
 
 新功能或修复先使用可区分的临时 VSIX 文件名供用户验收，不提前迭代正式版本、推送或发布。用户确认功能正确并授权发布后，再提升 `package.json` 与锁文件版本、更新当前文档和对应的中英双语发布说明，按下述流程发布；历史版本说明和带日期的实测数据保留原始含义。
 
 GitHub Release 正文只写功能新增、修复及用户可感知的行为变化，不写文档更新；测试结果和已知限制归入测试指导、案例库及专项文档。发布说明契约检查版本、中英双语、比较链接和未完成占位符，不强制安装校验章节。实际发布仍需执行检查并核验附件；已有发布说明保持原文。
 
-公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门，并运行主宿主、工程文件、组合视图及两种宏分支专项。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计和打包、生成 `SHA256SUMS`，然后将该中英双语文件作为 GitHub Release 正文并附加 VSIX 与校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
+公开仓库的 `.github/workflows/ci.yml` 在 `main` 和 Pull Request 上使用 Node.js 22、clangd 20 与隔离 Extension Host 执行依赖审计和质量门，生成并核验完整平台附件集，并运行主宿主、工程文件、组合视图及两种宏分支专项。正式发布时，先把发布提交推送到 `main` 并等待普通 CI 成功，再创建带说明的 `v<version>` Tag；不要同时推送分支和 Tag。`.github/workflows/release.yml` 只响应与 `package.json` 版本完全一致的 Tag，会再次验证对应的 `docs/releases/v<version>.md`、重新审计、执行 `package:release` 并独立核验，然后将该中英双语文件作为 GitHub Release 正文并附加全部平台包、Universal 与统一校验和。首次或手动发布同样不得提交这些构建产物到 Git。基础端到端夹具同时包含 C 和 C++：根 `compile_flags.txt` 提供 C++17 参数，夹具 `.clangd` 为 `.c` 文件移除该参数并改用 C17。全新 CI 机器没有 clangd 索引缓存；调用层次（Call Hierarchy）断言会在有界时间内定期显式刷新暂时不完整的结果，并在超时时报告实际观察到的调用点，避免把无效语言参数或后台索引尚未完成误判为产品回归。
 
 真实 FFmpeg 验收没有个人机器默认路径：运行 clangd 验收前必须设置 `C_INSIGHT_FFMPEG_ROOT=/path/to/FFmpeg`，运行 Microsoft E2E 前必须设置 `C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg`。这两个命令都只在显式请求真实工程验收时运行，不属于普通 PR 的默认门槛。
 

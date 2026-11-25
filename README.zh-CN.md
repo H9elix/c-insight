@@ -99,7 +99,7 @@ VS Code 本身已经支持移动、归组和手动调整视图尺寸。组合视
 
 ### 1. 安装
 
-从[最新 GitHub Release](https://github.com/H9elix/c-insight/releases/latest) 下载 `c-insight-<version>.vsix` 和 `SHA256SUMS`，校验后在 VS Code 中运行 **扩展：从 VSIX 安装...**。
+从[最新 GitHub Release](https://github.com/H9elix/c-insight/releases/latest) 下载与扩展宿主系统和架构匹配的 VSIX 及 `SHA256SUMS`。有平台专用包时，优先选择 `c-insight-<version>-<platform>.vsix`；也可选择 `c-insight-<version>-universal.vsix`，无平台后缀的包同样是通用包。校验后在 VS Code 中运行 **扩展：从 VSIX 安装...**。使用 WSL 或 SSH 时，按远端系统选包，而不是按桌面系统选包；详见[安装准备](docs/user/user-guide.zh-CN.md#prerequisites)。
 
 ### 2. 选择分析引擎
 

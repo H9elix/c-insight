@@ -55,7 +55,9 @@ Bug fixes should add the smallest appropriate automated regression and retain a 
 
 Every package version must have curated bilingual notes at `docs/releases/v<version>.md`. Describe functional additions, fixes, and user-visible behavior changes in Chinese and English, add the version comparison link, and remove every `TODO` or `TBD` placeholder. Omit documentation-only changes; keep test results and known limitations in validation documentation. `npm run release:notes:check` validates the file independently and is also part of `npm run check`.
 
-Push the release commit to `main` and wait for the ordinary CI workflow to succeed before creating an annotated `v<version>` tag. Pushing the tag starts the Release workflow, which revalidates the tag and notes, reruns the audit and package gate, creates `SHA256SUMS`, and publishes the curated notes with the VSIX and checksum attached. Do not commit generated VSIX or checksum files.
+Push the release commit to `main` and wait for the ordinary CI workflow to succeed before creating an annotated `v<version>` tag. Pushing the tag starts the Release workflow, which revalidates the tag and notes, reruns the audit and `npm run package:release` gate, and publishes the curated notes with all platform-specific VSIX packages, the Universal VSIX and one `SHA256SUMS` attached. The packaging step validates archive CRCs, installation targets, native hashes and permissions, shared payloads and complete checksums before publication. Do not commit generated packages or checksum files.
+
+`npm run package` remains the local Universal build. For release assets, use `npm run package:release`; verify them independently with `npm run package:release:verify`. The default output is `.cache/release-packages/<version>/`. For temporary builds, pass `-- --out-dir .cache/release-packages/platform-preview --suffix platform-packages-preview`. Platform names, ARM mapping and Remote installation guidance are documented in the [packaging guide](docs/development/release-packaging.zh-CN.md). GitHub Release publication does not publish packages to Marketplace.
 
 ## Architecture
 

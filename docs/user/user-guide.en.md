@@ -22,6 +22,8 @@ Reading guide:
 
 Use VS Code 1.95 or newer. Managed clangd is the default engine; clangd 20 or newer is recommended for complete Call Hierarchy support. Microsoft mode requires Microsoft C/C++ in the same extension host. For WSL, SSH and containers, install C Insight and the engine where the source lives. Provide a real compile_commands.json whenever possible.
 
+For GitHub downloads, choose a platform-specific VSIX when available: Windows uses `win32-x64` or `win32-arm64`; Linux uses `linux-x64`, `linux-arm64` or `linux-armhf` (32-bit ARM); macOS uses `darwin-x64` (Intel) or `darwin-arm64` (Apple Silicon). Each contains only its native search executable. The `universal` package contains all twelve bundled native variants; a VSIX with no platform suffix is also Universal. Choose according to the extension host: Windows with x64 WSL needs `linux-x64`, while an ARM64 Linux SSH host needs `linux-arm64`. Verify your downloaded VSIX against its entry in `SHA256SUMS`. Universal is a packaging choice, not support for browser-only VS Code or every possible OS.
+
 ### 1.2 Display language
 
 C Insight follows the VS Code display language: Simplified Chinese for zh-cn and English as the fallback. Run Configure Display Language and reload to change it. Symbol names, paths, command IDs and raw engine logs remain untranslated.

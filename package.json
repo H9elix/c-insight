@@ -121,7 +121,9 @@
     "test:e2e:combined": "npm run build && xvfb-run -a node dist/test/e2e/runCombinedViewTest.js",
     "test:e2e:text-search": "npm run build && xvfb-run -a node dist/test/e2e/runTextSearchTest.js",
     "check": "npm run lint && npm run test && npm run l10n:check && npm run ids:check && npm run docs:commands:check && npm run docs:terms:check && npm run docs:prose:check && npm run docs:links:check && npm run release:notes:check && npm run third-party:check && npm run build",
-    "package": "npm run check && npx @vscode/vsce package --no-dependencies"
+    "package": "npm run check && npx @vscode/vsce package --no-dependencies",
+    "package:release": "npm run check && node scripts/package-release.mjs",
+    "package:release:verify": "node scripts/verify-release-assets.mjs"
   },
   "dependencies": {
     "@eslint-community/regexpp": "4.12.2",
@@ -140,6 +142,7 @@
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.16.0",
+    "jszip": "3.10.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0"
   },

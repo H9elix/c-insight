@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Provide Windows, Linux and macOS platform-specific VSIX downloads alongside an explicitly named Universal package, with a shared checksum manifest.
+
 ## 0.24.0
 
 - Added engine-independent Search & Replace with explicit queries across current/open files, folders or workspaces, native regex/whole-word/newline matching, ignore rules and unsaved-buffer priority. The bundled backend directly streams matches without a second full-text search.

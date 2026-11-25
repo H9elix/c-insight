@@ -50,7 +50,7 @@
 | 会话、关系图、文档符号 | 040–042、056 | `graphSessionLifecycle`、`workspaceSession`、`callHierarchyViewState`、`documentSymbolFocusModel`、`documentSymbolSortModel`、`documentSymbolSearchWiring`、`resultTreeFollowController`；完整内存索引与浏览器筛选另查 `resultTreeModel`/`resultTreeClient`，宿主覆盖折叠符号激活、成功打开清空、焦点/锁定、排序和关闭跟随；收缩后的可见性修正另查 `combinedViewportFollow`；关闭/重开工程与切换引擎 |
 | 工程文件 | 022、024、037、042–043、056 | `projectFileModel`、`projectFileFollowModel`、`resultTreeFollowController`、`resultTreeClient`；隔离多根 `test:e2e:project-files`，检查搜索、焦点/锁定、居中定位、异步打开、标记、文件事件及可见性；组合收缩检查 `combinedViewportFollow`，详见[专项验证](project-files.zh-CN.md) |
 | 组合视图、多显示实例 | 022–028、037、042–043、045、050–053、056 | `combinedModel`、`combinedBridge`、`combinedManifestRuntime`、`combinedReorderClient`/`combinedReorderHost`、真实组合宿主 `runCombinedViewTest`；总工具栏/悬停时长、左右贴边与内部边距、标题排序/比例/取消、主题/字体/滚动条、本地化对象、命令创建及配置入口、共享结果/固定、局部展开/筛选/滚动、收缩时高亮可见性、有效可见性和无查询的悬停，详见[专项验证](combined-views.zh-CN.md) |
-| 文档、本地化、构建、发布 | 044–047 | `documentationCompleteness` 检查连续编号、16 个独立视图、README 清单、配置／命令覆盖及手册锚点；另执行本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`。依赖覆盖需核对生产补丁，Release 附件与隐私人工复核 |
+| 文档、本地化、构建、发布 | 044–047 | `documentationCompleteness` 检查连续编号、16 个独立视图、README 清单、配置／命令覆盖及手册锚点；另执行本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`releasePackaging`、`dependencyCompatibility`、`cpptoolsExtensionPath`。平台附件检查目标、原生程序、权限和完整校验和；依赖覆盖需核对生产补丁，Release 附件与隐私人工复核 |
 | 打开视图、首次可见提示、编辑器菜单 | 037、043–044、050 | `viewCatalog`、`viewDiscovery`、`viewMenu`；组合宿主覆盖原生选择／取消、准确聚焦及请求计数，搜索键入、右键视觉和中文／Remote 按[专项验证](view-discovery.zh-CN.md)人工检查 |
 | WSL 中的 VSIX 安装与 CLI 启动 | 046、054–055 | 先区分 Windows 启动器、当前服务器 `remote-cli`、UNC 源文件读取与安装目标；核对外部 Windows 程序启动和 WSL 窗口 UI 安装，UNC 被拦截时用本地盘符副本验证，不关闭全部访问保护，不用插件 E2E 代替系统检查 |
 | 搜索与替换 | 022、035、037–038、057 | `nativeSearch`、`textSearchModel`、`textSearchWebview`、`textSearchSafety`、`searchPresentationDelta`；隔离 `runTextSearchTest` 覆盖原生规则、内存覆盖、编码、跨文件替换／撤销、冲突、隐藏取消、显示上限和独立快照；实际原生界面交替五轮及完整位置核对见[性能对照](text-search-performance.zh-CN.md)，人工重点见[专项验证](text-search.zh-CN.md) |
@@ -129,7 +129,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 11. 光标与编辑：空白不清空已有结果；慢速输入前三个字符和持续输入都不触发额外的光标自动语义查询；随后鼠标或方向键主动移动仍能恢复跟随。
 12. 可见性与状态：隐藏或折叠窗口不触发其光标查询，独立查询包含/被包含方向；关闭关系图后重开工作区不能恢复它；未关闭的受支持会话状态按配置恢复。
 13. 主题与布局：中文/英文、明暗主题、长行、多面板布局及文档符号中心指示正常；不要把主题颜色不同或显示“编辑器中心”当成语义查询失败。固定配色还需检查三种模式、类别覆盖/非法值回退、锁定时热更新不重置滚动和隐藏后应用新配置，详见[配色验收](code-preview-fixed-colors.zh-CN.md)。
-14. 配置与交付：在对应 WSL/SSH 或多根环境核对配置写入位置；确认临时包、版本、提交和日志来自同一构建。发布按先主干 CI、后版本 Tag 的顺序执行，并下载正式附件验校验和。
+14. 配置与交付：在对应 WSL/SSH 或多根环境核对配置写入位置；确认临时包、版本、提交和日志来自同一构建。发布按先主干 CI、后版本 Tag 的顺序执行，并下载全部平台包、Universal 和校验和，执行 `package:release:verify`。按扩展宿主选包，平台包与 Universal 分别检查一次搜索和替换撤销；归档可自动核验，非本机系统的执行与安装仍需对应环境。详见[平台发布指南](../development/release-packaging.zh-CN.md)。
 15. 引用分组展开：所有非平铺分组都遵守 `cInsight.references.autoExpandGroups`，默认关闭；运行时切换不额外查询，平铺与手动全部展开/折叠不回归。
 16. 工程文件：搜索常驻；未锁定成功打开后清空，离焦时只在筛选隐藏当前文件时清空并定位，视图内搜索/菜单交互不跳动；锁定后保留输入及滚动但高亮继续更新。筛选后打开及切换编辑器标签页时尽量将高亮文件居中，首尾自然限位，同一可见文件的重复更新不反复拉回。自动动作不抢焦点，失败或迟到打开不覆盖新查询。隐藏不扫描、文本编辑不重扫，文件变化合并刷新；另核对多根同名文件、二进制打开、数量提示及稳定锁定按钮。
 17. 文档符号搜索：顶部输入常驻，大小写不敏感名称子串命中折叠类/结构体成员并保留父链；“×”和 Escape 清空不隐藏，正常展开记录不被筛选操作覆盖。未锁定时双击、Enter、右键打开成功后清空，重复打开同一符号也适用；单击预览、打开失败和后来输入的新词保持不变。窗口内搜索/列表/菜单交互不跳动，离焦跟随只清空隐藏中心符号的查询，仍命中则保留；按稳定 ID 而不是投影对象判断可见性。锁定暂停自动清空/滚动，但不冻结数据或高亮；解锁按焦点规则恢复，按钮槽位和其他窗口状态不变。关闭中心跟随时，显式打开仍可清空但不展开祖先或滚动。隐藏重显保留搜索状态，位置/名称/类型排序只重排同层且不增加语义查询。真实图标、搜索输入、隐藏重显、排序菜单和滚动仍需人工验收。

@@ -25,6 +25,7 @@
 - New runtime changes are first delivered as a descriptively named temporary VSIX. Do not increment the formal version, push, tag, or publish until the maintainer accepts the behavior and authorizes release.
 - Commit completed local changes automatically, excluding unrelated user files. Use the repository's established `H9elix` / GitHub noreply identity; do not change global Git configuration or rewrite history without explicit authorization.
 - For an authorized release, synchronize current documentation and curated bilingual notes, push `main`, wait for that commit's CI success, then push the annotated version tag. Verify the published assets and checksums. GitHub Release publication is not Marketplace publication.
+- Each future release must include the platform-specific VSIX packages and an explicitly named Universal VSIX, with all files listed in one `SHA256SUMS`. Use `npm run package:release`; verify target metadata, native executable contents and permissions, and choose Remote packages for the extension host rather than the desktop OS.
 - Never write credentials, private source excerpts, raw private logs, or personal machine paths into public regression records. Use minimal synthetic fixtures and redacted evidence.
 
 ## GitHub Release writing preference

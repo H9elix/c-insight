@@ -53,6 +53,8 @@ C Insight 使用 VS Code 官方本地化机制，界面语言自动跟随 VS Cod
 
 安装 VSIX 后，打开 C/C++ 工程并单击 Activity Bar 中的 **C Insight** 图标。默认模式会启动独立的 clangd 进程；也可显式选择已安装的微软 C/C++ 提供程序（Provider）。两种模式不会同时由 C Insight 启动。
 
+从 GitHub 下载时，有平台专用包则优先选择：Windows 对应 `win32-x64` 或 `win32-arm64`；Linux 对应 `linux-x64`、`linux-arm64` 或 `linux-armhf`（32 位 ARM）；macOS 对应 `darwin-x64`（Intel）或 `darwin-arm64`（Apple Silicon）。专用包只携带该平台的搜索程序；`universal` 包保留全部 12 种内置搜索程序，无平台后缀的 VSIX 也是通用包。应按扩展宿主选择，例如 Windows 连接 x64 WSL 时选择 `linux-x64`，SSH 连接 ARM64 Linux 时选择 `linux-arm64`。下载后使用 `SHA256SUMS` 中对应文件名的条目校验。通用包表示合并分发已有平台资源，不表示支持纯浏览器版 VS Code 或任意操作系统。
+
 如果 clangd 不在 `PATH` 中，可设置：
 
 ```json

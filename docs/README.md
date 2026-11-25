@@ -12,6 +12,7 @@
 ## 开发维护 `development/`
 
 - [中文开发者手册](development/developer-guide.zh-CN.md)：包含源码文件职责、状态所有权、测试与发布流程。
+- [平台专用包与 Universal 发布](development/release-packaging.zh-CN.md)：发布平台、Remote 选包、隔离打包、附件校验和各平台安装检查。
 - [架构说明](development/architecture.md)：核心架构、数据流、信任边界和架构守卫。
 - [自绘结果树交互与维护](development/custom-result-trees.zh-CN.md)：视图范围、操作规则、视图分组、模块职责与重点回归项目。
 
