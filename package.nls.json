@@ -237,7 +237,7 @@
   "command.cInsight.searchText.title": "C Insight: Search Text…",
   "command.cInsight.textSearch.run.title": "C Insight: Run Text Search",
   "command.cInsight.textSearch.cancel.title": "C Insight: Cancel Text Search",
-  "configuration.cInsight.textSearch.maximumFiles.description": "Maximum number of text files examined per search.",
-  "configuration.cInsight.textSearch.maximumMatches.description": "Maximum number of text matches retained per search.",
-  "configuration.cInsight.textSearch.maximumFileMegabytes.description": "Maximum file size in MiB for text search."
+  "configuration.cInsight.textSearch.maximumFiles.description": "Deprecated and ignored. Native text search has no separate candidate-file limit.",
+  "configuration.cInsight.textSearch.maximumMatches.description": "Deprecated and ignored. Configure search.maxResults instead (null means no match-count limit).",
+  "configuration.cInsight.textSearch.maximumFileMegabytes.description": "Deprecated and ignored. Native text search has no separate per-file size limit."
 }

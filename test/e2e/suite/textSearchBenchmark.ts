@@ -11,9 +11,9 @@ import { searchDiagnostics } from "../../../src/textSearch/searchDiagnostics";
 export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension("H9elix.c-insight")!;
   assert(!extension.isActive, "Benchmark must not activate analysis engines against the source workspace");
-  const backend = process.env.C_INSIGHT_TEXT_SEARCH_BACKEND === "javascript" ? "javascript" : "auto";
+  const backend = "native";
   const caseSensitive = process.env.C_INSIGHT_TEXT_SEARCH_CASE_SENSITIVE !== "0";
-  const search = new WorkspaceTextSearch(join(extension.extensionPath, "dist/textSearchWorker.js"), {backend});
+  const search = new WorkspaceTextSearch(join(extension.extensionPath, "dist/textSearchWorker.js"));
   const queries = ["CI_SEARCH_ABSENT_c2a6d8e0", "avcodec_receive_frame", "return"];
   const rows: unknown[] = [];
   for (const query of queries) {

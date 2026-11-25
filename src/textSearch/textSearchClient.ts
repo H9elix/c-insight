@@ -8,16 +8,16 @@ for(const id of ['search','current','checked','all'])$(id).textContent=labels[id
 for(const id of ['query','replacement','include','exclude']){$(id).placeholder=labels[id];$(id).setAttribute('aria-label',labels[id]);}
 for(const id of ['clear','cancel','previous','next','folder']){$(id).title=labels[id];$(id).setAttribute('aria-label',labels[id]);}
 $('toggle').title=labels.replace;$('preserveLabel').textContent=labels.preserveCase;$('ignoresLabel').textContent=labels.useIgnores;
-for(const id of ['caseSensitive','wholeWord','regex','multiline']){
+for(const id of ['caseSensitive','wholeWord','regex']){
   const label=document.createElement('label');label.className='option';const input=document.createElement('input');input.type='checkbox';input.id=id;
   label.append(input,document.createTextNode(labels[id]));$('options').append(label);
 }
 for(const id of ['workspace','file','open','folder']){const option=document.createElement('option');option.value=id;option.textContent=labels[id];$('scope').append(option);}
 $('scope').setAttribute('aria-label',labels.scope);
 const input=()=>{const value={client,sequence:++sequence};for(const id of ['query','replacement','include','exclude','scope'])value[id]=$(id).value;
-  for(const id of ['caseSensitive','wholeWord','regex','multiline','useIgnores','preserveCase'])value[id]=$(id).checked;send('input',value);};
+  for(const id of ['caseSensitive','wholeWord','regex','useIgnores','preserveCase'])value[id]=$(id).checked;send('input',value);};
 for(const id of ['query','replacement','include','exclude'])$(id).addEventListener('input',input);
-for(const id of ['caseSensitive','wholeWord','regex','multiline','useIgnores','preserveCase'])$(id).onchange=input;
+for(const id of ['caseSensitive','wholeWord','regex','useIgnores','preserveCase'])$(id).onchange=input;
 $('scope').onchange=()=>{input();if($('scope').value==='folder')send('folder');};$('folder').onclick=()=>send('folder');
 $('search').onclick=()=>{input();send('search');};$('clear').onclick=()=>{$('query').value='';input();$('query').focus();};
 $('cancel').onclick=()=>send('cancel');$('toggle').onclick=()=>send('toggle');
@@ -104,7 +104,7 @@ function paint(next){
   if(!pending){
     for(const id of ['query','include','exclude','scope']){const value=state.request[id]??'';if($(id).value!==value)$(id).value=value;}
     if($('replacement').value!==state.replacement)$('replacement').value=state.replacement;
-    for(const id of ['caseSensitive','wholeWord','regex','multiline','useIgnores'])$(id).checked=state.request[id];$('preserveCase').checked=state.preserveCase;
+    for(const id of ['caseSensitive','wholeWord','regex','useIgnores'])$(id).checked=state.request[id];$('preserveCase').checked=state.preserveCase;
   }
   $('replaceArea').hidden=!state.replaceVisible;$('cancel').disabled=!state.loading;$('search').disabled=state.planning;$('folder').hidden=state.request.scope!=='folder';
   for(const id of ['current','checked','all'])$(id).disabled=!state.ready||state.planning;

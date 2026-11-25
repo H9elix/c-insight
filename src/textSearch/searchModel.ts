@@ -20,6 +20,8 @@ export interface TextMatch {
   value: string;
   captures: (string | undefined)[];
   groups?: Record<string, string | undefined>;
+  /** Expanded by the native matcher while constructing a validated replacement plan. */
+  replacementValue?: string;
 }
 export interface MatchResult { matches: TextMatch[]; truncated: boolean }
 export const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
@@ -98,8 +100,8 @@ export function replacementText(text: string, match: TextMatch, replacement: str
     const first = Number(key[0]);
     return key.length === 2 && first > 0 && first <= match.captures.length ? (match.captures[first - 1] ?? "") + key[1] : whole;
   };
-  let result = replacement;
-  if (regex) {
+  let result = match.replacementValue ?? replacement;
+  if (regex && match.replacementValue === undefined) {
     const pieces: string[] = []; let offset = 0, length = 0;
     for (const token of replacement.matchAll(/\$(\$|&|`|'|\d{1,2}|<[^>]+>)/g)) {
       const prefix = replacement.slice(offset, token.index), value = expand(token[0], token[1]);

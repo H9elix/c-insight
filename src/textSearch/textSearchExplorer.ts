@@ -5,7 +5,6 @@ import { INTERNAL_COMMANDS, VIEWS } from "../ids";
 import type { ViewRegistrar } from "../views/viewDiscovery";
 import { contentHash, replacementText, type TextMatch } from "./searchModel";
 import { DEFAULT_SEARCH_OPTIONS } from "./searchModel";
-import { MatchingWorker } from "./matchingPool";
 import { applyReplacementPlan, canReplace, createReplacementPlan, ReplacementSnapshots, type ReplacementPlan } from "./replacementPlan";
 import { renderTextSearch } from "./textSearchWebview";
 import { textSearchLabels } from "./textSearchLabels";
@@ -54,7 +53,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     this.current = vscode.window.activeTextEditor?.document.uri;
     this.listeners.push(registrar(VIEWS.TEXT_SEARCH, this, {webviewOptions: {retainContextWhenHidden: true}}),
       vscode.workspace.onDidChangeConfiguration(event => {
-        if (["cInsight.textSearch", "files.encoding", "files.exclude", "search.exclude"].some(key => event.affectsConfiguration(key))) {
+        if (["files.encoding", "files.exclude", "search"].some(key => event.affectsConfiguration(key))) {
           this.cancel(); this.invalidate(true);
         }
       }),
@@ -104,14 +103,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     this.publish();
   }
   private budget() {
-    const config = vscode.workspace.getConfiguration("cInsight.textSearch");
-    const integer = (key: string, fallback: number, maximum: number): number => {
-      const value = config.get<number>(key, fallback);
-      return Number.isFinite(value) ? Math.max(1, Math.min(maximum, Math.floor(value))) : fallback;
-    };
-    return {maximumFiles: integer("maximumFiles", DEFAULT_SEARCH_BUDGET.maximumFiles, 200000),
-      maximumMatches: integer("maximumMatches", DEFAULT_SEARCH_BUDGET.maximumMatches, 100000),
-      maximumFileBytes: integer("maximumFileMegabytes", 10, 100) * 1024 * 1024};
+    const limit = vscode.workspace.getConfiguration("search").get<number | null>("maxResults", 20000);
+    return {...DEFAULT_SEARCH_BUDGET, maximumMatches: limit === null ? Infinity : Number.isSafeInteger(limit) && limit > 0 ? limit : 20000};
   }
   async run(): Promise<void> {
     if (this.applying) return;
@@ -220,7 +213,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     this.planning = true; this.error = undefined; this.publish();
     try {
       const plan = await createReplacementPlan(this.results, ids, revision, this.request, this.replacement, this.preserveCase,
-        uri => this.search.read(uri, this.budget().maximumFileBytes));
+        uri => this.search.read(uri, this.budget().maximumFileBytes), (text, options, replacement) => this.search.matchSnapshot(text, options, replacement));
       if (revision !== this.revision) return;
       this.snapshots.clear(); this.plan = plan; await this.snapshots.show(plan, plan.files[0]);
     } finally { this.planning = false; this.publish(); }
@@ -242,8 +235,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
         const document = vscode.workspace.textDocuments.find(document => document.uri.toString() === planned.file.uri)!;
         const selected = new Set(planned.matches.map(match => match.start));
         const remaining = planned.file.matches.filter(match => !selected.has(match.start));
-        const worker = new MatchingWorker(this.workerPath);
-        try {
+        {
           const version = document.version, text = document.getText();
           const edits = [...planned.matches].sort((a, b) => a.start - b.start).map(edit => ({end: edit.end,
             delta: replacementLength(planned.before, edit, this.replacement, this.request.regex, this.preserveCase) - (edit.end - edit.start)}));
@@ -252,13 +244,13 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
             while (index < edits.length && edits[index].end <= match.start) delta += edits[index++].delta;
             mapped.set(match.start + delta, match.id);
           }
-          const found = mapped.size ? await worker.match(text, this.request, this.budget().maximumMatches, new AbortController().signal, [...mapped.keys()]) : {matches: [], truncated: false};
+          const found = mapped.size ? (await this.search.matchSnapshot(text, this.request)).filter(match => mapped.has(match.start)) : [];
           if (document.version !== version) throw new Error(vscode.l10n.t("Search results changed. Search again before replacing."));
           planned.matches.forEach(match => this.checked.delete(match.id));
           const fresh: SearchFile = {...planned.file, hash: contentHash(document.getText()), version: document.version,
-            matches: found.matches.map(match => ({...match, id: mapped.get(match.start)!}))};
+            matches: found.map(match => ({...match, id: mapped.get(match.start)!}))};
           this.results = this.results.map(file => file.id === fresh.id ? fresh : file).filter(file => file.matches.length);
-        } finally { worker.dispose(); }
+        }
       }
       const remaining = new Set(this.results.flatMap(file => file.matches.map(match => match.id)));
       this.selected = order.slice(previousIndex + 1).find(id => remaining.has(id)) ?? order.find(id => remaining.has(id));

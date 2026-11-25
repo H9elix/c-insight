@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { applyMatches, contentHash, replacementText, type TextMatch } from "./searchModel";
+import { applyMatches, contentHash, replacementText, type TextMatch, type SearchOptions } from "./searchModel";
 import type { SearchFile, SearchRequest } from "./workspaceSearch";
 import { minimatch } from "minimatch";
 
@@ -25,7 +25,8 @@ export class ReplacementSnapshots implements vscode.TextDocumentContentProvider,
 
 export async function createReplacementPlan(files: SearchFile[], ids: ReadonlySet<string>, revision: number,
   request: SearchRequest, replacement: string, preserveCase: boolean,
-  read: (uri: vscode.Uri) => Promise<{text: string; version?: number}>): Promise<ReplacementPlan> {
+  read: (uri: vscode.Uri) => Promise<{text: string; version?: number}>,
+  nativeMatch?: (text: string, request: SearchOptions, replacement: string) => Promise<TextMatch[]>): Promise<ReplacementPlan> {
   const selected = files.filter(file => file.matches.some(match => ids.has(match.id)));
   if (!selected.length) throw new Error(vscode.l10n.t("Select matches to replace."));
   if (selected.length > 200) throw new Error(vscode.l10n.t("Narrow the replacement to at most 200 files."));
@@ -36,7 +37,15 @@ export async function createReplacementPlan(files: SearchFile[], ids: ReadonlySe
     if (contentHash(snapshot.text) !== file.hash || file.version !== undefined && snapshot.version !== file.version) {
       throw new Error(vscode.l10n.t("Search results changed. Search again before replacing."));
     }
-    const matches = file.matches.filter(match => ids.has(match.id));
+    let matches = file.matches.filter(match => ids.has(match.id));
+    if (request.regex && nativeMatch) {
+      const found = await nativeMatch(snapshot.text, request, replacement), byStart = new Map(found.map(match => [match.start, match]));
+      matches = matches.map(match => {
+        const native = byStart.get(match.start);
+        if (!native || native.end !== match.end || native.value !== match.value || native.replacementValue === undefined) throw new Error(vscode.l10n.t("Search results changed. Search again before replacing."));
+        return {...native, id: match.id};
+      });
+    }
     const after = applyMatches(snapshot.text, matches, replacement, request.regex, preserveCase);
     bytes += Buffer.byteLength(snapshot.text, "utf8") + Buffer.byteLength(after, "utf8");
     if (bytes > 64 * 1024 * 1024) throw new Error(vscode.l10n.t("Replacement preview exceeds 64 MiB. Narrow the selection."));

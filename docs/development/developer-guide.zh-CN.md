@@ -271,8 +271,9 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | 文件 | 管理的功能 |
 | --- | --- |
 | `searchModel.ts` | 字面量／ECMAScript 正则、Unicode 整词、UTF-16 位置、匹配载荷预算、捕获组替换和保留大小写。 |
-| `searchWorker.ts`、`matchingPool.ts` | 两个串行扫描通道的独立匹配线程；单文件超时和取消直接销毁线程，无待处理文件队列。打包产物为 `dist/textSearchWorker.js`。 |
-| `ripgrepSearch.ts` | 只定位随包原生程序，按有界显式文件批次预筛选兼容字面量；关闭用户配置／预处理及二次忽略规则，路径输出必须属于已知集合，失败后整批回退 JavaScript。最终位置和哈希仍由现有匹配器生成。 |
+| `nativeSearchQuery.ts`、`nativeSearchProcess.ts` | 构造原生匹配与文件规则，读取 ripgrep JSON 流，将 UTF-8 偏移转换为 UTF-16 位置；磁盘与内存共用后端，取消时终止进程。 |
+| `nativeReplacement.ts`、`ripgrepSearch.ts` | 前者把编辑器替换占位符转换为原生捕获组展开；后者只定位随包原生程序。不使用私有 VS Code 路径或 JavaScript 匹配回退。 |
+| `searchWorker.ts`、`matchingPool.ts` | 保留的独立匹配器测试夹具及取消异常类型；当前搜索查询不使用 JavaScript 匹配线程。 |
 | `searchDiagnostics.ts` | 按需收集分段时间、首批结果、读取量及后端／进程计数，不记录查询、路径或源码；并发阶段时间不可相加当作墙钟时间。 |
 | `fileRules.ts` | 嵌套 `.gitignore`、包含／排除 glob、VS Code 条件排除、BOM 与 `files.encoding` 解码、二进制和不确定解码拒绝。 |
 | `workspaceSearch.ts` | 多根及文件范围枚举、忽略规则、文件／结果／正文预算、优先读取内存文档、流式结果和摘要；不依赖分析引擎。 |

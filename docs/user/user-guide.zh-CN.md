@@ -836,9 +836,9 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 
 输入查询后按 Enter 或点击“搜索”；Shift+Enter 可输入换行。输入字符、移动编辑器光标或修改源文件都不会自动启动搜索。范围包括当前文件、打开的文本文件、指定文件夹和整个工作区；多根工作区可扫描所有根目录，也可用“文件夹…”选择一个根或子目录。没有工作区时使用当前文件。结果按文件分组，显示行列号、源码片段及匹配高亮；单击在代码预览中显示，双击或 Enter 打开编辑器，搜索词保留。上下箭头浏览前后匹配，复选框选择替换目标；列表按可见区域虚拟渲染，滚动即可浏览全部已保留结果，不需要逐批点击加载。
 
-支持区分大小写、整词、正则表达式和多行匹配。正则采用 JavaScript/ECMAScript 语法，多行模式使 `.` 匹配换行；行首尾锚点按行解释。整词边界将 Unicode 字母、数字和下划线作为词字符。“包含／排除文件”接受逗号分隔的 glob，例如 `**/*.{c,h}, **/*.cpp`。默认遵守工作区内的 `.gitignore`（含子目录规则）、`files.exclude` 和 `search.exclude`；取消“遵守忽略规则”可搜索这些被排除的文件，Git 元数据和已知二进制格式仍跳过。符号链接不遍历。编码优先使用 BOM，其次使用 `files.encoding`，支持 UTF-8、UTF-16 和 GBK 等编码；无法可靠解码、超限或读取失败的文件会计入跳过数。
+支持区分大小写、整词和正则表达式，匹配规则采用 VS Code 原生工作区搜索的后端约定。粘贴换行或 Shift+Enter 可输入跨行文本；正则按表达式内容判断是否跨行，不通过独立“多行”选项使 `.` 自动匹配换行。磁盘和未保存文档使用同一匹配后端。“包含／排除文件”接受逗号分隔的 glob，例如 `**/*.{c,h}, **/*.cpp`；裸文件名匹配任意层级，`./` 限定根目录。遵守 `.gitignore`、`.ignore`、`.rgignore`、`files.exclude` 和 `search.exclude`；与原生搜索一样，显式包含 glob 可以覆盖忽略文件规则，排除 glob 优先。`search.useParentIgnoreFiles`、`search.useGlobalIgnoreFiles`、`search.followSymlinks` 和 `search.smartCase` 控制对应行为。编码使用 BOM 和 `files.encoding`，支持 UTF-8、UTF-16 和 GBK 等；无法可靠解码或读取失败的命中文件计入跳过数。
 
-兼容的磁盘字面量查询使用随扩展分发的原生搜索后端（ripgrep）预筛选命中文件，随后由 JavaScript 按原有规则核对位置、Unicode 整词和内容哈希。未保存文档优先从编辑器内存查询。正则、非 ASCII 查询、跨行字面量、非 UTF-8 配置及虚拟文件系统自动使用 JavaScript 路径；原生程序不可用或失败时也自动回退。WSL／SSH 下在对应扩展宿主执行，不需要安装系统搜索工具。最多两个有界文件批次并行，每个原生进程使用两个线程，JavaScript 最多两个匹配线程；单文件正则超过 2 秒即终止匹配线程并跳过该文件。默认最多检查 50000 个候选文件、保留 10000 个匹配、读取 10 MiB 的单个文件；结果正文预算为 32 MiB，单文件匹配载荷上限为 1 MiB。状态行显示匹配数、已扫描数、跳过数和超时数；原生预筛选未命中的文件不做 JavaScript 解码，因此跳过数不用于推算磁盘中的全部非文本文件。取消或触及限制会保留部分结果并标明。所有独立及组合呈现均隐藏后取消扫描，再次显示不自动重搜；查询和结果仅保留在当前扩展会话内。
+安装包自带原生搜索后端（ripgrep），直接读取原生匹配流；宿主核对命中文件的内容、UTF-16 位置和替换哈希，不重复全文匹配。WSL／SSH 下在对应扩展宿主执行，无须安装系统工具；原生程序不可用时显示错误，不改用不同匹配规则。匹配数量遵循 `search.maxResults`，默认 20000，`null` 不限数量；不再附加候选文件数、单文件大小或总结果正文的旧搜索上限。状态行显示匹配数、已扫描数和跳过数。取消或触及数量上限会保留并标明部分结果，不能直接批量替换。查询和结果仅保留在当前扩展会话内。
 
 展开替换区域后填写替换文本，可选择保留大小写，并分别预览当前匹配、勾选匹配、某个文件或全部结果的替换。正则替换支持 `$1`、`$<name>`、`$&` 和 `$$` 等 JavaScript 替换语法。先生成只读差异预览，使用文件按钮切换预览；可回到结果更改勾选并重新预览。最后点击“确认替换…”并在对话框确认。每批最多 200 个文件，差异快照最多 64 MiB。替换通过 VS Code 工作区编辑完成，不自动保存，可使用原生撤销恢复。
 
@@ -846,9 +846,10 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 
 | 设置 | 类型 | 默认值 | 可用值 | 含义 |
 | --- | --- | --- | --- | --- |
-| `cInsight.textSearch.maximumFiles` | integer | `50000` | 1–200000 | 每次查询检查的候选文件上限 |
-| `cInsight.textSearch.maximumMatches` | integer | `10000` | 1–100000 | 每次查询保留的匹配数量上限 |
-| `cInsight.textSearch.maximumFileMegabytes` | integer | `10` | 1–100 | 单文件大小上限，单位 MiB |
+| `search.maxResults` | integer / null | `20000` | 正整数或 `null` | 原生搜索与 C Insight 共用的匹配数量上限；`null` 不限数量 |
+| `cInsight.textSearch.maximumFiles` | integer | `50000` | 已弃用 | 不再生效，不限制候选文件数 |
+| `cInsight.textSearch.maximumMatches` | integer | `10000` | 已弃用 | 不再生效，改用 `search.maxResults` |
+| `cInsight.textSearch.maximumFileMegabytes` | integer | `10` | 已弃用 | 不再生效，不限制单文件搜索大小 |
 
 ## 4. 视图布局与组合
 

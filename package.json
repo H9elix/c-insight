@@ -123,6 +123,7 @@
     "package": "npm run check && npx @vscode/vsce package --no-dependencies"
   },
   "dependencies": {
+    "@eslint-community/regexpp": "4.12.2",
     "@vscode/codicons": "^0.0.46-24",
     "@vscode/ripgrep-universal": "1.18.0",
     "iconv-lite": "0.7.3",
@@ -2653,21 +2654,24 @@
           "default": 50000,
           "minimum": 1,
           "maximum": 200000,
-          "description": "%configuration.cInsight.textSearch.maximumFiles.description%"
+          "description": "%configuration.cInsight.textSearch.maximumFiles.description%",
+          "deprecationMessage": "%configuration.cInsight.textSearch.maximumFiles.description%"
         },
         "cInsight.textSearch.maximumMatches": {
           "type": "integer",
           "default": 10000,
           "minimum": 1,
           "maximum": 100000,
-          "description": "%configuration.cInsight.textSearch.maximumMatches.description%"
+          "description": "%configuration.cInsight.textSearch.maximumMatches.description%",
+          "deprecationMessage": "%configuration.cInsight.textSearch.maximumMatches.description%"
         },
         "cInsight.textSearch.maximumFileMegabytes": {
           "type": "integer",
           "default": 10,
           "minimum": 1,
           "maximum": 100,
-          "description": "%configuration.cInsight.textSearch.maximumFileMegabytes.description%"
+          "description": "%configuration.cInsight.textSearch.maximumFileMegabytes.description%",
+          "deprecationMessage": "%configuration.cInsight.textSearch.maximumFileMegabytes.description%"
         }
       }
     }
