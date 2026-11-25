@@ -27,7 +27,7 @@ export function validateAuthenticationContext(environment) {
 }
 
 export function assertCompatibleVsceVersion(version) {
-  if (version !== "4.0.0") throw new Error("Review the read-only authentication adapter before changing @vscode/vsce 4.0.0.");
+  if (version !== "4.1.0") throw new Error("Review the read-only authentication adapter before changing @vscode/vsce 4.1.0.");
 }
 
 async function boundedRequest(url, options) {

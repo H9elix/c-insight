@@ -31,8 +31,8 @@ describe("Marketplace authentication without publishing", () => {
       ["ACTIONS_ID_TOKEN_REQUEST_TOKEN", ""], ["ACTIONS_ID_TOKEN_REQUEST_URL", ""]]) {
       assert.throws(() => auth.validateAuthenticationContext({...environment(), [key]: value}), /trusted GitHub Actions context|id-token: write/);
     }
-    auth.assertCompatibleVsceVersion("4.0.0");
-    for (const version of ["3.9.0", "4.0.1", "5.0.0"]) assert.throws(() => auth.assertCompatibleVsceVersion(version), /Review/);
+    auth.assertCompatibleVsceVersion("4.1.0");
+    for (const version of ["3.9.0", "4.0.0", "4.0.1", "4.1.1", "5.0.0"]) assert.throws(() => auth.assertCompatibleVsceVersion(version), /Review/);
   });
 
   it("uses the installed vsce exchange with the Marketplace audience and exact publisher", async () => {
@@ -46,9 +46,9 @@ describe("Marketplace authentication without publishing", () => {
         assert.equal(options.headers.Authorization, "Bearer synthetic-runner-credential");
         body = {value: "synthetic-github-identity"};
       } else {
-        assert.equal(url, "https://marketplace.visualstudio.com/_apis/gallery/token");
+        assert.equal(url, "https://marketplace.visualstudio.com/_apis/gallery/token?api-version=7.2-preview.1");
         assert.equal(options.method, "POST");
-        assert.equal(options.headers.Authorization, "Bearer synthetic-github-identity");
+        assert.equal(options.headers.Authorization, "FederatedToken synthetic-github-identity");
         assert.deepEqual(JSON.parse(options.body!), {publisherName: "H9elix"});
         body = {credential: "synthetic-short-lived-credential"};
       }
