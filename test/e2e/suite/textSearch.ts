@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { searchDiagnostics } from "../../../src/textSearch/searchDiagnostics";
 import * as iconv from "iconv-lite";
 
-interface State {revision: number; generation: number; request: SearchRequest; results: SearchFile[]; stats: SearchStats; stale: boolean; ready: boolean; plan?: string; error?: string; visible: number; selected?: string}
+interface State {revision: number; generation: number; request: SearchRequest; results: SearchFile[]; stats: SearchStats; stale: boolean; ready: boolean; plan?: string; error?: string; visible: number; selected?: string;
+  resultWindows: Array<{generation: number; query: string; matches: number; stale: boolean; loading: boolean; selected?: string; cancelled: boolean}>}
 const state = () => vscode.commands.executeCommand<State>("cInsight.test.textSearchState") as Promise<State>;
 const message = (value: object) => vscode.commands.executeCommand("cInsight.test.textSearchMessage", value);
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -162,7 +163,8 @@ export async function run(): Promise<void> {
   assert((await state()).stale, "Changing an initially unmatched file must invalidate a workspace search snapshot");
   assert.equal((await state()).generation, originalMatches.generation, "Source invalidation must not rescan");
   await message({type: "input", scope: "workspace", include: "**/scale/**/*.txt", query: "PERF_NEEDLE"}); await message({type: "search"});
-  await until(async () => ((await pane(1))?.searchTotal ?? 0) >= 10000, "Virtualized result data did not arrive");
+  await until(async () => ((await pane(1))?.searchTotal ?? 0) >= 200, "Inline result prefix did not arrive");
+  assert(((await pane(1))?.searchTotal ?? 0) <= 210, "Inline limit counts matches, not the complete query");
   assert(((await pane(1))?.searchRendered ?? 1000) <= 200, "Large result sets must not create all DOM rows");
   await browser(1, {action: "textSearch", role: "textSearch", control: "scroll", value: 100000}); await pause(50);
   assert(((await pane(1))?.searchRendered ?? 1000) <= 200);
@@ -201,4 +203,32 @@ export async function run(): Promise<void> {
   const unlimited = await collect({...request, scope: "folder", folder: scale.toString()}, {...DEFAULT_SEARCH_BUDGET, maximumMatches: Infinity});
   assert.equal(unlimited.stats.matches, 24000); assert(!unlimited.stats.limited);
   console.log("TEXT_SEARCH_PARITY: native positions, Unicode words, BOM/GBK, newline detection, missing-binary errors and unlimited results passed");
+
+  await message({type: "input", scope: "workspace", include: "**/scale/**/*.txt", query: "PERF_NEEDLE", regex: false}); await message({type: "search"});
+  const large = await state();
+  await vscode.commands.executeCommand("cInsight.textSearch.openResults"); await pause(50);
+  assert.equal((await state()).resultWindows.length, 1); assert.equal((await state()).resultWindows[0].matches, 20000);
+  await vscode.commands.executeCommand("cInsight.textSearch.openResults"); assert.equal((await state()).resultWindows.length, 1, "Opening the same query must focus its existing snapshot");
+  await message({type: "input", scope: "file", include: "", query: "needle"}); await message({type: "search"});
+  const small = await state();
+  assert.equal(small.resultWindows[0].query, "PERF_NEEDLE"); assert.equal(small.resultWindows[0].matches, 20000);
+  await vscode.commands.executeCommand("cInsight.textSearch.openResults");
+  assert.equal((await state()).resultWindows.length, 2);
+  const snapshotMessage = (generation: number, value: object) => vscode.commands.executeCommand("cInsight.test.textSearchResultMessage", generation, {revision: generation, ...value});
+  await snapshotMessage(small.generation, {type: "input", query: "not-allowed"});
+  await snapshotMessage(small.generation, {type: "plan", mode: "all"});
+  assert.equal((await state()).request.query, "needle"); assert(!(await state()).plan);
+  const hit = small.results[0].matches[0];
+  await snapshotMessage(small.generation, {type: "activate", id: hit.id, intent: "preview"});
+  assert.equal((await state()).resultWindows.find(window => window.generation === small.generation)?.selected, hit.id);
+  assert.equal((await vscode.commands.executeCommand<{uri: string}>("cInsight.test.previewState"))?.uri, a.toString());
+  const mutation = new vscode.WorkspaceEdit(); mutation.insert(a, new vscode.Position(0, 0), "snapshot changed\n"); await vscode.workspace.applyEdit(mutation);
+  assert((await state()).resultWindows.find(window => window.generation === small.generation)?.stale);
+  const selection = vscode.window.activeTextEditor?.selection;
+  await snapshotMessage(small.generation, {type: "activate", id: hit.id, intent: "open"});
+  assert.deepEqual(vscode.window.activeTextEditor?.selection, selection, "Stale snapshot targets must not open incorrect positions");
+  assert.equal((await state()).resultWindows.find(window => window.generation === large.generation)?.matches, 20000);
+  const panels = vscode.window.tabGroups.all.flatMap(group => group.tabs).filter(tab => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.includes("cInsight.textSearchResults"));
+  assert.equal(panels.length, 2); await vscode.window.tabGroups.close(panels, true); assert.equal((await state()).resultWindows.length, 0);
+  console.log("TEXT_SEARCH_SNAPSHOTS: inline cap, frozen distinct queries, same-query reuse, preview, read-only messages, stale navigation and close cleanup passed");
 }

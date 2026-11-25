@@ -31,6 +31,7 @@ export function registerWorkspaceToolCommands(
   register(COMMANDS.SEARCH_TEXT, () => dependencies.textSearch.openSearch());
   register(COMMANDS.TEXT_SEARCH_RUN, () => dependencies.textSearch.run());
   register(COMMANDS.TEXT_SEARCH_CANCEL, () => dependencies.textSearch.cancel());
+  register(COMMANDS.TEXT_SEARCH_OPEN_RESULTS, () => dependencies.textSearch.openResults());
   register(COMMANDS.PROJECT_FILES_SORT, () => dependencies.projectFiles.chooseSort());
   register(COMMANDS.PROJECT_FILES_LOCK, () => dependencies.projectFiles.setLocked(true));
   register(COMMANDS.PROJECT_FILES_UNLOCK, () => dependencies.projectFiles.setLocked(false));

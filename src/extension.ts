@@ -468,6 +468,7 @@ export async function activate(
     context.subscriptions.push(
       vscode.commands.registerCommand("cInsight.test.textSearchState", () => textSearch.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.textSearchMessage", (message: unknown) => textSearch.receive(message)),
+      vscode.commands.registerCommand("cInsight.test.textSearchResultMessage", (generation: number, message: unknown) => textSearch.resultMessageForTest(generation, message)),
       vscode.commands.registerCommand("cInsight.test.textSearchApply", (id: string) => textSearch.applyForTest(id)),
     );
     context.subscriptions.push(

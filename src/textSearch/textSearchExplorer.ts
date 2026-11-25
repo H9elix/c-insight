@@ -11,6 +11,7 @@ import { textSearchLabels } from "./textSearchLabels";
 import { isGitMetadata, isKnownBinaryFile } from "../projectFiles/projectFileModel";
 import { searchPresentationDelta, type SearchPresentationCursor } from "./searchPresentationDelta";
 import { DEFAULT_SEARCH_BUDGET, WorkspaceTextSearch, type SearchFile, type SearchRequest, type SearchStats } from "./workspaceSearch";
+import { SearchResultWindows, sourceAffectsSearch, type SearchResultSession } from "./searchResultWindows";
 
 const emptyStats = (): SearchStats => ({files: 0, skipped: 0, timedOut: 0, matches: 0, limited: false, cancelled: false});
 export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -46,20 +47,24 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private readonly snapshots = new ReplacementSnapshots();
   private readonly search: WorkspaceTextSearch;
   private readonly workerPath: string;
+  private session?: SearchResultSession;
+  private readonly resultWindows: SearchResultWindows;
 
   constructor(extensionUri: vscode.Uri, registrar: ViewRegistrar, private readonly testMode = false) {
     this.workerPath = join(extensionUri.fsPath, "dist", "textSearchWorker.js");
     this.search = new WorkspaceTextSearch(this.workerPath);
+    this.resultWindows = new SearchResultWindows((file, id, query, open) => this.activateFile(file, id, query, open), () => this.checkVisibility());
     this.current = vscode.window.activeTextEditor?.document.uri;
     this.listeners.push(registrar(VIEWS.TEXT_SEARCH, this, {webviewOptions: {retainContextWhenHidden: true}}),
       vscode.workspace.onDidChangeConfiguration(event => {
+        if (event.affectsConfiguration("cInsight.textSearch.inlineResultLimit")) {this.deliveries.clear(); this.publish();}
         if (["files.encoding", "files.exclude", "search"].some(key => event.affectsConfiguration(key))) {
           this.cancel(); this.invalidate(true);
         }
       }),
       vscode.window.onDidChangeActiveTextEditor(editor => { if (editor && !editor.document.uri.scheme.startsWith("c-insight-")) this.current = editor.document.uri; }),
       vscode.workspace.onDidChangeTextDocument(event => {
-        if (!event.contentChanges.length || this.applying) return;
+        if (!event.contentChanges.length) return;
         this.sourceChanged(event.document.uri);
       }),
       vscode.workspace.onDidRenameFiles(event => event.files.forEach(file => { this.sourceChanged(file.oldUri); this.sourceChanged(file.newUri); })),
@@ -69,15 +74,10 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
       watcher.onDidCreate(uri => this.sourceChanged(uri)), watcher.onDidDelete(uri => this.sourceChanged(uri)));
   }
   private sourceChanged(uri: vscode.Uri): void {
+    this.resultWindows.sourceChanged(uri);
     const snapshot = this.searchSnapshot;
     if (this.applying || !snapshot || this.stale && !this.plan || isGitMetadata(uri.path) || isKnownBinaryFile(uri.path)) return;
-    const {request} = snapshot;
-    const relevant = request.scope === "file" ? uri.toString() === snapshot.current : request.scope === "open" ? snapshot.open.has(uri.toString()) :
-      request.scope === "folder" && request.folder ? (() => {
-        const folder = vscode.Uri.parse(request.folder);
-        return uri.scheme === folder.scheme && uri.authority === folder.authority && (uri.path === folder.path || uri.path.startsWith(folder.path.replace(/\/$/, "") + "/"));
-      })() : !!vscode.workspace.getWorkspaceFolder(uri);
-    if (relevant) this.invalidate(true);
+    if (sourceAffectsSearch(snapshot, uri)) this.invalidate(true);
   }
   resolveWebviewView(view: vscode.WebviewView): void {
     this.presentations.add(view); this.active ??= view;
@@ -96,7 +96,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     if (!this.active) await vscode.commands.executeCommand(`${VIEWS.TEXT_SEARCH}.focus`);
     this.active?.show(false); await this.active?.webview.postMessage({type: "focus"});
   }
-  private checkVisibility(): void { if (![...this.presentations].some(view => view.visible)) this.cancel(); }
+  private checkVisibility(): void { if (![...this.presentations].some(view => view.visible) && !this.resultWindows.visible(this.generation)) this.cancel(); }
+  openResults(): void {if (this.session?.files.length) this.resultWindows.open(this.session);}
   cancel(): void { this.scan?.abort(); }
   private invalidate(stale: boolean): void {
     this.revision++; this.plan = undefined; this.snapshots.clear(); if (stale && this.searched) this.stale = true;
@@ -112,10 +113,14 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     if (this.request.scope === "folder" && !this.request.folder) {
       await this.receive({type: "folder"}); if (!this.request.folder) return;
     }
-    this.cancel(); const generation = ++this.generation;
+    this.cancel();
+    if (this.session?.loading) {
+      this.session.loading = false; this.session.stats = {...this.stats, cancelled: true}; this.resultWindows.publish(this.session);
+    }
+    const generation = ++this.generation;
     const scan = this.scan = new AbortController();
-    this.invalidate(false); this.results = []; this.checked.clear(); this.selected = undefined;
-    this.stats = emptyStats(); this.stale = false; this.loading = true; this.error = undefined; this.searched = true; this.publish();
+    this.revision++; this.plan = undefined; this.snapshots.clear(); this.results = []; this.checked.clear(); this.selected = undefined;
+    this.stats = emptyStats(); this.stale = false; this.loading = true; this.error = undefined; this.searched = true;
     const request = {...this.request};
     try {
       if (request.scope === "file" && !this.current) throw new Error(vscode.l10n.t("Open a text file before searching the current file."));
@@ -125,6 +130,8 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
       }
       this.searchSnapshot = {request, current: this.current?.toString(), open: new Set(vscode.window.tabGroups.all.flatMap(group => group.tabs.flatMap(tab =>
         tab.input instanceof vscode.TabInputText ? [tab.input.uri.toString()] : [])))};
+      const session = this.session = {...this.searchSnapshot, request: {...request}, generation, files: this.results, stats: this.stats, loading: true, stale: false};
+      this.publish();
       const stats = await this.search.run(request, this.current, this.budget(), scan.signal, file => {
         if (generation !== this.generation) return;
         file.id = `${generation}/${file.id}`;
@@ -132,8 +139,13 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
         this.results.push(file); this.queuePublish();
       }, stats => { if (generation === this.generation) { this.stats = stats; this.queuePublish(); } });
       if (generation === this.generation) this.stats = stats;
+      session.stats = stats;
     } catch (error) { if (generation === this.generation) this.error = String(error); }
-    finally { if (generation === this.generation) { this.loading = false; this.scan = undefined; this.publish(); } }
+    finally { if (generation === this.generation) {
+      this.loading = false; this.scan = undefined;
+      if (this.session?.generation === generation) {this.session.stats = this.stats; this.session.error = this.error; this.session.loading = false; this.resultWindows.publish(this.session);}
+      this.publish();
+    } }
   }
   async receive(value: unknown): Promise<void> {
     if (!value || typeof value !== "object" || Array.isArray(value)) return;
@@ -160,6 +172,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     }
     if (message.type === "search") { await this.run(); return; }
     if (message.type === "cancel") { this.cancel(); return; }
+    if (message.type === "openResults") {this.openResults(); return;}
     if (message.type === "toggle") { this.replaceVisible = message.show === true || !this.replaceVisible; this.publish(); return; }
     if (message.type === "folder") {
       const selected = await vscode.window.showOpenDialog({canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
@@ -189,18 +202,21 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     if (message.type === "apply" && typeof message.plan === "string") await this.apply(message.plan);
   }
   private async activate(id: string, open: boolean): Promise<void> {
-    const activation = ++this.activation;
     const file = this.results.find(file => file.matches.some(match => match.id === id)), match = file?.matches.find(match => match.id === id);
     if (!file || !match) return;
+    if (!await this.activateFile(file, id, this.request.query, open)) return;
+    this.selected = id; this.publish();
+  }
+  private async activateFile(file: SearchFile, id: string, query: string, open: boolean): Promise<boolean> {
+    const activation = ++this.activation, match = file.matches.find(match => match.id === id); if (!match) return false;
     const snapshot = await this.search.read(vscode.Uri.parse(file.uri), this.budget().maximumFileBytes);
-    if (activation !== this.activation) return;
-    if (contentHash(snapshot.text) !== file.hash) { this.invalidate(true); return; }
-    this.selected = id;
+    if (activation !== this.activation) return false;
+    if (contentHash(snapshot.text) !== file.hash) {this.sourceChanged(vscode.Uri.parse(file.uri)); return false;}
     await vscode.commands.executeCommand(INTERNAL_COMMANDS.ACTIVATE_TREE_LOCATION, {
-      id, label: this.request.query, previewTitle: file.label, previewMode: "reference",
+      id, label: query, previewTitle: file.label, previewMode: "reference",
       location: {uri: vscode.Uri.parse(file.uri), range: new vscode.Range(match.line, match.character, match.endLine, match.endCharacter)},
     }, "textSearch", open ? "open" : "preview");
-    this.publish();
+    return true;
   }
   private replaceReady(): boolean {
     return canReplace() && this.searched && !this.loading && !this.stale && !this.error && !this.stats.limited && !this.stats.cancelled && !this.stats.skipped && !this.stats.timedOut;
@@ -258,27 +274,30 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     } catch (error) { this.error = String(error); this.stale = true; }
     finally { this.applying = false; this.publish(); }
   }
-  private queuePublish(): void { this.timer ??= setTimeout(() => { this.timer = undefined; this.publish(); }, 100); }
+  private queuePublish(): void { this.timer ??= setTimeout(() => { this.timer = undefined; this.publish(); }, 16); }
   private publish(): void {
+    if (this.session?.generation === this.generation && this.session.loading) {this.session.stats = this.stats; this.session.error = this.error; this.resultWindows.publish(this.session);}
     const state = {type: "state", revision: this.revision, generation: this.generation, editOrigin: this.editOrigin, editSequence: this.editSequence,
       request: this.request, replacement: this.replacement, preserveCase: this.preserveCase,
       replaceVisible: this.replaceVisible, selected: this.selected, stats: this.stats, loading: this.loading, stale: this.stale, error: this.error,
       ready: this.replaceReady(), planning: this.planning || this.applying,
       plan: this.plan ? {id: this.plan.id, count: this.plan.count, files: this.plan.files.map(file => ({id: file.file.id, label: file.file.label}))} : undefined};
     for (const view of this.presentations) if (view.visible) {
-      const {cursor, ...delta} = searchPresentationDelta(this.results, this.checked, this.generation, this.deliveries.get(view));
+      const limit = vscode.workspace.getConfiguration("cInsight.textSearch").get<number>("inlineResultLimit", 200);
+      const {cursor, ...delta} = searchPresentationDelta(this.results, this.checked, this.generation, this.deliveries.get(view), Number.isSafeInteger(limit) && limit > 0 ? limit : 200);
       this.deliveries.set(view, cursor); void view.webview.postMessage({...state, ...delta});
     }
   }
   stateForTest() { return {revision: this.revision, request: {...this.request}, results: this.results, checked: [...this.checked], stats: {...this.stats},
     loading: this.loading, visible: [...this.presentations].filter(view => view.visible).length, stale: this.stale,
-    ready: this.replaceReady(), generation: this.generation, plan: this.plan?.id, selected: this.selected, error: this.error}; }
+    ready: this.replaceReady(), generation: this.generation, plan: this.plan?.id, selected: this.selected, error: this.error, resultWindows: this.resultWindows.stateForTest()}; }
+  async resultMessageForTest(generation: number, message: unknown): Promise<void> {if (!this.testMode) throw new Error("Test-only entry point."); await this.resultWindows.messageForTest(generation, message);}
   async applyForTest(id: string): Promise<void> {
     if (!this.testMode) throw new Error("Test-only entry point.");
     this.confirmingForTest = true;
     try { await this.apply(id); } finally { this.confirmingForTest = false; }
   }
-  dispose(): void { this.cancel(); this.generation++; if (this.timer) clearTimeout(this.timer); this.snapshots.dispose(); this.listeners.forEach(listener => listener.dispose()); }
+  dispose(): void { this.cancel(); this.generation++; if (this.timer) clearTimeout(this.timer); this.resultWindows.dispose(); this.snapshots.dispose(); this.listeners.forEach(listener => listener.dispose()); }
 }
 
 function replacementLength(text: string, match: TextMatch, replacement: string, regex: boolean, preserve: boolean): number {

@@ -834,6 +834,10 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 
 通过“C Insight：打开视图…”选择“搜索与替换”，或执行“C Insight：搜索文本…”。此视图搜索所有文本文件，不依赖 clangd 或微软 C/C++ 分析引擎，也可以加入组合视图，角色名为 `textSearch`。原生编辑器中的 Ctrl+F/H 保持不变；焦点在本视图时，Ctrl+F 聚焦搜索框，Ctrl+H 打开替换区域。
 
+独立及组合栏目默认显示前 200 个匹配，文件标题不占匹配名额；状态行显示“已显示／全部匹配”和列表外已勾选数量。显示上限不截断后台结果，也不改变文件复选框、全部替换及勾选替换的作用范围。结果区上方、下方均有“打开结果大窗口”按钮，少于 200 条时也可打开；命令面板入口为“C Insight：打开搜索结果大窗口”。
+
+结果大窗口（Search Results Window）在编辑器区域展示一次查询的只读快照：单击预览，双击或 Enter 打开源文件，文件分组可独立折叠，不提供替换控件。查询尚未完成时继续接收这一轮结果；完成或取消后固定，新查询不会覆盖旧窗口。同一轮再次打开会聚焦原窗口，不同轮可同时保留，各自滚动和选择互不影响。源文件变化后标记过期，导航前再次核对内容，不跳到已改变的错误位置。全部当前查询呈现（含其大窗口）隐藏后取消扫描；旧查询窗口不维持新查询扫描。关闭窗口释放其结果引用，不跨重启恢复。
+
 输入查询后按 Enter 或点击“搜索”；Shift+Enter 可输入换行。输入字符、移动编辑器光标或修改源文件都不会自动启动搜索。范围包括当前文件、打开的文本文件、指定文件夹和整个工作区；多根工作区可扫描所有根目录，也可用“文件夹…”选择一个根或子目录。没有工作区时使用当前文件。结果按文件分组，显示行列号、源码片段及匹配高亮；单击在代码预览中显示，双击或 Enter 打开编辑器，搜索词保留。上下箭头浏览前后匹配，复选框选择替换目标；列表按可见区域虚拟渲染，滚动即可浏览全部已保留结果，不需要逐批点击加载。
 
 支持区分大小写、整词和正则表达式，匹配规则采用 VS Code 原生工作区搜索的后端约定。粘贴换行或 Shift+Enter 可输入跨行文本；正则按表达式内容判断是否跨行，不通过独立“多行”选项使 `.` 自动匹配换行。磁盘和未保存文档使用同一匹配后端。“包含／排除文件”接受逗号分隔的 glob，例如 `**/*.{c,h}, **/*.cpp`；裸文件名匹配任意层级，`./` 限定根目录。遵守 `.gitignore`、`.ignore`、`.rgignore`、`files.exclude` 和 `search.exclude`；与原生搜索一样，显式包含 glob 可以覆盖忽略文件规则，排除 glob 优先。`search.useParentIgnoreFiles`、`search.useGlobalIgnoreFiles`、`search.followSymlinks` 和 `search.smartCase` 控制对应行为。编码使用 BOM 和 `files.encoding`，支持 UTF-8、UTF-16 和 GBK 等；无法可靠解码或读取失败的命中文件计入跳过数。
@@ -847,6 +851,7 @@ Microsoft 模式会在 **工程诊断（Project Diagnostics） → Microsoft C/C
 | 设置 | 类型 | 默认值 | 可用值 | 含义 |
 | --- | --- | --- | --- | --- |
 | `search.maxResults` | integer / null | `20000` | 正整数或 `null` | 原生搜索与 C Insight 共用的匹配数量上限；`null` 不限数量 |
+| `cInsight.textSearch.inlineResultLimit` | integer | `200` | 正整数 | 独立／组合栏目显示的匹配数；不影响后台查询、大窗口或替换范围 |
 | `cInsight.textSearch.maximumFiles` | integer | `50000` | 已弃用 | 不再生效，不限制候选文件数 |
 | `cInsight.textSearch.maximumMatches` | integer | `10000` | 已弃用 | 不再生效，改用 `search.maxResults` |
 | `cInsight.textSearch.maximumFileMegabytes` | integer | `10` | 已弃用 | 不再生效，不限制单文件搜索大小 |
@@ -1971,5 +1976,6 @@ Microsoft 模式的 Extension Host 与真实 FFmpeg 验收命令分别为 `npm r
 | 搜索文本… | `cInsight.searchText` | 命令面板 |
 | 执行文本搜索 | `cInsight.textSearch.run` | 命令面板；搜索与替换标题栏 |
 | 取消文本搜索 | `cInsight.textSearch.cancel` | 命令面板；搜索与替换标题栏 |
+| 打开搜索结果大窗口 | `cInsight.textSearch.openResults` | 命令面板 |
 
 <!-- GENERATED COMMAND REFERENCE END -->

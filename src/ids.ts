@@ -120,6 +120,7 @@ export const COMMANDS = {
   SEARCH_TEXT: "cInsight.searchText",
   TEXT_SEARCH_RUN: "cInsight.textSearch.run",
   TEXT_SEARCH_CANCEL: "cInsight.textSearch.cancel",
+  TEXT_SEARCH_OPEN_RESULTS: "cInsight.textSearch.openResults",
 } as const;
 
 export const INTERNAL_COMMANDS = {

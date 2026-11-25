@@ -709,6 +709,11 @@
         "command": "cInsight.textSearch.cancel",
         "title": "%command.cInsight.textSearch.cancel.title%",
         "icon": "$(debug-stop)"
+      },
+      {
+        "command": "cInsight.textSearch.openResults",
+        "title": "%command.cInsight.textSearch.openResults.title%",
+        "icon": "$(open-in-editor)"
       }
     ],
     "keybindings": [
@@ -2648,6 +2653,12 @@
             "/third_party/"
           ],
           "description": "%configuration.cInsight.exclude.description%"
+        },
+        "cInsight.textSearch.inlineResultLimit": {
+          "type": "integer",
+          "default": 200,
+          "minimum": 1,
+          "description": "%configuration.cInsight.textSearch.inlineResultLimit.description%"
         },
         "cInsight.textSearch.maximumFiles": {
           "type": "integer",
