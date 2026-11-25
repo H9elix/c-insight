@@ -46,3 +46,23 @@ C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_VSCODE_EXECUTABLE
 隔离宿主核对新旧后端的未保存文档覆盖、包含／排除规则、编码、Unicode 整词、正则回退、二进制、文件大小、取消、只读与替换冲突。真实组合 Webview 验证 10000 条结果只创建可见区域及预留行，滚动后 DOM 仍不超过 200 行，勾选和预览不替换被点击节点。
 
 以上测量未计入真实工作窗口的界面稳定时间，也未清空系统缓存。真实 WSL／SSH 工程继续比较首批可见结果、扫描完成、滚动及取消延迟，统一包含／排除、匹配、编码和结果上限。快速路径当前用于兼容的 ASCII 字面量磁盘搜索，正则和非 ASCII 查询保留 JavaScript 路径。
+
+## 原生界面基线与新验收目标
+
+```bash
+C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT=/tmp/native-search-ui.json xvfb-run -a node dist/test/e2e/runTextSearchUiBenchmark.js
+```
+
+该入口在临时工作区中使用原生搜索命令，通过仅用于测试的本机 CDP 连接观察实际渲染进程。不启用产品中的提案 API，不激活 C Insight，不启动分析引擎，也不改被测工程。查询范围为 `**/*.{c,h,cpp,hpp}`，不区分大小写、不启用整词／正则，原生结果上限为 20000。每个查询预热一轮后测五轮。首批时间取第一批可见结果的绘制帧，完成时间取实际进度条完成标记，最终绘制取结果 DOM 最后变更之后的绘制帧；额外等待 150 ms 确认稳定，不把这段等待计入耗时。
+
+`2026-11-25`，同一 Linux／VS Code `1.130.0` 只读 FFmpeg 环境，原生界面五轮中位数：
+
+| 查询 | 首批可见 | 搜索完成 | 最终结果绘制 |
+| --- | --- | --- | --- |
+| 不存在的合成标识符 | 不适用 | 20.4 ms | 28.3 ms |
+| `avcodec_receive_frame` | 31.7 ms | 20.6 ms | 31.7 ms |
+| `return`，20000 上限 | 132.0 ms | 153.0 ms | 196.2 ms |
+
+少量命中的搜索可能先完成、后统一绘制，因此首批可见时间可以大于搜索完成时间。原生停止按钮仅在慢查询显示；最初以它识别快速查询完成的两次探针失败，随后按实际进度条的 `active`／`done` 状态修正，原始失败日志保留在本地，不计为产品失败或性能样本。
+
+新迁移的量化目标是同条件、交替五轮中位数满足 `C Insight <= max(native * 1.2, native + 100 ms)`，分别检查首批、完成和最终绘制，无命中不计算首批。上表是实施前原生基线，不是 C Insight 已通过该目标的证据；迁移后必须重新采集同一轮的原生与 C Insight 数据，首次打开另行记录。纯策略断言见 `searchPerformanceModel.test.ts`。
