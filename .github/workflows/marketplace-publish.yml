@@ -1,0 +1,42 @@
+name: Marketplace authentication
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketplace-authentication
+  cancel-in-progress: false
+
+jobs:
+  authenticate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Require the trusted repository and main branch
+        run: |
+          test "$GITHUB_REPOSITORY" = "H9elix/c-insight"
+          test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Verify trusted identity and publisher access without uploading
+        run: npm run marketplace:auth:check

@@ -59,6 +59,8 @@ Push the release commit to `main` and wait for the ordinary CI workflow to succe
 
 `npm run package` remains the local Universal build. For release assets, use `npm run package:release`; verify them independently with `npm run package:release:verify`. The default output is `.cache/release-packages/<version>/`. For temporary builds, pass `-- --out-dir .cache/release-packages/platform-preview --suffix platform-packages-preview`. Platform names, ARM mapping and Remote installation guidance are documented in the [packaging guide](docs/development/release-packaging.zh-CN.md). GitHub Release publication does not publish packages to Marketplace.
 
+`marketplace-publish.yml` currently provides manual-only Trusted Publishing authentication on `main`, not a package upload. It exchanges a GitHub OIDC identity for a short-lived H9elix credential and checks publisher access without storing a PAT. The adapter is guarded against changes to the locked vsce version; review it and run `marketplaceAuthentication` tests when updating that dependency. Real authentication runs only in the authorized GitHub workflow; see the [setup instructions](docs/development/release-packaging.zh-CN.md#5-marketplace-可信身份认证).
+
 ## Architecture
 
 Start with `docs/development/architecture.md`. Keep protocol and model logic testable without a VS Code host where possible.

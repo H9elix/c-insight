@@ -101,6 +101,7 @@
     "docs:prose:check": "node scripts/format-markdown-prose.mjs",
     "docs:links:check": "node scripts/check-document-links.mjs",
     "release:notes:check": "node scripts/check-release-notes.mjs",
+    "marketplace:auth:check": "node scripts/verify-marketplace-auth.mjs",
     "third-party:generate": "node scripts/generate-third-party-notices.mjs --write",
     "third-party:check": "node scripts/generate-third-party-notices.mjs",
     "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",

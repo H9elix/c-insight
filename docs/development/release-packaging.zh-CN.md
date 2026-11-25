@@ -61,3 +61,27 @@ npm run package:release:verify -- --out-dir .cache/release-packages/platform-pre
 归档检查可在一台构建机完成，但不代表已经执行其他操作系统的程序。发布前后按可用环境检查：安装匹配宿主的平台包，执行一次工作区搜索、结果预览和替换撤销；再用同版本 Universal 验证相同路径。Linux 包需在解压后执行内置 `rg --version`，WSL／SSH 场景确认实际安装位置。Windows、macOS 与 ARM 的真实执行和安装检查需在对应系统完成。
 
 GitHub Release 与 Marketplace 是两个发布目标。此流程只发布 GitHub 附件；后续向 Marketplace 上传时应上传同版本的各平台包及 Universal，使用文件内的平台元数据。平台分发机制见 [VS Code 官方发布文档](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platform-specific-extensions)。
+
+## 5. Marketplace 可信身份认证
+
+`.github/workflows/marketplace-publish.yml` 的界面名称为 **Marketplace authentication**，仅接受从 `main` 手动触发。它申请 GitHub OIDC 身份，向 Marketplace 交换 H9elix 的短期凭据，再通过 `vsce verify-pat H9elix` 进行只读的发布者访问检查。名称中的 `verify-pat` 是工具通用验证入口，此处使用的是临时 OIDC 凭据，不创建或保存长期 PAT。工作流不包含 VSIX 上传命令，不响应版本标签、GitHub Release 或普通推送。
+
+在 Marketplace 发布者 H9elix 的 **Trusted Publishing → Create** 中填写：
+
+| 字段 | 值 |
+| --- | --- |
+| Policy name | `C Insight GitHub Actions` |
+| Repository owner | `H9elix` |
+| Repository | `c-insight` |
+| Workflow | `marketplace-publish.yml` |
+| Environment | 留空 |
+
+Workflow 只填写文件名，不填写 `.github/workflows/` 前缀；Environment 对应 GitHub 的命名部署环境，不是操作系统。策略建立后，将同名工作流推送到 `main`，在 GitHub **Actions → Marketplace authentication → Run workflow** 中选择 `main` 运行。也可在具备仓库 Actions 写入权限的终端执行：
+
+```bash
+gh workflow run marketplace-publish.yml --ref main --repo H9elix/c-insight
+```
+
+成功日志和任务摘要显示 `Trusted Publishing authentication and publisher access verified for H9elix. No extension was uploaded.`，表示可信凭据交换和发布者访问已通过；真正的包上传仍需单独授权和配置。验证命令 `npm run marketplace:auth:check` 必须在授权的 GitHub Actions 中运行，不能用 WSL 本地环境模拟真实认证。
+
+凭据只在该次任务的进程内存和子进程环境中使用，不写入文件、GitHub Secrets 或命令参数；日志先屏蔽短期凭据，并只保留安全的失败阶段与 HTTP 状态。`scripts/verify-marketplace-auth.mjs` 复用锁定的 `@vscode/vsce@4.0.0` 内部 OIDC 交换入口，升级该依赖时需审查适配器。`marketplaceAuthentication.test.ts` 覆盖真实 SDK 的合成请求、仓库／分支／工作流校验、只读命令、凭据隔离、日志脱敏及失败传播。政策配置和短期凭据机制见[微软可信发布说明](https://developer.microsoft.com/blog/trusted-publishing-visual-studio-marketplace/)。
