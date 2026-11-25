@@ -103,7 +103,9 @@ export class WorkspaceTextSearch {
       } catch (error) {if (error instanceof SearchCancelled) throw error; stats.skipped++;}
       onProgress({...stats}); return !stats.limited;
     };
-    const documents = vscode.workspace.textDocuments.filter(document => !document.isClosed), open = new Set(documents.map(document => document.uri.toString()));
+    // Saved buffers share the disk stream; only dirty buffers need an overriding native stdin query.
+    const documents = vscode.workspace.textDocuments.filter(document => !document.isClosed && (request.scope === "file" || request.scope === "open" || document.isDirty));
+    const open = new Set(documents.map(document => document.uri.toString()));
     const tabs = new Set(vscode.window.tabGroups.all.flatMap(group => group.tabs.flatMap(tab => tab.input instanceof vscode.TabInputText ? [tab.input.uri.toString()] : [])));
     const inScope = async (uri: vscode.Uri): Promise<boolean> => {
       if (request.scope === "file" && uri.toString() !== current?.toString() || request.scope === "open" && !tabs.has(uri.toString())) return false;

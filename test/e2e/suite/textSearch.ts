@@ -37,6 +37,9 @@ export async function run(): Promise<void> {
   assert((await collect(request, {...DEFAULT_SEARCH_BUDGET, maximumMatches: 1})).stats.limited);
   assert.equal((await collect({...request, scope: "folder", folder: vscode.Uri.joinPath(roots[0].uri, "src").toString()})).stats.matches, 3);
   const document = await vscode.workspace.openTextDocument(a); await vscode.window.showTextDocument(document);
+  const cleanDiagnostics = searchDiagnostics();
+  await engine.run(request, a, DEFAULT_SEARCH_BUDGET, new AbortController().signal, () => undefined, () => undefined, cleanDiagnostics);
+  assert.equal(cleanDiagnostics.nativeProcesses, roots.length, "Saved open files must share disk streams, not start a process per document");
   const dirty = new vscode.WorkspaceEdit(); dirty.insert(a, new vscode.Position(0, 0), "needle dirty\n"); assert(await vscode.workspace.applyEdit(dirty));
   assert.equal((await collect({...request, query: "dirty"})).stats.matches, 1, "Workspace prefilter must retain new matches present only in unsaved buffers");
   const current = await collect({...request, scope: "file"}); assert.equal(current.stats.matches, 3); assert(document.isDirty);
