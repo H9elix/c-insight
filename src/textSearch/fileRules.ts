@@ -28,15 +28,15 @@ export function globList(patterns: string): string[] {
 export function matchesPatterns(path: string, patterns: string): boolean {
   return compilePatterns(patterns)(path);
 }
-export function compilePatterns(patterns: string): (path: string) => boolean {
-  const matchers = globList(patterns).map(pattern => new Minimatch(pattern, {dot: true, matchBase: !pattern.includes("/")}));
+export function compilePatterns(patterns: string, ignoreCase = false): (path: string) => boolean {
+  const matchers = globList(patterns).map(pattern => new Minimatch(pattern, {dot: true, nocase: ignoreCase, matchBase: !pattern.includes("/")}));
   return path => matchers.some(matcher => matcher.match(path));
 }
 export function excludedBySettings(path: string, rules: Record<string, unknown>, siblings: readonly string[]): boolean {
   return compileExclusions(rules)(path, siblings);
 }
-export function compileExclusions(rules: Record<string, unknown>): (path: string, siblings: readonly string[]) => boolean {
-  const compiled = Object.entries(rules).filter(([, value]) => value).map(([pattern, value]) => ({matcher: new Minimatch(pattern, {dot: true}), value}));
+export function compileExclusions(rules: Record<string, unknown>, ignoreCase = false): (path: string, siblings: readonly string[]) => boolean {
+  const compiled = Object.entries(rules).filter(([, value]) => value).map(([pattern, value]) => ({matcher: new Minimatch(pattern, {dot: true, nocase: ignoreCase}), value}));
   return (path, siblings) => compiled.some(({matcher, value}) => {
     if (!matcher.match(path)) return false;
     if (value === true) return true;

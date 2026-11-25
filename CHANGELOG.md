@@ -2,10 +2,10 @@
 
 ## Unreleased
 
-- Accelerated compatible workspace text searches with bundled ripgrep prefiltering, preserving unsaved-buffer priority and JavaScript match verification with automatic fallback. Results now use incremental updates and viewport virtualization while retaining group expansion and click targets.
-
-- Added an engine-independent Search & Replace view with manual text queries, file/folder/workspace scopes, case/whole-word/regex/multiline options, ignore rules and file-grouped source navigation. The view is available independently and inside combinations.
-- Added checked replacement diffs, explicit confirmation, content/version conflict checks and undoable unsaved workspace edits, with bounded scanning, matching timeouts and cancellation.
+- Added engine-independent Search & Replace with explicit queries across current/open files, folders or workspaces, native regex/whole-word/newline matching, ignore rules and unsaved-buffer priority. The bundled backend directly streams matches without a second full-text search.
+- Follow native `search.maxResults` (20000 by default; `null` means unlimited) instead of separate legacy search caps. Small views display a configurable prefix of 200 matches, with complete results retained for replacement.
+- Added read-only editor-area result snapshots with top/bottom entry buttons, independent navigation and folding, live collection of the original query, fixed completed/cancelled results, and source-staleness checks.
+- Added replacement diffs, explicit confirmation, content/version conflict checks and undoable unsaved workspace edits. Search uses incremental updates, virtualized rows, cancellation and bounded parallel snapshot reads.
 
 ## 0.23.4
 

@@ -73,7 +73,7 @@ VS Code 已经提供“转到定义”和“查找所有引用”等命令。C I
 | 13 | [文档符号（Document Symbols）](docs/user/user-guide.zh-CN.md#view-document-symbols) | 浏览当前文档层次，筛选折叠成员、排序，并高亮编辑器中心对应符号 |
 | 14 | [工程文件（Project Files）](docs/user/user-guide.zh-CN.md#view-project-files) | 搜索和排序多根工作区文件，居中跟随活动文件，独立锁定筛选与滚动 |
 | 15 | [工程诊断（Project Diagnostics）](docs/user/user-guide.zh-CN.md#view-diagnostics) | 检查分析引擎、编译数据库、活动编译命令、诊断及运行时计数，复制或导出报告 |
-| 16 | [搜索与替换（Search & Replace）](docs/user/user-guide.zh-CN.md#view-text-search) | 不依赖分析引擎进行跨文件文本搜索；预览差异并确认替换 |
+| 16 | [搜索与替换（Search & Replace）](docs/user/user-guide.zh-CN.md#view-text-search) | 原生后端跨文件文本搜索、独立结果快照大窗口，以及差异预览和确认替换 |
 
 ### 组合视图：把一套阅读布局放在一起
 

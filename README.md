@@ -74,7 +74,7 @@ Run **C Insight: Open View…** to find these views by name or purpose. Each nam
 | 13 | [Document Symbols](docs/user/user-guide.en.md#view-document-symbols) | Browse the active hierarchy, filter collapsed members, sort siblings and highlight the editor-center symbol |
 | 14 | [Project Files](docs/user/user-guide.en.md#view-project-files) | Search/sort multi-root files, center the active file and independently lock automatic filter/scroll following |
 | 15 | [Project Diagnostics](docs/user/user-guide.en.md#view-diagnostics) | Inspect the engine, compilation database, active command, diagnostics and runtime counters; copy/export reports |
-| 16 | [Search & Replace](docs/user/user-guide.en.md#view-text-search) | Search text across files independently of the analysis engine; preview and confirm replacements |
+| 16 | [Search & Replace](docs/user/user-guide.en.md#view-text-search) | Native-backed cross-file text search, independent result snapshot windows, and confirmed replacement diffs |
 
 ### Combined views: a reusable browsing layout
 

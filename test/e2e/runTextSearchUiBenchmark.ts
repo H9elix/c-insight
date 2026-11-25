@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, delimiter } from "node:path";
 import { createServer } from "node:net";
@@ -15,8 +15,17 @@ async function main(): Promise<void> {
   process.env.C_INSIGHT_SEARCH_CDP_PORT = String(port);
   process.env.LD_LIBRARY_PATH = [join(project, ".vscode-test/runtime-libs/usr/lib/x86_64-linux-gnu"), process.env.LD_LIBRARY_PATH].filter(Boolean).join(delimiter);
   try {
+    let root = resolve(source);
+    if (source === "synthetic") {
+      root = join(temporary, "source"); await mkdir(root);
+      for (let batch = 0; batch < 10; batch++) await Promise.all(Array.from({length: 100}, (_, index) => {
+        const number = batch * 100 + index;
+        return writeFile(join(root, `${number}.c`), "return;\n".repeat(24) + (number % 100 === 0 ? "avcodec_receive_frame();\navcodec_send_packet();\n" : ""));
+      }));
+      await writeFile(join(root, "buffer.c"), "int buffer_file;\n");
+    } else if (process.env.C_INSIGHT_SEARCH_UI_DIRTY === "1") throw new Error("Dirty-buffer UI benchmarking is limited to synthetic fixtures.");
     const workspace = join(temporary, "search.code-workspace");
-    await writeFile(workspace, JSON.stringify({folders: [{path: resolve(source)}], settings: {
+    await writeFile(workspace, JSON.stringify({folders: [{path: root}], settings: {
       "workbench.startupEditor": "none", "files.exclude": {}, "search.exclude": {}, "search.searchOnType": false,
       "search.maxResults": 20000, "cInsight.followCursor": false, "cInsight.session.restore": false,
     }}));

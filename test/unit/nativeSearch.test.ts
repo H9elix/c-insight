@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
-import { nativeArgs, nativeQuery } from "../../src/textSearch/nativeSearchQuery";
+import { nativeArgs, nativeQuery, searchGlobs } from "../../src/textSearch/nativeSearchQuery";
+import { compilePatterns } from "../../src/textSearch/fileRules";
 import { runNativeSearch, matchNativeText, type NativeMatch } from "../../src/textSearch/nativeSearchProcess";
 import { DEFAULT_SEARCH_OPTIONS } from "../../src/textSearch/searchModel";
 import { SearchCancelled } from "../../src/textSearch/matchingPool";
@@ -40,6 +41,7 @@ describe("native workspace search semantics", () => {
         assert.equal(matches.length, 1); assert.equal(matches[0].endLine, 1); assert.equal(matches[0].endCharacter, 1);
       }
     }
+    assert.equal((await memory("ab", {...options, query: "(?=a)\\u0061\\u0062", regex: true})).matches[0].value, "ab");
   });
   it("uses the same native captures for replacement and enforces only requested match limits", async () => {
     const replaced = await memory("foo12 foo34", {...options, query: "foo(\\d+)", regex: true}, undefined, "${1}");
@@ -65,5 +67,25 @@ describe("native workspace search semantics", () => {
     assert.equal(found[0].replacementValue, "中文/中文/中文/$/中文2/$99");
     const context = await matchNativeText(binary, "-foo+", {...options, regex: true}, new AbortController().signal, "$`:$&:$'");
     assert.equal(context[0].replacementValue, "-:foo:+");
+  });
+  it("applies native ignores, explicit include overrides, anchored paths and symlink settings", async () => {
+    const folder = await mkdtemp(join(tmpdir(), "ci-native-rules-"));
+    try {
+      await mkdir(join(folder, "src")); await mkdir(join(folder, "deep/src"), {recursive: true});
+      for (const [path, value] of Object.entries({"src/one.txt": "foo", "deep/src/two.txt": "foo", "ignored.txt": "foo", ".gitignore": "ignored.txt\n"})) await writeFile(join(folder, path), value);
+      const search = async (filters: Parameters<typeof nativeArgs>[1]) => {
+        const found: string[] = [];
+        await runNativeSearch(binary, options, {cwd: folder, paths: ["."], filters}, new AbortController().signal, async path => {found.push(path.replaceAll("\\", "/").replace(/^\.\//, ""));});
+        return found.sort();
+      };
+      assert.deepEqual(await search({useIgnores: true}), ["deep/src/two.txt", "src/one.txt"]);
+      assert.deepEqual(await search({useIgnores: true, includes: searchGlobs("*.txt")}), ["deep/src/two.txt", "ignored.txt", "src/one.txt"]);
+      assert.deepEqual(await search({includes: searchGlobs("./src")}), ["src/one.txt"]);
+      assert(compilePatterns("**/*.TXT", true)("src/one.txt")); assert(!compilePatterns("**/*.TXT")("src/one.txt"));
+      if (process.platform !== "win32") {
+        await symlink(join(folder, "src/one.txt"), join(folder, "linked.txt"));
+        assert(!(await search({followSymlinks: false})).includes("linked.txt")); assert((await search({followSymlinks: true})).includes("linked.txt"));
+      }
+    } finally {await rm(folder, {recursive: true, force: true});}
   });
 });

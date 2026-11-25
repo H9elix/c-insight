@@ -270,14 +270,14 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 
 | 文件 | 管理的功能 |
 | --- | --- |
-| `searchModel.ts` | 字面量／ECMAScript 正则、Unicode 整词、UTF-16 位置、匹配载荷预算、捕获组替换和保留大小写。 |
+| `searchModel.ts` | 查询与匹配类型、内容哈希、替换文本应用和保留大小写；历史 JavaScript 匹配辅助函数仅用于独立测试夹具，不再决定查询结果。 |
 | `nativeSearchQuery.ts`、`nativeSearchProcess.ts` | 构造原生匹配与文件规则，读取 ripgrep JSON 流，将 UTF-8 偏移转换为 UTF-16 位置；磁盘与内存共用后端，取消时终止进程。 |
 | `nativeReplacement.ts`、`ripgrepSearch.ts` | 前者把编辑器替换占位符转换为原生捕获组展开；后者只定位随包原生程序。不使用私有 VS Code 路径或 JavaScript 匹配回退。 |
 | `searchResultWindows.ts` | 查询结果共享会话及只读编辑器大窗口；保留完成／取消快照，隔离新查询、替换权限和导航选择，跟踪源码过期及窗口可见性。 |
 | `searchWorker.ts`、`matchingPool.ts` | 保留的独立匹配器测试夹具及取消异常类型；当前搜索查询不使用 JavaScript 匹配线程。 |
 | `searchDiagnostics.ts` | 按需收集分段时间、首批结果、读取量及后端／进程计数，不记录查询、路径或源码；并发阶段时间不可相加当作墙钟时间。 |
 | `fileRules.ts` | 嵌套 `.gitignore`、包含／排除 glob、VS Code 条件排除、BOM 与 `files.encoding` 解码、二进制和不确定解码拒绝。 |
-| `workspaceSearch.ts` | 多根及文件范围枚举、忽略规则、文件／结果／正文预算、优先读取内存文档、流式结果和摘要；不依赖分析引擎。 |
+| `workspaceSearch.ts` | 多根及文件范围、原生忽略规则、`search.maxResults`、内存文档优先、最多 8 个并发命中校验及摘要；不依赖分析引擎。 |
 | `textSearchExplorer.ts` | 显式启动查询、共享状态与修订号、所有呈现隐藏后的取消、已知 ID 导航、勾选、差异计划、确认替换和受影响文件更新。输入和编辑不启动扫描。 |
 | `replacementPlan.ts` | 有界只读差异快照、全部目标哈希／版本核对、信任／只读检查及 WorkspaceEdit；不直接写文件或保存。 |
 | `searchPresentationDelta.ts` | 每个呈现只传新增／变化文件和复选框差量；隐藏／重建释放旧游标，首次就绪及重新显示完整同步，不把源码 URI 或哈希送到浏览器。 |

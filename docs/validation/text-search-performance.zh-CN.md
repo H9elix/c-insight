@@ -1,68 +1,72 @@
 # 文本搜索性能对照
 
-关联 CI-REG-057。两边均为工作区全文搜索；基准使用只读 FFmpeg 源码及同一份候选文件清单，不启动 C Insight 分析引擎，不写入被测工程。
+关联 CI-REG-057。比较对象都是工作区全文搜索；使用只读 FFmpeg 或临时合成工程，不启动分析引擎，不修改实际工程。
 
-## 执行方法
+## 1. 实际界面对照
 
 ```bash
 npm run build
-C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code xvfb-run -a node dist/test/e2e/runTextSearchBenchmark.js
+C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT=/tmp/search-ui.json xvfb-run -a node dist/test/e2e/runTextSearchUiBenchmark.js
 ```
 
-启动器只在临时目录写隔离工作区和用户数据。可用 `C_INSIGHT_BENCHMARK_RG` 指定对照二进制，`C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT` 保存聚合 JSON，`C_INSIGHT_TEXT_SEARCH_BACKEND=javascript` 强制 JavaScript 对照路径。报告不保存源码、匹配片段或文件路径。候选范围为 `**/*.{c,h,cpp,hpp}`，默认区分大小写、字面量匹配，最多保留 10000 个匹配；设置 `C_INSIGHT_TEXT_SEARCH_CASE_SENSITIVE=0` 复测不区分大小写模式。原始 ripgrep 按相同候选清单搜索；该纯后端时间不包含清单生成、哈希校验和 Webview，不能当作用户界面整体加速倍数。达到上限时只比较截断状态和数量，不要求不同并发顺序保留同一组结果。
+入口在临时目录生成隔离工作区和用户数据，通过测试专用的本机 CDP 连接观察原生搜索与 C Insight 的实际渲染。原生使用搜索命令，C Insight 使用公开查询命令；没有提案 API 或私有搜索结果接口。查询范围统一为 `**/*.{c,h,cpp,hpp}`、不区分大小写、遵循相同排除设置，`search.maxResults` 为 20000。涵盖无命中、少量命中、大量命中、整词和正则五类；每类先预热，再交替次序测五轮。
 
-`SearchDiagnostics` 仅按需收集枚举、stat、读取、解码、匹配等待、宿主结果回调、首批结果和总耗时。并发通道的累计阶段时间存在重叠，不能相加当作墙钟时间。未清空系统缓存，首次和重复读取不称为严格冷／热缓存测试。
+首批时间取第一批结果的绘制帧，完成取实际进度条／查询状态完成标记，最终绘制取最后结果 DOM 变更后的动画帧。额外等待 150 ms 确认稳定，不把等待计入耗时。测试先收起其他栏目，让搜索结果区实际可见；首次打开成本单独记录。计时期间不并行构建或运行其他测试。
 
-## 优化前基线
+每项中位数要求 `C Insight <= max(native * 1.2, native + 100 ms)`，无命中不计算首批。默认严格检查；诊断时可设 `C_INSIGHT_SEARCH_UI_STRICT=0` 保留未达标数据。`C_INSIGHT_SEARCH_UI_NATIVE_ONLY=1` 只测原生、不激活扩展。聚合 JSON 不记录源码、片段或文件路径。纯策略断言见 `searchPerformanceModel.test.ts`。
 
-`2026-11-24`，Linux、VS Code `1.130.0`，4614 个候选文件，约 69.3 MB 源码；旧 JavaScript 管线和系统 ripgrep `15.2.0` 在同一宿主中测量：
-
-| 查询 | 匹配数 | 旧管线两次总耗时 | 原始 ripgrep 两次扫描耗时 |
-| --- | --- | --- | --- |
-| 不存在的合成标识符 | 0 | 3068 / 2450 ms | 22 / 20 ms |
-| `avcodec_receive_frame` | 66 | 2342 / 2378 ms | 19 / 18 ms |
-| `return` | 10000，截断 | 434 / 431 ms | 22 / 22 ms |
-
-独立生成候选清单约需 183–407 ms。少量命中查询的一轮累计 stat 约 1199 ms、读取约 2143 ms、匹配等待约 770 ms；墙钟总耗时约 2342 ms。该证据支持优先减少逐文件 API 往返和无命中文件的全文解码／线程复制，而非仅增加匹配线程。
-
-## 优化后复测
-
-同日、相同宿主及 4614 个候选文件，使用安装包自带的 ripgrep `15.0.0`，快速路径和原始扫描分别测量：
-
-| 查询 | 匹配数 | 快速路径两次总耗时 | 原始 ripgrep 两次扫描耗时 |
-| --- | --- | --- | --- |
-| 不存在的合成标识符 | 0 | 379 / 196 ms | 18 / 17 ms |
-| `avcodec_receive_frame` | 66 | 262 / 225 ms | 18 / 17 ms |
-| `return` | 10000，截断 | 214 / 197 ms | 35 / 31 ms |
-
-快速路径总耗时包含本次枚举、检查、读取、匹配及宿主回调；表外独立生成候选清单约需 121–354 ms，用于确保原始扫描输入相同，不重复计入快速路径。所有未截断查询的完整文件及 UTF-16 位置与原始扫描一致；达到上限时保留的具体结果随并发完成顺序变化。
-
-少量命中只为 41 个文件读取／解码约 1.1 MB，未命中文件不传入 JavaScript 匹配线程。该查询首批结果约需 55 / 44 ms；旧基线的一次首批结果约 37 ms，分批筛选和线程启动可能延后最早命中，整体完成加速不代表所有首批结果都更快。无命中查询不解码文件；大量结果达到上限后终止剩余扫描。
-
-按维护者实际使用的“不区分大小写、未开启整词、遵循排除规则”补测，同一清单无命中约 `230 / 205 ms`，少量命中的 66 个结果约 `316 / 243 ms`，10000 个结果截断约 `222 / 199 ms`。未截断的完整位置对照通过；该模式未另采修复前基线，不计算其前后加速倍数。
-
-## 正确性与人工对照
-
-隔离宿主核对新旧后端的未保存文档覆盖、包含／排除规则、编码、Unicode 整词、正则回退、二进制、文件大小、取消、只读与替换冲突。真实组合 Webview 验证 10000 条结果只创建可见区域及预留行，滚动后 DOM 仍不超过 200 行，勾选和预览不替换被点击节点。
-
-以上测量未计入真实工作窗口的界面稳定时间，也未清空系统缓存。真实 WSL／SSH 工程继续比较首批可见结果、扫描完成、滚动及取消延迟，统一包含／排除、匹配、编码和结果上限。快速路径当前用于兼容的 ASCII 字面量磁盘搜索，正则和非 ASCII 查询保留 JavaScript 路径。
-
-## 原生界面基线与新验收目标
+合成千文件及未保存内容对照：
 
 ```bash
-C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT=/tmp/native-search-ui.json xvfb-run -a node dist/test/e2e/runTextSearchUiBenchmark.js
+C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=synthetic C_INSIGHT_SEARCH_UI_DIRTY=1 C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT=/tmp/search-ui-synthetic.json xvfb-run -a node dist/test/e2e/runTextSearchUiBenchmark.js
 ```
 
-该入口在临时工作区中使用原生搜索命令，通过仅用于测试的本机 CDP 连接观察实际渲染进程。不启用产品中的提案 API，不激活 C Insight，不启动分析引擎，也不改被测工程。查询范围为 `**/*.{c,h,cpp,hpp}`，不区分大小写、不启用整词／正则，原生结果上限为 20000。每个查询预热一轮后测五轮。首批时间取第一批可见结果的绘制帧，完成时间取实际进度条完成标记，最终绘制取结果 DOM 最后变更之后的绘制帧；额外等待 150 ms 确认稳定，不把这段等待计入耗时。
+此模式在临时工程创建 1000 个源码文件和一个缓冲区样本，内存编辑不保存。实际 FFmpeg 模式禁止启用此编辑选项。两种模式均断言没有提交分析引擎请求。
 
-`2026-11-25`，同一 Linux／VS Code `1.130.0` 只读 FFmpeg 环境，原生界面五轮中位数：
+## 2. 原生迁移最终测量
 
-| 查询 | 首批可见 | 搜索完成 | 最终结果绘制 |
+`2026-11-25`，Linux、VS Code `1.130.0`，正式基线 `0.23.4` 的功能分支。只读 FFmpeg 五轮中位数，单位 ms；每格为“C Insight / 原生”：
+
+| 查询 | 首批可见 | 搜索完成 | 最终绘制 |
 | --- | --- | --- | --- |
-| 不存在的合成标识符 | 不适用 | 20.4 ms | 28.3 ms |
-| `avcodec_receive_frame` | 31.7 ms | 20.6 ms | 31.7 ms |
-| `return`，20000 上限 | 132.0 ms | 153.0 ms | 196.2 ms |
+| 不存在的合成标识符 | 不适用 | 18.1 / 22.6 | 37.8 / 36.8 |
+| `avcodec_receive_frame` | 27.1 / 31.1 | 26.4 / 22.1 | 59.8 / 36.0 |
+| `return`，20000 上限 | 31.9 / 133.5 | 182.6 / 161.4 | 222.9 / 209.6 |
+| `avcodec_receive_frame`，整词 | 29.9 / 27.1 | 24.0 / 24.4 | 63.6 / 42.7 |
+| `avcodec_(?:receive_frame|send_packet)`，正则 | 26.1 / 29.3 | 24.7 / 24.5 | 58.7 / 43.3 |
 
-少量命中的搜索可能先完成、后统一绘制，因此首批可见时间可以大于搜索完成时间。原生停止按钮仅在慢查询显示；最初以它识别快速查询完成的两次探针失败，随后按实际进度条的 `active`／`done` 状态修正，原始失败日志保留在本地，不计为产品失败或性能样本。
+上述指标全部满足约定目标。原生结果可能在搜索完成后统一绘制，因此其首批时间可晚于完成时间。C Insight 普通栏目绘制前 200 个匹配，后台仍接收完整查询；两边的匹配上限相同。
 
-新迁移的量化目标是同条件、交替五轮中位数满足 `C Insight <= max(native * 1.2, native + 100 ms)`，分别检查首批、完成和最终绘制，无命中不计算首批。上表是实施前原生基线，不是 C Insight 已通过该目标的证据；迁移后必须重新采集同一轮的原生与 C Insight 数据，首次打开另行记录。纯策略断言见 `searchPerformanceModel.test.ts`。
+首次打开本轮记录：原生搜索约 25.4 ms；C Insight 搜索约 572.2 ms，包含扩展首次激活和 Webview 初始化；20000 条结果的大窗口首次打开并绘制约 165.4 ms。这些是单次首开成本，不混入预热后的查询中位数。
+
+合成千文件与未保存缓冲区五类查询也通过同一目标；大量结果完成约 `112.4 / 156.4 ms`、最终绘制约 `157.0 / 202.7 ms`。该结果只代表记录环境；实际 WSL／SSH 工程按同一入口和规则复测。
+
+## 3. 性能诊断结论
+
+旧原生预筛选方案仍在 JavaScript 中枚举路径、分批启动进程、读取命中文件并再次匹配。迁移后直接消费原生 JSON 匹配流，不再做第二次全文匹配。宿主保留源内容、UTF-16 位置和替换哈希核对，命中文件最多 8 个并发读取；取消时终止原生进程，并等待在途校验结束。不再为已取消的文件发布结果。
+
+首次实际界面对照中，大量结果的串行校验仍需约 375.1 ms，同轮原生约 163.4 ms，未达标。有界并发及移除已弃用单文件大小限制所需的 stat 后，后续五轮分别降到约 208.9 ms 和最终约 182.6 ms；内容／位置核对未删除。
+
+最初探针以原生停止按钮识别完成，但该按钮只在慢查询出现；改用进度条标记。另一次测试布局把 C Insight 挤到没有可见结果区，导致动画帧测量不可用；调整隔离布局后重新采样。失败日志保留在本地，不计为性能通过样本。
+
+## 4. 完整位置与分段诊断
+
+```bash
+C_INSIGHT_TEXT_SEARCH_BENCHMARK_ROOT=/path/to/FFmpeg C_INSIGHT_TEXT_SEARCH_CASE_SENSITIVE=0 C_INSIGHT_VSCODE_EXECUTABLE_PATH=/path/to/test/code xvfb-run -a node dist/test/e2e/runTextSearchBenchmark.js
+```
+
+此入口不激活扩展，按候选清单比较原生查询的完整文件及 UTF-16 位置。`C_INSIGHT_BENCHMARK_RG` 可指定独立对照程序，`C_INSIGHT_TEXT_SEARCH_BENCHMARK_OUTPUT` 保存聚合结果。未截断查询比较完整位置；截断查询只比较数量及部分状态，避免并发顺序差异。当前默认保留 20000 个匹配；旧的强制 JavaScript 对照选项已移除。
+
+`SearchDiagnostics` 按需记录读取、解码、结果回调、首批和总耗时。并发阶段累计时间有重叠，不能求和当作墙钟时间；扫描计数由原生摘要提供，提前取消时只有已报告部分。独立原生程序的扫描时间不含宿主校验与界面，不能作为整体加速倍数。
+
+## 5. 既往基线
+
+`2026-11-24`，4614 个候选文件，约 69.3 MB，旧 JavaScript 管线及第一次原生预筛选复测：
+
+| 查询 | 原 JavaScript 两次总耗时 | 预筛选两次总耗时 | 原始 ripgrep 两次扫描 |
+| --- | --- | --- | --- |
+| 不存在的合成标识符 | 3068 / 2450 ms | 379 / 196 ms | 18 / 17 ms |
+| `avcodec_receive_frame`，66 条 | 2342 / 2378 ms | 262 / 225 ms | 18 / 17 ms |
+| `return`，旧 10000 上限 | 434 / 431 ms | 214 / 197 ms | 35 / 31 ms |
+
+这些是历史纯后端记录，不含实际工作窗口绘制，且使用旧结果上限，不能直接替代本轮界面验收。旧管线候选枚举、逐文件读取及线程传输的分段证据保存在 CI-REG-057；现行查询规则和操作见[用户手册](../user/user-guide.zh-CN.md#view-text-search)。

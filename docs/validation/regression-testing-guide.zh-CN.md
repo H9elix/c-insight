@@ -53,7 +53,7 @@
 | 文档、本地化、构建、发布 | 044–047 | `documentationCompleteness` 检查连续编号、16 个独立视图、README 清单、配置／命令覆盖及手册锚点；另执行本地化检查、`publicRepositoryContract`、`releaseNotesContract`、`dependencyCompatibility`、`cpptoolsExtensionPath`。依赖覆盖需核对生产补丁，Release 附件与隐私人工复核 |
 | 打开视图、首次可见提示、编辑器菜单 | 037、043–044、050 | `viewCatalog`、`viewDiscovery`、`viewMenu`；组合宿主覆盖原生选择／取消、准确聚焦及请求计数，搜索键入、右键视觉和中文／Remote 按[专项验证](view-discovery.zh-CN.md)人工检查 |
 | WSL 中的 VSIX 安装与 CLI 启动 | 046、054–055 | 先区分 Windows 启动器、当前服务器 `remote-cli`、UNC 源文件读取与安装目标；核对外部 Windows 程序启动和 WSL 窗口 UI 安装，UNC 被拦截时用本地盘符副本验证，不关闭全部访问保护，不用插件 E2E 代替系统检查 |
-| 搜索与替换 | 022、035、037–038、057 | `textSearchModel`、`textSearchWebview`、`textSearchSafety`、`ripgrepSearch`、`searchPresentationDelta`；隔离 `runTextSearchTest` 覆盖新旧后端位置一致、编码／失败回退、跨文件替换／撤销、冲突、隐藏取消、千文件预算及真实组合的增量更新／虚拟列表；同清单只读 FFmpeg 计时见[性能对照](text-search-performance.zh-CN.md)，人工重点见[专项验证](text-search.zh-CN.md) |
+| 搜索与替换 | 022、035、037–038、057 | `nativeSearch`、`textSearchModel`、`textSearchWebview`、`textSearchSafety`、`searchPresentationDelta`；隔离 `runTextSearchTest` 覆盖原生规则、内存覆盖、编码、跨文件替换／撤销、冲突、隐藏取消、显示上限和独立快照；实际原生界面交替五轮及完整位置核对见[性能对照](text-search-performance.zh-CN.md)，人工重点见[专项验证](text-search.zh-CN.md) |
 
 表中的单测短名对应 `test/unit/<短名>.test.ts`。主 clangd E2E 位于 [suite/index.ts](../../test/e2e/suite/index.ts)，Microsoft 主回归位于 [microsoftEngine.ts](../../test/e2e/suite/microsoftEngine.ts)，真实工程回归位于 [ffmpegMicrosoft.ts](../../test/e2e/suite/ffmpegMicrosoft.ts)。各案例列出自动断言与人工检查项。
 
@@ -147,7 +147,7 @@ C_INSIGHT_FFMPEG_WORKSPACE=/path/to/FFmpeg npm run test:e2e:ffmpeg:microsoft
 
 25. 收缩后的高亮可见性（CI-REG-056）：分别在文档符号和工程文件初始小视图跟随中部目标，再连续至少三轮悬停放大、上下滚动到高亮之外并移出组合。展开期间不拉回；每次缩回后若目标在可见区域外，尺寸稳定后只补一次平滑居中，不依赖点击搜索框或恢复窗口，也不能只检查首次收缩或未滚动场景。若仍可见则保持滚动。锁定、关闭跟随、窗口失焦或视图内搜索／菜单时不强制定位；滚轮、新目标／新输入及显式导航停止旧动画，减少动态效果时直接定位。检查动画中间位置、筛选词、分支展开、选择和焦点，同功能的其他显示实例不滚动，语义请求和文件扫描不增加。临时零高度恢复、原生分隔条、真实鼠标及 WSL/SSH 另作现场检查。
 
-26. 搜索与替换：输入、移动光标及编辑源文件均不自动启动扫描；Enter／搜索按钮显式查询，单击预览，双击／Enter 导航并保留查询。两个组合呈现共享查询、结果与勾选，但展开和滚动独立；万条结果只渲染可见区域，滚动可访问全部保留结果，勾选和预览不替换被点击节点。全部隐藏后取消、重显不重查；差异预览后修改文件／条件／勾选使旧计划失效，未信任或只读时不写入，确认后保持未保存且可跨文件撤销。对照字面量快速路径、正则／中文／编码／原生失败回退和未保存内容的结果位置，分别记录首批结果、扫描完成及界面稳定时间；规模、忽略及 Remote 人工重点见[专项验证](text-search.zh-CN.md)。
+26. 搜索与替换：输入、移动光标及编辑不自动扫描；Enter／按钮显式查询，单击预览、双击／Enter 导航。组合呈现共享查询与勾选，展开和滚动独立。默认只显示前 200 个匹配，不截断后台或替换范围；上下按钮打开只读大窗口，同轮复用、不同轮并存，完成／取消后固定。源变化后拒绝错误定位；旧窗口可见不维持新查询扫描，隐藏全部本轮呈现会取消。原生规则覆盖 Unicode／正则／跨行／忽略／编码／软链接，`search.maxResults: null` 不附加旧搜索上限；缺失原生程序明确报错。差异预览、信任／只读、内容／版本冲突、未保存编辑与跨文件撤销继续检查。实际原生界面对照与人工重点见[专项验证](text-search.zh-CN.md)。
 
 预览自身历史、C Insight 导航历史和 VS Code 原生后退/前进是不同系统，必须说明操作的是哪一套。隐藏 C Insight 窗口不要求 clangd 的后台索引完全停止；源码编辑也仍可能触发文档符号重绘、预览局部更新及语言引擎自身同步，不得把它们都当成光标语义查询泄漏。
 

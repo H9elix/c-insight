@@ -56,6 +56,9 @@ jobs:
       - name: Run combined browsing view regressions
         run: npm run test:e2e:combined
 
+      - name: Run native text search and query snapshot regressions
+        run: npm run test:e2e:text-search
+
       - name: Run compiler macro navigation regressions
         run: npm run test:e2e:command-line-macros
 

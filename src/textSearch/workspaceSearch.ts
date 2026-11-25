@@ -50,12 +50,12 @@ export class WorkspaceTextSearch {
       for (const nested of roots) if (nested.toString() !== root.toString() && nested.scheme === root.scheme && nested.authority === root.authority && nested.path.startsWith(root.path.replace(/\/$/, "") + "/")) {
         const path = nested.path.slice(base.path.length).replace(/^\//, ""); excludes.push(path, `${path}/**`);
       }
-      const includes = searchGlobs(request.include);
-      return {root, base, conditional, include: includes.length ? compilePatterns(includes.join(",")) : () => true,
-        exclude: compilePatterns(excludes.join(",")), except: compilePatterns(exceptions.join(",")), siblingExclude: compileExclusions(conditional), filters: {includes, excludes, exceptions,
+      const includes = searchGlobs(request.include), ignoreGlobCase = process.platform !== "linux";
+      return {root, base, conditional, include: includes.length ? compilePatterns(includes.join(","), ignoreGlobCase) : () => true,
+        exclude: compilePatterns(excludes.join(","), ignoreGlobCase), except: compilePatterns(exceptions.join(","), ignoreGlobCase), siblingExclude: compileExclusions(conditional, ignoreGlobCase), filters: {includes, excludes, exceptions,
         useIgnores: request.useIgnores, useParentIgnores: search.get<boolean>("useParentIgnoreFiles", false),
         useGlobalIgnores: search.get<boolean>("useGlobalIgnoreFiles", false), followSymlinks: search.get<boolean>("followSymlinks", true),
-        ignoreGlobCase: process.platform !== "linux", encoding: files.get<string>("encoding", "utf8"), threads: search.get<number>("ripgrep.maxThreads", 0)}};
+        ignoreGlobCase, encoding: files.get<string>("encoding", "utf8"), threads: search.get<number>("ripgrep.maxThreads", 0)}};
     });
   }
   private inRoot(uri: vscode.Uri, root: vscode.Uri): boolean {
@@ -140,20 +140,30 @@ export class WorkspaceTextSearch {
         }
         const relative = plan.root.path.slice(plan.base.path.length).replace(/^\//, "") || ".";
         if (diagnostics) diagnostics.nativeProcesses++;
+        const pending = new Set<Promise<void>>(); let failure: unknown;
         const consume = async (path: string, matches: NativeMatch[], exceptions = false): Promise<boolean> => {
           const uri = vscode.Uri.file(isAbsolute(path) ? path : join(plan.base.fsPath, path));
           if (open.has(uri.toString()) || exceptions && !plan.except(uri.path.slice(plan.base.path.length).replace(/^\//, "")) || !await this.accepted(uri, plan)) return true;
-          return publish(uri, matches);
+          // Bound snapshot reads, not native matching. Avoid a serial filesystem round trip per hit file.
+          const task: Promise<void> = publish(uri, matches).then(() => undefined).catch(error => {failure ??= error;}).finally(() => pending.delete(task)); pending.add(task);
+          if (pending.size >= 8) await Promise.race(pending);
+          if (failure) throw failure;
+          return !stats.limited;
         };
-        const summary = await runNativeSearch(binary, effective, {cwd: plan.base.fsPath, paths: [relative],
-          filters: {...plan.filters, exceptions: undefined, maximumFileBytes: budget.maximumFileBytes}}, signal,
-          async (path, matches) => {
-            return consume(path, matches);
-          });
+        let summary;
+        try {
+          summary = await runNativeSearch(binary, effective, {cwd: plan.base.fsPath, paths: [relative],
+            filters: {...plan.filters, exceptions: undefined, maximumFileBytes: budget.maximumFileBytes}}, signal,
+            async (path, matches) => consume(path, matches));
+        } finally {await Promise.all(pending);}
+        if (failure) throw failure;
         if (!stats.limited && plan.filters.exceptions?.length) {
           if (diagnostics) diagnostics.nativeProcesses++;
-          const extra = await runNativeSearch(binary, effective, {cwd: plan.base.fsPath, paths: [relative],
-            filters: {...plan.filters, excludes: [], useIgnores: false}}, signal, (path, matches) => consume(path, matches, true));
+          let extra;
+          try {extra = await runNativeSearch(binary, effective, {cwd: plan.base.fsPath, paths: [relative],
+            filters: {...plan.filters, excludes: [], useIgnores: false}}, signal, (path, matches) => consume(path, matches, true));}
+          finally {await Promise.all(pending);}
+          if (failure) throw failure;
           stats.limited ||= extra.limited;
         }
         stats.files += summary.files; stats.limited ||= summary.limited;
@@ -171,9 +181,12 @@ export class WorkspaceTextSearch {
       if (Buffer.byteLength(text, "utf8") > maximum) throw new Error("File size limit.");
       return {text, version: document.version};
     }
-    let time = performance.now(); const metadata = local && uri.scheme === "file" ? await stat(uri.fsPath) : await vscode.workspace.fs.stat(uri);
-    if (diagnostics) diagnostics.statMs += performance.now() - time;
-    if (metadata.size > maximum) throw new Error("File size limit.");
+    let time = performance.now();
+    if (Number.isFinite(maximum)) {
+      const metadata = local && uri.scheme === "file" ? await stat(uri.fsPath) : await vscode.workspace.fs.stat(uri);
+      if (diagnostics) diagnostics.statMs += performance.now() - time;
+      if (metadata.size > maximum) throw new Error("File size limit.");
+    }
     time = performance.now(); const bytes = local && uri.scheme === "file" ? await readFile(uri.fsPath) : await vscode.workspace.fs.readFile(uri);
     if (diagnostics) {diagnostics.readMs += performance.now() - time; diagnostics.bytesRead += bytes.byteLength;}
     if (bytes.byteLength > maximum) throw new Error("File size limit.");

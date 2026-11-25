@@ -17,5 +17,6 @@ For diagnostic data, first set `cInsight.diagnostics.reportRedaction` to `paths-
 - C Insight launches the configured local or remote-host `clangd` executable.
 - A workspace can influence clangd through source files, `.clangd`, and `compile_commands.json`; only open and trust workspaces you consider safe.
 - C Insight does not execute compile commands from the compilation database, but clangd reads them to parse files.
+- Text search launches only the bundled ripgrep executable without a shell, user ripgrep configuration or preprocessors. Webviews navigate known host-side result IDs; replacement requires a trusted writable workspace, a validated diff and explicit confirmation. Read-only result windows cannot apply edits.
 - Export and workspace-session data are written only after explicit user or configured session actions and are subject to resource limits.
 - Production and development dependencies are audited before release; generated third-party notices are checked by the standard quality gate.

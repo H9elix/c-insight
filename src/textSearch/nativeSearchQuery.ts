@@ -16,7 +16,9 @@ export function nativeQuery(options: SearchOptions): {pattern: string; fixed: bo
     if (/\w/.test(query.at(-1)!)) pattern += "\\b";
   } else if (options.regex) pattern = fixRegexNewlines(pattern);
   pattern = pattern.replace(/\n/g, "\\r?\\n");
-  pattern = pattern.replace(/((?:[^\\]|^)(?:\\\\)*)\\u(?:\{([\da-f]{1,6})\}|([\da-f]{4}))/gi, (_all, prefix: string, brace: string, plain: string) => `${prefix}\\x{${brace ?? plain}}`);
+  const unicode = /((?:[^\\]|^)(?:\\\\)*)\\u(?:\{([\da-f]{1,6})\}|([\da-f]{4}))/gi;
+  let previous: string;
+  do {previous = pattern; pattern = pattern.replace(unicode, (_all, prefix: string, brace: string, plain: string) => `${prefix}\\x{${brace ?? plain}}`);} while (pattern !== previous);
   return {pattern: fixed ? query : pattern, fixed, multiline};
 }
 
@@ -36,7 +38,7 @@ function fixRegexNewlines(pattern: string): string {
       const text = owner.negate ? owner.parent.type === "Quantifier" ? other ? `[^${other}]` : "." : `(?!\\r?\\n${other ? `|[${other}]` : ""})`
         : other ? `(?:[${other}]|\\r?\\n)` : "\\r?\\n";
       edits.set(owner.start, {end: owner.end, text});
-    } else edits.set(character.start, {end: character.end, text: owner.type === "Quantifier" ? "(?:\\r?\\n)" : "\\r?\\n"});
+    } else if (owner.type === "Quantifier" || owner.type === "Alternative") edits.set(character.start, {end: character.end, text: owner.type === "Quantifier" ? "(?:\\r?\\n)" : "\\r?\\n"});
   }});
   let result = "", start = 0;
   for (const [index, edit] of [...edits].sort(([a], [b]) => a - b)) {

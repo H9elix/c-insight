@@ -204,11 +204,21 @@ export async function run(): Promise<void> {
   assert.equal(unlimited.stats.matches, 24000); assert(!unlimited.stats.limited);
   console.log("TEXT_SEARCH_PARITY: native positions, Unicode words, BOM/GBK, newline detection, missing-binary errors and unlimited results passed");
 
-  await message({type: "input", scope: "workspace", include: "**/scale/**/*.txt", query: "PERF_NEEDLE", regex: false}); await message({type: "search"});
-  const large = await state();
-  await vscode.commands.executeCommand("cInsight.textSearch.openResults"); await pause(50);
+  await message({type: "input", scope: "workspace", include: "**/scale/**/*.txt", query: "PERF_NEEDLE", regex: false});
+  const streaming = message({type: "search"});
+  await until(async () => {const current = await state(); return current.stats.matches > 0 && (current as State & {loading: boolean}).loading;}, "No streaming results before query completion");
+  await vscode.commands.executeCommand("cInsight.textSearch.openResults");
+  assert((await state()).resultWindows[0].loading, "Opening during a scan must retain a live snapshot");
+  await vscode.commands.executeCommand("workbench.action.closeSidebar"); await streaming;
+  const large = await state(); assert(!large.stats.cancelled, "A visible snapshot of the current query must keep its scan alive");
+  await pause(50);
   assert.equal((await state()).resultWindows.length, 1); assert.equal((await state()).resultWindows[0].matches, 20000);
   await vscode.commands.executeCommand("cInsight.textSearch.openResults"); assert.equal((await state()).resultWindows.length, 1, "Opening the same query must focus its existing snapshot");
+  const nextScan = message({type: "search"});
+  await until(async () => {const current = await state(); return current.stats.matches > 0 && (current as State & {loading: boolean}).loading;}, "Second query did not begin streaming");
+  await vscode.commands.executeCommand("workbench.action.closeSidebar"); await nextScan;
+  assert((await state()).stats.cancelled, "A visible old snapshot must not keep a different query scanning");
+  assert.equal((await state()).resultWindows[0].generation, large.generation);
   await message({type: "input", scope: "file", include: "", query: "needle"}); await message({type: "search"});
   const small = await state();
   assert.equal(small.resultWindows[0].query, "PERF_NEEDLE"); assert.equal(small.resultWindows[0].matches, 20000);
@@ -231,4 +241,19 @@ export async function run(): Promise<void> {
   const panels = vscode.window.tabGroups.all.flatMap(group => group.tabs).filter(tab => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.includes("cInsight.textSearchResults"));
   assert.equal(panels.length, 2); await vscode.window.tabGroups.close(panels, true); assert.equal((await state()).resultWindows.length, 0);
   console.log("TEXT_SEARCH_SNAPSHOTS: inline cap, frozen distinct queries, same-query reuse, preview, read-only messages, stale navigation and close cleanup passed");
+  const nativeConfig = vscode.workspace.getConfiguration("search"), ownConfig = vscode.workspace.getConfiguration("cInsight.textSearch");
+  const nativeLimit = nativeConfig.inspect<number | null>("maxResults")?.workspaceValue;
+  const legacyLimit = ownConfig.inspect<number>("maximumMatches")?.workspaceValue;
+  try {
+    await nativeConfig.update("maxResults", 1, vscode.ConfigurationTarget.Workspace);
+    await message({type: "input", scope: "workspace", query: "PERF_NEEDLE", include: "**/scale/**/*.txt"}); await message({type: "search"});
+    assert.equal((await state()).stats.matches, 1); assert((await state()).stats.limited);
+    await nativeConfig.update("maxResults", null, vscode.ConfigurationTarget.Workspace);
+    await ownConfig.update("maximumMatches", 1, vscode.ConfigurationTarget.Workspace);
+    await message({type: "search"}); assert.equal((await state()).stats.matches, 24000); assert(!(await state()).stats.limited);
+  } finally {
+    await nativeConfig.update("maxResults", nativeLimit, vscode.ConfigurationTarget.Workspace);
+    await ownConfig.update("maximumMatches", legacyLimit, vscode.ConfigurationTarget.Workspace);
+  }
+  console.log("TEXT_SEARCH_SETTINGS: native maxResults/null and ignored legacy caps passed");
 }

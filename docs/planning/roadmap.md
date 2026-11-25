@@ -10,15 +10,17 @@ Combined views group existing features in up to four saved layouts, with splitte
 
 Compiler-macro definition locations, automatic Code Preview placement and workspace-symbol indexing remain unresolved under [CI-REG-049](../validation/historical-issues.zh-CN.md#ci-reg-049). Deferred fourth-phase work is listed below.
 
-## Planned text-search semantics
+<a id="planned-text-search-semantics"></a>
 
-For the next search-backend migration, regular expressions and whole-word matching will target VS Code's native workspace-search behavior. Preserving C Insight's historical custom JavaScript matching rules is not a compatibility requirement. Treat this as behavior alignment, not removal of regex or whole-word support.
+## Native text search and query snapshots
 
-Apply the target rules consistently to disk search, unsaved-document results and replacement processing. Validate Unicode word boundaries, regex syntax, newline and zero-width behavior, and capture-group replacements against the native behavior; saving a document must not silently switch its matching rules. Retain content/version conflict checks, replacement confirmation and native undo. The current implementation remains described in the [user guide](../user/user-guide.en.md#view-text-search).
+The feature branch directly consumes bundled native search matches for disk and unsaved documents. Regex, whole words and newline handling follow native workspace-search conventions instead of the historical custom JavaScript matcher. Captures are expanded by the same native matcher during validated replacement planning.
 
-The approved migration uses the bundled native backend directly and follows native workspace-search settings, including `search.maxResults` (20000 by default; `null` removes the match-count limit). Regex, whole words, multiline detection, exclusions, ignore files, symlinks and encoding target native behavior. Legacy C Insight search caps must not introduce a second hidden truncation boundary. Searches remain explicit rather than starting on typing.
+Content/version conflict checks, replacement confirmation and native undo remain in place. Current interaction, settings and result-window behavior are described in the [user guide](../user/user-guide.en.md#view-text-search).
 
-The ordinary view will display the first 200 matches by default, configurable independently of search completeness. Whenever results exist, buttons before and after the list open an editor-area read-only result snapshot. A snapshot continues collecting its own in-flight query until completion or cancellation, then stays fixed; a newer query never replaces it. It supports single-click Code Preview, double-click/Enter editor navigation and independent folding/scrolling, but no replacement controls. Reopening the same query focuses its existing snapshot. Original-view replacement still uses the complete query result and reports hidden selected matches.
+Search follows `search.maxResults` (20000 by default; `null` removes the match-count limit), native ignore/encoding/symlink settings and explicit query submission. Legacy C Insight candidate-file, file-size and result-text search caps no longer truncate queries. Native failures report an error instead of changing matching semantics.
+
+The ordinary view displays the first 200 matches by default, configurable independently of search completeness. Top/bottom buttons open an editor-area read-only snapshot, which collects its original in-flight query until completion/cancellation and then stays fixed. Different query windows can coexist; same-query reopening focuses its existing window. Navigation and folding remain independent, with no replacement authority. Original-view replacement uses the complete query and reports hidden checked matches.
 
 Performance acceptance compares identical queries in the actual native and C Insight interfaces, with matched scope, settings, source/buffer state and result limits. After warm-up, alternate five runs and compare medians for first visible results, search completion and final rendering. Each target is `C Insight <= max(native * 1.2, native + 100 ms)`; no-hit queries omit first-result timing and first-open costs are recorded separately. Use read-only FFmpeg and synthetic fixtures without analysis-engine activity. Raw ripgrep timing is diagnostic evidence, not UI acceptance. Implement in local commit batches and deliver a temporary VSIX before any formal version, merge or publication.
 
