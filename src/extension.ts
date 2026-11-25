@@ -474,6 +474,7 @@ export async function activate(
     context.subscriptions.push(
       vscode.commands.registerCommand("cInsight.test.viewDiscoveryState", () => viewDiscovery.stateForTest()),
       vscode.commands.registerCommand("cInsight.test.combinedState", () => combinedViews.stateForTest()),
+      vscode.commands.registerCommand("cInsight.test.combinedPanePicker", () => combinedViews.panePickerForTest()),
       vscode.commands.registerCommand("cInsight.test.combinedTree", (slot: CombinedSlot, role: CombinedRole, message?: unknown) => combinedViews.interactionForTest(slot, role, message)),
       vscode.commands.registerCommand("cInsight.test.combinedBrowser", (slot: CombinedSlot, action?: unknown) => combinedViews.browserForTest(slot, action)),
       vscode.commands.registerCommand("cInsight.test.resultTreeInteraction", (id, message) =>

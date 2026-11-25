@@ -31,6 +31,7 @@ export class CombinedViewManager implements vscode.Disposable {
   private nextDocumentGeneration = 0;
   private iconAssets?: Promise<{css: string; font: string}>;
   private disposed = false;
+  private testPanePicker?: {open: boolean; activeRole?: CombinedRole};
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly factory: PresentationFactory,
     registerView: ViewRegistrar = (...args) => vscode.window.registerWebviewViewProvider(...args)) {
@@ -316,8 +317,15 @@ export class CombinedViewManager implements vscode.Disposable {
       await config.update("hoverExpand", !config.get("hoverExpand", true), vscode.ConfigurationTarget.Global); return;
     }
     if (action === "add") {
-      const selected = await vscode.window.showQuickPick(COMBINED_ROLES.filter(role => !layout.views.includes(role)).map(role => ({label: this.names.get(role) ?? role, role})),
-        {title: vscode.l10n.t("Add Panes"), canPickMany: true});
+      const observe = this.context.extensionMode !== undefined && this.context.extensionMode === vscode.ExtensionMode.Test;
+      if (observe) this.testPanePicker = {open: true};
+      let selected: Array<vscode.QuickPickItem & {role: CombinedRole}> | undefined;
+      try {
+        selected = await vscode.window.showQuickPick(COMBINED_ROLES.filter(role => !layout.views.includes(role)).map(role => ({label: this.names.get(role) ?? role, role})),
+          {title: vscode.l10n.t("Add Panes"), canPickMany: true, ...(observe ? {onDidSelectItem: (item: vscode.QuickPickItem | string) => {
+            if (typeof item !== "string" && "role" in item && isCombinedRole(item.role) && this.testPanePicker) this.testPanePicker.activeRole = item.role;
+          }} : {})});
+      } finally {if (observe && this.testPanePicker) this.testPanePicker.open = false;}
       if (!selected?.length) return;
       layout.views.push(...selected.map(item => item.role)); layout.ratios.push(...selected.map(() => 1));
     } else if (action === "rename") {
@@ -335,6 +343,7 @@ export class CombinedViewManager implements vscode.Disposable {
   }
   stateForTest() { return [...this.surfaces].map(([slot, surface]) => ({slot, ready: surface.ready, visible: surface.view.visible,
     panes: [...surface.panes].map(([role, pane]) => ({role, visible: pane.view.visible, generation: pane.generation, acknowledged: pane.acknowledged}))})); }
+  panePickerForTest() {return this.testPanePicker ? {...this.testPanePicker} : undefined;}
   async interactionForTest(slot: CombinedSlot, role: CombinedRole, message?: unknown): Promise<unknown> {
     const pane = this.surfaces.get(slot)?.panes.get(role);
     return pane?.tree?.interactionForTest(message);

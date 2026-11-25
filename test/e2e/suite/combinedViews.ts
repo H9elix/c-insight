@@ -48,13 +48,20 @@ export async function run(): Promise<void> {
       let settled=false;
       const creating=Promise.resolve(vscode.commands.executeCommand("cInsight.combinedViews.create")).finally(()=>{settled=true;});
       try {
-        await wait(async()=>{const surface=(await state()).find(surface=>surface.slot===1);return surface?.ready?true:undefined;},"Create Combined View did not resolve its native surface");
-        await vscode.commands.executeCommand("workbench.action.quickOpenSelectNext");
+        const picker=()=>vscode.commands.executeCommand<{open:boolean;activeRole?:string}>("cInsight.test.combinedPanePicker");
+        // A multi-select picker can initially have no active row. Advance focus only until its own native event acknowledges an item.
+        await wait(async()=>{
+          const value=await picker();if(value?.open&&value.activeRole)return true;
+          if(value?.open)await vscode.commands.executeCommand("workbench.action.quickOpenSelectNext");
+          return undefined;
+        },"The native pane picker did not acknowledge keyboard focus");
+        const selectedRole=(await picker())!.activeRole;
         await vscode.commands.executeCommand("workbench.action.quickPickManyToggle");
         await vscode.commands.executeCommand("workbench.action.acceptSelectedQuickOpenItem");
         await wait(async()=>settled?true:undefined,"Create Combined View did not finish after accepting its pane picker");
         await creating;
-        assert(vscode.workspace.getConfiguration("cInsight.combinedViews").get<typeof layout>("slot1")?.views.length,"The create command must add the selected pane");
+        assert.deepEqual(vscode.workspace.getConfiguration("cInsight.combinedViews").get<typeof layout>("slot1")?.views,[selectedRole],"The create command must add exactly the natively selected pane");
+        console.log(`COMBINED_CREATE: native focus acknowledged ${selectedRole}; exactly that pane was added.`);
       } finally {
         if(!settled)await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
         await creating;
