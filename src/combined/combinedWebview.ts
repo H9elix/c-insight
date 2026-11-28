@@ -361,10 +361,14 @@ window.addEventListener('message',event=>{
     }
     else if(message.action==='textSearch'&&message.role==='textSearch'){
       const child=item?.iframe.contentDocument,win=item?.iframe.contentWindow;
-      if(child&&win&&['query','include','exclude','scope'].includes(message.control)){
+      if(child&&win&&['query','replacement','include','exclude','scope'].includes(message.control)){
         const input=child.getElementById(message.control);input.value=message.value;input.dispatchEvent(new win.Event(message.control==='scope'?'change':'input',{bubbles:true}));
-      }else if(child&&['search','toggle'].includes(message.control))child.getElementById(message.control)?.click();
+      }else if(child&&['search','toggle','filtersToggle','statisticsToggle','filterSummary'].includes(message.control))child.getElementById(message.control)?.click();
+      else if(child&&win&&['caseSensitive','wholeWord','regex','useIgnores','preserveCase'].includes(message.control)){
+        const input=child.getElementById(message.control);input.checked=!!message.value;input.dispatchEvent(new win.Event('change',{bubbles:true}));
+      }
       else if(message.control==='check')child?.querySelector('.match input')?.click();
+      else if(child&&win&&message.control==='replaceShortcut')child.dispatchEvent(new win.KeyboardEvent('keydown',{key:'h',ctrlKey:true,bubbles:true,cancelable:true}));
       else if(message.control==='collapse'){const group=child?.querySelector('details');if(group)group.open=false;}
       else if(message.control==='scroll'){const list=child?.getElementById('results');if(list&&win){list.scrollTop=message.value;list.dispatchEvent(new win.Event('scroll'));}}
       else if(message.control==='preview'){
@@ -417,6 +421,14 @@ window.addEventListener('message',event=>{
       searchQuery:role==='textSearch'?child?.getElementById('query')?.value:undefined,
       searchChecked:role==='textSearch'?child?.querySelectorAll('.match input:checked').length:undefined,
       searchOpen:role==='textSearch'?child?.querySelector('details')?.open:undefined,
+      searchFiltersOpen:role==='textSearch'?!child?.getElementById('filterArea')?.hidden:undefined,
+      searchStatisticsOpen:role==='textSearch'?!child?.getElementById('statistics')?.hidden:undefined,
+      searchFilterSummary:role==='textSearch'?child?.getElementById('filterSummary')?.textContent:undefined,
+      searchCheckboxesVisible:role==='textSearch'?[...child?.querySelectorAll('.match input')||[]].some(input=>input.getClientRects().length>0):undefined,
+      searchControlsHeight:role==='textSearch'?child?.getElementById('controls')?.getBoundingClientRect().height:undefined,
+      searchControlsScrollHeight:role==='textSearch'?child?.getElementById('controls')?.scrollHeight:undefined,
+      searchFilterControlsVisible:role==='textSearch'?[...child?.querySelectorAll('#filterArea input')||[]].every(input=>input.getClientRects().length>0):undefined,
+      searchControlOverflow:role==='textSearch'?(child?.getElementById('controls')?.scrollWidth||0)-(child?.getElementById('controls')?.clientWidth||0):undefined,
       searchRowMarker:role==='textSearch'?child?.querySelector('.match')?.dataset.testStable:undefined,
       searchTokenMarker:role==='textSearch'?child?.querySelector('.match mark')?.dataset.testStable:undefined,
       searchRendered:role==='textSearch'?Number(child?.body?.dataset.searchRendered):undefined,

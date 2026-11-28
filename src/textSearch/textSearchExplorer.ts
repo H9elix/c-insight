@@ -47,6 +47,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   private readonly snapshots = new ReplacementSnapshots();
   private readonly search: WorkspaceTextSearch;
   private readonly workerPath: string;
+  private readonly uiSession = randomBytes(16).toString("hex");
   private session?: SearchResultSession;
   private readonly resultWindows: SearchResultWindows;
 
@@ -82,7 +83,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
   resolveWebviewView(view: vscode.WebviewView): void {
     this.presentations.add(view); this.active ??= view;
     view.webview.options = {enableScripts: true};
-    view.webview.html = renderTextSearch(view.webview.cspSource, randomBytes(16).toString("hex"), textSearchLabels());
+    view.webview.html = renderTextSearch(view.webview.cspSource, randomBytes(16).toString("hex"), textSearchLabels(), false, this.uiSession);
     const listeners = [view.webview.onDidReceiveMessage((message: unknown) => {
       if (message && typeof message === "object" && "type" in message && message.type === "ready") this.deliveries.delete(view);
       this.active = view; void this.receive(message).catch(error => { this.error = String(error); this.publish(); });
@@ -279,7 +280,7 @@ export class TextSearchExplorer implements vscode.WebviewViewProvider, vscode.Di
     if (this.session?.generation === this.generation && this.session.loading) {this.session.stats = this.stats; this.session.error = this.error; this.resultWindows.publish(this.session);}
     const state = {type: "state", revision: this.revision, generation: this.generation, editOrigin: this.editOrigin, editSequence: this.editSequence,
       request: this.request, replacement: this.replacement, preserveCase: this.preserveCase,
-      replaceVisible: this.replaceVisible, selected: this.selected, stats: this.stats, loading: this.loading, stale: this.stale, error: this.error,
+      replaceVisible: this.replaceVisible, selected: this.selected, stats: this.stats, searched: this.searched, loading: this.loading, stale: this.stale, error: this.error,
       ready: this.replaceReady(), planning: this.planning || this.applying,
       plan: this.plan ? {id: this.plan.id, count: this.plan.count, files: this.plan.files.map(file => ({id: file.file.id, label: file.file.label}))} : undefined};
     for (const view of this.presentations) if (view.visible) {

@@ -3,20 +3,43 @@ export const TEXT_SEARCH_CLIENT = String.raw`
 const vscode=acquireVsCodeApi(), $=id=>document.getElementById(id);
 let state,selected,sequence=0,generation=-1,flat=[],rowHeight=26,frame,maximumWidth=0;
 const files=new Map(),checked=new Set(),collapsed=new Map(),rendered=new Map();
+const disclosure=disclosureFor(vscode.getState()?.searchUi,uiSession);
 const send=(type,extra={})=>vscode.postMessage({type,revision:state?.revision,...extra});
 $('openResultsTop').textContent=labels.openResults;$('openResultsTop').onclick=()=>send('openResults');
-for(const id of ['search','current','checked','all'])$(id).textContent=labels[id];
+for(const id of ['current','checked','all'])$(id).textContent=labels[id];
 for(const id of ['query','replacement','include','exclude']){$(id).placeholder=labels[id];$(id).setAttribute('aria-label',labels[id]);}
-for(const id of ['clear','cancel','previous','next','folder']){$(id).title=labels[id];$(id).setAttribute('aria-label',labels[id]);}
-$('toggle').title=labels.replace;$('preserveLabel').textContent=labels.preserveCase;$('ignoresLabel').textContent=labels.useIgnores;
+for(const id of ['search','clear','cancel','previous','next','folder']){$(id).title=labels[id];$(id).setAttribute('aria-label',labels[id]);}
+$('toggle').title=labels.replace;$('toggle').setAttribute('aria-label',labels.replace);$('preserveLabel').textContent=labels.preserveCase;$('ignoresLabel').textContent=labels.useIgnores;
+$('filtersToggle').textContent=labels.filters;$('statisticsToggle').title=labels.statistics;$('statisticsToggle').setAttribute('aria-label',labels.statistics);$('options').setAttribute('aria-label',labels.matchOptions);
 for(const id of ['caseSensitive','wholeWord','regex']){
-  const label=document.createElement('label');label.className='option';const input=document.createElement('input');input.type='checkbox';input.id=id;
-  label.append(input,document.createTextNode(labels[id]));$('options').append(label);
+  const label=document.createElement('label');label.className='match-option'+(id==='wholeWord'?' whole-word':'');label.title=labels[id];
+  const input=document.createElement('input');input.type='checkbox';input.id=id;input.setAttribute('aria-label',labels[id]);
+  const symbol=document.createElement('span');symbol.textContent={caseSensitive:'Aa',wholeWord:'ab',regex:'.*'}[id];symbol.setAttribute('aria-hidden','true');
+  label.append(input,symbol);$('options').append(label);
 }
+function filterSummary(){
+  const values=[];if($('include').value.trim())values.push(labels.includeSummary+': '+$('include').value);
+  if($('exclude').value.trim())values.push(labels.excludeSummary+': '+$('exclude').value);
+  if(!$('useIgnores').checked)values.push(labels.ignoresDisabled);
+  const summary=values.join(' · ');$('filterSummary').textContent=summary;$('filterSummary').title=summary;
+  $('filterSummary').hidden=disclosure.filters||!summary;
+  $('filtersToggle').classList.toggle('active',values.length>0);
+  $('filtersToggle').textContent=labels.filters+(values.length?' ('+values.length+')':'');
+}
+function applyDisclosures(){
+  $('filterArea').hidden=!disclosure.filters;$('statistics').hidden=!disclosure.statistics;
+  $('filtersToggle').setAttribute('aria-expanded',String(disclosure.filters));$('statisticsToggle').setAttribute('aria-expanded',String(disclosure.statistics));
+  filterSummary();
+}
+function setDisclosure(key,value){disclosure[key]=value;applyDisclosures();if(uiSession)vscode.setState({...vscode.getState(),searchUi:{...disclosure}});}
+$('filtersToggle').onclick=()=>setDisclosure('filters',!disclosure.filters);
+$('filterSummary').onclick=()=>setDisclosure('filters',true);
+$('statisticsToggle').onclick=()=>setDisclosure('statistics',!disclosure.statistics);
+applyDisclosures();
 for(const id of ['workspace','file','open','folder']){const option=document.createElement('option');option.value=id;option.textContent=labels[id];$('scope').append(option);}
 $('scope').setAttribute('aria-label',labels.scope);
 const input=()=>{const value={client,sequence:++sequence};for(const id of ['query','replacement','include','exclude','scope'])value[id]=$(id).value;
-  for(const id of ['caseSensitive','wholeWord','regex','useIgnores','preserveCase'])value[id]=$(id).checked;send('input',value);};
+  for(const id of ['caseSensitive','wholeWord','regex','useIgnores','preserveCase'])value[id]=$(id).checked;filterSummary();send('input',value);};
 for(const id of ['query','replacement','include','exclude'])$(id).addEventListener('input',input);
 for(const id of ['caseSensitive','wholeWord','regex','useIgnores','preserveCase'])$(id).onchange=input;
 $('scope').onchange=()=>{input();if($('scope').value==='folder')send('folder');};$('folder').onclick=()=>send('folder');
@@ -63,6 +86,7 @@ function rowFor(entry){
 }
 function updateRow(row,entry){
   row.element.style.height=rowHeight+'px';row.element.style.lineHeight=rowHeight+'px';
+  row.checkbox.hidden=readOnly||!state.replaceVisible;
   if(!entry.match){
     const file=entry.file;row.element.open=!collapsed.get(file.id);
     row.label.textContent=' '+file.label+' ('+file.totalMatches+') ';
@@ -107,13 +131,23 @@ function paint(next){
     if($('replacement').value!==state.replacement)$('replacement').value=state.replacement;
     for(const id of ['caseSensitive','wholeWord','regex','useIgnores'])$(id).checked=state.request[id];$('preserveCase').checked=state.preserveCase;
   }
-  $('replaceArea').hidden=!state.replaceVisible;$('cancel').disabled=!state.loading;$('search').disabled=state.planning;$('folder').hidden=state.request.scope!=='folder';
+  $('replaceArea').hidden=!state.replaceVisible;$('toggle').textContent=state.replaceVisible?'▾':'▸';$('toggle').setAttribute('aria-expanded',String(state.replaceVisible));
+  $('cancel').hidden=!state.loading;$('cancel').disabled=!state.loading;$('search').disabled=state.planning;$('folder').hidden=state.request.scope!=='folder';applyDisclosures();
   $('snapshotQuery').textContent=readOnly?labels.snapshot+': '+state.request.query:'';
   for(const action of document.querySelectorAll('.result-actions'))action.hidden=!state.stats.matches;
   for(const id of ['current','checked','all'])$(id).disabled=!state.ready||state.planning;
-  const stats=state.stats;$('status').textContent=[state.error,state.loading?labels.searching:'',state.stale?labels.stale:'',
-    readOnly&&!state.loading?labels.frozen:'',(stats.cancelled||stats.limited||stats.skipped||stats.timedOut)?labels.partial:'',labels.summary+': '+[stats.matches,stats.files,stats.skipped,stats.timedOut].join(' / '),
-    !readOnly?labels.shown+': '+state.shown+' / '+stats.matches+'; '+labels.hiddenChecked+': '+state.hiddenChecked:'',!files.size?labels.idle:''].filter(Boolean).join('\n');
+  const stats=state.stats,hasQuery=readOnly||state.searched,partial=stats.cancelled||stats.limited||stats.skipped||stats.timedOut;
+  $('statusRow').hidden=!hasQuery&&!state.loading;
+  $('resultSummary').textContent=!hasQuery&&!state.loading?'':!readOnly&&state.shown<stats.matches?labels.shown+': '+state.shown+' / '+stats.matches:labels.matches+': '+stats.matches;
+  $('resultSummary').title=$('resultSummary').textContent;
+  $('statisticsToggle').hidden=!hasQuery&&!state.loading;
+  $('status').textContent=[state.error,state.loading?labels.searching:'',state.stale?labels.stale:'',
+    readOnly&&!state.loading?labels.frozen:'',partial?labels.partial:'',
+    !readOnly&&state.replaceVisible&&state.hiddenChecked?labels.hiddenChecked+': '+state.hiddenChecked:'',
+    !hasQuery&&!state.loading&&!state.error?labels.idle:'',hasQuery&&!state.loading&&!state.error&&!state.stale&&!partial&&!stats.matches?labels.noMatches:''].filter(Boolean).join('\n');
+  $('status').hidden=!$('status').textContent;
+  $('statistics').textContent=labels.summary+': '+[stats.matches,stats.files,stats.skipped,stats.timedOut].join(' / ')+
+    (!readOnly?'\n'+labels.shown+': '+state.shown+' / '+stats.matches+'\n'+labels.hiddenChecked+': '+state.hiddenChecked:'');
   const plan=$('plan');plan.hidden=!state.plan;
   if(plan.dataset.plan!==(state.plan?.id||'')){
     plan.dataset.plan=state.plan?.id||'';plan.replaceChildren();if(state.plan){

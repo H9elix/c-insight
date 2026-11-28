@@ -131,7 +131,8 @@ export async function run(): Promise<void> {
     await combined.update(`slot${slot}`, {enabled: true, title: `Search ${slot}`, direction: "horizontal", views: ["textSearch", "preview"], ratios: [1, 1]}, vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand(`cInsight.combined${slot}.focus`);
   }
-  type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string; searchTokenMarker?: string; searchRendered?: number; searchTotal?: number}>};
+  type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string; searchTokenMarker?: string; searchRendered?: number; searchTotal?: number;
+    searchFiltersOpen?: boolean; searchStatisticsOpen?: boolean; searchFilterSummary?: string; searchCheckboxesVisible?: boolean; searchControlsHeight?: number; searchControlsScrollHeight?: number; searchFilterControlsVisible?: boolean; searchControlOverflow?: number}>};
   const browser = async (slot: number, action?: object): Promise<Inspection> => {
     try { return await vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser", slot, action) as Inspection; }
     catch (error) { throw new Error(`Search browser slot=${slot} action=${JSON.stringify(action)} surfaces=${JSON.stringify(await vscode.commands.executeCommand("cInsight.test.combinedState"))}: ${String(error)}`); }
@@ -145,17 +146,42 @@ export async function run(): Promise<void> {
     return [1, 2].every(slot => surfaces?.some(surface => surface.slot === slot && surface.ready && surface.panes.length === 2 && surface.panes.every(pane => pane.generation === pane.acknowledged)));
   }, "Combined bridges and child renderers did not acknowledge initialization");
   await until(async () => (await pane(1))?.searchQuery === "PERF_NEEDLE" && (await pane(2))?.searchQuery === "PERF_NEEDLE", "Search renderers were not initialized");
+  for (const slot of [1, 2]) {
+    const compact = await pane(slot); assert.equal(compact?.searchFiltersOpen, false); assert.equal(compact?.searchStatisticsOpen, false);
+    assert.equal(compact?.searchCheckboxesVisible, false); assert((compact?.searchControlOverflow ?? 100) <= 1, "Compact controls overflow their pane");
+    assert(compact?.searchFilterSummary?.includes("**/scale/**/*.txt"), "Active hidden filters must remain visible in the summary");
+  }
+  const compactControls = await pane(1), disclosureGeneration = (await state()).generation;
+  await browser(1, {action: "textSearch", role: "textSearch", control: "filtersToggle"});
+  await browser(1, {action: "textSearch", role: "textSearch", control: "statisticsToggle"});
+  assert((await pane(1))?.searchFiltersOpen); assert((await pane(1))?.searchStatisticsOpen);
+  const expandedControls = await pane(1);
+  assert(expandedControls?.searchFilterControlsVisible, "Expanded filter inputs must participate in layout");
+  assert((expandedControls?.searchControlsScrollHeight ?? 0) > (compactControls?.searchControlsScrollHeight ?? 0),
+    `Expanded filters must extend the toolbar content, including when its viewport height is capped: ${JSON.stringify({compactControls, expandedControls})}`);
+  assert.equal((await pane(2))?.searchFiltersOpen, false); assert.equal((await pane(2))?.searchStatisticsOpen, false);
+  assert.equal((await state()).generation, disclosureGeneration, "Disclosures must not run another query");
   for (const [control, value] of [["scope", "file"], ["include", ""], ["query", "needle"]]) await browser(1, {action: "textSearch", role: "textSearch", control, value});
   await until(async () => (await pane(2))?.searchQuery === "needle", "Query was not shared across presentations");
   const beforeBrowserQuery = (await state()).generation;
   await browser(1, {action: "textSearch", role: "textSearch", control: "search"});
   await until(async () => (await state()).generation === beforeBrowserQuery + 1 && (await pane(2))?.searchChecked === 3, "Browser Enter/Search did not populate both renderers");
+  assert((await pane(1))?.searchFiltersOpen); assert((await pane(1))?.searchStatisticsOpen, "Progress updates must not reset disclosures");
+  assert.equal((await pane(2))?.searchCheckboxesVisible, false);
   await browser(1, {action: "textSearch", role: "textSearch", control: "preview"}); await pause(100);
   assert.equal((await pane(1))?.searchRowMarker, "stable", "Preview selection must retain row DOM so a subsequent double-click reaches the same target");
   assert.equal((await pane(1))?.searchTokenMarker, "stable", "Selection-only updates must retain the clicked token node");
   await browser(1, {action: "textSearch", role: "textSearch", control: "collapse"});
+  await browser(2, {action: "textSearch", role: "textSearch", control: "replaceShortcut"});
+  await until(async () => (await pane(2))?.searchCheckboxesVisible === true, "Ctrl+H must expose replacement checkboxes");
   await browser(2, {action: "textSearch", role: "textSearch", control: "check"});
   await until(async () => (await pane(2))?.searchChecked === 2, "Replacement selections were not shared");
+  await browser(2, {action: "textSearch", role: "textSearch", control: "toggle"});
+  await until(async () => (await pane(2))?.searchCheckboxesVisible === false, "Closing replacement controls must hide selection checkboxes");
+  assert.equal((await pane(2))?.searchChecked, 2, "Closing replacement controls must preserve selections");
+  await browser(2, {action: "textSearch", role: "textSearch", control: "replaceShortcut"});
+  await until(async () => (await pane(2))?.searchCheckboxesVisible === true, "Replacement must reopen with its previous selections");
+  assert.equal((await pane(2))?.searchChecked, 2);
   assert.equal((await pane(1))?.searchOpen, false); assert.equal((await pane(2))?.searchOpen, true);
   assert.equal((await state()).generation, beforeBrowserQuery + 1, "Presentation actions started another search");
   await message({type: "input", scope: "workspace", include: "**/*.txt", query: "other"}); await message({type: "search"});
@@ -171,7 +197,7 @@ export async function run(): Promise<void> {
   assert(((await pane(1))?.searchRendered ?? 1000) <= 200, "Large result sets must not create all DOM rows");
   await browser(1, {action: "textSearch", role: "textSearch", control: "scroll", value: 100000}); await pause(50);
   assert(((await pane(1))?.searchRendered ?? 1000) <= 200);
-  console.log("TEXT_SEARCH_COMBINED: live browser controls, shared query/results/checkboxes and independent group expansion passed");
+  console.log("TEXT_SEARCH_COMBINED: compact disclosures, visible filter summaries, Ctrl+H/checkbox preservation, shared query/results and independent expansion passed");
 
   const parity = vscode.Uri.joinPath(roots[0].uri, "parity"); await vscode.workspace.fs.createDirectory(parity);
   await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(parity, "a.txt"), Buffer.from("Needle needle needles ſ K 中文\n😀needle\r\n"));

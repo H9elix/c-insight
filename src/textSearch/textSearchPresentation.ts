@@ -1,3 +1,10 @@
+/** Presentation-only disclosure state; a new extension session restores compact defaults. */
+export function searchDisclosureState(value: unknown, session: string): {session: string; filters: boolean; statistics: boolean} {
+  const saved = value && typeof value === "object" ? value as Record<string, unknown> : undefined;
+  return {session, filters: !!session && saved?.session === session && saved.filters === true,
+    statistics: !!session && saved?.session === session && saved.statistics === true};
+}
+
 /** One viewport plus overscan, independent of the number of retained matches. */
 export function searchWindow(total: number, height: number, scrollTop: number, rowHeight = 26): {start: number; end: number; offset: number; height: number} {
   const count = Math.max(0, Math.floor(total));
