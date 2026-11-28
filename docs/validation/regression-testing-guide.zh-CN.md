@@ -43,7 +43,7 @@
 | --- | --- | --- |
 | clangd 启动、客户端、日志 | 001–006 | `clangdArguments`、`navigationLanguageClient`、`clangdLog`、`clangdRecovery` 单测；协议集成和 clangd E2E |
 | 提供程序冲突、配置、Remote、Microsoft | 006–010 | `providerConflictModel`、`microsoftProviderStatus`、`microsoftCallerFallback`；Microsoft E2E；WSL/SSH 设置写入仍需对应环境验证 |
-| 预览定义、语义令牌与 HTML/CSS | 011–021、024、049 | `codePreview`、`previewColors`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E 含受控 Webview 配色回归；编译宏原始定义与预览选择路径另查 049；主题、滚轮与空白双击人工检查 |
+| 预览定义、语义令牌与 HTML/CSS | 011–021、024、049 | `codePreview`、`previewHeader`、`previewColors`、`definitionLocation`、`previewClearGuard`、`previewOwnership`、`previewRange`；E2E 含真实原生／组合单行头部、加载状态、窄栏及受控配色回归，见[头部验证](code-preview-header.zh-CN.md)；编译宏原始定义与预览选择路径另查 049；主题、滚轮与空白双击人工检查 |
 | 结果树、导航、固定、节点投影 | 022–028、043、048 | `treeLocationInteraction`、`treeLocationWiring`、`resultTreeClient`、`resultTreeModel`、`viewPin`、`editorNavigationWiring`；真实导航历史 E2E |
 | 字段调用者、宏、引用分类 | 029–034、048–049 | `memberCallerScopeModel`、`memberCallerRepositoryWiring`、`macroCallerScopeModel`、`macroCallerRepositoryWiring`、`referenceModel`、`referenceExplorerWiring`；双引擎、宏仓库 E2E 与编译参数宏场景 |
 | 自动刷新、资源、取消、包含层次 | 035–039、049 | `cursorRefreshModel`、`cursorSymbolEvidence`、`navigationDemand`、`requestScheduler`、`lruPromiseCache`、`includeModel`；计数、压力、按方向查询及宏证据共享验证 |

@@ -210,7 +210,7 @@ describe("code preview highlighting", () => {
     );
     assert.match(provider, /\? view\.updateMetadata\(next\) : view\.render\(\)/);
     assert.match(provider, /message\.type === 'previewMetadata'/);
-    assert.match(provider, /title\.textContent = message\.title/);
+    assert.match(provider, /updatePreviewHeader\(message\.header\)/);
   });
 
   it("claims preview ownership as soon as the user scrolls or points", () => {

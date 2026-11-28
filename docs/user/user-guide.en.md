@@ -62,11 +62,15 @@ Context summarizes the selected symbol: name, qualified name, signature, definit
 
 #### 3.2.1 Definitions and source context
 
+The content uses a single header row above the source: preview type, symbol, filename and target line share the row with the existing toolbar. Duplicate path or type titles are omitted. Hover over the header for full paths; narrow views prioritize the file location and truncate names as needed. The target line label does not change while scrolling. Toolbar actions remain available in a locally scrollable strip; keyboard focus reveals the button without scrolling the source or its parent view.
+
 For callable symbols, Code Preview and both Callers/Callees roots prefer a provider definition distinct from the declaration. The Call Hierarchy query retains its original opaque provider item even when the displayed root points to the implementation. A declaration fallback is shown while no distinct definition is available; clangd index completion or bounded definition-only retries upgrade an untouched, unlocked, and unpinned preview without clearing loaded branches. After preview interaction, the other views may still accept that upgrade, but Code Preview waits for a new editor target or explicit refresh.
 
 #### 3.2.2 Scrolling and buffered loading
 
 Code Preview prepares one `loadBatchLines` source buffer on each available side of a fresh target before showing it. Its first layout stays hidden until the original `linesBefore` position has been applied, so the target and scrollbar appear in their final initial positions. Additional context is prefetched within one viewport of a loaded edge. A wheel gesture that nevertheless reaches an unloaded edge is retained and applied after insertion as a fallback. Actual `scrollTop` movement selects the loading direction; inserted or trimmed rows preserve the visible anchor and horizontal position.
+
+Hover over the header's information icon (ⓘ) for the loaded line range, total line count and file-boundary status. There is no separate bottom status row. The icon shows activity during context loading; failures show a warning and “Loading failed”, with the full error in the tooltip and an accessible announcement. Status changes keep the header height fixed and do not shift source code.
 
 #### 3.2.3 Explicit preview ownership
 

@@ -29,6 +29,8 @@ import {
 import { PreviewClearGuard } from "./previewClearGuard";
 import { PreviewOwnership } from "./previewOwnership";
 import { PREVIEW_CONTENT_SETTINGS, previewColorStyle } from "./previewColors";
+import { previewHeader, type PreviewHeader } from "./previewHeader";
+import { PREVIEW_HEADER_CLIENT } from "./previewHeaderClient";
 export type PreviewMode = NavigationMode;
 export type ExplicitPreviewSource = Exclude<NavigationSource, "context">;
 
@@ -235,11 +237,13 @@ export class CodePreviewProvider
     }
     await this.view.webview.postMessage({
       type: "previewMetadata",
-      title: `${previewModeLabel(state.mode)} · ${state.title}`,
-      location:
-        `${vscode.workspace.asRelativePath(state.location.uri)}:` +
-        `${state.location.range.start.line + 1}`,
+      header: this.headerFor(state),
     });
+  }
+
+  private headerFor(state: PreviewState): PreviewHeader {
+    return previewHeader(previewModeLabel(state.mode), state.title,
+      vscode.workspace.asRelativePath(state.location.uri), state.location.uri.fsPath, state.location.range.start.line);
   }
 
   beginContextUpdate(generation: number, reclaim: boolean): void {
@@ -617,7 +621,7 @@ export class CodePreviewProvider
       this.view.webview.html = emptyHtml();
       return;
     }
-    const { location, mode, title } = this.state;
+    const { location } = this.state;
     try {
       const document = await vscode.workspace.openTextDocument(location.uri);
       const config = vscode.workspace.getConfiguration("cInsight.codePreview");
@@ -684,11 +688,9 @@ export class CodePreviewProvider
         location.range,
         tokens,
       );
-      const relative = vscode.workspace.asRelativePath(location.uri);
       const nonce = randomBytes(16).toString("base64");
       this.view.webview.html = htmlDocument(
-        `${previewModeLabel(mode)} · ${escapeHtml(title)}`,
-        `${escapeHtml(relative)}:${targetLine + 1}`,
+        this.headerFor(this.state),
         lines,
         nonce,
         {
@@ -1086,8 +1088,7 @@ function errorHtml(error: string): string {
 
 function staticHtml(title: string, location: string, body: string): string {
   return htmlDocument(
-    title,
-    location,
+    previewHeader(title, "", location),
     body,
     "",
     {
@@ -1107,8 +1108,7 @@ function staticHtml(title: string, location: string, body: string): string {
 }
 
 function htmlDocument(
-  title: string,
-  location: string,
+  header: PreviewHeader,
   body: string,
   nonce: string,
   controls: { back: boolean; forward: boolean; locked: boolean },
@@ -1144,6 +1144,7 @@ function htmlDocument(
     loadingEarlier: vscode.l10n.t("Loading earlier source lines…"),
     loadingLater: vscode.l10n.t("Loading later source lines…"),
     sourceLoadingFailed: vscode.l10n.t("Source loading failed: "),
+    loadingFailed: vscode.l10n.t("Loading failed"),
   }).replaceAll("<", "\\u003c");
   return `<!DOCTYPE html>
 <html>
@@ -1155,33 +1156,43 @@ function htmlDocument(
     html, body { height: 100%; }
     body {
       box-sizing: border-box; display: flex; flex-direction: column;
-      overflow: hidden; margin: 0; padding: 0 8px 12px;
+      overflow: hidden; margin: 0; padding: 0 8px;
       color: var(--vscode-editor-foreground);
       background: var(--vscode-sideBar-background);
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
       font-weight: var(--vscode-font-weight);
     }
-    .header { flex: none; padding: 6px 0; }
-    .heading { display: flex; align-items: center; gap: 4px; }
+    .header { box-sizing: border-box; flex: none; height: calc(1.5em + 16px); padding: 4px 0; container-type: inline-size; }
+    .heading { display: flex; height: 100%; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
     .title {
-      min-width: 0; flex: 1; font-weight: 600; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
+      display: flex; align-items: center; min-width: 0; flex: 1; overflow: hidden;
+      white-space: nowrap; gap: 4px;
     }
-    .controls { display: flex; gap: 2px; }
+    .preview-kind { flex: 0 1 auto; max-width: 40%; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+    .symbol-part { display: flex; min-width: 0; flex: 0 1 auto; max-width: 40%; gap: 4px; }
+    .preview-symbol { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .separator { flex: none; color: var(--vscode-descriptionForeground); }
+    .controls { display: flex; flex: 0 1 auto; min-width: 0; max-width: 60%; height: 100%; align-items: center; gap: 2px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--vscode-scrollbarSlider-background) transparent; }
+    .controls button { flex: none; white-space: nowrap; }
     button {
       font: inherit;
       border: 0; padding: 2px 5px; color: var(--vscode-foreground);
       background: transparent; border-radius: 3px; cursor: pointer;
     }
     button:hover { background: var(--vscode-toolbar-hoverBackground); }
-    button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+    button:focus-visible, .title:focus-visible, .preview-status:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     button:disabled { opacity: .35; cursor: default; }
     button.locked { color: var(--vscode-charts-yellow); }
     .location {
-      color: var(--vscode-descriptionForeground); margin-top: 2px;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      display: flex; flex: 0 1 auto; min-width: 0; color: var(--vscode-descriptionForeground);
     }
+    .location::before { content: '·'; margin-right: 4px; flex: none; }
+    .preview-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .preview-line { flex: none; }
+    @container (max-width: 420px) { .symbol-part { display: none; } }
+    @container (max-width: 260px) { .preview-kind, .location::before { display: none; } }
+    [hidden] { display: none !important; }
     .code {
       box-sizing: border-box; flex: 1 1 auto; min-height: 0;
       width: 100%; max-width: 100%; overflow: auto; padding: 4px 0;
@@ -1221,12 +1232,15 @@ function htmlDocument(
     .sem-navigable { cursor: pointer; }
     .sem-mod-deprecated { text-decoration: line-through; }
     .sem-mod-readonly { font-style: italic; }
-    .load-status {
-      flex: none; min-height: 1.2em; padding: 3px 0 0;
-      color: var(--vscode-descriptionForeground); font-size: .9em;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .load-status.error { color: var(--vscode-errorForeground); }
+    .preview-status { display: inline-flex; align-items: center; flex: none; gap: 3px; max-width: 6em; color: var(--vscode-descriptionForeground); white-space: nowrap; }
+    .status-symbol { display: inline-block; }
+    .status-label { overflow: hidden; text-overflow: ellipsis; font-size: .9em; }
+    .preview-status.error { color: var(--vscode-errorForeground); }
+    .preview-status.loading .status-symbol { animation: preview-spin 1s linear infinite; }
+    .vscode-reduce-motion .preview-status.loading .status-symbol { animation: none; }
+    @keyframes preview-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .preview-status.loading .status-symbol { animation: none; } }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .empty, .error { color: var(--vscode-descriptionForeground); }
   </style>
   <style id="preview-colors">${colorStyle}</style>
@@ -1234,7 +1248,12 @@ function htmlDocument(
 <body>
   <div class="header" data-ci-hover-pause>
     <div class="heading">
-      <div class="title">${title}</div>
+      <div class="title" tabindex="0" role="group" title="${escapeHtml(header.tooltip)}" aria-label="${escapeHtml(header.tooltip)}">
+        <span class="preview-kind">${escapeHtml(header.kind)}</span>
+        <span class="symbol-part"${header.symbol ? "" : " hidden"}><span class="separator" aria-hidden="true">·</span><span class="preview-symbol">${escapeHtml(header.symbol)}</span></span>
+        <span class="location"${header.fileName ? "" : " hidden"}><span class="preview-file">${escapeHtml(header.fileName)}</span><span class="preview-line">${escapeHtml(header.line)}</span></span>
+      </div>
+      <span class="preview-status" role="img" tabindex="0"${nonce ? "" : " hidden"}><span class="status-symbol" aria-hidden="true">ⓘ</span><span class="status-label" aria-hidden="true" hidden></span></span>
       <div class="controls">
         <button data-action="back" title="${text.back}"${controls.back ? "" : " disabled"}>←</button>
         <button data-action="forward" title="${text.forward}"${controls.forward ? "" : " disabled"}>→</button>
@@ -1244,13 +1263,13 @@ function htmlDocument(
         <button data-action="openCurrent" title="${text.open}">↗</button>
       </div>
     </div>
-    <div class="location">${location}</div>
   </div>
   <div class="code${nonce ? " initializing" : ""}">${body}</div>
-  <div class="load-status" aria-live="polite"></div>
+  <div id="preview-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
   ${nonce ? `<script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     const text = ${scriptText};
+    ${PREVIEW_HEADER_CLIENT}
     let clickTimer;
     let loadingMore = false;
     let pendingDirection;
@@ -1265,17 +1284,14 @@ function htmlDocument(
     const initialAnchorLine = ${JSON.stringify(incremental.initialAnchorLine ?? null)};
     const incrementalLoading = ${incremental.enabled};
     const codeContainer = document.querySelector('.code');
-    const loadStatus = document.querySelector('.load-status');
     function claimInteraction() {
       if (interactionClaimed) return;
       interactionClaimed = true;
       vscode.postMessage({ type: 'previewInteraction' });
     }
     function updateLoadStatus(message, error = false) {
-      if (!loadStatus) return;
-      loadStatus.classList.toggle('error', error);
       if (message) {
-        loadStatus.textContent = message;
+        updatePreviewStatus(message, error, loadingMore && !error);
         return;
       }
       const boundary =
@@ -1286,9 +1302,10 @@ function htmlDocument(
             : !hasAfter
               ? text.endOfFile
               : text.scrollForMore;
-      loadStatus.textContent =
+      const summary =
         text.lines + ' ' + (startLine + 1) + '–' + (endLine + 1) +
         ' / ' + totalLines + ' · ' + boundary;
+      updatePreviewStatus(summary);
     }
     function requestMore(direction) {
       if (!incrementalLoading) return false;
@@ -1425,14 +1442,7 @@ function htmlDocument(
         return;
       }
       if (message.type === 'previewMetadata') {
-        const title = document.querySelector('.title');
-        const location = document.querySelector('.location');
-        if (title && typeof message.title === 'string') {
-          title.textContent = message.title;
-        }
-        if (location && typeof message.location === 'string') {
-          location.textContent = message.location;
-        }
+        updatePreviewHeader(message.header);
         return;
       }
       if (message.type !== 'incrementalLines' || !codeContainer) return;

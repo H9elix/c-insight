@@ -144,6 +144,8 @@ AnalysisService（调度、计时、统一结果）
 | `previewColors.ts` | 纯配色模型：主题变量/固定深浅预设、独立类别覆盖、严格六位颜色校验和样式生成；不访问 VS Code、源码或分析引擎。 |
 | `sourceLineCache.ts` | 引用和预览所需源码行的有界缓存。 |
 | `previewRange.ts` | 向上/向下加载、范围裁剪和恢复的纯算法。 |
+| `previewHeader.ts` | 单行预览头部的纯展示模型，统一初次渲染与元数据更新，处理重复标题、文件名、目标行号和完整路径提示。 |
+| `previewHeaderClient.ts` | 单行头部的安全 DOM 更新、加载／失败状态与无障碍播报、窄栏工具按钮的局部聚焦滚动。 |
 | `previewHistory.ts` | 代码预览前进/后退和有界记录。 |
 | `previewClearGuard.ts` | 从预览打开编辑器期间阻止活动编辑器事件立即清空预览。 |
 | `previewOwnership.ts` | 纯状态模型：把代码预览写权限绑定到上下文 generation；显式树/历史/关系图/预览内导航以及滚动/指针交互撤销旧代次，主动光标导航或显式刷新才重新取得写权限。 |

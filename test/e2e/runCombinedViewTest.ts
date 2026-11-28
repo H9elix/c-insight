@@ -20,7 +20,7 @@ async function main(): Promise<void> {
     version: process.env.C_INSIGHT_VSCODE_TEST_VERSION ?? "1.130.0",
     vscodeExecutablePath: process.env.C_INSIGHT_VSCODE_EXECUTABLE_PATH || undefined,
     extensionDevelopmentPath: process.env.C_INSIGHT_COMBINED_ENGINE === "microsoft" ? [project, resolveCpptoolsExtensionPath()] : project,
-    extensionTestsPath: path.join(__dirname, process.env.C_INSIGHT_VIEWPORT_FOLLOW_ONLY === "1" ? "suite/viewportFollow.js" : "suite/combinedViews.js"),
+    extensionTestsPath: path.join(__dirname, process.env.C_INSIGHT_PREVIEW_HEADER_ONLY === "1" ? "suite/previewHeader.js" : process.env.C_INSIGHT_VIEWPORT_FOLLOW_ONLY === "1" ? "suite/viewportFollow.js" : "suite/combinedViews.js"),
     launchArgs: [...launchArgs,
       ...(process.env.C_INSIGHT_TEST_LOCALE ? [`--locale=${process.env.C_INSIGHT_TEST_LOCALE}`] : []),
       ...(process.env.C_INSIGHT_TEST_DEBUG_PORT ? [`--remote-debugging-port=${process.env.C_INSIGHT_TEST_DEBUG_PORT}`] : [])],

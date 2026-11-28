@@ -242,6 +242,7 @@
   "Loading earlier source lines…": "Loading earlier source lines…",
   "Loading later source lines…": "Loading later source lines…",
   "Source loading failed: ": "Source loading failed: ",
+  "Loading failed": "Loading failed",
   "C Insight: Export is {size}, exceeding the {limit} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.": "C Insight: Export is {size}, exceeding the {limit} limit. Increase cInsight.export.maximumMegabytes or export a smaller loaded result set.",
   "Querying type hierarchy…": "Querying type hierarchy…",
   "No type hierarchy is available at the cursor": "No type hierarchy is available at the cursor",

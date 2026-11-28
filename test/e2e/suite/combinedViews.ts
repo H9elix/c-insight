@@ -9,6 +9,7 @@ import { verifyCombinedPaneDirections } from "./combinedPaneDirections";
 import { verifyCombinedHoverSize } from "./combinedHoverSize";
 import { verifyCombinedViewportFollow } from "./combinedViewportFollow";
 import { verifyViewPickerCancellation, verifyViewPickerOpening } from "./viewDiscovery";
+import { verifyPreviewHeader } from "./previewHeader";
 
 interface Pane {role: string; visible: boolean; generation: number; acknowledged?: number}
 interface Surface {slot: number; ready: boolean; visible: boolean; panes: Pane[]}
@@ -41,6 +42,7 @@ export async function run(): Promise<void> {
   }
   await extension.activate();
   await verifyViewPickerCancellation();
+  await verifyPreviewHeader();
   await verifyCombinedTheme();
   const layout = {enabled: true, title: "Browser", direction: "horizontal", views: ["symbols", "callers", "callees", "references", "preview"], ratios: [1, 1, 1, 1, 1]};
   try {
