@@ -97,3 +97,9 @@ gh workflow run marketplace-publish.yml --ref main --repo H9elix/c-insight
 若部分上传失败，在对应 **Marketplace publishing** 运行中选择 **Re-run failed jobs**，同版本已存在的目标会跳过，补传其余目标。若主干版本已经前进，旧版本重跑会因提交／版本不一致而停止，应先按具体运行核对，不降低守卫。GitHub Release 发布成功不等于商城已经可下载，发布交付仍需分别核对 Actions 上传结果与商城实际版本。
 
 `marketplacePublication.test.ts` 覆盖可信上下文、成功运行与 Tag 绑定、正式附件清单及 URL、先校验后取凭据、全平台命令、环境隔离和脱敏失败。真实上传仅在获授权的发布中执行。
+
+## 7. 自动发布验证记录
+
+`2026-11-29`，`0.24.1` 首次执行完整自动链路：[主干 CI](https://github.com/H9elix/c-insight/actions/runs/46167325234)、[GitHub Release](https://github.com/H9elix/c-insight/actions/runs/46167747484)及 [Marketplace publishing](https://github.com/H9elix/c-insight/actions/runs/46167853421) 均成功。发布提交为 `46c78f1`，随后才推送 `v0.24.1` 注释标签；GitHub 正文与版本化说明一致，保留原样的 0.24／0.23 双语功能概述。
+
+下载的 8 个 GitHub VSIX 和 `SHA256SUMS` 通过独立归档、目标、原生资源、权限及 SHA-256 检查，全部文件同时匹配 GitHub 公布的摘要；Linux x64 包内程序执行 `rg --version` 成功。Marketplace 的 8 个直接安装包下载端点均返回对应 `0.24.1`，解码 HTTP 压缩后逐字节匹配 GitHub 附件，版本、发布者和目标标记一致。商城公开目录与自动上传任务分别核验，不以其中一个代替另一个。
