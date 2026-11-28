@@ -103,16 +103,19 @@ describe("Marketplace authentication without publishing", () => {
     assert.deepEqual(logs, []);
   });
 
-  it("ships a manual-only read-only workflow with no upload command or persistent credentials", () => {
+  it("keeps manual authentication read-only and isolates automatic publication", () => {
     const workflow = readFileSync(".github/workflows/marketplace-publish.yml", "utf8");
     assert.match(workflow, /^on:\n  workflow_dispatch:/m);
-    assert.doesNotMatch(workflow, /^  (?:push|pull_request|release|workflow_run|schedule):/m);
+    assert.doesNotMatch(workflow, /^  (?:push|pull_request|release|schedule):/m);
+    assert.match(workflow, /workflow_run:\n    workflows: \[Release\]/);
+    assert.match(workflow, /authenticate:\n    if: github\.event_name == 'workflow_dispatch'/);
     assert.match(workflow, /id-token: write/);
     assert.match(workflow, /contents: read/);
     assert.match(workflow, /persist-credentials: false/);
     assert.match(workflow, /npm ci --ignore-scripts/);
     assert.match(workflow, /npm run marketplace:auth:check/);
     assert.doesNotMatch(workflow, /contents: write|secrets\.|environment:|vsce publish|gh release create|git push/);
+    assert.match(workflow, /node scripts\/publish-marketplace-release\.mjs/);
     const manifest = JSON.parse(readFileSync("package.json", "utf8"));
     assert.equal(manifest.scripts["marketplace:auth:check"], "node scripts/verify-marketplace-auth.mjs");
     assert.doesNotMatch(readFileSync("scripts/verify-marketplace-auth.mjs", "utf8"), /"publish"|\.publish\(|writeFile\(|loginPublisher|FileStore|KeytarStore/);

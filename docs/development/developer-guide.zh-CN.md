@@ -1,6 +1,6 @@
 # C Insight 中文开发者手册
 
-本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.24.0` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
+本文面向准备阅读、修改、测试或发布 C Insight 的开发者，内容与 `0.24.1` 源码结构对应。公开仓库为 `https://github.com/H9elix/c-insight`。用户操作和配置参数请查看 `docs/user/user-guide.zh-CN.md`；交叉工具链边界请查看 `docs/user/cross-compilation.zh-CN.md`；历史规划与延期事项请查看 `docs/planning/roadmap.md`。完整分类见 `docs/README.md`。
 
 ## 1. 技术栈与运行边界
 
@@ -384,6 +384,7 @@ clangd 的 `CallHierarchyItem.data` 是后续请求所需的不透明数据，�
 | `scripts/package-release.mjs` / `npm run package:release` | 完整检查后，在隔离目录生成 7 个平台专用 VSIX、1 个 Universal 和统一校验和，不裁剪工作副本的 `dist`。 |
 | `scripts/verify-release-assets.mjs` / `npm run package:release:verify` | 独立核验全部附件的 CRC、平台标记、版本、资源、执行权限、共享内容一致性及 SHA-256。 |
 | `scripts/verify-marketplace-auth.mjs` / `npm run marketplace:auth:check` | 仅在授权的 GitHub 手动工作流中交换 OIDC 短期凭据并只读验证发布者访问；不上传扩展、不保存 PAT。 |
+| `scripts/publish-marketplace-release.mjs` | Release 成功后从可信主干校验事件、Tag 提交及 GitHub 的正式附件，核验全部字节和目标后用 OIDC 短期凭据自动上传 8 个包；与手动只读认证分离。 |
 | `scripts/languageclient-minimatch-compat.mjs` | 仅在打包时适配 `vscode-languageclient@10.1.0` 两处旧匹配器检查；版本、源码位置或打包覆盖不符时终止构建。 |
 | `scripts/benchmark-large-workspace.mjs` / `npm run benchmark` | 运行大规模纯模型基准和预算门槛。 |
 | `scripts/acceptance-ffmpeg.mjs` / `npm run acceptance:ffmpeg` | 只读启动真实 clangd，验证 FFmpeg 编译数据库及代表性 LSP 查询。 |

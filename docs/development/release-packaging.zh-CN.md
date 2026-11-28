@@ -60,11 +60,11 @@ npm run package:release:verify -- --out-dir .cache/release-packages/platform-pre
 
 归档检查可在一台构建机完成，但不代表已经执行其他操作系统的程序。发布前后按可用环境检查：安装匹配宿主的平台包，执行一次工作区搜索、结果预览和替换撤销；再用同版本 Universal 验证相同路径。Linux 包需在解压后执行内置 `rg --version`，WSL／SSH 场景确认实际安装位置。Windows、macOS 与 ARM 的真实执行和安装检查需在对应系统完成。
 
-GitHub Release 与 Marketplace 是两个发布目标。此流程只发布 GitHub 附件；后续向 Marketplace 上传时应上传同版本的各平台包及 Universal，使用文件内的平台元数据。平台分发机制见 [VS Code 官方发布文档](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platform-specific-extensions)。
+GitHub Release 与 Marketplace 是两个发布目标。Release 成功后会自动触发下一节所述 Marketplace 发布任务，上传同一批平台包及 Universal，不重新打包。商城会根据安装目标选择平台包；WSL／SSH 根据远程扩展宿主的平台选择，而不是桌面操作系统。平台分发机制见 [VS Code 官方发布文档](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platform-specific-extensions)。
 
 ## 5. Marketplace 可信身份认证
 
-`.github/workflows/marketplace-publish.yml` 的界面名称为 **Marketplace authentication**，仅接受从 `main` 手动触发。它申请 GitHub OIDC 身份，向 Marketplace 交换 H9elix 的短期凭据，再通过 `vsce verify-pat H9elix` 进行只读的发布者访问检查。名称中的 `verify-pat` 是工具通用验证入口，此处使用的是临时 OIDC 凭据，不创建或保存长期 PAT。工作流不包含 VSIX 上传命令，不响应版本标签、GitHub Release 或普通推送。
+`.github/workflows/marketplace-publish.yml` 的界面名称为 **Marketplace publishing**。从 `main` 手动触发时只运行认证任务：申请 GitHub OIDC 身份，向 Marketplace 交换 H9elix 的短期凭据，再通过 `vsce verify-pat H9elix` 只读检查发布者访问。名称中的 `verify-pat` 是工具通用验证入口，此处使用临时 OIDC 凭据，不创建或保存长期 PAT。手动认证与自动上传为两个独立任务。
 
 在 Marketplace 发布者 H9elix 的 **Trusted Publishing → Create** 中填写：
 
@@ -76,12 +76,24 @@ GitHub Release 与 Marketplace 是两个发布目标。此流程只发布 GitHub
 | Workflow | `marketplace-publish.yml` |
 | Environment | 留空 |
 
-Workflow 只填写文件名，不填写 `.github/workflows/` 前缀；Environment 对应 GitHub 的命名部署环境，不是操作系统。策略建立后，将同名工作流推送到 `main`，在 GitHub **Actions → Marketplace authentication → Run workflow** 中选择 `main` 运行。也可在具备仓库 Actions 写入权限的终端执行：
+Workflow 只填写文件名，不填写 `.github/workflows/` 前缀；Environment 对应 GitHub 的命名部署环境，不是操作系统。策略建立后，将同名工作流推送到 `main`，在 GitHub **Actions → Marketplace publishing → Run workflow** 中选择 `main` 运行只读认证。也可在具备仓库 Actions 写入权限的终端执行：
 
 ```bash
 gh workflow run marketplace-publish.yml --ref main --repo H9elix/c-insight
 ```
 
-成功日志和任务摘要显示 `Trusted Publishing authentication and publisher access verified for H9elix. No extension was uploaded.`，表示可信凭据交换和发布者访问已通过；真正的包上传仍需单独授权和配置。验证命令 `npm run marketplace:auth:check` 必须在授权的 GitHub Actions 中运行，不能用 WSL 本地环境模拟真实认证。
+手动认证成功日志显示 `Trusted Publishing authentication and publisher access verified for H9elix. No extension was uploaded.`，表示可信凭据交换和发布者访问已通过。验证命令 `npm run marketplace:auth:check` 必须在授权的 GitHub Actions 中运行，不能用 WSL 本地环境模拟真实认证。
 
 凭据只在该次任务的进程内存和子进程环境中使用，不写入文件、GitHub Secrets 或命令参数；日志先屏蔽短期凭据，并只保留安全的失败阶段与 HTTP 状态。`scripts/verify-marketplace-auth.mjs` 复用锁定的 `@vscode/vsce@4.1.0` 内部 OIDC 交换入口，升级该依赖时需审查适配器。交换请求必须包含 `api-version=7.2-preview.1` 并使用 FederatedToken 认证头，向 GitHub 请求身份时仍使用 Bearer；旧版发布工具的同类 HTTP 400 见 [CI-REG-046](../validation/historical-issues.zh-CN.md#ci-reg-046)。`marketplaceAuthentication.test.ts` 覆盖真实 SDK 的合成请求、仓库／分支／工作流校验、只读命令、凭据隔离、日志脱敏及失败传播。政策配置和短期凭据机制见[微软可信发布说明](https://developer.microsoft.com/blog/trusted-publishing-visual-studio-marketplace/)。
+
+## 6. GitHub Release 后自动发布到 Marketplace
+
+`Marketplace publishing` 通过 `workflow_run` 监听 **Release** 工作流成功完成，不依赖 `release.published` 事件。GitHub 默认令牌创建的 Release 通常不会再次触发普通事件工作流；`workflow_run` 可接续完成任务，并使用默认分支的可信工作流身份，沿用现有的 `marketplace-publish.yml` 策略。见 [GitHub 事件说明](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)和[工作流触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
+
+自动任务从 `main` 检出发布脚本，不执行触发方提供的代码。脚本仅接受本仓库 `.github/workflows/release.yml` 的成功标签推送，要求运行提交与当前稳定版本 Tag 一致且属于主干历史，再读取已公开的非草稿、非预发布 Release。8 个包及 `SHA256SUMS` 下载后必须通过平台、版本、发布者、CRC、原生程序、权限和完整校验和检查，之后才交换短期凭据并上传。
+
+上传复用一份短期凭据，在进程环境中传给 `vsce publish --packagePath`，不放入参数或文件；子进程不接收 GitHub API 和 OIDC 请求凭据。平台来自每个文件的 VSIX 元数据，不重新构建。Marketplace 完成验证及分发后，内置扩展管理器会匹配宿主平台。
+
+若部分上传失败，在对应 **Marketplace publishing** 运行中选择 **Re-run failed jobs**，同版本已存在的目标会跳过，补传其余目标。若主干版本已经前进，旧版本重跑会因提交／版本不一致而停止，应先按具体运行核对，不降低守卫。GitHub Release 发布成功不等于商城已经可下载，发布交付仍需分别核对 Actions 上传结果与商城实际版本。
+
+`marketplacePublication.test.ts` 覆盖可信上下文、成功运行与 Tag 绑定、正式附件清单及 URL、先校验后取凭据、全平台命令、环境隔离和脱敏失败。真实上传仅在获授权的发布中执行。

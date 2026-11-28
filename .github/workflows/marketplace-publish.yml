@@ -1,17 +1,21 @@
-name: Marketplace authentication
+name: Marketplace publishing
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
 
 permissions:
   contents: read
 
 concurrency:
-  group: marketplace-authentication
+  group: marketplace-publishing
   cancel-in-progress: false
 
 jobs:
   authenticate:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -40,3 +44,37 @@ jobs:
 
       - name: Verify trusted identity and publisher access without uploading
         run: npm run marketplace:auth:check
+
+  publish:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == 'H9elix/c-insight'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out trusted main-branch publishing code
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked verification and publishing tools
+        run: npm ci --ignore-scripts
+
+      - name: Verify published Release assets and upload them with trusted identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-marketplace-release.mjs

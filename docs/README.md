@@ -41,7 +41,7 @@
 
 ## 版本发布 `releases/`
 
-- [C Insight 0.24.0 发布说明](releases/v0.24.0.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
+- [C Insight 0.24.1 发布说明](releases/v0.24.1.md)：与 GitHub Release 正文一致的中英双语功能更新；同目录保留旧版本发布记录。
 
 每个 `package.json` 版本必须存在对应的 `releases/v<version>.md`。质量门检查版本、中英双语、比较链接和未完成占位符，Tag 发布工作流直接使用该文件作为 GitHub Release 正文。
 
