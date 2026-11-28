@@ -426,6 +426,7 @@ window.addEventListener('message',event=>{
       searchFilterSummary:role==='textSearch'?child?.getElementById('filterSummary')?.textContent:undefined,
       searchCheckboxesVisible:role==='textSearch'?[...child?.querySelectorAll('.match input')||[]].some(input=>input.getClientRects().length>0):undefined,
       searchControlsHeight:role==='textSearch'?child?.getElementById('controls')?.getBoundingClientRect().height:undefined,
+      searchControlOrder:role==='textSearch'?[...child?.getElementById('controls')?.children||[]].map(element=>element.id||element.className):undefined,
       searchControlsScrollHeight:role==='textSearch'?child?.getElementById('controls')?.scrollHeight:undefined,
       searchFilterControlsVisible:role==='textSearch'?[...child?.querySelectorAll('#filterArea input')||[]].every(input=>input.getClientRects().length>0):undefined,
       searchControlOverflow:role==='textSearch'?(child?.getElementById('controls')?.scrollWidth||0)-(child?.getElementById('controls')?.clientWidth||0):undefined,

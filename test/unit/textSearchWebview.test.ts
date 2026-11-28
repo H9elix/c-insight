@@ -27,6 +27,15 @@ describe("text search view isolation", () => {
     assert.match(source, /message\.revision !== this\.revision/);
     assert.doesNotMatch(source, /Uri\.parse\(message\./);
   });
+  it("places scope and filters above the adjacent search and replacement inputs", () => {
+    const labels = new Proxy({}, {get: (_, key) => String(key)}) as ReturnType<typeof textSearchLabels>;
+    const html = renderTextSearch("vscode-webview://test", "test-nonce", labels);
+    const markers = ['class="row scope-row"', 'id="filterSummary"', 'id="filterArea"', 'class="row query-row"', 'id="replaceArea"'];
+    const positions = markers.map(marker => html.indexOf(marker));
+    assert(positions.every((position, index) => position >= 0 && (!index || position > positions[index - 1])));
+    const between = html.slice(positions[3], positions[4]);
+    assert.doesNotMatch(between, /id="(?:scope|filterSummary|filterArea)"/);
+  });
   it("keeps a single results-window entry above the list without a bottom control", () => {
     const labels = new Proxy({}, {get: (_, key) => String(key)}) as ReturnType<typeof textSearchLabels>;
     for (const readOnly of [false, true]) {

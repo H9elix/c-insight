@@ -132,7 +132,7 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand(`cInsight.combined${slot}.focus`);
   }
   type Inspection = {panes: Array<{role: string; searchQuery?: string; searchChecked?: number; searchOpen?: boolean; searchRowMarker?: string; searchTokenMarker?: string; searchRendered?: number; searchTotal?: number;
-    searchFiltersOpen?: boolean; searchStatisticsOpen?: boolean; searchFilterSummary?: string; searchCheckboxesVisible?: boolean; searchControlsHeight?: number; searchControlsScrollHeight?: number; searchFilterControlsVisible?: boolean; searchControlOverflow?: number}>};
+    searchFiltersOpen?: boolean; searchStatisticsOpen?: boolean; searchFilterSummary?: string; searchCheckboxesVisible?: boolean; searchControlsHeight?: number; searchControlsScrollHeight?: number; searchFilterControlsVisible?: boolean; searchControlOverflow?: number; searchControlOrder?: string[]}>};
   const browser = async (slot: number, action?: object): Promise<Inspection> => {
     try { return await vscode.commands.executeCommand<Inspection>("cInsight.test.combinedBrowser", slot, action) as Inspection; }
     catch (error) { throw new Error(`Search browser slot=${slot} action=${JSON.stringify(action)} surfaces=${JSON.stringify(await vscode.commands.executeCommand("cInsight.test.combinedState"))}: ${String(error)}`); }
@@ -148,6 +148,7 @@ export async function run(): Promise<void> {
   await until(async () => (await pane(1))?.searchQuery === "PERF_NEEDLE" && (await pane(2))?.searchQuery === "PERF_NEEDLE", "Search renderers were not initialized");
   for (const slot of [1, 2]) {
     const compact = await pane(slot); assert.equal(compact?.searchFiltersOpen, false); assert.equal(compact?.searchStatisticsOpen, false);
+    assert.deepEqual(compact?.searchControlOrder, ["row scope-row", "filterSummary", "filterArea", "row query-row", "replaceArea"], "Scope and filters must precede the adjacent search/replacement inputs");
     assert.equal(compact?.searchCheckboxesVisible, false); assert((compact?.searchControlOverflow ?? 100) <= 1, "Compact controls overflow their pane");
     assert(compact?.searchFilterSummary?.includes("**/scale/**/*.txt"), "Active hidden filters must remain visible in the summary");
   }

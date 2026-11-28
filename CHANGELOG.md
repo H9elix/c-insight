@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Simplified Search & Replace with compact match toggles, collapsed file filters and details, visible active-filter summaries and warnings, and replacement-only checkboxes that retain selections.
+- Moved search scope, navigation and file filters above the query so expanded search and replacement inputs stay together.
 - Provide Windows, Linux and macOS platform-specific VSIX downloads alongside an explicitly named Universal package, with a shared checksum manifest.
 
 ## 0.24.0
